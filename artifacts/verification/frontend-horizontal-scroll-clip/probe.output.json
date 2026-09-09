@@ -1,0 +1,1006 @@
+{
+  "baseUrl": "http://localhost:3717",
+  "generatedAt": "2026-09-09T23:23:47.997Z",
+  "note": "滚动条宽度须为 15；若为 0 说明 --hide-scrollbars 未关闭，本报告不作数",
+  "routes": {
+    "home": {
+      "375": {
+        "url": "/shanghai",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".hm-home",
+        "navAttempts": 1,
+        "innerWidth": 375,
+        "clientWidth": 360,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 367.5,
+          "width": 375
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 8.5,
+          "right": 351.5,
+          "width": 343
+        },
+        "headerInner": {
+          "left": 16,
+          "right": 344,
+          "width": 328
+        },
+        "uncontainedOverflowCount": 21,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "hm-home",
+            "left": -7.5,
+            "right": 367.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-hero",
+            "left": -7.5,
+            "right": 367.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 367.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 367.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 367.5
+          }
+        ]
+      },
+      "768": {
+        "url": "/shanghai",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".hm-home",
+        "navAttempts": 1,
+        "innerWidth": 768,
+        "clientWidth": 753,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 760.5,
+          "width": 768
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 24.5,
+          "right": 728.5,
+          "width": 704
+        },
+        "headerInner": {
+          "left": 32,
+          "right": 721,
+          "width": 689
+        },
+        "uncontainedOverflowCount": 16,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "hm-home",
+            "left": -7.5,
+            "right": 760.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-hero",
+            "left": -7.5,
+            "right": 760.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 760.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 760.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 760.5
+          }
+        ]
+      },
+      "1440": {
+        "url": "/shanghai",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".hm-home",
+        "navAttempts": 1,
+        "innerWidth": 1440,
+        "clientWidth": 1425,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1432.5,
+          "width": 1440
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 40.5,
+          "right": 1384.5,
+          "width": 1344
+        },
+        "headerInner": {
+          "left": 48,
+          "right": 1377,
+          "width": 1329
+        },
+        "uncontainedOverflowCount": 16,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "hm-home",
+            "left": -7.5,
+            "right": 1432.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-hero",
+            "left": -7.5,
+            "right": 1432.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 1432.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 1432.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 1432.5
+          }
+        ]
+      },
+      "1920": {
+        "url": "/shanghai",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".hm-home",
+        "navAttempts": 1,
+        "innerWidth": 1920,
+        "clientWidth": 1905,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1912.5,
+          "width": 1920
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "headerInner": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "uncontainedOverflowCount": 16,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "hm-home",
+            "left": -7.5,
+            "right": 1912.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-hero",
+            "left": -7.5,
+            "right": 1912.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 1912.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 1912.5
+          },
+          {
+            "tag": "section",
+            "cls": "hm-section",
+            "left": -7.5,
+            "right": 1912.5
+          }
+        ]
+      }
+    },
+    "list": {
+      "375": {
+        "url": "/shanghai/listings",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".ls-page",
+        "navAttempts": 1,
+        "innerWidth": 375,
+        "clientWidth": 360,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 367.5,
+          "width": 375
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 8.5,
+          "right": 351.5,
+          "width": 343
+        },
+        "headerInner": {
+          "left": 16,
+          "right": 344,
+          "width": 328
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "ls-page",
+            "left": -7.5,
+            "right": 367.5
+          }
+        ]
+      },
+      "768": {
+        "url": "/shanghai/listings",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".ls-page",
+        "navAttempts": 1,
+        "innerWidth": 768,
+        "clientWidth": 753,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 760.5,
+          "width": 768
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 24.5,
+          "right": 728.5,
+          "width": 704
+        },
+        "headerInner": {
+          "left": 32,
+          "right": 721,
+          "width": 689
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "ls-page",
+            "left": -7.5,
+            "right": 760.5
+          }
+        ]
+      },
+      "1440": {
+        "url": "/shanghai/listings",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".ls-page",
+        "navAttempts": 1,
+        "innerWidth": 1440,
+        "clientWidth": 1425,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1432.5,
+          "width": 1440
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 40.5,
+          "right": 1384.5,
+          "width": 1344
+        },
+        "headerInner": {
+          "left": 48,
+          "right": 1377,
+          "width": 1329
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "ls-page",
+            "left": -7.5,
+            "right": 1432.5
+          }
+        ]
+      },
+      "1920": {
+        "url": "/shanghai/listings",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".ls-page",
+        "navAttempts": 1,
+        "innerWidth": 1920,
+        "clientWidth": 1905,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1912.5,
+          "width": 1920
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "headerInner": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "ls-page",
+            "left": -7.5,
+            "right": 1912.5
+          }
+        ]
+      }
+    },
+    "detail": {
+      "375": {
+        "url": "/shanghai/listings/changning-hongqiao-serviced",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".dt-page",
+        "navAttempts": 1,
+        "innerWidth": 375,
+        "clientWidth": 360,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 367.5,
+          "width": 375
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 8.5,
+          "right": 351.5,
+          "width": 343
+        },
+        "headerInner": {
+          "left": 16,
+          "right": 344,
+          "width": 328
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "dt-page",
+            "left": -7.5,
+            "right": 367.5
+          }
+        ]
+      },
+      "768": {
+        "url": "/shanghai/listings/changning-hongqiao-serviced",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".dt-page",
+        "navAttempts": 1,
+        "innerWidth": 768,
+        "clientWidth": 753,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 760.5,
+          "width": 768
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 24.5,
+          "right": 728.5,
+          "width": 704
+        },
+        "headerInner": {
+          "left": 32,
+          "right": 721,
+          "width": 689
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "dt-page",
+            "left": -7.5,
+            "right": 760.5
+          }
+        ]
+      },
+      "1440": {
+        "url": "/shanghai/listings/changning-hongqiao-serviced",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".dt-page",
+        "navAttempts": 1,
+        "innerWidth": 1440,
+        "clientWidth": 1425,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1432.5,
+          "width": 1440
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 40.5,
+          "right": 1384.5,
+          "width": 1344
+        },
+        "headerInner": {
+          "left": 48,
+          "right": 1377,
+          "width": 1329
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "dt-page",
+            "left": -7.5,
+            "right": 1432.5
+          }
+        ]
+      },
+      "1920": {
+        "url": "/shanghai/listings/changning-hongqiao-serviced",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".dt-page",
+        "navAttempts": 1,
+        "innerWidth": 1920,
+        "clientWidth": 1905,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1912.5,
+          "width": 1920
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "headerInner": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "dt-page",
+            "left": -7.5,
+            "right": 1912.5
+          }
+        ]
+      }
+    },
+    "recruit": {
+      "375": {
+        "url": "/city-partner",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".rc-page",
+        "navAttempts": 1,
+        "innerWidth": 375,
+        "clientWidth": 360,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 367.5,
+          "width": 375
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 8.5,
+          "right": 351.5,
+          "width": 343
+        },
+        "headerInner": {
+          "left": 16,
+          "right": 344,
+          "width": 328
+        },
+        "uncontainedOverflowCount": 4,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "rc-page",
+            "left": -7.5,
+            "right": 367.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section",
+            "left": -7.5,
+            "right": 367.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section rc-section--band",
+            "left": -7.5,
+            "right": 367.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section rc-section--tail",
+            "left": -7.5,
+            "right": 367.5
+          }
+        ]
+      },
+      "768": {
+        "url": "/city-partner",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".rc-page",
+        "navAttempts": 1,
+        "innerWidth": 768,
+        "clientWidth": 753,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 760.5,
+          "width": 768
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 8.5,
+          "right": 744.5,
+          "width": 736
+        },
+        "headerInner": {
+          "left": 32,
+          "right": 721,
+          "width": 689
+        },
+        "uncontainedOverflowCount": 4,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "rc-page",
+            "left": -7.5,
+            "right": 760.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section",
+            "left": -7.5,
+            "right": 760.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section rc-section--band",
+            "left": -7.5,
+            "right": 760.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section rc-section--tail",
+            "left": -7.5,
+            "right": 760.5
+          }
+        ]
+      },
+      "1440": {
+        "url": "/city-partner",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".rc-page",
+        "navAttempts": 1,
+        "innerWidth": 1440,
+        "clientWidth": 1425,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1432.5,
+          "width": 1440
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 200.5,
+          "right": 1224.5,
+          "width": 1024
+        },
+        "headerInner": {
+          "left": 48,
+          "right": 1377,
+          "width": 1329
+        },
+        "uncontainedOverflowCount": 4,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "rc-page",
+            "left": -7.5,
+            "right": 1432.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section",
+            "left": -7.5,
+            "right": 1432.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section rc-section--band",
+            "left": -7.5,
+            "right": 1432.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section rc-section--tail",
+            "left": -7.5,
+            "right": 1432.5
+          }
+        ]
+      },
+      "1920": {
+        "url": "/city-partner",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".rc-page",
+        "navAttempts": 1,
+        "innerWidth": 1920,
+        "clientWidth": 1905,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1912.5,
+          "width": 1920
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 440.5,
+          "right": 1464.5,
+          "width": 1024
+        },
+        "headerInner": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "uncontainedOverflowCount": 4,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "div",
+            "cls": "rc-page",
+            "left": -7.5,
+            "right": 1912.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section",
+            "left": -7.5,
+            "right": 1912.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section rc-section--band",
+            "left": -7.5,
+            "right": 1912.5
+          },
+          {
+            "tag": "section",
+            "cls": "rc-section rc-section--tail",
+            "left": -7.5,
+            "right": 1912.5
+          }
+        ]
+      }
+    },
+    "landing": {
+      "375": {
+        "url": "/entrust",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".landing-hero",
+        "navAttempts": 1,
+        "innerWidth": 375,
+        "clientWidth": 360,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 367.5,
+          "width": 375
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": -7.5,
+          "right": 367.5,
+          "width": 375
+        },
+        "headerInner": {
+          "left": 16,
+          "right": 344,
+          "width": 328
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "section",
+            "cls": "landing-hero landing-hero--split landing-hero--with-backgrou",
+            "left": -7.5,
+            "right": 367.5
+          }
+        ]
+      },
+      "768": {
+        "url": "/entrust",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".landing-hero",
+        "navAttempts": 1,
+        "innerWidth": 768,
+        "clientWidth": 753,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 760.5,
+          "width": 768
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": -7.5,
+          "right": 760.5,
+          "width": 768
+        },
+        "headerInner": {
+          "left": 32,
+          "right": 721,
+          "width": 689
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "section",
+            "cls": "landing-hero landing-hero--split landing-hero--with-backgrou",
+            "left": -7.5,
+            "right": 760.5
+          }
+        ]
+      },
+      "1440": {
+        "url": "/entrust",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".landing-hero",
+        "navAttempts": 1,
+        "innerWidth": 1440,
+        "clientWidth": 1425,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1432.5,
+          "width": 1440
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": -7.5,
+          "right": 1432.5,
+          "width": 1440
+        },
+        "headerInner": {
+          "left": 48,
+          "right": 1377,
+          "width": 1329
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "section",
+            "cls": "landing-hero landing-hero--split landing-hero--with-backgrou",
+            "left": -7.5,
+            "right": 1432.5
+          }
+        ]
+      },
+      "1920": {
+        "url": "/entrust",
+        "status": 200,
+        "markerPresent": true,
+        "marker": ".landing-hero",
+        "navAttempts": 1,
+        "innerWidth": 1920,
+        "clientWidth": 1905,
+        "scrollbarWidth": 15,
+        "maxScrollLeft": 0,
+        "htmlOverflowX": "clip",
+        "bodyOverflowX": "clip",
+        "shell": {
+          "left": -7.5,
+          "right": 1912.5,
+          "width": 1920
+        },
+        "bandCoversViewport": true,
+        "bandAsymmetry": 0,
+        "container": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "headerInner": {
+          "left": 232.5,
+          "right": 1672.5,
+          "width": 1440
+        },
+        "uncontainedOverflowCount": 1,
+        "uncontainedOverflowTop": [
+          {
+            "tag": "section",
+            "cls": "landing-hero landing-hero--split landing-hero--with-backgrou",
+            "left": -7.5,
+            "right": 1912.5
+          }
+        ]
+      }
+    }
+  },
+  "mechanism": [
+    {
+      "html": "visible",
+      "body": "clip",
+      "note": "修复前的状态",
+      "maxScrollLeft": 8,
+      "docScrollWidth": 1433,
+      "clientWidth": 1425
+    },
+    {
+      "html": "clip",
+      "body": "visible",
+      "note": "",
+      "maxScrollLeft": 8,
+      "docScrollWidth": 1433,
+      "clientWidth": 1425
+    },
+    {
+      "html": "clip",
+      "body": "clip",
+      "note": "本次修复",
+      "maxScrollLeft": 0,
+      "docScrollWidth": 1425,
+      "clientWidth": 1425
+    },
+    {
+      "html": "hidden",
+      "body": "clip",
+      "note": "hidden 会让根元素变成滚动容器、吸顶失效，不能用",
+      "maxScrollLeft": 0,
+      "docScrollWidth": 1425,
+      "clientWidth": 1425
+    }
+  ],
+  "sticky": {
+    "verticalScrollWorks": true,
+    "scrollTopApplied": 800,
+    "headerTopWhileScrolled": 0
+  },
+  "failures": [],
+  "passed": true
+}

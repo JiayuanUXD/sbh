@@ -13,10 +13,10 @@ import { describe, expect, it } from 'vitest'
  * `.rc-page` / `.landing-hero`）都要从 `.site-main` 的 `max-width: 1440` +
  * `padding-inline: 24` 里破出来。`100vw` **含**滚动条宽度而
  * `documentElement.clientWidth` 不含，配合 `margin-inline: calc(50% - 50vw)`
- * 居中后每侧探出 7.67px：
+ * 居中后每侧探出 7.5px：
  *
  *     documentElement.clientWidth          1425
- *     .hm-home 的 getBoundingClientRect()  left -7.67 / right 1432.33 / width 1440
+ *     .hm-home 的 getBoundingClientRect()  left -7.5 / right 1432.5 / width 1440
  *
  * 当时只有 `body` 那条 clip，**它不生效**：body 的 overflow 只有在根元素为
  * `visible` 时才会被提升到视口，而提升之后 body 自己按 `visible` 用（等于没裁），
@@ -24,8 +24,10 @@ import { describe, expect, it } from 'vitest'
  *
  *     documentElement.scrollLeft = 9999  →  读回 8   ← 用户真能横向拖 8px
  *
- * 四组对照（视口 1920 / clientWidth 1905，1440 与 768 同结论；375 走覆盖式
- * 滚动条，滚动条宽 0，本就不复现）：
+ * 四组对照（视口 1920 / clientWidth 1905）。375 / 768 / 1440 / 1920 四档同结论
+ * ——判据是**滚动条占不占布局宽度**而非视口大小：经典滚动条（桌面窗口，含
+ * 375px 宽的窄窗口）恒复现；覆盖式滚动条（真机与浏览器的移动端模拟）宽 0，
+ * `100vw` 恰好等于 `clientWidth`，本就不复现：
  *
  *     html visible + body clip     →  8   ← 修复前
  *     html clip    + body visible  →  8
@@ -35,17 +37,23 @@ import { describe, expect, it } from 'vitest'
  * 所以修复是**给根元素补一条**，不是把 body 那条挪走。谁把 body 那条删了，
  * 故障原样复发。
  *
- * ## 为什么必须是文本断言，E2E 顶不上
+ * ## 为什么现有 E2E 没能发现，以及本文件与探针的分工
  *
  * `tests/e2e/detail-pages.spec.ts` 早就在 1440 / 1920 上断言
- * `documentElement.scrollWidth <= clientWidth`，却从没红过——因为
- * **headless Chromium 的滚动条宽度是 0**（已实测：viewport 1440 下
+ * `documentElement.scrollWidth <= clientWidth`，却从没红过——**Playwright headless
+ * 默认带 `--hide-scrollbars`，滚动条宽度为 0**（实测 viewport 1440 下
  * `innerWidth 1440 / clientWidth 1440 / scrollbarWidth 0`）。滚动条不占布局，
- * `100vw` 就恒等于 `clientWidth`，那条断言在这一类缺陷上**结构性地不可能失败**。
- * 这个 bug 只在有经典滚动条的真实浏览器里存在，只能靠守「写法」来防。
+ * `100vw` 就恒等于 `clientWidth`，那条断言在这一类缺陷上不可能失败。
  *
- * 要把行为守卫也补上，得让 E2E 以带经典滚动条的方式跑（headful 或强制非覆盖式
- * 滚动条），那是另一件事；在那之前，本文件是唯一会红的地方。
+ * 注意这是**默认配置**的限制，不是 headless 的固有限制：
+ * `chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] })` 就能恢复 15px
+ * 经典滚动条并如实复现（同一测点读回 8）。行为验证因此是可行的，见
+ * `scripts/verify-horizontal-bleed-overflow.mjs`——它跑五路由 × 四视口，
+ * 并把上面那张四组对照表当场重算一遍，产出
+ * `artifacts/verification/frontend-horizontal-scroll-clip/probe.output.json`。
+ *
+ * 分工：那支探针需要起 dev server，属人工/按需运行；本文件是**进 pre-push 闸门**
+ * 的那一半，只守「写法」，零依赖、毫秒级。两者都在，改错才会当场红。
  */
 
 const ROOT = 'src/app/(frontend)'

@@ -229,7 +229,7 @@
  * `.rc-page` / `.landing-hero`），都要从 `.site-main`（`max-width: 1440` +
  * `padding-inline: 24`）里破出来。`100vw` **含**经典滚动条宽度，而
  * `documentElement.clientWidth` 不含；再配合 `margin-inline: calc(50% - 50vw)`
- * 居中，出血盒每侧各探出半条滚动条（实测 7.67px）。这是出血机制的固有找零，
+ * 居中，出血盒每侧各探出半条滚动条（实测 7.5px）。这是出血机制的固有找零，
  * 不是哪一处写错了。
  *
  * **为什么 body 单独一条不够**（2026-09-09 之前就是只有 body 那条，全站能横向
@@ -238,8 +238,11 @@
  * 视口的可滚动性。于是那条 clip 写了等于没写。把根元素也设成非 `visible`，
  * 这次提升就不再发生，body 那条才真正开始裁。两条是一对，别单独删任何一条。
  *
- * 实测四组（本地 dev，视口 1920 / 经典滚动条 15px，`documentElement.scrollLeft`
- * 置 9999 后读回；1440 与 768 同结论，375 走覆盖式滚动条本就不复现）：
+ * 实测四组（首页 1440 / 经典滚动条 15px，`documentElement.scrollLeft`
+ * 置 9999 后读回。375 / 768 / 1440 / 1920 四档同结论——判据是**滚动条占不占
+ * 布局宽度**，不是视口大小：经典滚动条（桌面窗口，含 375px 宽的窄窗口）恒复现；
+ * 覆盖式滚动条（真机与浏览器的移动端模拟）滚动条宽 0，`100vw` 恰好等于
+ * `clientWidth`，本就不复现）：
  *     html visible + body clip     →  8   ← 修复前的状态
  *     html clip    + body visible  →  8
  *     html clip    + body clip     →  0   ← 现在
@@ -251,11 +254,14 @@
  *
  * 顺带记一条量到的事实，免得下一个人当成 bug 重查：出血页的容器与页眉容器**不**
  * 严格同宽。页眉/页脚的 `100%` 是 body 内宽（不含滚动条），出血页的是 `100vw`
- * （含），1440 下 `.hm-container` 是 1344 @ left 40.33、`.site-header__inner` 是
- * 1328.67 @ left 48：中心重合，边缘差 7.67px。要消这 7.67px 得连 `.site-main`
+ * （含），1440 下 `.hm-container` 是 1344 @ left 40.5、`.site-header__inner` 是
+ * 1329 @ left 48：中心重合，边缘差 7.5px。要消这 7.5px 得连 `.site-main`
  * 的宽度上限一起动，不在本次修复范围内。
  *
- * 守卫见 `tests/frontend-horizontal-bleed-overflow.test.ts`。 */
+ * 上面每个数字都由 `scripts/verify-horizontal-bleed-overflow.mjs` 当场重算，原始
+ * 输出在 `artifacts/verification/frontend-horizontal-scroll-clip/probe.output.json`；
+ * 第一行（html visible + body clip）就是修复前状态，不必 checkout 旧代码即可复现。
+ * 写法守卫见 `tests/frontend-horizontal-bleed-overflow.test.ts`（进 pre-push 闸门）。 */
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
