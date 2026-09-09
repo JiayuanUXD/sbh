@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import SiteNav from '@/components/frontend/SiteNav'
+import HeaderSearch from '@/components/frontend/HeaderSearch'
 import CitySwitcher, { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
@@ -33,9 +34,12 @@ function HeaderContents({
   brand,
   searchParams,
   onRefreshSearchParams,
+  showSearch,
 }: HeaderShellProps & Readonly<{
   searchParams: Pick<URLSearchParams, 'get' | 'getAll' | 'has' | 'size' | 'toString'>
   onRefreshSearchParams?: () => void
+  /** 首页透明态不渲染顶栏搜索——首页 Hero 已有 `HomeSearchPill`，同屏两个搜索框是噪音。 */
+  showSearch: boolean
 }>) {
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   return (
@@ -54,6 +58,12 @@ function HeaderContents({
           cities={cities}
           defaultCity={defaultCity}
           multiCityRoutingEnabled={multiCityRoutingEnabled}
+        />
+      ) : null}
+      {showSearch ? (
+        <HeaderSearch
+          citySlug={multiCityRoutingEnabled && currentCity ? currentCity.slug : undefined}
+          initialKeyword={searchParams.get('q') ?? undefined}
         />
       ) : null}
       <SiteNav
@@ -79,9 +89,17 @@ function HeaderContents({
  *   - 外壳不得引入流式 Suspense 边界，query 一律经 useClientSearchParams
  *     在挂载后读取（原因见该 hook 的注释）；
  *   - 仅首页（pathname === '/'）且未滚动时透明；非首页始终实底，不受污染；
- *   - 滚动阈值 40px（约导航高度），过阈即切回实底；
+ *   - 滚动阈值见 TRANSPARENT_SCROLL_THRESHOLD，过阈即切回实底；
  *   - skip link 仍由 layout 渲染，焦点顺序不变。
  */
+
+/** 首页透明头切实底的滚动阈值，语义是「约一个头部高度」。
+ *
+ *  取 56 而不是 64：`--header-height` 是 64（≥768）/ 56（<768）两档（OPT-075），
+ *  取小的那档能保证两个断点下都「刚滚出头部就切实底」，不会在移动端偏晚。
+ *  这是本文件里唯一与该 token 联动的常量——CSS 侧的偏移全部走 `calc(var(--header-height) …)`，
+ *  不需要在 JS 里重复。改 token 时记得回来看这一行。 */
+const TRANSPARENT_SCROLL_THRESHOLD = 56
 export default function SiteHeader({
   cities,
   defaultCity,
@@ -102,16 +120,14 @@ export default function SiteHeader({
 
   useEffect(() => {
     if (!isHome) return
-    const onScroll = () => setScrolled(window.scrollY > 40)
+    const onScroll = () => setScrolled(window.scrollY > TRANSPARENT_SCROLL_THRESHOLD)
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [isHome])
 
-  const className = [
-    'site-header',
-    isHome && !scrolled ? 'site-header--transparent' : '',
-  ]
+  const transparent = isHome && !scrolled
+  const className = ['site-header', transparent ? 'site-header--transparent' : '']
     .filter(Boolean)
     .join(' ')
 
@@ -126,6 +142,7 @@ export default function SiteHeader({
           brand={brand}
           searchParams={searchParams}
           onRefreshSearchParams={refreshSearchParams}
+          showSearch={!transparent}
         />
       </div>
     </header>

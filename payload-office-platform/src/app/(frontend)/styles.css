@@ -57,7 +57,13 @@
   --r-ctrl: 12px;
   --r-input: 8px;
   --r-pill: 980px;
-  --header-height: 44px;
+  /* 顶栏高度（OPT-075：44 → 56/64）。**全站唯一定义处**——详情页决策卡与锚点条、
+     锚点 scroll-margin、招募页侧栏、首页 Hero 上探全部走 `calc(var(--header-height) …)`，
+     没有一处硬编码，改这里即全站跟随。JS 侧只有 `SiteHeader.tsx` 的透明头滚动阈值
+     与它联动，改这行记得回去看那个常量。
+     这里是移动端基线 56；≥768 在下方 --gut 换挡处升到 64（沿用该处的 min-width 升序写法）。
+     44 太窄，容不下顶栏搜索控件，视觉上也偏局促（2026-09-09 产品决定）。 */
+  --header-height: 56px;
   --header-bg: rgba(255, 255, 255, 0.8);
   --header-blur: saturate(1.8) blur(20px);
   --font-cn: "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC",
@@ -182,7 +188,11 @@
  * 要把这段也拿回来，只能让 16 一直用到 1024 或 1440——那等于承认桌面
  * 边距就该是 16，与本次改造的前提相反。 */
 @media (min-width: 768px) {
-  :root { --gut: 32px; }
+  :root {
+    --gut: 32px;
+    /* 桌面顶栏 64：40px 高的搜索控件 + 上下各 12px 呼吸。移动端保持 56，首屏更值钱。 */
+    --header-height: 64px;
+  }
 }
 @media (min-width: 1440px) {
   :root { --gut: 48px; }
@@ -578,7 +588,10 @@ ol {
   text-decoration: none;
 }
 
-@media (min-width: 1280px) {
+/* 1024 = 桌面导航断点（OPT-075 从 1280 降下来）。城市切换、主导航、汉堡三者必须同档，
+   否则会出现「有横排导航却还带着汉堡」这类错位。JS 侧的同一个值在
+   `SiteNav.tsx` 的 DESKTOP_NAV_MIN_WIDTH，改这里要一起改。 */
+@media (min-width: 1024px) {
   .city-switcher {
     display: block;
   }
@@ -591,6 +604,166 @@ ol {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* OPT-075 起 logo 与城市切换之间插入了搜索入口，三者需要固定间隔。
+     `.site-nav` 的 margin-left:auto 仍负责把导航推到右侧（margin auto 先于
+     justify-content 吃掉剩余空间），所以 space-between 与本 gap 不冲突。 */
+  gap: var(--sp-4);
+  /* 窄屏展开的搜索覆盖层以本容器为定位基准。挂在 `.header-search`（只有 40px 宽、
+     且位置靠左）上会让覆盖层向左伸出视口——实测 375 宽下 left 到了 −46px。 */
+  position: relative;
+}
+
+/* ---- 顶栏搜索（OPT-075）------------------------------------------------------
+ * 形态由 CSS 决定、`open` 状态只在 <1280 起作用，理由见 HeaderSearch.tsx 的文件注释。
+ *   ≥1280：输入框常驻，toggle 隐藏；
+ *   <1280：只显示 40px 图标钮，展开时表单绝对定位覆盖到头部右侧。
+ * 展开动效 220ms + cubic-bezier(.33,1,.68,1) 借自 eBay 折叠头的实测曲线；
+ * 减少动效下由 §2 的通配 !important 规则兜住，不必单独写 @media。 */
+.header-search {
+  display: flex;
+  align-items: center;
+  flex: none;
+  /* 刻意不设 position：覆盖层要以 .site-header__inner 为基准，理由见那条规则的注释。 */
+}
+
+.header-search__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.header-search__toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.site-header--transparent .header-search__toggle {
+  color: #fff;
+}
+
+.site-header--transparent .header-search__toggle:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.header-search__form {
+  display: none;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 40px;
+  padding: 0 4px 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink-3);
+}
+
+.header-search__form:focus-within {
+  border-color: var(--line-strong);
+}
+
+.header-search--open .header-search__toggle {
+  display: none;
+}
+
+/* 展开态覆盖整条头部内容区，只给右侧汉堡留位。
+   用 left/right 两端定位而不是给宽度：宽度需要减去 gut、logo、汉堡等一串变量，
+   算错一项就越界（第一版用 `right:0` + `width: min(420px, 100vw − …)`，375 下左边溢出到 −46px）。
+   两端定位由容器自己保证不越界，不需要任何算术。 */
+.header-search--open .header-search__form {
+  display: flex;
+  position: absolute;
+  left: 0;
+  right: calc(var(--touch-target) + var(--sp-2));
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+  animation: header-search-in var(--duration-base) cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+@keyframes header-search-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+}
+
+.header-search__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font-family: var(--font);
+  font-size: var(--fs-14);
+  color: var(--ink);
+}
+
+.header-search__input::placeholder {
+  color: var(--ink-3);
+}
+
+.header-search__input:focus {
+  outline: none;
+}
+
+.header-search__submit {
+  flex: none;
+  height: 32px;
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.header-search__submit:hover {
+  background: var(--accent-hover);
+}
+
+/* ≥1024（= 桌面导航断点）输入框常驻。
+   与断点同档而不是另设 1280：1024 处头部余量实测 196px，`flex: 0 1 320px` 会自动缩到
+   约 236px，仍然好用；分成两个断点只会多一档「有横排导航却只有搜索图标」的中间态。 */
+@media (min-width: 1024px) {
+  .header-search {
+    flex: 0 1 320px;
+    min-width: 0;
+  }
+
+  .header-search__toggle {
+    display: none;
+  }
+
+  /* 第二个选择器不是冗余：`.header-search--open .header-search__form` 是 (0,2,0)，
+     单写 `.header-search__form` 的 (0,1,0) 压不住它。用户在窄屏展开后把窗口拉宽到
+     ≥1024，覆盖层就会卡在绝对定位上。两个选择器并列 + 源码顺序在后，才真正接管。 */
+  .header-search__form,
+  .header-search--open .header-search__form {
+    display: flex;
+    position: static;
+    width: 100%;
+    transform: none;
+    animation: none;
+  }
 }
 
 .site-logo {
@@ -612,11 +785,19 @@ ol {
 .site-nav {
   display: none;
   align-items: center;
-  gap: var(--sp-7);
+  /* OPT-075：从 --sp-7(56) 收到 --sp-6(32)。
+   *
+   * **不是「不收窄就装不下」**——1024 实测过：保持 56px 时导航 658px，容器 945px
+   * 里仍余 52px，不溢出。收窄的真实理由是**余量太薄**：主导航项经后台可配
+   * （OPT-054 的 `mainNav`），运营把「找办公室」改成「找办公室出租」这一下就会顶破。
+   * 收到 32 后导航 514px、余量 196px，够吸收几次文案变长。
+   *
+   * 代价是所有桌面宽度下导航都变紧凑一档。改回 56 之前先在 1024 量一遍余量。 */
+  gap: var(--sp-6);
   margin-left: auto;
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1024px) {
   .site-nav {
     display: flex;
   }
@@ -683,7 +864,7 @@ ol {
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1024px) {
   .site-menu-toggle {
     display: none;
   }
@@ -691,7 +872,7 @@ ol {
 
 /* 顶部右侧动作区：现只剩移动端汉堡（头部 CTA 已于 2026-09-03 全站移除）。
    与 logo/导航同为 .site-header__inner 的 flex 子项，space-between 下靠右成组。
-   ≥1280px 时汉堡 display:none，本容器塌成零宽——原先那条 `margin-left: var(--sp-6)`
+   ≥1024px 时汉堡 display:none，本容器塌成零宽——原先那条 `margin-left: var(--sp-6)`
    是用来把 CTA 与导航拉开的，CTA 没了之后它只会把导航末项顶离右边缘 24px，
    一并删除。`.site-header__actions .btn--sm`（CTA 的 44px 触控高度）同理已无消费方。 */
 .site-header__actions {
@@ -2879,7 +3060,9 @@ ol {
   font-weight: 600;
 }
 
-@media (min-width: 1280px) {
+/* 与 .city-switcher / .site-nav / .site-menu-toggle 同为桌面导航断点（OPT-075：1280 → 1024）。
+   漏改这一处的后果是 1024–1279 已显示横排导航、抽屉遮罩却还留在 DOM 里可见。 */
+@media (min-width: 1024px) {
   .mobile-drawer__overlay {
     display: none;
   }
