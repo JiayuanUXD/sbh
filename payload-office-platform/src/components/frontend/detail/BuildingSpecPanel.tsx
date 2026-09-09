@@ -115,9 +115,12 @@ export default function BuildingSpecPanel({
   building,
   minLeasableArea,
   features = [],
+  visibility,
 }: Readonly<{
   building: BuildingSpecInput
   minLeasableArea: number | null
+  /** 运营配置的字段可见性（OPT-082）。缺省按 registry 默认走，即改造前的现状。 */
+  visibility?: SpecVisibilityMap
   /**
    * 「楼盘特色」标签（comp「楼盘参数」面板底部：标签列 104 + gap 32 · 13/500
    * 底 #f5f5f7），数据是 `BuildingDetailViewModel.amenities`。
@@ -125,12 +128,13 @@ export default function BuildingSpecPanel({
    * 放在本面板内部而不是由页面层另起一个面板，是照 comp 的分组：它与上方
    * 参数表共处一张白底面板、只用一条 hairline 分隔。空数组时整段不渲染
    * （**不是** 渲染一个「楼盘特色 —」的空行）——它不是固定 schema 的规格行，
-   * 而是「有几条列几条」的标签集合，与 SpecTable「缺失显示 — 不隐藏行」
-   * 的约定适用对象不同，同 `HeroSummaryPanel.pickHeroFacts` 的判据。
+   * 而是「有几条列几条」的标签集合，同 `HeroSummaryPanel.pickHeroFacts` 的判据。
+   * （OPT-082 起参数行本身也是「没值就不显」，两者的呈现于是一致了，但理由不同：
+   * 这里从来就不是规格行，不受那条规则反转的影响。）
    */
   features?: readonly string[]
 }>) {
-  const groups = buildBuildingSpecGroups(building, minLeasableArea)
+  const groups = buildBuildingSpecGroups(building, minLeasableArea, visibility)
   return (
     <DetailPanel variant="full" className="dt-building-spec">
       {groups.map((group) => (

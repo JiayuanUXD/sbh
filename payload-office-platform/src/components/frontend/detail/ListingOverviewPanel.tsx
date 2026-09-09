@@ -142,10 +142,14 @@ export function buildListingOverviewGroups(
  * **整块（含 `<h2>房源概况</h2>` 那层 section）的收起不在本组件**——本组件返回
  * 什么由调用方 `CityListingDetailView` 决定要不要渲染，见那里的 `overviewGroups`。
  */
+/**
+ * 本组件接收**已算好的分组**而不是 listing：调用方
+ * （`CityListingDetailView`）要用同一份分组判断整块渲不渲染，传 listing 会让
+ * 同一个纯函数在一次渲染里算两遍，且判断用的那份与渲染用的那份有分叉可能。
+ */
 export default function ListingOverviewPanel({
-  listing,
-}: Readonly<{ listing: ListingOverviewInput }>) {
-  const groups = buildListingOverviewGroups(listing)
+  groups,
+}: Readonly<{ groups: readonly ListingOverviewGroup[] }>) {
   return (
     <DetailPanel variant="full" className="dt-overview">
       {groups.map((group) => (

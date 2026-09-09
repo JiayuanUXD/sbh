@@ -82,6 +82,7 @@ export default async function BuildingDetailPage({
       />
       <BuildingDetailLayout
         disclaimers={{ price: siteSettings.priceDisclaimer, image: siteSettings.imageDisclaimer }}
+        specVisibility={siteSettings.detailSpecFields.building}
         building={building}
         supply={supply}
         relatedBuildings={relatedBuildings}

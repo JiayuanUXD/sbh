@@ -53,7 +53,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   // OPT-053：合规声明来自「站点设置」。与 layout 那次读取在同一请求内由
   // unstable_cache 去重，不多打一次库；缺省时各子组件用自己的字面量兜底。
   const siteSettings = await getCachedSiteSettings()
-  return <CityListingDetailView disclaimers={{ price: siteSettings.priceDisclaimer, image: siteSettings.imageDisclaimer }} city={city} listing={listing}
+  return <CityListingDetailView disclaimers={{ price: siteSettings.priceDisclaimer, image: siteSettings.imageDisclaimer }} specVisibility={siteSettings.detailSpecFields.listing} city={city} listing={listing}
     recommendations={recommendations} pois={pois} serviceSchedule={serviceSchedule}
     mapEnabled={building?.coordinates != null && hasAmapJsKey()} routeMode="legacy" />
 }

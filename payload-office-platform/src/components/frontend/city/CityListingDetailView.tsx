@@ -7,7 +7,10 @@ import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import CorrectionModal from '@/components/frontend/CorrectionModal'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import ListingDecisionCard, { buildListingPriceDigest } from '@/components/frontend/detail/ListingDecisionCard'
-import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
+import ListingOverviewPanel, {
+  buildListingOverviewGroups,
+} from '@/components/frontend/detail/ListingOverviewPanel'
+import type { SpecVisibilityMap } from '@/lib/frontend/detail-spec/fields'
 import RelatedListings, { RelatedListingsSkeleton } from '@/components/frontend/detail/RelatedListings'
 import type { SpecRow } from '@/components/frontend/detail/SpecTable'
 import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
@@ -86,6 +89,7 @@ export default function CityListingDetailView({
   mapEnabled,
   routeMode,
   disclaimers,
+  specVisibility,
 }: Readonly<{
 /**
  * 合规声明（OPT-053）。来自「站点设置 → 合规声明」，由路由层取好传入。
@@ -93,6 +97,11 @@ export default function CityListingDetailView({
  * dev-story 演示页也不该被迫构造这个对象。
  */
   disclaimers?: Readonly<{ price?: string; image?: string }>
+  /**
+   * 概况区展示哪些字段（OPT-082）。来自「站点设置 → 详情页参数」，由路由层
+   * 取好传入。**可选**：缺省时按 registry 默认走（即改造前的现状）。
+   */
+  specVisibility?: SpecVisibilityMap
   city: CityContext
   listing: ListingDetailViewModel
   recommendations: RecommendationsProp
@@ -114,6 +123,10 @@ export default function CityListingDetailView({
         capturedAt: null,
         isSchematic: false,
       }))
+  // 概况分组只算一次：本层要用它判断整块渲不渲染，面板要用它渲染。算两遍不会
+  // 出错但没必要，而且「判断用的那份」与「渲染用的那份」一旦分叉就是最难查的
+  // 那种不一致（判断说有、渲染出来是空）。
+  const overviewGroups = buildListingOverviewGroups(listing, specVisibility)
   // 价格摘要只算一次，决策卡与吸附询价条共用（两者是同一个询价入口的两种
   // 呈现形态，文案分叉就是两个事实源）。
   const priceDigest = buildListingPriceDigest(listing)
@@ -219,10 +232,16 @@ export default function CityListingDetailView({
               取消后没有 tab 壳，见 ListingOverviewPanel 文件头）。h2 由本层给：
               comp 那里的「房源概况」是 tab pill 的文字，tab 没了就得有个真标题，
               否则这一整块在无障碍树里没有名字。 */}
-          <section id="overview" className="dt-overview-block">
-            <h2 className="dt-h2">房源概况</h2>
-            <ListingOverviewPanel listing={listing} />
-          </section>
+          {/* OPT-082：全部字段被运营关掉、或这套房源一个值都没有时，**整块不渲染**
+              ——只留一个「房源概况」标题加一张空面板，比不渲染更糟（空货架，与
+              `BuildingDetailLayout` 的 `hasSpecValues` 同一口径）。判断复用同一个
+              纯函数，不在这里另写一套「哪些字段算概况」的逻辑。 */}
+          {overviewGroups.length > 0 && (
+            <section id="overview" className="dt-overview-block">
+              <h2 className="dt-h2">房源概况</h2>
+              <ListingOverviewPanel groups={overviewGroups} />
+            </section>
+          )}
         </div>
       </div>
 
