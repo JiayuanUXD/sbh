@@ -15,6 +15,13 @@
  */
 
 import type { MediaViewModel } from '@/domain/public-catalog/contracts'
+// `detail-spec/fields` 是零 import 的纯数据模块，客户端安全——本文件的客户端
+// 安全约束见上方文件头，别改成从 `detail-spec/building-rows` 取（那条链会把
+// `@/domain/public-catalog` 索引拉进浏览器包）。
+import {
+  DETAIL_SPEC_VISIBILITY_DEFAULTS,
+  type DetailSpecVisibility,
+} from '@/lib/frontend/detail-spec/fields'
 
 export type SiteSettingsView = Readonly<{
   siteName: string
@@ -47,6 +54,14 @@ export type SiteSettingsView = Readonly<{
   mainNav: ReadonlyArray<Readonly<{ href: string; label: string }>>
   /** 页脚分组（OPT-054）。同上，href 已解析。空分组不会出现在这里。 */
   footerColumns: ReadonlyArray<Readonly<{ title: string; links: ReadonlyArray<Readonly<{ href: string; label: string }>> }>>
+  /**
+   * 详情页参数区展示哪些字段（OPT-082）。key → 是否展示，key 取自
+   * `detail-spec/fields.ts` 的 registry。
+   *
+   * 这里存的是**已经补齐过的完整映射**（缺键在 `toView` 就落回 registry 默认），
+   * 消费方不需要再考虑「配置里没这个 key 怎么办」。
+   */
+  detailSpecFields: DetailSpecVisibility
 }>
 
 /**
@@ -112,6 +127,9 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
       ],
     },
   ],
+  // OPT-082：兜底即 registry 默认，不手抄一份。迁移执行前 `site_settings` 表上
+  // 没有这些列，此时前台必须仍是改造前的现状——这就是「上线零变化」的另一半。
+  detailSpecFields: DETAIL_SPEC_VISIBILITY_DEFAULTS,
 }
 
 /** 把 `{城市}` 占位符替换成当前城市名。运营手写城市名正是本工作项修掉的那个 bug。 */
