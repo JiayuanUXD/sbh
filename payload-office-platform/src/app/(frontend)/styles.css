@@ -812,6 +812,10 @@ ol {
    * 代价是所有桌面宽度下导航都变紧凑一档。改回 56 之前先在 1024 量一遍余量。 */
   gap: var(--sp-6);
   margin-left: auto;
+  /* 撑满顶栏高度（覆写 `.site-header__inner` 的 align-items:center）。
+     只为一件事：让选中下划线有「顶栏底边」可贴——见 `.site-nav__link::after`。
+     导航文字仍居中，靠本规则自己的 align-items:center。 */
+  align-self: stretch;
 }
 
 @media (min-width: 1024px) {
@@ -823,6 +827,9 @@ ol {
 .site-nav__link {
   display: inline-flex;
   align-items: center;
+  /* 撑满顶栏（64，移动端 56——两档都 ≥ --touch-target，触控目标不受影响）。
+     min-height 保留作地板值：万一顶栏再调矮到 44 以下，触控高度仍不塌。 */
+  align-self: stretch;
   min-height: var(--touch-target);
   color: var(--ink);
   font-size: var(--fs-14);
@@ -838,12 +845,23 @@ ol {
   text-decoration: none;
 }
 
+/* 选中/hover 下划线**贴顶栏底边**（2026-09-09 用户走查）。
+ *
+ * 改前：链接盒是 44 高、在 64 的顶栏里居中（上下各余 10），`bottom: -4px` 把
+ * 下划线放在 58–60，距顶栏底边还差 4px——它既不贴文字也不贴顶栏，悬在中间，
+ * 看不出在给谁做底。实测值见改动记录。
+ * 改后：`.site-nav` 与 `.site-nav__link` 都 align-self:stretch 撑满顶栏，链接盒
+ * 变成 0–64，这里 `bottom: 0` 即顶栏底边（`.site-header` 无 border-bottom，
+ * 底边就是它的下沿）。
+ * 不写 `bottom: -10px` 之类的负值去够：那要把「44 与顶栏高度的差」硬编码进来，
+ * 顶栏 56/64 两档（--header-height）以及日后再调都会失准；撑满之后这个差
+ * 不再进入计算。 */
 .site-nav__link::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -4px;
+  bottom: 0;
   height: 2px;
   background: var(--accent);
   transform: scaleX(0);
