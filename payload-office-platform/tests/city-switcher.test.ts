@@ -2,7 +2,7 @@
 
 import React, { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const navigationState = vi.hoisted(() => ({
   pathname: '/shanghai/listings',
@@ -21,6 +21,9 @@ vi.mock('@/lib/frontend/analytics', () => ({
 vi.mock('next/navigation', () => ({
   usePathname: () => navigationState.pathname,
   useSearchParams: () => new URLSearchParams(navigationState.search),
+  // OPT-075：外壳里多了 HeaderSearch，它要 useRouter 提交搜索。本文件验的是城市切换与
+  // 抽屉焦点，不关心导航是否真的发生，给个空实现即可。
+  useRouter: () => ({ push: () => undefined, replace: () => undefined, prefetch: () => undefined }),
 }))
 
 import CitySwitcher from '@/components/frontend/CitySwitcher'
@@ -36,6 +39,25 @@ const cities = [
 ]
 
 let root: Root | null = null
+
+/* 窄视口基线（OPT-075）。
+ *
+ * 本文件大半用例验的是**移动抽屉**，而 `SiteNav` 靠 `matchMedia` 判断是否处于桌面档：
+ * 桌面档下点汉堡不开抽屉（`nextOpen = isDesktopNavigationViewport() ? false : !open`）。
+ *
+ * 桌面断点从 1280 降到 1024 后，这里必须显式声明窄视口——**jsdom 的默认窗口宽度正好是
+ * 1024**，`(min-width: 1024px)` 于是恒为真，抽屉再也打不开。这不是回归，是断点下调的
+ * 正确后果：1024 起就该显示横排导航。
+ *
+ * 需要桌面档的两个用例（媒体查询激活时关抽屉）在各自 it 里再 stubGlobal 覆盖本基线。 */
+beforeEach(() => {
+  vi.stubGlobal('matchMedia', (media: string) => ({
+    matches: false,
+    media,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }))
+})
 
 afterEach(async () => {
   if (root) await act(async () => root?.unmount())

@@ -15,10 +15,21 @@ import {
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import { citySwitchPreservedFilters, getCityPageType } from '@/lib/frontend/city-routes'
 
+/** 桌面导航显示断点。**与 `styles.css` 里三条 `@media (min-width: 1024px)` 是同一个值的两个
+ *  事实源**（`.city-switcher` / `.site-nav` / `.site-menu-toggle`），改一处必须改另一处，
+ *  否则会出现「CSS 显示了横排导航、JS 仍以为在移动端」这类错位。抽成常量至少让本文件里
+ *  的两处消费方同步。
+ *
+ *  OPT-075 从 1280 降到 1024：顶栏加高到 64px 后，1024–1279 这一档只剩汉堡会更显空。
+ *  1024 实测导航 514px（gap 收到 32 后）、容器 945px，余量 196px；即便保持原来的 56px
+ *  也只是余 52px 而已，不会溢出——所以降断点本身不依赖收窄间距，收窄买的是余量
+ *  （导航文案后台可配，见 styles.css 里 `.site-nav` 的注释）。 */
+const DESKTOP_NAV_MIN_WIDTH = 1024
+
 function isDesktopNavigationViewport(): boolean {
   return typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
-    && window.matchMedia('(min-width: 1280px)').matches
+    && window.matchMedia(`(min-width: ${DESKTOP_NAV_MIN_WIDTH}px)`).matches
 }
 
 /**
@@ -161,7 +172,7 @@ export default function SiteNav({
 
   useEffect(() => {
     if (!open || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-    const desktopMedia = window.matchMedia('(min-width: 1280px)')
+    const desktopMedia = window.matchMedia(`(min-width: ${DESKTOP_NAV_MIN_WIDTH}px)`)
     const closeAtDesktopBreakpoint = (event: MediaQueryListEvent) => {
       if (!event.matches) return
       setOpen(false)

@@ -29,6 +29,10 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => {
     throw neverResolves
   },
+  // OPT-075：HeaderSearch 用 useRouter 提交搜索。**它与本文件要验的东西无关**——
+  // 这里验的是「外壳不被流式边界顶掉」，而 useRouter 不像 useSearchParams 那样会触发
+  // CSR bailout，给个空实现不会削弱断言。上面 useSearchParams 仍故意抛，那条约束不变。
+  useRouter: () => ({ push: () => undefined, replace: () => undefined, prefetch: () => undefined }),
 }))
 
 vi.mock('@/app/(frontend)/_lib/city-context', () => ({

@@ -131,7 +131,8 @@
 .hm-hero { position: relative; min-height: 760px; display: flex; align-items: center;
   justify-content: center; overflow: hidden; background: #3a3a3c;
   /* 顶部额外加 header-height：Hero 已延伸到吸顶头部下方（见 .hm-home），
-     内容需要多留一段顶部间距才不会被 44px 头部遮住 */
+     内容需要多留一段顶部间距才不会被头部遮住。高度走 token（56/64，OPT-075），
+     这里不写字面量——写死过一次「44px」，改高度时就成了漂移的注释。 */
   padding-block: calc(var(--pad) + var(--header-height)) var(--pad); }
 /* HomeHeroMedia（既有组件）的容器类名，样式随 §11 一并删除前先在此地重锚 */
 .hm-hero .hero__bg { position: absolute; inset: 0; z-index: 0; }

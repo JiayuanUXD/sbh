@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import React, { useId, useRef, useState } from 'react'
+import { buildListingSearchHref } from '@/lib/frontend/search-submit'
 
 /** 与 HeroSearch.tsx 原样搬运：类型选项，取值/顺序必须一致。 */
 const TYPE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
@@ -40,22 +41,19 @@ export default function HomeSearchPill({ districts, citySlug }: Readonly<{
   const [type, setType] = useState('')
   const [area, setArea] = useState('')
   const keywordRef = useRef<HTMLInputElement>(null)
-  const listingsPath = citySlug ? `/${encodeURIComponent(citySlug)}/listings` : '/listings'
 
+  /* URL 拼装抽到 lib/frontend/search-submit.ts（OPT-075），与顶栏 `HeaderSearch` 同用一份。
+     两个入口各拼一次 query 的话，同一个词搜出来会是两条不同的 canonical。 */
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    const params = new URLSearchParams()
-    const q = (keywordRef.current?.value ?? '').trim().slice(0, 100)
-    if (q) params.set('q', q)
-    if (district) params.set('district', district)
-    if (type) params.set('type', type)
-    if (area) {
-      const [min, max] = area.split('-')
-      if (min) params.set('areaMin', min)
-      if (max) params.set('areaMax', max)
-    }
-    const qs = params.toString()
-    router.push(qs ? `${listingsPath}?${qs}` : listingsPath)
+    router.push(
+      buildListingSearchHref(citySlug, {
+        q: keywordRef.current?.value ?? '',
+        district,
+        type,
+        area,
+      }),
+    )
   }
 
   return (

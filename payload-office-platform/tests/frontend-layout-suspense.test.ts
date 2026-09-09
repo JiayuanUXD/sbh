@@ -18,6 +18,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/hangzhou',
+  // OPT-075：HeaderSearch 用 useRouter 提交搜索。**刻意仍不提供 useSearchParams**——
+  // 本文件第二条用例正是靠「不提供就会抛」来证明外壳不依赖它，那条约束原样保留。
+  useRouter: () => ({ push: () => undefined, replace: () => undefined, prefetch: () => undefined }),
 }))
 
 vi.mock('@/app/(frontend)/_lib/city-context', () => ({
