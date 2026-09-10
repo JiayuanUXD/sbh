@@ -1,0 +1,60 @@
+/* OPT-088 会员入口与账户页。只用 styles.css §1.1 的 token；容器与断点沿用全站规则。 */
+
+.member-menu-slot { display: none; }
+@media (min-width: 1024px) {
+  .member-menu-slot { display: inline-flex; align-items: center; }
+}
+
+.member-login { min-height: 36px; white-space: nowrap; }
+
+.member-menu { position: relative; }
+.member-menu__trigger {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--bg-subtle); color: var(--ink); cursor: pointer; font-size: var(--fs-13); font-weight: 600;
+}
+.member-menu__trigger:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.member-menu__panel {
+  position: absolute; right: 0; top: calc(100% + 8px); min-width: 200px;
+  background: var(--bg-subtle); border-radius: var(--r-card); box-shadow: var(--shadow-hover);
+  padding: var(--sp-2) 0; z-index: 40;
+  animation: member-menu-in 200ms var(--ease-enter);
+}
+@keyframes member-menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .member-menu__panel { animation: none; } }
+.member-menu__phone { margin: 0; padding: var(--sp-2) var(--sp-4); font-size: var(--fs-13); color: var(--ink-2); }
+.member-menu__item {
+  display: block; width: 100%; text-align: left; padding: var(--sp-3) var(--sp-4);
+  min-height: 44px; font-size: var(--fs-14); color: var(--ink); background: transparent; border: 0; cursor: pointer; text-decoration: none;
+}
+.member-menu__item:hover, .member-menu__item:focus-visible { background: var(--bg); outline: none; }
+.member-menu__item--danger { color: var(--accent-link); }
+
+.member-drawer { display: flex; flex-direction: column; padding-bottom: var(--sp-3); border-bottom: 1px solid var(--line); margin-bottom: var(--sp-3); }
+.member-drawer__phone { margin: 0 0 var(--sp-2); font-size: var(--fs-13); color: var(--ink-2); }
+.member-drawer__logout { text-align: left; background: transparent; border: 0; cursor: pointer; }
+
+.site-footer__staff-link { margin-left: auto; color: inherit; text-decoration: none; }
+.site-footer__staff-link:hover { text-decoration: underline; }
+
+/* 账户与登录页 */
+.mb-page { width: min(var(--w), 100% - 32px); margin: 0 auto; padding: var(--pad) 0; }
+.mb-card { max-width: 440px; margin: 0 auto; padding: 32px; background: var(--bg-subtle); border-radius: var(--r-card); }
+.mb-card--wide { max-width: none; }
+.mb-title { margin: 0 0 var(--sp-4); font-size: var(--fs-22); font-weight: 600; letter-spacing: normal; }
+.mb-tabs { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.mb-tab { flex: 1; min-height: 44px; border: 1px solid var(--line); border-radius: var(--r-pill); background: transparent; color: var(--ink-2); cursor: pointer; font-size: var(--fs-14); }
+.mb-tab[aria-selected='true'] { background: var(--ink); color: var(--color-on-ink, #f5f5f7); border-color: var(--ink); }
+.mb-form { display: flex; flex-direction: column; gap: var(--sp-4); }
+.mb-row { display: flex; gap: var(--sp-2); align-items: flex-end; }
+.mb-row .modal__label { flex: 1; }
+.mb-consent { display: flex; gap: var(--sp-2); align-items: flex-start; font-size: var(--fs-13); color: var(--ink-2); }
+.mb-consent input { width: 18px; height: 18px; margin-top: 2px; }
+.mb-note { margin: var(--sp-4) 0 0; font-size: var(--fs-13); color: var(--ink-2); text-align: center; }
+.mb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.mb-item { display: flex; flex-direction: column; gap: var(--sp-2); padding: 16px; }
+.mb-item__title { font-size: var(--fs-16); font-weight: 600; color: var(--ink); text-decoration: none; }
+.mb-item__meta { font-size: var(--fs-13); color: var(--ink-2); }
+.mb-tag { display: inline-block; padding: 2px 8px; border-radius: var(--r-pill); background: var(--bg); font-size: var(--fs-12); color: var(--ink-2); }
+.mb-empty { text-align: center; color: var(--ink-2); padding: var(--pad) 0; }
+@media (max-width: 767px) { .mb-card { padding: 20px; } }

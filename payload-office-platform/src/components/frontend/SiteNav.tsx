@@ -14,6 +14,8 @@ import {
 } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import { citySwitchPreservedFilters, getCityPageType } from '@/lib/frontend/city-routes'
+import MemberMenu from '@/components/frontend/member/MemberMenu'
+import type { MemberDto } from '@/domain/member/member-dto'
 
 /** 桌面导航显示断点。**与 `styles.css` 里三条 `@media (min-width: 1024px)` 是同一个值的两个
  *  事实源**（`.city-switcher` / `.site-nav` / `.site-menu-toggle`），改一处必须改另一处，
@@ -95,6 +97,7 @@ export default function SiteNav({
   searchParams,
   onRefreshSearchParams,
   actions,
+  member,
 }: Readonly<{
   /**
    * 主导航项（OPT-054）。href 已由服务端从目标池解析好——本组件不认识目标 id，
@@ -110,6 +113,7 @@ export default function SiteNav({
   onRefreshSearchParams?: () => void
   /** 右侧动作区插槽（搜索框、未来扩展项等） */
   actions?: React.ReactNode
+  member?: MemberDto | null
 }>) {
   const [open, setOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
@@ -277,6 +281,7 @@ export default function SiteNav({
             aria-label="导航菜单"
             onClick={(e) => e.stopPropagation()}
           >
+            <MemberMenu member={member ?? null} pathname={pathname} variant="drawer" onNavigate={() => { setOpen(false); toggleRef.current?.focus() }} />
             <nav className="mobile-drawer__nav" aria-label="主导航（移动）">
               {items.map((item) => {
                 const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href

@@ -132,6 +132,20 @@ export function isSaved(type: SavedDetailType, id: number): boolean {
 }
 
 /**
+ * 登录合并后清空本地收藏，避免两份事实源。
+ */
+export function clearSavedDetails(): void {
+  const storage = getStorage()
+  if (storage === null) return
+  try {
+    storage.removeItem(STORAGE_KEY)
+  } catch {
+    // 与 persist 同样静默
+  }
+  notifySavedChange()
+}
+
+/**
  * localStorage 是否可用（用于禁用/隐私模式下显示非阻断提示）。
  */
 export function isLocalStorageAvailable(): boolean {

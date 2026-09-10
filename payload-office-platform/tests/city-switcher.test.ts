@@ -26,6 +26,11 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: () => undefined, replace: () => undefined, prefetch: () => undefined }),
 }))
 
+vi.mock('@/domain/member/current-member', () => ({
+  getCurrentMember: async () => null,
+  getCurrentMemberDto: async () => null,
+}))
+
 import CitySwitcher from '@/components/frontend/CitySwitcher'
 import SiteFooter from '@/components/frontend/SiteFooter'
 import { SITE_SETTINGS_FALLBACK } from '@/lib/frontend/site-settings'
