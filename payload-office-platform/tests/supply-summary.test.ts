@@ -18,6 +18,10 @@
  *   - **basis=total 也必须过 period 闸门**（终审 C3 修复）：只有 period=one-time
  *     才是「amount 就是总价」原样返回；租赁语境的整套计价（元/天 · 元/月 ·
  *     元/年）与另两条 basis 走同一套折算，元/年返回 null；
+ *   - **basis=sqm + period=one-time 是出售单价**（`rmb-sqm-total`，表头「单价
+ *     元/㎡」），总价 = 单价 × 面积。这条分支曾整个缺席，落到函数末尾的
+ *     `return null`，导致所有按㎡报价的出售房源总价列恒为「—」；basis=seat 则
+ *     刻意**不设** one-time 分支（一次性计价配工位没有业务含义）。
  *   - formatGroupTotal 出售组 /10000（万元），其余组原样取整，均为千分位数字。
  *   - findLowestPrice 只在**单一计价单位内**取 min（终审 I3 修复）：三种租金
  *     单位不可通约，跨单位比 min 会把工位价当成整栋楼的起价。
@@ -131,9 +135,57 @@ describe('estimateRowTotal', () => {
     expect(estimateRowTotal(price(), { area: null, seats: null })).toBeNull()
   })
 
-  it('无法折算的计价方式（按年/一次性）返回 null', () => {
+  it('basis=sqm 且 period=year（按㎡年租）返回 null', () => {
     expect(
       estimateRowTotal(price({ period: 'year', displayUnit: 'rmb-month' }), { area: 100, seats: null }),
+    ).toBeNull()
+  })
+
+  /**
+   * 出售单价（`one-time` + `sqm` → `rmb-sqm-total`）。sqm 分支原本只认 day/month，
+   * one-time 落到末尾的 `return null`——`basis='total'` 早在终审 C3 就为 one-time
+   * 开了口子，同一件事的另一半漏做，于是「出售 + 按㎡报单价」的总价列恒为「—」。
+   * 生产实证（2026-09-10，上河商务园 `/shanghai/buildings/shangheshangwuyuan`）：
+   * 三套房源面积与单价俱全，总价列仍是「—」。下面第三条用的就是那一行的真实数字。
+   */
+  it('basis=sqm 且 period=one-time（出售单价）总价 = 单价 × 面积', () => {
+    expect(
+      estimateRowTotal(
+        price({ businessType: 'sale', basis: 'sqm', period: 'one-time', displayUnit: 'rmb-sqm-total', amount: 20_000 }),
+        { area: 990.76, seats: null },
+      ),
+    ).toBe(20_000 * 990.76)
+  })
+
+  it('basis=sqm 且 period=one-time 但面积缺失返回 null，不把单价当总价', () => {
+    expect(
+      estimateRowTotal(
+        price({ businessType: 'sale', basis: 'sqm', period: 'one-time', displayUnit: 'rmb-sqm-total', amount: 20_000 }),
+        { area: null, seats: null },
+      ),
+    ).toBeNull()
+  })
+
+  it('出售单价折算后经 formatGroupTotal 得到万元口径（上河商务园首行回归）', () => {
+    const total = estimateRowTotal(
+      price({ businessType: 'sale', basis: 'sqm', period: 'one-time', displayUnit: 'rmb-sqm-total', amount: 10_000 }),
+      { area: 618.42, seats: null },
+    )
+    expect(total).toBe(6_184_200)
+    expect(formatGroupTotal(total as number, 'sale')).toBe('618')
+  })
+
+  /**
+   * 与 sqm 相反：seat 分支**故意**不认 one-time。一次性计价配「按工位」没有业务
+   * 含义（联合办公按工位月付），真出现这个组合应当在录入侧拦，而不是在这里替它
+   * 编一个总价出来。这条用例把「不做」这个决定钉住，避免后来者顺手补齐。
+   */
+  it('basis=seat 且 period=one-time 返回 null（刻意不折算）', () => {
+    expect(
+      estimateRowTotal(
+        price({ basis: 'seat', period: 'one-time', displayUnit: 'rmb-seat-month', amount: 1200 }),
+        { area: 999, seats: 20 },
+      ),
     ).toBeNull()
   })
 })

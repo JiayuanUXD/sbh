@@ -90,7 +90,14 @@ export function formatAreaRange(range: { min: number; max: number }): string {
  *     不能用面积代替。旧版实现曾把调用方唯一持有的 `area` 直接当 seats 传入
  *     （此文件曾经的单测注释「按面积（工位数）折算」就是这处误用留下的痕迹），
  *     随 ListingCardViewModel 补齐 `seats` 字段（OPT-037 Task 7）一并订正；
- *   - basis='sqm'：按面积计价（租赁 / 出售单价），用 area；day 按 30 天折算月租。
+ *   - basis='sqm'：按面积计价，用 area。`period='one-time'` 是**出售单价**
+ *     （`rmb-sqm-total`，表头「单价 元/㎡」），总价 = 单价 × 面积，不做周期折算；
+ *     租赁语境的 day 按 30 天折算月租，month 原样。one-time 这条分支曾整个缺席，
+ *     所有按㎡报价的出售房源总价列恒为「—」（生产实证：上河商务园三套面积、单价
+ *     俱全仍显示「—」）。basis='total' 早已为 one-time 开了口子，这里是同一件事
+ *     漏做的另一半。
+ * `basis='seat'` **不设 one-time 分支**：一次性计价配工位在业务上讲不通（联合办公
+ * 按工位月付），后台真填出这个组合应当在录入侧拦，而不是在这里替它编一个总价。
  * 任一必需维度缺失都返回 null（表格显示「—」），不做静默 0 填充。
  */
 export function estimateRowTotal(
@@ -116,6 +123,8 @@ export function estimateRowTotal(
     return null
   }
   if (dims.area == null) return null
+  // 出售单价：amount 是每平方米一口价，乘面积即总价，没有周期可折算。
+  if (period === 'one-time') return amount * dims.area
   if (period === 'day') return amount * dims.area * 30
   if (period === 'month') return amount * dims.area
   return null
