@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   availablePublicationActions,
   permissionForPublishAction,
+  publicationActionsDisabledReason,
   resolveLiveListingState,
   type LiveListingStateFields,
 } from '@/domain/listing/publication-actions'
@@ -202,5 +203,20 @@ describe('resolveLiveListingState', () => {
         { publicationStatus: 'draft', businessType: null, version: null },
       ),
     ).toEqual({ publicationStatus: 'draft', businessType: null, version: null })
+  })
+})
+
+/**
+ * 动作成功后动作条会 router.refresh()，Payload 拿新的 initialState 对 <Form> 做 REPLACE_STATE，
+ * 表单里没保存的编辑会被整体换掉、不留痕。所以有未保存改动时动作一律不可用——
+ * 这不是「谨慎」，是防止「点一下下架，顺手丢掉半小时的编辑」。
+ */
+describe('publicationActionsDisabledReason', () => {
+  it('表单有未保存改动 → 给出禁用理由（用于按钮 tooltip / title）', () => {
+    expect(publicationActionsDisabledReason(true)).toBe('有未保存的改动，请先保存再执行发布动作')
+  })
+
+  it('表单干净 → null（不禁用）', () => {
+    expect(publicationActionsDisabledReason(false)).toBeNull()
   })
 })

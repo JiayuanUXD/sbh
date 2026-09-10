@@ -84,6 +84,22 @@ export function resolveLiveListingState(
   }
 }
 
+/**
+ * 表单有未保存改动时，发布动作一律不可用；返回禁用理由，可用则返回 null。
+ *
+ * 为什么必须挡：动作成功后动作条会 `router.refresh()`，Payload 会把重取到的
+ * `initialState` 交给 `<Form>`（对 initialState 变化做 REPLACE_STATE），表单里没保存的编辑
+ * 会被整体换掉、连一句提示都没有。「改了几个字段 → 顺手点下架 → 编辑全没了」是个静默的数据丢失，
+ * 而下架本身还成功了，运营多半不会意识到发生过什么。
+ *
+ * 这里选择禁用而不是隐藏（与 `availablePublicationActions` 里「不可用就不渲染」相反）：
+ * 那边的不可用是结构性的（状态机 / 权限不给），说不清也没得说；这里是暂时的，
+ * 按钮留在原位加一句「先保存」才能告诉运营下一步该干什么。
+ */
+export function publicationActionsDisabledReason(formModified: boolean): string | null {
+  return formModified ? '有未保存的改动，请先保存再执行发布动作' : null
+}
+
 /** 与 listing-publish-endpoint.ts 的 permissionForAction 同口径；端点是唯一强制点，这里只用来决定按钮显隐。 */
 export function permissionForPublishAction(action: PublishAction): 'listing:publish' | 'listing:unpublish' {
   return action === 'unpublish' ? 'listing:unpublish' : 'listing:publish'

@@ -24,6 +24,8 @@ import {
  *   - unpublish 必须填写下架原因，否则 422。
  *   - mark_leased 自动撤销推荐（isFeatured=false）并收回前台可见（发布轴落 leased）。
  *   - mark_sold 同 mark_leased（撤销推荐 + 收回可见，落 sold）。
+ *   - mark_leased 只允许租赁房源、mark_sold 只允许出售房源（businessType 缺省按租赁）；
+ *     写反是不可逆的（成交是终态），所以界面之外这里也挡一次 → 422 BUSINESS_TYPE_MISMATCH。
  *   - 非法发布转移（如 leased 再 publish）→ 409。
  *   - 版本乐观锁：expectedVersion 与当前 version 不符 → 409，不 update。
  *
@@ -35,7 +37,7 @@ import {
  *   - 401: 未登录  403: 无对应发布权限
  *   - 404: 房源不存在
  *   - 409: 非法状态转移 / 版本冲突
- *   - 422: 发布前置不满足 / 下架缺原因
+ *   - 422: 发布前置不满足 / 下架缺原因 / 租售类型与成交动作不符（BUSINESS_TYPE_MISMATCH）
  */
 
 /** publish/mark_leased/mark_sold 需要 listing:publish；unpublish 需要 listing:unpublish（同口径的只读副本见 @/domain/listing/publication-actions 的 permissionForPublishAction）。 */
@@ -113,6 +115,25 @@ export function createListingPublishEndpoint(): Endpoint {
         )
       }
       const next = nextPublicationStatus(current, action)!
+
+      // 6b. 租售错标守卫：leased / sold 都是终态，写反了状态机不给出边，谁都改不回来，
+      //     而事后也分不清「已租」是真已租还是被误标的已售。动作条只按已保存的 businessType
+      //     显隐成交按钮，但直调 API 绕得过界面，所以端点必须自己再挡一次。
+      //     缺省（历史数据没有 businessType）按租赁处理，与动作条同口径。
+      //     放在转移校验之后：终态房源应回 409「非法转移」，而不是被说成租售类型不对。
+      const isSale = listing.businessType === 'sale'
+      if ((action === 'mark_leased' && isSale) || (action === 'mark_sold' && !isSale)) {
+        return Response.json(
+          {
+            ok: false,
+            error: isSale
+              ? '出售房源不能标记为已租，请使用「标记已售」'
+              : '租赁房源不能标记为已售，请使用「标记已租」',
+            code: 'BUSINESS_TYPE_MISMATCH',
+          },
+          { status: 422 },
+        )
+      }
 
       // 7. 动作特定前置门
       if (action === 'publish') {

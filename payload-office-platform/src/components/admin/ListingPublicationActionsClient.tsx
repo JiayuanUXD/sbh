@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Space, Tag, Typography } from '@arco-design/web-react'
-import { useFormFields } from '@payloadcms/ui'
+import { Button, Space, Tag, Tooltip, Typography } from '@arco-design/web-react'
+import { useFormFields, useFormModified } from '@payloadcms/ui'
 
 import {
   availablePublicationActions,
+  publicationActionsDisabledReason,
   resolveLiveListingState,
   type PublicationActionSpec,
 } from '@/domain/listing/publication-actions'
@@ -53,6 +54,9 @@ type Props = {
  *
  * 可用动作用 T1 的纯函数现算（客户端不复制状态机规则）；动作为空时只显示状态标签，
  * 不显示任何按钮——终态（已租 / 已售）就是这种情况。
+ *
+ * **表单有未保存改动时按钮禁用**（不是隐藏）：动作后的 `router.refresh()` 会整体替换表单状态，
+ * 未保存的编辑被静默丢弃。禁用是暂时的，所以按钮留在原位并用 Tooltip 说明「先保存」。
  */
 export default function ListingPublicationActionsClient({
   listingId,
@@ -72,6 +76,12 @@ export default function ListingPublicationActionsClient({
   // 是一条不可撤销的口径错误。租售类型改动必须先保存，动作后的 router.refresh() 会带回新值。
   const liveStatus = useFormFields(([fields]) => fields.publicationStatus?.value)
   const liveVersion = useFormFields(([fields]) => fields.version?.value)
+
+  // 有未保存改动时禁用所有动作：动作成功后的 router.refresh() 会让 Payload 用重取到的
+  // initialState 对 <Form> 做 REPLACE_STATE，表单里没保存的编辑被整体换掉、不留提示。
+  // 同槽的 FormModifiedBridge 用的也是这个 hook，脏态口径与「离开页面」守卫一致。
+  const formModified = useFormModified()
+  const disabledReason = publicationActionsDisabledReason(formModified)
 
   const { publicationStatus, businessType, version } = resolveLiveListingState(
     {
@@ -101,17 +111,35 @@ export default function ListingPublicationActionsClient({
         <Tag color={PUBLICATION_STATUS_TAG_COLORS[publicationStatus]}>
           {PUBLICATION_STATUS_LABELS[publicationStatus]}
         </Tag>
-        {actions.map((spec) => (
-          <Button
-            key={spec.action}
-            size="small"
-            type={spec.tone === 'primary' ? 'primary' : 'outline'}
-            status={spec.tone === 'primary' ? 'default' : spec.tone}
-            onClick={() => setActive(spec)}
-          >
-            {spec.label}
-          </Button>
-        ))}
+        {actions.map((spec) => {
+          const button = (
+            <Button
+              key={spec.action}
+              size="small"
+              type={spec.tone === 'primary' ? 'primary' : 'outline'}
+              status={spec.tone === 'primary' ? 'default' : spec.tone}
+              disabled={disabledReason !== null}
+              aria-disabled={disabledReason !== null}
+              onClick={() => setActive(spec)}
+            >
+              {spec.label}
+            </Button>
+          )
+          if (disabledReason === null) return button
+          // 禁用的 <button> 在浏览器里不派发 mouseenter，Tooltip（和原生 title）直接挂在按钮上
+          // 永远不会触发——那样就成了「灰按钮不给理由」。套一层 span 让 hover 落在 span 上，
+          // title 同挂一份作为 Tooltip 未挂载时（首帧 / 无 JS）的兜底。
+          return (
+            <Tooltip key={spec.action} content={disabledReason}>
+              <span
+                title={disabledReason}
+                style={{ display: 'inline-block', cursor: 'not-allowed' }}
+              >
+                {button}
+              </span>
+            </Tooltip>
+          )
+        })}
       </Space>
       <ListingPublicationActionModal
         listingId={listingId}

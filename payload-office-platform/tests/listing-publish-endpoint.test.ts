@@ -307,6 +307,66 @@ describe('listing-publish-endpoint/标记成交副作用', () => {
   })
 })
 
+/**
+ * 租售守卫：动作条只按「已保存的 businessType」显隐成交按钮，但直调 API 绕得过界面。
+ * leased 与 sold 都是终态，一旦写反就没有任何动作能改回来（状态机不给终态出边），
+ * 所以端点必须自己再挡一次——这是本 endpoint 唯一一处新增拒绝。
+ */
+describe('listing-publish-endpoint/租售错标守卫', () => {
+  it('mark_leased 拒绝出售房源：422 BUSINESS_TYPE_MISMATCH，不 update', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published', businessType: 'sale' }),
+      body: { action: 'mark_leased' },
+    })
+    const res = await run(req)
+    expect(res.status).toBe(422)
+    expect(res.body.code).toBe('BUSINESS_TYPE_MISMATCH')
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('mark_sold 拒绝租赁房源：422 BUSINESS_TYPE_MISMATCH，不 update', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published', businessType: 'lease' }),
+      body: { action: 'mark_sold' },
+    })
+    const res = await run(req)
+    expect(res.status).toBe(422)
+    expect(res.body.code).toBe('BUSINESS_TYPE_MISMATCH')
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  // 缺省（历史数据没有 businessType）按租赁处理，与动作条的缺省口径一致：
+  // 缺省放行的是可发生的那一侧（mark_leased），拒绝的是不可解释的那一侧（mark_sold）。
+  it('businessType 缺省时按租赁处理：mark_leased 放行、mark_sold 被拒', async () => {
+    const leased = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published' }),
+      body: { action: 'mark_leased' },
+    })
+    expect((await run(leased.req)).status).toBe(200)
+    expect(leased.update).toHaveBeenCalledTimes(1)
+
+    const sold = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published' }),
+      body: { action: 'mark_sold' },
+    })
+    expect((await run(sold.req)).status).toBe(422)
+    expect(sold.update).not.toHaveBeenCalled()
+  })
+
+  // 守卫不能吃掉更早的拒绝：终态房源上点 mark_sold 仍应是 409 非法转移，
+  // 否则「已租房源」会被回报成「租售类型不对」，把运营指向错误的修法。
+  it('非法转移优先于租售守卫：leased 上 mark_sold → 409', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'leased', businessType: 'lease' }),
+      body: { action: 'mark_sold' },
+    })
+    const res = await run(req)
+    expect(res.status).toBe(409)
+    expect(res.body.code).toBe('ILLEGAL_TRANSITION')
+    expect(update).not.toHaveBeenCalled()
+  })
+})
+
 describe('listing-publish-endpoint/版本乐观锁', () => {
   it('expectedVersion 与当前不符 → 409，update 不触发', async () => {
     const { req, update } = makeReq({
