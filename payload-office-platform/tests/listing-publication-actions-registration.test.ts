@@ -21,8 +21,11 @@ describe('ListingPublicationActions 注册', () => {
     expect(bridge).toBeGreaterThan(actions)
   })
 
-  it('importMap.js 已包含动作条服务端组件（否则 /admin 白屏）', () => {
+  // 钉到完整键名而不是组件名子串：`ListingPublicationActionsClient` /
+  // `ListingPublicationActionModal` 里都含「ListingPublicationActions」，
+  // 松断言会在服务端组件那一条丢了、只剩客户端子组件时照样绿。
+  it('importMap.js 已注册动作条服务端组件的 #default 入口（否则 /admin 白屏）', () => {
     const map = read('src/app/(payload)/admin/importMap.js')
-    expect(map).toContain('ListingPublicationActions')
+    expect(map).toContain('"/components/admin/ListingPublicationActions#default"')
   })
 })

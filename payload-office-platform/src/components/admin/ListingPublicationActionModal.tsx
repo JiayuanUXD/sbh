@@ -67,6 +67,10 @@ function ListingPublicationActionModalBody({
   const [reasons, setReasons] = useState<string[]>([])
 
   const reasonMissing = spec.requiresReason && reason.trim().length === 0
+  // 确认键跟标题走，不跟按钮标签走：从已下架回到已发布时标题是「重新上架」，
+  // 确认键若写成「确认发布」，运营会以为这是另一件事（首次上架）。
+  // 其余动作 confirmTitle === label，文案不变。
+  const okText = `确认${spec.confirmTitle}`
 
   const submit = async () => {
     setSubmitting(true)
@@ -124,7 +128,7 @@ function ListingPublicationActionModalBody({
       onCancel={onClose}
       onOk={submit}
       confirmLoading={submitting}
-      okText={`确认${spec.label}`}
+      okText={okText}
       cancelText="取消"
       okButtonProps={{
         // Arco 的 status 没有 primary（那是 type），上架类用默认色，其余按语义上警告 / 危险色。
@@ -138,6 +142,9 @@ function ListingPublicationActionModalBody({
       ))}
       {spec.requiresReason ? (
         <Input.TextArea
+          // 弹层里没有可见 label（正文已说明），屏幕阅读器只能读到 placeholder，
+          // 显式给一个无障碍名，顺便让 E2E 用语义定位而不是靠 class。
+          aria-label="下架原因"
           value={reason}
           onChange={setReason}
           placeholder="下架原因（必填，记入审计）"

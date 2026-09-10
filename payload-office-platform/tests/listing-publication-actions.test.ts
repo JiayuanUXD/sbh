@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   availablePublicationActions,
   permissionForPublishAction,
+  resolveLiveListingState,
 } from '@/domain/listing/publication-actions'
 import {
   PUBLICATION_STATUSES,
@@ -131,5 +132,67 @@ describe('permissionForPublishAction', () => {
   it('unpublish → listing:unpublish，其余 → listing:publish（与端点 permissionForAction 同口径）', () => {
     expect(permissionForPublishAction('unpublish')).toBe('listing:unpublish')
     for (const a of ['publish', 'mark_leased', 'mark_sold'] as const) expect(permissionForPublishAction(a)).toBe('listing:publish')
+  })
+})
+
+/**
+ * 动作条在编辑页里读的是 Payload 表单的实时值，不是 RSC 渲染那一刻的快照：
+ * 保存一次 protectListing 就把 version +1，而编辑视图保存成功后不重渲染
+ * beforeDocumentControls，快照会停在旧版本号 → 第一次点「下架」必撞 409。
+ * 这个纯函数就是「实时值优先、脏值回落初始快照」那条规则，单独钉住。
+ */
+describe('resolveLiveListingState', () => {
+  const initial = {
+    publicationStatus: 'published',
+    businessType: 'lease',
+    version: 21,
+  } as const
+
+  it('表单实时值优先于初始快照（保存后 21 → 22 必须跟上）', () => {
+    expect(
+      resolveLiveListingState(
+        { publicationStatus: 'unpublished', businessType: 'sale', version: 22 },
+        initial,
+      ),
+    ).toEqual({ publicationStatus: 'unpublished', businessType: 'sale', version: 22 })
+  })
+
+  it('字段缺失（不在表单状态里）时整体回落到初始快照', () => {
+    expect(resolveLiveListingState({}, initial)).toEqual({
+      publicationStatus: 'published',
+      businessType: 'lease',
+      version: 21,
+    })
+  })
+
+  it('publicationStatus 不是合法枚举时回落', () => {
+    expect(
+      resolveLiveListingState({ publicationStatus: 'archived' }, initial).publicationStatus,
+    ).toBe('published')
+    expect(
+      resolveLiveListingState({ publicationStatus: null }, initial).publicationStatus,
+    ).toBe('published')
+  })
+
+  // version 会被原样当作 expectedVersion 发给端点：字符串 '22' 或 NaN 传出去就是一次
+  // 说不清的 409/422，所以非有限数字一律回落，宁可用旧版本号撞一次可解释的冲突。
+  it('version 不是有限数字时回落', () => {
+    for (const bad of [null, undefined, '22', Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(resolveLiveListingState({ version: bad }, initial).version).toBe(21)
+    }
+  })
+
+  it('businessType 非字符串时回落', () => {
+    expect(resolveLiveListingState({ businessType: 3 }, initial).businessType).toBe('lease')
+    expect(resolveLiveListingState({ businessType: null }, initial).businessType).toBe('lease')
+  })
+
+  it('初始快照本身允许 businessType / version 为 null', () => {
+    expect(
+      resolveLiveListingState(
+        {},
+        { publicationStatus: 'draft', businessType: null, version: null },
+      ),
+    ).toEqual({ publicationStatus: 'draft', businessType: null, version: null })
   })
 })

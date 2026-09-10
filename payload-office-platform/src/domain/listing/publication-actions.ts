@@ -2,6 +2,7 @@ import {
   PUBLICATION_STATUS_LABELS,
   PUBLISH_ACTIONS,
   PUBLISH_ACTION_LABELS,
+  isPublicationStatus,
   nextPublicationStatus,
   type PublicationStatus,
   type PublishAction,
@@ -27,6 +28,51 @@ export type PublicationActionInput = {
   canPublish: boolean
   /** hasOperationPermission('listing:unpublish') */
   canUnpublish: boolean
+}
+
+/** 动作条从 Payload 表单状态里取到的原始值（`useFormFields` 给的是 unknown）。 */
+export type LiveListingStateFields = {
+  publicationStatus?: unknown
+  businessType?: unknown
+  version?: unknown
+}
+
+/** 服务端渲染那一刻的快照，作为实时值缺失 / 非法时的兜底。 */
+export type LiveListingState = {
+  publicationStatus: PublicationStatus
+  businessType: string | null
+  version: number | null
+}
+
+/**
+ * 把「表单实时值」与「RSC 初始快照」合成动作条真正要用的状态。
+ *
+ * 为什么必须读实时值：`beforeDocumentControls` 是服务端组件，只在页面 RSC 渲染时算一次；
+ * 而 `protectListing`（`src/domain/review/listing-protect.ts`）每次 update 都把 `version` +1，
+ * `adminAutoPublish` 还可能顺带改 `publicationStatus`。编辑视图保存成功后只会把新 form state
+ * 合并回表单（`@payloadcms/ui` 的 Form `MERGE_SERVER_STATE`），**不重渲染服务端组件**。
+ * 于是「打开 → 改字段 → 保存（21→22）→ 点下架」会带着 21 提交，必撞 409，
+ * 运营得被弹一次「本页数据已过期」再点第二次。读表单实时值就没有这一次。
+ *
+ * 回落规则：实时值缺失或类型不对就用初始快照——表单状态里没有该字段（权限裁剪、
+ * 字段被条件隐藏）时不能把动作条打成空白，旧快照至少还能撞出一次可解释的 409。
+ */
+export function resolveLiveListingState(
+  fields: LiveListingStateFields,
+  initial: LiveListingState,
+): LiveListingState {
+  return {
+    publicationStatus: isPublicationStatus(fields.publicationStatus)
+      ? fields.publicationStatus
+      : initial.publicationStatus,
+    businessType:
+      typeof fields.businessType === 'string' ? fields.businessType : initial.businessType,
+    // 会被原样当 expectedVersion 发出去，所以 NaN / Infinity / 字符串 '22' 一律不认。
+    version:
+      typeof fields.version === 'number' && Number.isFinite(fields.version)
+        ? fields.version
+        : initial.version,
+  }
 }
 
 /** 与 listing-publish-endpoint.ts 的 permissionForAction 同口径；端点是唯一强制点，这里只用来决定按钮显隐。 */
