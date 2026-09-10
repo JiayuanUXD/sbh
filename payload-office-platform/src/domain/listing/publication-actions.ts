@@ -2,7 +2,7 @@ import {
   PUBLICATION_STATUS_LABELS,
   PUBLISH_ACTIONS,
   PUBLISH_ACTION_LABELS,
-  canTransitionPublication,
+  nextPublicationStatus,
   type PublicationStatus,
   type PublishAction,
 } from '@/domain/review/publication-status'
@@ -37,7 +37,7 @@ export function permissionForPublishAction(action: PublishAction): 'listing:publ
 /**
  * 房源编辑页动作条的可用动作。
  *
- * 候选只从 canTransitionPublication 派生——客户端绝不复制转移表，否则状态机改了
+ * 候选只从状态机的转移表派生——客户端绝不复制转移表，否则状态机改了
  * 这里不会红。租赁房源只给「标记已租」、出售房源只给「标记已售」：同一套房源给两个
  * 成交按钮，运营点错一个就是不可逆的口径错误（leased/sold 分开的理由见 publication-status.ts）。
  * 不可用的动作不返回（不渲染），不是禁用：一个灰按钮要解释「为什么灰」，不渲染不用解释。
@@ -52,20 +52,34 @@ export function availablePublicationActions(
   const isSale = input.businessType === 'sale'
   const specs: PublicationActionSpec[] = []
   for (const action of PUBLISH_ACTIONS) {
-    if (!canTransitionPublication(input.publicationStatus, action)) continue
+    // 用 nextPublicationStatus 而不是 canTransitionPublication 当闸门：两者读的是同一张
+    // 转移表（null 即非法转移），但前者顺带把目标状态给出来，确认文案就不必再写一遍状态名。
+    const next = nextPublicationStatus(input.publicationStatus, action)
+    if (next === null) continue
     if (action === 'mark_leased' && isSale) continue
     if (action === 'mark_sold' && !isSale) continue
     const allowed = action === 'unpublish' ? input.canUnpublish : input.canPublish
     if (!allowed) continue
-    specs.push(specFor(action, input.publicationStatus))
+    specs.push(specFor(action, input.publicationStatus, next))
   }
   return specs
 }
 
-/** 文案唯一来源是 PUBLISH_ACTION_LABELS / PUBLICATION_STATUS_LABELS，这里不另写一份动作名或状态名。 */
-function specFor(action: PublishAction, status: PublicationStatus): PublicationActionSpec {
+/**
+ * 文案唯一来源是 PUBLISH_ACTION_LABELS / PUBLICATION_STATUS_LABELS，这里不另写一份动作名或状态名。
+ *
+ * `next` 由调用方从状态机取得（不是本函数再判一次动作 → 目标状态）：目标状态名一旦写成
+ * 字面量，改一次 PUBLICATION_STATUS_LABELS 就会出现「状态徽标说 A、确认弹层说 B」，
+ * 而弹层里那句正是运营点「不可撤销」之前唯一会读的话。
+ */
+function specFor(
+  action: PublishAction,
+  status: PublicationStatus,
+  next: PublicationStatus,
+): PublicationActionSpec {
   const label = PUBLISH_ACTION_LABELS[action]
   const current = PUBLICATION_STATUS_LABELS[status]
+  const target = PUBLICATION_STATUS_LABELS[next]
   switch (action) {
     case 'publish':
       return {
@@ -73,7 +87,7 @@ function specFor(action: PublishAction, status: PublicationStatus): PublicationA
         // 从已下架回到已发布是「重新上架」而不是「发布」：运营看到「发布」会以为是首次上架。
         confirmTitle: status === 'unpublished' ? '重新上架' : label,
         confirmBody: [
-          `当前状态：${current} → 已发布。`,
+          `当前状态：${current} → ${target}。`,
           '房源需满足有效供给条件（审核通过、楼盘与商户启用、商户资质有效等）才会真正出现在前台；不满足时会列出原因，不改状态。',
         ],
       }
@@ -82,7 +96,7 @@ function specFor(action: PublishAction, status: PublicationStatus): PublicationA
         action, label, tone: 'warning', requiresReason: true,
         confirmTitle: label,
         confirmBody: [
-          `当前状态：${current} → 已下架。下架后前台立即不可见。`,
+          `当前状态：${current} → ${target}。下架后前台立即不可见。`,
           '必须填写下架原因，会记入审计。',
         ],
       }
@@ -92,7 +106,7 @@ function specFor(action: PublishAction, status: PublicationStatus): PublicationA
         action, label, tone: 'danger', requiresReason: false,
         confirmTitle: label,
         confirmBody: [
-          `当前状态：${current} → ${action === 'mark_leased' ? '已租' : '已售'}。`,
+          `当前状态：${current} → ${target}。`,
           '将同时撤销首页推荐，并收回前台可见。',
           '成交为终态，不可撤销；要重新出租或出售请新建房源。',
         ],
