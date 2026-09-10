@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { PermissionContext } from '@/domain/auth/permission-context'
 import { CityPartnerApplications } from '@/collections/CityPartnerApplications'
+import { buildCityPartnerCityScopeWhere } from '@/domain/city-partner-application/access'
 import {
   buildAdminNavigationBadgeQueries,
   collectAdminNavigationBadges,
@@ -171,6 +172,30 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
         collectionScope,
       ],
     })
+  })
+
+  it('城市合伙人范围为 false 时只跳过该角标，其余已授权查询一条不少', () => {
+    // 内置 OPS 的 cityIds 是 'all' 而不是 Set，buildCityPartnerCityScopeWhere 会返回 false
+    //（本地夹具库以 e2e-ops@example.com 登录即命中）。这条守卫钉住的是「false 只跳过这一块」：
+    // 若那里写成 return queries，排在城市合伙人之后追加的任何角标都会被静默吞掉且无报错。
+    // 以全权限用户的键列表为基准，将来新增角标不必改这里；新块一旦被吞，这里立刻红。
+    const helperFalse = permission({
+      roleCodes: ['OPS'],
+      cityIds: 'all',
+      dataScope: 'global',
+    })
+    expect(buildCityPartnerCityScopeWhere(helperFalse)).toBe(false)
+
+    const everyKey = buildAdminNavigationBadgeQueries(permission(), AS_OF)
+      .map((query) => query.key)
+    const keys = buildAdminNavigationBadgeQueries(helperFalse, AS_OF)
+      .map((query) => query.key)
+
+    expect(everyKey).toContain('cityPartnerApplications')
+    expect(keys).not.toContain('cityPartnerApplications')
+    expect(keys).toEqual(
+      everyKey.filter((key) => key !== 'cityPartnerApplications'),
+    )
   })
 
   it('把审核、举报和线索的授权城市上限合并进业务 where', () => {
