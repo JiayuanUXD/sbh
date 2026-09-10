@@ -7,14 +7,8 @@ import {
 } from '@/domain/city-partner-application/schema'
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
 import { siteConfig } from '@/lib/frontend/site-config'
-import type { PoolLike } from '@/lib/rate-limit-pg'
+export { extractPgPool, isSameOrigin, isStrictJsonContentType } from '@/lib/api/request-guards'
 
-const TOKEN = "[!#$%&'*+.^_`|~0-9A-Za-z-]+"
-const QUOTED_STRING = '"(?:[^"\\\\\r\n]|\\\\[\t -~])*"'
-const JSON_MEDIA_TYPE = new RegExp(
-  `^\\s*application\\/json\\s*(?:;\\s*${TOKEN}\\s*=\\s*(?:${TOKEN}|${QUOTED_STRING})\\s*)*$`,
-  'i',
-)
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/
 
 export type CityPartnerCreateBody = Readonly<{
@@ -50,11 +44,6 @@ function record(value: unknown): Record<string, unknown> | null {
     : null
 }
 
-function poolLike(value: unknown): value is PoolLike {
-  const candidate = record(value)
-  return candidate !== null && typeof candidate.query === 'function'
-}
-
 function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[]): boolean {
   const allow = new Set(allowed)
   return Object.keys(value).every((key) => allow.has(key))
@@ -73,29 +62,6 @@ function optionalText(value: unknown, maximum: number): string | null | undefine
 
 function failure(...errors: string[]): ValidationResult<never> {
   return { ok: false, errors }
-}
-
-export function isStrictJsonContentType(contentType: string | null): boolean {
-  return contentType !== null && JSON_MEDIA_TYPE.test(contentType)
-}
-
-export function isSameOrigin(req: Request, expectedOrigin = siteConfig.siteOrigin): boolean {
-  const origin = req.headers.get('origin')
-  const host = req.headers.get('host')
-  if (!origin || !host) return false
-  try {
-    const suppliedOrigin = new URL(origin)
-    const expected = new URL(expectedOrigin)
-    const suppliedHost = new URL(`${expected.protocol}//${host}`)
-    return suppliedOrigin.origin === expected.origin && suppliedHost.host === expected.host
-  } catch {
-    return false
-  }
-}
-
-export function extractPgPool(database: unknown): PoolLike | null {
-  const candidate = record(database)
-  return poolLike(candidate?.pool) ? candidate.pool : null
 }
 
 export function validateCityPartnerCreateBody(value: unknown): ValidationResult<CityPartnerCreateBody> {

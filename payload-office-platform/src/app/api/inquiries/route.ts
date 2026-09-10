@@ -44,6 +44,7 @@ import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { INQUIRY_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { siteConfig } from '@/lib/frontend/site-config'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
+import { clientIp } from '@/lib/api/request-guards'
 import { ratePruneRef } from './rate-limit-state'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 
@@ -58,13 +59,6 @@ const MAX_BODY_BYTES = 16 * 1024
  * 限流键使用 hashIpForLog(ip, dailySalt) 派生，避免原始 IP 进入存储或日志。
  * 限流配置（windowMs/max/maxKeys/pruneIntervalMs/failOpen）见 @/lib/rate-limit-config。
  */
-
-/** 提取客户端 IP（CloudRun / 反代场景取首跳） */
-function clientIp(req: Request): string {
-  const fwd = req.headers.get('x-forwarded-for')
-  if (fwd) return fwd.split(',')[0].trim()
-  return req.headers.get('x-real-ip')?.trim() || 'unknown'
-}
 
 /**
  * 日级盐：UTC 日期字符串。同一天内进程内哈希稳定，跨天自动轮换。
