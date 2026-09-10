@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { cloneElement, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Space, Tag, Tooltip, Typography } from '@arco-design/web-react'
 import { useFormFields, useFormModified } from '@payloadcms/ui'
@@ -112,31 +112,32 @@ export default function ListingPublicationActionsClient({
           {PUBLICATION_STATUS_LABELS[publicationStatus]}
         </Tag>
         {actions.map((spec) => {
+          const disabled = disabledReason !== null
           const button = (
             <Button
-              key={spec.action}
               size="small"
               type={spec.tone === 'primary' ? 'primary' : 'outline'}
               status={spec.tone === 'primary' ? 'default' : spec.tone}
-              disabled={disabledReason !== null}
-              aria-disabled={disabledReason !== null}
+              disabled={disabled}
+              aria-disabled={disabled}
               onClick={() => setActive(spec)}
             >
               {spec.label}
             </Button>
           )
-          if (disabledReason === null) return button
-          // 禁用的 <button> 在浏览器里不派发 mouseenter，Tooltip（和原生 title）直接挂在按钮上
-          // 永远不会触发——那样就成了「灰按钮不给理由」。套一层 span 让 hover 落在 span 上，
-          // title 同挂一份作为 Tooltip 未挂载时（首帧 / 无 JS）的兜底。
+          // key 只挂在 Space 的直接子节点上（Space 会读 child.key 当自己的 key）：
+          // 干净态是按钮本身，禁用态是外层 Tooltip。
+          if (!disabled) return cloneElement(button, { key: spec.action })
+          // 禁用态把 Button 直接交给 Tooltip，不要手写包裹层：Arco 的 Trigger 对 disabled 的
+          // Arco Button（`__BYTE_BUTTON`）有专门分支，会自己套一层
+          // `display:inline-block; cursor:not-allowed` 的 span，**并给按钮加上
+          // `pointer-events:none`**，于是 hover 落在 span 上，各浏览器表现一致。
+          // 传 span 进来会绕开这条分支，按钮拿不到 pointer-events:none——只有 Blink 会把
+          // 禁用表单控件上的鼠标事件上抛给最近的可用祖先，Firefox / Safari 会直接吞掉，
+          // 提示就只在 Chrome 出现；顺带 Arco 浮层与原生 title 还会同时冒出来两份。
           return (
             <Tooltip key={spec.action} content={disabledReason}>
-              <span
-                title={disabledReason}
-                style={{ display: 'inline-block', cursor: 'not-allowed' }}
-              >
-                {button}
-              </span>
+              {button}
             </Tooltip>
           )
         })}
