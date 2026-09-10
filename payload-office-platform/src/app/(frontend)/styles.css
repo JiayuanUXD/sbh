@@ -75,8 +75,19 @@
      这里是移动端基线 56；≥768 在下方 --gut 换挡处升到 64（沿用该处的 min-width 升序写法）。
      44 太窄，容不下顶栏搜索控件，视觉上也偏局促（2026-09-09 产品决定）。 */
   --header-height: 56px;
-  --header-bg: rgba(255, 255, 255, 0.8);
-  --header-blur: saturate(1.8) blur(20px);
+  /* 液态玻璃（Liquid Glass）效果（方案 A：通栏高透晶体质感）：
+   * 1. 顶部微高光流光渐变（高透晶体感，顶部 75% 至底边 55% 释放通透度，消除奶白塑料厚重感）；
+   * 2. 高阶折射模糊 + 饱和度增益 (blur 24px + saturate 190% + contrast 102%)，穿透色彩通透鲜活；
+   * 3. 晶体内边缘镜面高光 (inset 0 1px 1px 0 rgba(255, 255, 255, 0.95)) 与通透悬浮微阴影。 */
+  --header-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0.55) 100%
+  );
+  --header-blur: blur(24px) saturate(190%) contrast(102%);
+  --header-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.04),
+    0 4px 20px -2px rgba(0, 0, 0, 0.06);
   --font-cn: "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC",
     "Microsoft YaHei", sans-serif;
   --font: "SF Pro Text", -apple-system, "Helvetica Neue", var(--font-cn);
@@ -499,14 +510,19 @@ ol {
      unprefixed 属性一起丢弃，导致玻璃效果整体失效；只留 unprefixed，前缀由
      构建工具按 browserslist 目标自动补齐 */
   backdrop-filter: var(--header-blur);
-  border-bottom: none;
-  transition: background var(--duration-base) var(--ease);
+  box-shadow: var(--header-shadow);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  transition: background var(--duration-base) var(--ease),
+    box-shadow var(--duration-base) var(--ease),
+    border-color var(--duration-base) var(--ease);
 }
 
 /* 首页首屏透明压视频（仅 SiteHeader 在首页未滚动时加此类） */
 .site-header--transparent {
   background: transparent;
   backdrop-filter: none;
+  box-shadow: none;
+  border-bottom-color: transparent;
 }
 
 .site-header--transparent .site-logo,
@@ -654,6 +670,25 @@ ol {
   }
 }
 
+.site-header__divider {
+  display: none;
+  width: 1px;
+  height: 16px;
+  background: var(--line);
+  flex-shrink: 0;
+  margin-inline: var(--sp-2);
+}
+
+@media (min-width: 1024px) {
+  .site-header__divider {
+    display: inline-block;
+  }
+}
+
+.site-header--transparent .site-header__divider {
+  background: rgba(255, 255, 255, 0.24);
+}
+
 .site-header__inner {
   width: min(var(--w), 100% - var(--gut) * 2);
   margin-inline: auto;
@@ -697,6 +732,7 @@ ol {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition: background var(--duration-fast) var(--ease-standard);
+  animation: header-search-desktop-in var(--duration-fast) var(--ease-standard);
 }
 
 .header-search__toggle:hover {
@@ -797,13 +833,26 @@ ol {
   background: var(--accent-hover);
 }
 
+@keyframes header-search-desktop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ≥1024（= 桌面导航断点）输入框常驻。
    与断点同档而不是另设 1280：1024 处头部余量实测 196px，`flex: 0 1 320px` 会自动缩到
    约 236px，仍然好用；分成两个断点只会多一档「有横排导航却只有搜索图标」的中间态。 */
 @media (min-width: 1024px) {
   .header-search {
-    flex: 0 1 320px;
-    min-width: 0;
+    width: 200px;
+    min-width: 140px;
+    flex: 0 1 200px;
+    animation: header-search-desktop-in var(--duration-fast) var(--ease-standard);
   }
 
   .header-search__toggle {
@@ -823,7 +872,17 @@ ol {
   }
 }
 
+@media (min-width: 1280px) {
+  .header-search {
+    width: 280px;
+    flex: 0 1 280px;
+  }
+}
+
 .site-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
   font-family: var(--font);
   font-size: 17px;
   font-weight: 600;
@@ -832,11 +891,61 @@ ol {
   white-space: nowrap;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .site-logo:hover {
   text-decoration: none;
   color: var(--accent);
+}
+
+.site-logo__icon {
+  display: inline-block;
+  height: 24px;
+  width: 24px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-image: var(--logo-url);
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-image: var(--logo-url);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 768px) {
+  .site-logo__icon {
+    height: 28px;
+    width: 28px;
+  }
+}
+
+.site-logo__img {
+  display: block;
+  height: 24px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+  flex-shrink: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+@media (min-width: 768px) {
+  .site-logo__img {
+    height: 28px;
+  }
+}
+
+.site-logo:hover .site-logo__img {
+  opacity: 0.82;
+}
+
+.site-logo__text {
+  display: inline-block;
+  line-height: 1;
 }
 
 .site-nav {
@@ -851,7 +960,7 @@ ol {
    *
    * 代价是所有桌面宽度下导航都变紧凑一档。改回 56 之前先在 1024 量一遍余量。 */
   gap: var(--sp-6);
-  margin-left: auto;
+  flex-shrink: 0;
   /* 撑满顶栏高度（覆写 `.site-header__inner` 的 align-items:center）。
      只为一件事：让选中下划线有「顶栏底边」可贴——见 `.site-nav__link::after`。
      导航文字仍居中，靠本规则自己的 align-items:center。 */
@@ -861,12 +970,20 @@ ol {
 @media (min-width: 1024px) {
   .site-nav {
     display: flex;
+    gap: var(--sp-4);
+  }
+}
+
+@media (min-width: 1280px) {
+  .site-nav {
+    gap: var(--sp-6);
   }
 }
 
 .site-nav__link {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
   /* 撑满顶栏（64，移动端 56——两档都 ≥ --touch-target，触控目标不受影响）。
      min-height 保留作地板值：万一顶栏再调矮到 44 以下，触控高度仍不塌。 */
   align-self: stretch;
@@ -945,16 +1062,14 @@ ol {
   }
 }
 
-/* 顶部右侧动作区：现只剩移动端汉堡（头部 CTA 已于 2026-09-03 全站移除）。
-   与 logo/导航同为 .site-header__inner 的 flex 子项，space-between 下靠右成组。
-   ≥1024px 时汉堡 display:none，本容器塌成零宽——原先那条 `margin-left: var(--sp-6)`
-   是用来把 CTA 与导航拉开的，CTA 没了之后它只会把导航末项顶离右边缘 24px，
-   一并删除。`.site-header__actions .btn--sm`（CTA 的 44px 触控高度）同理已无消费方。 */
+/* 顶部右侧动作区：包含搜索框、移动端汉堡，以及未来扩展项（客服电话、登录/注册等）。
+   margin-left: auto 负责吃掉剩余空间将整个动作区推到最右侧。 */
 .site-header__actions {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .site-main {
@@ -1048,16 +1163,31 @@ ol {
 }
 
 .site-footer__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
   font-family: var(--font);
   font-size: var(--fs-20);
   font-weight: 700;
   color: var(--ink);
   letter-spacing: 0.04em;
+  transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .site-footer__logo:hover {
   text-decoration: none;
   color: var(--accent-link);
+}
+
+.site-footer__logo-icon {
+  height: 22px;
+  width: 22px;
+}
+
+.site-footer__logo-img {
+  height: 22px;
+  width: auto;
+  max-width: 140px;
 }
 
 .site-footer__tagline {

@@ -25,7 +25,13 @@ import {
 
 export type SiteSettingsView = Readonly<{
   siteName: string
-  logo: Readonly<{ src: string; alt: string }> | null
+  logo: Readonly<{
+    src: string
+    alt: string
+    mimeType?: string | null
+    width?: number | null
+    height?: number | null
+  }> | null
   heroHeading: string
   slogan: string
   priceDisclaimer: string
@@ -135,4 +141,14 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
 /** 把 `{城市}` 占位符替换成当前城市名。运营手写城市名正是本工作项修掉的那个 bug。 */
 export function renderCityPlaceholder(template: string, cityName: string): string {
   return template.replace(/\{城市\}/g, cityName)
+}
+
+/** 判断 Logo 是否为 SVG 矢量素材（支持 mimeType 与 url 判定）。 */
+export function isSvgLogo(logo: { src: string; mimeType?: string | null } | null | undefined): boolean {
+  if (!logo) return false
+  return Boolean(
+    logo.mimeType === 'image/svg+xml' ||
+    logo.src.toLowerCase().endsWith('.svg') ||
+    logo.src.toLowerCase().includes('.svg?')
+  )
 }

@@ -94,6 +94,7 @@ export default function SiteNav({
   pathname,
   searchParams,
   onRefreshSearchParams,
+  actions,
 }: Readonly<{
   /**
    * 主导航项（OPT-054）。href 已由服务端从目标池解析好——本组件不认识目标 id，
@@ -107,6 +108,8 @@ export default function SiteNav({
   searchParams: Pick<ReadonlyURLSearchParams, 'get' | 'getAll' | 'has' | 'size' | 'toString'>
   /** 展开抽屉前取最新 query，保证城市切换链接保留当前筛选（设计 §7.2）。 */
   onRefreshSearchParams?: () => void
+  /** 右侧动作区插槽（搜索框、未来扩展项等） */
+  actions?: React.ReactNode
 }>) {
   const [open, setOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
@@ -204,12 +207,9 @@ export default function SiteNav({
         })}
       </nav>
 
-      {/* 右侧动作区：仅移动端菜单触发器。
-          原先这里还有一个头部 CTA「获取选址方案」（非委托页开询价弹层、委托页滚动
-          聚焦本页表单），2026-09-03 按产品要求全站移除——各页自身的转化入口
-          （委托/发布页的页内表单与吸底 CTA、房源与楼盘详情页的询价入口）保持不变。
-          容器保留：移动端靠它让 logo 在左、汉堡靠右。 */}
+      {/* 右侧动作区：搜索 + 移动端菜单触发器（以及未来扩展的客服电话、登录/注册等）。 */}
       <div className="site-header__actions">
+        {actions}
         {/* 移动端菜单触发器 */}
         <button
           ref={toggleRef}
