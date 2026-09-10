@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
-import type {
-  AdminNavGroup,
-  AdminNavLeaf,
-  AdminNavSubgroup,
-} from '@/domain/admin-navigation/navigation-types'
+import type { AdminNavGroup, AdminNavLeaf } from '@/domain/admin-navigation/navigation-types'
 import {
   BUILTIN_ROLES,
   type BuiltinRoleCode,
@@ -35,17 +31,19 @@ function canSeeLeaf(role: RoleFixture, leaf: AdminNavLeaf): boolean {
   return hasMenuPermission && hasRequiredOperation
 }
 
-function canSeeItem(role: RoleFixture, item: AdminNavLeaf | AdminNavSubgroup): boolean {
-  return item.children
-    ? item.children.some((child) => canSeeLeaf(role, child))
-    : canSeeLeaf(role, item)
-}
-
+/**
+ * 只按角色 fixture 的菜单码/操作码推演「哪些一级组至少有一片可见叶子」。
+ *
+ * 刻意**不走解析器**：这里守的是角色权限数据本身，与渲染规则解耦。
+ * 解析器那一侧（含 collection read 与单叶扁平化）由
+ * `tests/admin-navigation-role-snapshot.test.ts` 覆盖，两者结论可能不同——
+ * 例如某个组在这里算「可见」，在解析结果里可能已被扁平成顶级叶子。
+ */
 function visibleTopGroups(code: BuiltinRoleCode): string[] {
   const role = BUILTIN_ROLES[code]
 
   return ADMIN_NAV_GROUPS.filter((group: AdminNavGroup) =>
-    group.children.some((item) => canSeeItem(role, item)),
+    group.children.some((leaf) => canSeeLeaf(role, leaf)),
   ).map((group) => group.label)
 }
 
@@ -53,54 +51,52 @@ describe('admin navigation role matrix', () => {
   it('ADM 可见全部一级分组', () => {
     expect(visibleTopGroups('ADM')).toEqual([
       '工作台',
-      '房源运营',
-      '区域管理',
-      '审核与风控',
-      '客户运营',
-      '商户合作',
-      '团队管理',
-      '内容管理',
-      '表单中心',
-      '系统管理',
+      '待处理',
+      '房源与楼盘',
+      '客户与线索',
+      '站点与内容',
+      '城市与区域',
+      '团队与账号',
+      '设置与工具',
     ])
   })
 
   it('OPS 可见运营所需一级分组', () => {
     expect(visibleTopGroups('OPS')).toEqual([
       '工作台',
-      '房源运营',
-      '区域管理',
-      '审核与风控',
-      '商户合作',
-      '内容管理',
-      '表单中心',
-      '系统管理',
+      '待处理',
+      '房源与楼盘',
+      '站点与内容',
+      '城市与区域',
+      '设置与工具',
     ])
   })
 
   it('MGR 可见团队销售所需一级分组', () => {
     expect(visibleTopGroups('MGR')).toEqual([
       '工作台',
-      '房源运营',
-      '客户运营',
-      '商户合作',
-      '团队管理',
+      '待处理',
+      '房源与楼盘',
+      '客户与线索',
+      '团队与账号',
     ])
   })
 
   it('BRK 可见个人销售所需一级分组', () => {
     expect(visibleTopGroups('BRK')).toEqual([
       '工作台',
-      '房源运营',
-      '客户运营',
+      '待处理',
+      '房源与楼盘',
+      '客户与线索',
     ])
   })
 
   it('CSR 可见客服所需一级分组', () => {
     expect(visibleTopGroups('CSR')).toEqual([
       '工作台',
-      '客户运营',
-      '表单中心',
+      '待处理',
+      '客户与线索',
+      '站点与内容',
     ])
   })
 

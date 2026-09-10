@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ResolvedAdminNavGroup } from '@/domain/admin-navigation/resolve-navigation'
+import type { ResolvedAdminNavEntry } from '@/domain/admin-navigation/resolve-navigation'
 import {
   deriveOpenGroupId,
   findActiveLeaf,
@@ -10,10 +10,11 @@ import {
   toggleOpenGroup,
 } from '@/domain/admin-navigation/navigation-state'
 
-const groups: readonly ResolvedAdminNavGroup[] = [
+const entries: readonly ResolvedAdminNavEntry[] = [
   {
+    kind: 'group',
     id: 'supply',
-    label: '房源运营',
+    label: '房源与楼盘',
     icon: 'building',
     children: [
       {
@@ -22,21 +23,16 @@ const groups: readonly ResolvedAdminNavGroup[] = [
         href: '/admin/collections/listings',
       },
       {
-        id: 'supply-settings',
-        label: '基础配置',
-        children: [
-          {
-            id: 'locations',
-            label: '行政区域',
-            href: '/admin/collections/locations',
-          },
-        ],
+        id: 'buildings',
+        label: '楼盘库',
+        href: '/admin/collections/buildings',
       },
     ],
   },
   {
+    kind: 'group',
     id: 'crm',
-    label: '客户运营',
+    label: '客户与线索',
     icon: 'user',
     children: [
       {
@@ -44,64 +40,62 @@ const groups: readonly ResolvedAdminNavGroup[] = [
         label: '咨询线索',
         href: '/admin/collections/leads',
       },
-    ],
-  },
-  {
-    id: 'system',
-    label: '系统管理',
-    icon: 'settings',
-    children: [
       {
-        id: 'advanced-tools',
-        label: '高级工具',
-        children: [
-          {
-            id: 'audit-logs',
-            label: '审计日志',
-            href: '/admin/collections/audit-logs',
-          },
-        ],
+        id: 'customers',
+        label: '客户档案',
+        href: '/admin/collections/customers',
       },
     ],
+  },
+  // 单叶组被解析器扁平化后的形态：它是顶级项，但没有可展开的面板
+  {
+    kind: 'leaf',
+    id: 'amenities',
+    label: '配套字典',
+    href: '/admin/collections/amenities',
+    icon: 'settings',
   },
 ]
 
 describe('admin navigation state', () => {
-  it('详情路径自动展开客户运营并高亮咨询线索', () => {
+  it('详情路径自动展开客户与线索并高亮咨询线索', () => {
     const pathname = '/admin/collections/leads/123'
 
-    expect(findActiveLeaf(groups, pathname)?.id).toBe('leads')
-    expect(deriveOpenGroupId(groups, pathname)).toBe('crm')
+    expect(findActiveLeaf(entries, pathname)?.id).toBe('leads')
+    expect(deriveOpenGroupId(entries, pathname)).toBe('crm')
+    expect(findActiveParentKeys(entries, pathname)).toEqual(['crm'])
   })
 
-  it('多级导航：能精确返回深层激活项的所有父级 key（Group 与 Subgroup）', () => {
-    expect(findActiveParentKeys(groups, '/admin/collections/locations')).toEqual(['supply', 'supply-settings'])
-    expect(findActiveParentKeys(groups, '/admin/collections/audit-logs')).toEqual(['system', 'advanced-tools'])
-    expect(findActiveParentKeys(groups, '/admin/collections/leads')).toEqual(['crm'])
+  it('激活的是扁平叶时没有需要展开的组', () => {
+    // 扁平叶不渲染组头，也就没有面板可展——返回它「原本属于哪个组」会让客户端
+    // 去展开一个根本没渲染出来的面板。
+    expect(findActiveLeaf(entries, '/admin/collections/amenities')?.id).toBe('amenities')
+    expect(deriveOpenGroupId(entries, '/admin/collections/amenities')).toBeNull()
+    expect(findActiveParentKeys(entries, '/admin/collections/amenities')).toEqual([])
   })
 
-  it('多展开模式：展开/收起二级菜单仅改变对应的 key，不影响其他一级或二级菜单', () => {
-    const openSet = new Set(['supply', 'supply-settings', 'crm'])
-    // 收起二级菜单 supply-settings
-    const nextSet = toggleGroupInSet(openSet, 'supply-settings')
+  it('没有任何叶子命中时不返回父级', () => {
+    expect(findActiveLeaf(entries, '/admin/collections/unknown')).toBeNull()
+    expect(deriveOpenGroupId(entries, '/admin/collections/unknown')).toBeNull()
+    expect(findActiveParentKeys(entries, '/admin/collections/unknown')).toEqual([])
+  })
+
+  it('多展开模式：展开/收起单个组仅改变对应的 key，不影响其他组', () => {
+    const openSet = new Set(['supply', 'crm'])
+    const nextSet = toggleGroupInSet(openSet, 'crm')
+
     expect(nextSet.has('supply')).toBe(true)
-    expect(nextSet.has('crm')).toBe(true)
-    expect(nextSet.has('supply-settings')).toBe(false)
+    expect(nextSet.has('crm')).toBe(false)
   })
 
-  it('打开房源运营会关闭客户运营，再次点击当前组会折叠', () => {
+  it('单展开模式下打开一组会关闭另一组，再次点击当前组会折叠', () => {
     expect(toggleOpenGroup('crm', 'supply')).toBe('supply')
     expect(toggleOpenGroup('supply', 'supply')).toBeNull()
   })
 
-  it('基础配置与高级工具不成为默认展开的一级组', () => {
-    expect(deriveOpenGroupId(groups, '/admin/collections/locations/2')).toBe('supply')
-    expect(deriveOpenGroupId(groups, '/admin/collections/audit-logs/8')).toBe('system')
-  })
-
   it('路径前缀只在完整分段边界上匹配', () => {
-    expect(findActiveLeaf(groups, '/admin/collections/leads-archive')).toBeNull()
-    expect(findActiveLeaf(groups, '/admin/collections/leads/123')?.id).toBe('leads')
+    expect(findActiveLeaf(entries, '/admin/collections/leads-archive')).toBeNull()
+    expect(findActiveLeaf(entries, '/admin/collections/leads/123')?.id).toBe('leads')
   })
 
   it('仅在 Payload smallBreak 移动端抽屉中点击叶子后关闭导航', () => {

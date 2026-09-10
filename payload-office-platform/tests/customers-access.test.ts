@@ -82,24 +82,9 @@ function reqForRole(code: BuiltinRoleCode): RequestContext {
   return makeReq({ user: makeUser({ roles: [1] }), roles: [makeBuiltinRole(code)] })
 }
 
-/**
- * 把导航树摊平成叶子，供同步守卫比对。
- *
- * 用 `child.children` 真值判定而不是 `'children' in child`：AdminNavLeaf 上声明了
- * `children?: never`，`in` 判定不会把叶子排除掉，narrowing 后仍可能是 undefined。
- */
-function flattenNavLeaves(): AdminNavLeaf[] {
-  const out: AdminNavLeaf[] = []
-  for (const group of ADMIN_NAV_GROUPS) {
-    for (const child of group.children) {
-      if (child.children) {
-        out.push(...child.children)
-      } else {
-        out.push(child)
-      }
-    }
-  }
-  return out
+/** 把导航树摊平成叶子，供同步守卫比对（OPT-084 后只有两级，组的 children 即叶子）。 */
+function flattenNavLeaves(): readonly AdminNavLeaf[] {
+  return ADMIN_NAV_GROUPS.flatMap((group) => group.children)
 }
 
 describe('Customers 读写准入', () => {

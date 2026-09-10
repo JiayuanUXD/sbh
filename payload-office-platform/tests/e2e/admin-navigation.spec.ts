@@ -15,17 +15,18 @@ const ROLE_ACCOUNTS = {
 
 type RoleCode = keyof typeof ROLE_ACCOUNTS
 
+// OPT-084 Phase 1：导航从 10 组 / 2 子分组重排为 8 组 / 无子分组。
+// 这份清单只用于「无权分组不该被渲染」的反向断言，所以必须是**全集**——
+// 少写一个组，那个组的越权渲染就永远测不到。
 const ALL_TOP_GROUPS = [
   '工作台',
-  '房源运营',
-  '区域管理',
-  '审核与风控',
-  '客户运营',
-  '商户合作',
-  '团队管理',
-  '内容管理',
-  '表单中心',
-  '系统管理',
+  '待处理',
+  '房源与楼盘',
+  '客户与线索',
+  '站点与内容',
+  '城市与区域',
+  '团队与账号',
+  '设置与工具',
 ] as const
 
 /**
@@ -40,96 +41,115 @@ const ALL_TOP_GROUPS = [
  * 都在，就是补这一类。
  *
  * 与配置的一致性由 tests/admin-nav-leaf-coverage.test.ts 守着，不会漂。
+ *
+ * OPT-084 Phase 1：按新树重排为 39 项（组内顺序与 navigation-config.ts 一致，便于
+ * 逐段对读）。唯一被删掉的叶子是「领域事件」——裁定 2 让它退出导航，collection 本身
+ * 仍在（group:false，URL 可直达），所以它不该再出现在这份「导航里必须能看到」的清单。
  */
 const ALL_LEAF_LABELS = [
+  // 工作台
   '运营概览',
-  '我的待办',
   '消息通知',
   '数据看板',
-  '房源列表',
-  '楼盘库',
-  '房源投放申请',
-  '房源批量导入',
-  '楼盘批量导入',
-  // OPT-045 D4：三个此前未被导航收编的集合（会被兜底渲染成左下角风格不一致的
-  // 「集合」区块），现已收编进正常分组。
-  '导入批次',
-  '城市管理',
-  '城市站点配置',
-  '行政区域',
-  '商圈管理',
-  '地铁管理',
-  '地理别名',
+  // 待处理：原先散在房源运营 / 审核与风控 / 商户合作 / 表单中心四组里的
+  // 「有人提交了东西等我处理」，本次统一收进这一组。
+  '我的待办',
   '审核队列',
   '举报处理',
   '信息纠错',
+  '房源投放申请',
+  '城市合伙人申请',
+  '提交数据',
+  // 房源与楼盘（商户管理、楼盘商户关系并入）
+  '房源列表',
+  '楼盘库',
+  '商户管理',
+  '楼盘商户关系',
+  '楼盘批量导入',
+  '房源批量导入',
+  // OPT-045 D4：此前未被导航收编的集合（会被兜底渲染成左下角风格不一致的
+  // 「集合」区块），现已收编进正常分组。
+  '导入批次',
+  // 客户与线索
   '咨询线索',
   '客户档案',
   '跟进记录',
-  '商户管理',
-  '城市合伙人申请',
-  '楼盘商户关系',
-  '团队管理',
-  '经纪人管理',
-  '顾问服务时间',
+  // 站点与内容（表单的「定义」并入，表单的「提交」归待处理）
   // OPT-053：站点设置（Global）。漏在这里 = 该入口永不进 e2e 覆盖，
   // 而「入口悄悄消失」正是这条 e2e 要防的事故。
   '站点设置',
+  '城市站点配置',
   '页面内容',
   '资讯中心',
   '素材库',
   '表单管理',
-  '提交数据',
+  // 城市与区域
+  '城市管理',
+  '行政区域',
+  '商圈管理',
+  '地铁管理',
+  '地理别名',
+  // 团队与账号
   '用户管理',
   '角色管理',
+  '团队管理',
+  '经纪人管理',
+  '顾问服务时间',
+  // 设置与工具
   '配套字典',
-  '搜索索引',
-  '领域事件',
   '审计日志',
+  '搜索索引',
 ] as const
 
+/**
+ * 五角色的导航预期（OPT-084 Phase 1）。
+ *
+ * 新增 `flatLeaves`：解析层会把「筛完只剩一片叶子」的组降级成顶级链接（没有组头按钮、
+ * 点了直接跳转）。不单独断言它的话，一个组从「3 片叶子」被误筛成「1 片」在组数上看
+ * 不出来——它只是从组数里消失、悄悄变成一个顶级链接，而组数正好也少了一。
+ *
+ * 单元快照 tests/admin-navigation-role-snapshot.test.ts 跑的是同一份预期，但它走
+ * resolveAdminNavigation 的返回值；这里走真实 DOM。两边都要绿才算这棵树真的立住了。
+ */
 const ROLE_NAVIGATION = {
   ADM: {
     groups: [
       '工作台',
-      '房源运营',
-      '区域管理',
-      '审核与风控',
-      '客户运营',
-      '商户合作',
-      '团队管理',
-      '内容管理',
-      '表单中心',
-      '系统管理',
+      '待处理',
+      '房源与楼盘',
+      '客户与线索',
+      '站点与内容',
+      '城市与区域',
+      '团队与账号',
+      '设置与工具',
     ],
-    allowed: { group: '内容管理', leaf: '页面内容', slug: 'pages' },
+    flatLeaves: [],
+    allowed: { group: '站点与内容', leaf: '页面内容', slug: 'pages' },
   },
   OPS: {
-    groups: [
-      '工作台',
-      '房源运营',
-      '区域管理',
-      '审核与风控',
-      '商户合作',
-      '内容管理',
-      '表单中心',
-      '系统管理',
-    ],
+    groups: ['工作台', '待处理', '房源与楼盘', '站点与内容', '城市与区域'],
+    // 「设置与工具」对 OPS 只剩配套字典一片（缺 audit:view 与 search 菜单码）→ 被扁平化
+    flatLeaves: ['配套字典'],
     allowed: {
-      group: '审核与风控',
+      group: '待处理',
       leaf: '审核队列',
       slug: 'listing-reviews',
       pageMarker: '房源审核台',
     },
   },
   MGR: {
-    groups: ['工作台', '房源运营', '客户运营', '团队管理'],
-    allowed: { group: '团队管理', leaf: '团队管理', slug: 'teams' },
+    groups: ['工作台', '待处理', '房源与楼盘', '客户与线索', '团队与账号'],
+    flatLeaves: [],
+    allowed: { group: '团队与账号', leaf: '团队管理', slug: 'teams' },
   },
   BRK: {
-    groups: ['工作台', '房源运营', '客户运营'],
+    groups: ['工作台', '客户与线索'],
+    // 「待处理」只剩我的待办、「房源与楼盘」只剩房源列表 → 两组都被扁平化。
+    // 顺序按解析结果的文档顺序（待处理在房源与楼盘之前）。
+    flatLeaves: ['我的待办', '房源列表'],
     allowed: {
-      group: '房源运营',
+      // 扁平叶没有可展开的组头，直接点顶级链接
+      flat: true,
       leaf: '房源列表',
       slug: 'listings',
       // OPT-056 起 listings/buildings 整页换成 Arco 自定义列表视图。
@@ -144,27 +164,44 @@ const ROLE_NAVIGATION = {
     },
   },
   CSR: {
-    groups: ['工作台', '客户运营', '表单中心'],
-    allowed: { group: '表单中心', leaf: '表单管理', slug: 'forms' },
+    groups: ['工作台', '待处理', '客户与线索'],
+    // 「站点与内容」对 CSR 只剩表单管理一片 → 被扁平化（排在客户与线索之后）
+    flatLeaves: ['表单管理'],
+    allowed: { flat: true, leaf: '表单管理', slug: 'forms' },
   },
 } as const satisfies Record<
   RoleCode,
   {
     groups: readonly string[]
-    allowed: {
-      group: string
-      leaf: string
-      slug: string
-      /** 页面内的唯一文本标识（原生列表视图没有 h1 时用）。 */
-      pageMarker?: string
-      /**
-       * 自定义列表视图的根容器选择器。
-       *
-       * 换成自定义视图的 collection 没有 Payload 原生 h1，也不一定有稳定的字面量文本；
-       * 按根容器断言比按文案断言更稳——文案会被"净化"改写，容器类名不会。
-       */
-      rootSelector?: string
-    }
+    /** 被扁平化成顶级链接的叶子（组里只剩一片时发生），按文档顺序。 */
+    flatLeaves: readonly string[]
+    /**
+     * 代表性入口：`group` 表示它在某个组内（需先展开），`flat: true` 表示它本身
+     * 就是顶级扁平叶（没有组头可展）。两者互斥，用联合类型而不是两个可选字段，
+     * 免得写出「既没有 group 也不是 flat」这种点不到东西的条目。
+     */
+    allowed:
+      | {
+          group: string
+          leaf: string
+          slug: string
+          /** 页面内的唯一文本标识（原生列表视图没有 h1 时用）。 */
+          pageMarker?: string
+          /**
+           * 自定义列表视图的根容器选择器。
+           *
+           * 换成自定义视图的 collection 没有 Payload 原生 h1，也不一定有稳定的字面量文本；
+           * 按根容器断言比按文案断言更稳——文案会被"净化"改写，容器类名不会。
+           */
+          rootSelector?: string
+        }
+      | {
+          flat: true
+          leaf: string
+          slug: string
+          pageMarker?: string
+          rootSelector?: string
+        }
   }
 >
 
@@ -193,10 +230,33 @@ function topGroupButtons(page: Page): Locator {
   return page.locator('.admin-navigation__group-toggle')
 }
 
+/**
+ * 定位组头按钮。
+ *
+ * 不能用 `getByRole('button', { name, exact: true })`：OPT-084 起收起状态的组头会多
+ * 渲染一个汇总角标 `<span aria-label="{组名}共 N 项待处理">`，它并入按钮的 accessible
+ * name，exact 匹配当场落空——而失败信息会说成「该角色看不到这个分组」，把一个纯数据
+ * 条件（组内恰好有待办）误导成权限判定 bug。叶子链接早就踩过同一个坑，见 navLeafLink。
+ *
+ * 所以锚定组头自己的 label 元素，让断言只回答「这个组在不在」，与角标数量无关。
+ */
 function topGroupButton(page: Page, name: string): Locator {
   return page
-    .getByRole('button', { name, exact: true })
-    .and(page.locator('.admin-navigation__group-toggle'))
+    .locator('.admin-navigation__group-toggle')
+    .filter({ has: page.getByText(name, { exact: true }) })
+}
+
+/**
+ * 定位被扁平化的顶级叶子链接。
+ *
+ * 扁平叶与组内叶子共用 `.admin-navigation__link`，靠 `--flat` 修饰类区分；这里刻意只
+ * 认扁平那一种——「组被误筛成只剩一片叶子」和「组正常渲染」在组数上看不出差别，
+ * 只有扁平叶本身能把它们区分开。
+ */
+function flatLeafLink(page: Page, label: string): Locator {
+  return page
+    .locator('a.admin-navigation__link--flat')
+    .filter({ has: page.getByText(label, { exact: true }) })
 }
 
 /**
@@ -223,7 +283,8 @@ function navLeafLink(page: Page, label: string): Locator {
 }
 
 async function expectRoleGroups(page: Page, role: RoleCode): Promise<void> {
-  const allowed = ROLE_NAVIGATION[role].groups
+  const { flatLeaves, groups: allowed } = ROLE_NAVIGATION[role]
+  // 扁平叶不渲染 toggle 按钮，所以这个计数是纯粹的「组数」
   await expect(topGroupButtons(page)).toHaveCount(allowed.length)
 
   for (const [index, group] of allowed.entries()) {
@@ -244,6 +305,19 @@ async function expectRoleGroups(page: Page, role: RoleCode): Promise<void> {
       `${role} 不应渲染无权分组 ${group}`,
     ).toHaveCount(0)
   }
+
+  // 扁平叶单独对一遍：只对组数的话，「某个组被误筛到只剩一片叶子」会伪装成
+  // 「少了一个组」，而它其实还在，只是降级成了顶级链接——两种情况得分得开。
+  for (const leaf of flatLeaves) {
+    await expect(
+      flatLeafLink(page, leaf),
+      `${role} 应把 ${leaf} 渲染成顶级扁平叶`,
+    ).toBeVisible()
+  }
+  await expect(
+    page.locator('.admin-navigation__link--flat'),
+    `${role} 的扁平叶数量应为 ${flatLeaves.length}`,
+  ).toHaveCount(flatLeaves.length)
 }
 
 async function openGroup(page: Page, name: string): Promise<void> {
@@ -337,15 +411,15 @@ async function expectUncovered(
 }
 
 /**
- * 展开所有子分组。
+ * 展开当前渲染出来的所有分组。
  *
- * 导航是两层可折叠：顶层分组（openGroup）之下还有 subgroup，各自独立的
- * aria-expanded。只展开顶层的话，「高级工具」这类子分组里的叶子仍然不可见——
- * 第一版全叶子用例就是这么误报了四个「缺失入口」的。
+ * OPT-084 之后导航只剩一层可折叠（子分组已删），但「默认展开集」只覆盖两个组，
+ * 其余组初始是收着的。按名字逐个 openGroup 要求测试自己维护一份组名清单，会和
+ * ALL_TOP_GROUPS 各漂各的；直接扫 `aria-expanded="false"` 与真实 DOM 同步。
  */
-async function openAllSubgroups(page: Page): Promise<void> {
+async function openAllGroups(page: Page): Promise<void> {
   const collapsed = page.locator(
-    '.admin-navigation__subgroup-toggle[aria-expanded="false"]',
+    '.admin-navigation__group-toggle[aria-expanded="false"]',
   )
   // 每次点开一个后 DOM 变化，重新求值；给个上界防止意外死循环
   for (let guard = 0; guard < 20; guard += 1) {
@@ -367,15 +441,20 @@ test.describe('后台导航 / 五角色桌面矩阵', () => {
 
       await expectRoleGroups(page, role)
 
-      const { group, leaf, slug } = ROLE_NAVIGATION[role].allowed
-      await openGroup(page, group)
-      // template-default 拦截坐标点击，用原生 click() 直接触发 next/link 路由导航
-      await navLeafLink(page, leaf).evaluate((el: HTMLElement) => el.click())
+      const allowed = ROLE_NAVIGATION[role].allowed
+      const { leaf, slug } = allowed
+      if ('group' in allowed) {
+        await openGroup(page, allowed.group)
+        // template-default 拦截坐标点击，用原生 click() 直接触发 next/link 路由导航
+        await navLeafLink(page, leaf).evaluate((el: HTMLElement) => el.click())
+      } else {
+        // 扁平叶就在顶层，没有要先展开的组
+        await flatLeafLink(page, leaf).evaluate((el: HTMLElement) => el.click())
+      }
 
       await expect(page).toHaveURL(
         new RegExp(`/admin/collections/${slug}(?:\\?.*)?$`),
       )
-      const allowed = ROLE_NAVIGATION[role].allowed
       if ('rootSelector' in allowed && allowed.rootSelector) {
         await expect(page.locator(allowed.rootSelector)).toBeVisible()
       } else if ('pageMarker' in allowed) {
@@ -418,54 +497,65 @@ test.describe('后台导航 / 桌面交互', () => {
     await expect(page.locator('.admin-navigation')).toBeVisible()
   })
 
-  test('多分组可同时展开，刷新后恢复当前分组和高亮叶子', async ({ page }) => {
-    // 当前路由 /admin 的激活分组为"工作台"，初始自动展开
-    await expect(topGroupButton(page, '工作台')).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    )
+  test('首次进入按默认集展开，多分组互不排斥，刷新后恢复当前分组和高亮叶子', async ({
+    page,
+  }) => {
+    // OPT-084 Task 2：首次进入（localStorage 里没有展开集）时展开「待处理」「房源与楼盘」
+    // 两个日常最高频的组，再并上当前路由 /admin 所在的「工作台」——共三个。
+    // 这里逐个点名而不是只数个数：数量对得上、开错组的情况在计数里看不出来。
+    for (const group of ['工作台', '待处理', '房源与楼盘']) {
+      await expect(
+        topGroupButton(page, group),
+        `首次进入 /admin 时 ${group} 应默认展开`,
+      ).toHaveAttribute('aria-expanded', 'true')
+    }
+    await expect(
+      page.locator('.admin-navigation__group-toggle[aria-expanded="true"]'),
+    ).toHaveCount(3)
 
     // 多展开模式（对标 Arco Design Pro）：打开新分组不收起已展开分组
-    await openGroup(page, '房源运营')
-    await expect(topGroupButton(page, '房源运营')).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    )
+    await openGroup(page, '客户与线索')
     await expect(topGroupButton(page, '工作台')).toHaveAttribute(
       'aria-expanded',
       'true',
     )
     await expect(
       page.locator('.admin-navigation__group-toggle[aria-expanded="true"]'),
-    ).toHaveCount(2)
+    ).toHaveCount(4)
 
-    await openGroup(page, '客户运营')
-    await expect(topGroupButton(page, '客户运营')).toHaveAttribute(
+    // 反向也要成立：收起一个组只影响它自己。只测「开」的话，
+    // 「点谁都全开」这种实现同样能过。
+    await topGroupButton(page, '房源与楼盘').dispatchEvent('click')
+    await expect(topGroupButton(page, '房源与楼盘')).toHaveAttribute(
       'aria-expanded',
-      'true',
+      'false',
     )
     await expect(
       page.locator('.admin-navigation__group-toggle[aria-expanded="true"]'),
     ).toHaveCount(3)
 
     // template-default 拦截坐标点击，用原生 click() 直接触发 next/link 路由导航
-    await page
-      .getByRole('link', { name: '咨询线索', exact: true })
-      .evaluate((el: HTMLElement) => el.click())
+    await navLeafLink(page, '咨询线索').evaluate((el: HTMLElement) => el.click())
     await expect(page).toHaveURL(
       /\/admin\/collections\/leads(?:\?.*)?$/,
     )
     await page.reload()
     await ensureDesktopNavigationOpen(page)
 
-    // 刷新后恢复当前路由所在分组（客户运营）并高亮叶子
-    await expect(topGroupButton(page, '客户运营')).toHaveAttribute(
+    // 刷新后恢复当前路由所在分组（客户与线索）并高亮叶子
+    await expect(topGroupButton(page, '客户与线索')).toHaveAttribute(
       'aria-expanded',
       'true',
     )
-    await expect(
-      page.getByRole('link', { name: '咨询线索', exact: true }),
-    ).toHaveAttribute('aria-current', 'page')
+    // 上面被用户收起的组不该因为刷新又冒出来——展开态落盘的意义就在这里
+    await expect(topGroupButton(page, '房源与楼盘')).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+    await expect(navLeafLink(page, '咨询线索')).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   test('数量提醒正确格式化 0、1、99、100 边界', async ({ page }) => {
@@ -488,6 +578,14 @@ test.describe('后台导航 / 桌面交互', () => {
     await page.reload()
     await ensureDesktopNavigationOpen(page)
 
+    // 「我的待办」「审核队列」「举报处理」都在「待处理」组里，而它是默认展开集的
+    // 一员——不必再点开。这里显式确认一次：默认展开一旦回退，下面几条角标断言会
+    // 因为「元素不可见」而失败，失败信息却指向角标，容易查错方向。
+    await expect(topGroupButton(page, '待处理')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+
     const tasksLink = page.locator(
       'a.admin-navigation__link[href="/admin/collections/tasks"]',
     )
@@ -496,13 +594,21 @@ test.describe('后台导航 / 桌面交互', () => {
     await expect(
       page.getByLabel('消息通知待处理 1 项', { exact: true }),
     ).toHaveText('1')
-
-    await openGroup(page, '审核与风控')
     await expect(
       page.getByLabel('审核队列待处理 99 项', { exact: true }),
     ).toHaveText('99')
     await expect(
       page.getByLabel('举报处理待处理 99+ 项', { exact: true }),
+    ).toHaveText('99+')
+
+    // OPT-084 Task 2：组展开时组头不挂汇总角标（同一批事情会被数两遍），
+    // 收起后才出现，数值是组内各叶子之和（0 + 99 + 100 = 199 → 99+）。
+    await expect(
+      topGroupButton(page, '待处理').locator('.admin-navigation__group-badge'),
+    ).toHaveCount(0)
+    await topGroupButton(page, '待处理').dispatchEvent('click')
+    await expect(
+      topGroupButton(page, '待处理').locator('.admin-navigation__group-badge'),
     ).toHaveText('99+')
   })
 
@@ -586,7 +692,7 @@ test.describe('后台导航 / 移动交互', () => {
   // The seeded roles do not contain a source-read/target-no-read combination.
   // Task 9's Server wrapper unit tests remain the authoritative negative gate;
   // this browser suite exercises both real positive journeys without forging roles.
-  test('上下文入口可进入带过滤条件的列表，抽屉置底系统管理并区分返回和关闭', async ({
+  test('上下文入口可进入带过滤条件的列表，抽屉置底设置与工具并区分返回和关闭', async ({
     page,
   }, testInfo) => {
     await loginAs(page, 'ADM')
@@ -680,9 +786,9 @@ test.describe('后台导航 / 移动交互', () => {
 
     await expect(
       topGroupButtons(page).last().locator('.admin-navigation__group-label'),
-    ).toHaveText('系统管理')
+    ).toHaveText('设置与工具')
 
-    const systemBox = await topGroupButton(page, '系统管理').boundingBox()
+    const systemBox = await topGroupButton(page, '设置与工具').boundingBox()
     const workspaceBox = await topGroupButton(page, '工作台').boundingBox()
     expect(systemBox).not.toBeNull()
     expect(workspaceBox).not.toBeNull()
@@ -723,11 +829,9 @@ test.describe('后台导航 / 全叶子可达', () => {
     await ensureDesktopNavigationOpen(page)
     await expect(page.locator('.admin-navigation')).toBeVisible()
 
-    for (const group of ALL_TOP_GROUPS) {
-      await openGroup(page, group)
-    }
-    // 导航是两层折叠，顶层展开不等于子分组展开
-    await openAllSubgroups(page)
+    // ADM 八个组全在（没有被扁平化的），逐个展开后 39 片叶子应当同屏可见
+    await expect(topGroupButtons(page)).toHaveCount(ALL_TOP_GROUPS.length)
+    await openAllGroups(page)
 
     const missing: string[] = []
     for (const label of ALL_LEAF_LABELS) {

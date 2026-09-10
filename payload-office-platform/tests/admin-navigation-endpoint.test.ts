@@ -139,10 +139,12 @@ describe('GET /admin-navigation', () => {
       listingReports: 4,
       leads: 4,
       formSubmissions: 4,
+      supplySubmissions: 4,
+      informationCorrections: 4,
       cityPartnerApplications: 4,
     })
     expect(typeof result.body.asOf).toBe('string')
-    expect(count).toHaveBeenCalledTimes(7)
+    expect(count).toHaveBeenCalledTimes(9)
     for (const [call] of count.mock.calls) {
       expect(call.overrideAccess).toBe(false)
       expect(call.req).toBe(req)
@@ -208,6 +210,8 @@ describe('GET /admin-navigation', () => {
       listingReports: 2,
       leads: 2,
       formSubmissions: 2,
+      supplySubmissions: 2,
+      informationCorrections: 2,
       cityPartnerApplications: 2,
     })
     expect(error).toHaveBeenCalledTimes(1)

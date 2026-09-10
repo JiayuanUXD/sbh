@@ -24,7 +24,7 @@ import {
  *  - 商圈扩展面板：BusinessAreaExtensionPanel（Card 标题「商圈空间扩展」，别名 + 添加别名，
  *    无扩展时保存按钮为「创建扩展」）
  *  - 全局搜索：GeographyQuickSearch（Cmd/Ctrl+K，结果「父级 / 名称」+ 城市分组头）
- *  - 导航：AdminNavigationClient（一级 group-toggle / 二级 subgroup-toggle / link）
+ *  - 导航：AdminNavigationClient（group-toggle / link；OPT-084 后只剩一层，子分组已删）
  * 注：计划正文写「空间与展示」面板，实际 Card 标题为「商圈空间扩展」，此处按实际实现断言。
  */
 
@@ -200,19 +200,19 @@ test.describe.serial('地理管理后台 E2E', () => {
     }
   })
 
-  test('flow1 区域管理只含五个地理入口，城市站点配置已归内容管理', async ({ page }) => {
+  test('flow1 城市与区域只含五个地理入口，城市站点配置已归站点与内容', async ({ page }) => {
     await loginAs(page)
     await page.goto('/admin')
     await ensureDesktopNavigationOpen(page)
-    await openTopGroup(page, '区域管理')
-    const regionGroup = topGroupButton(page, '区域管理').locator('..')
+    await openTopGroup(page, '城市与区域')
+    const regionGroup = topGroupButton(page, '城市与区域').locator('..')
     // 5 项：城市管理 / 行政区域 / 商圈管理 / 地铁管理 / 地理别名
-    //（见 src/domain/admin-navigation/navigation-config.ts 的 region-management 组）
+    //（见 src/domain/admin-navigation/navigation-config.ts 的 geography 组）
     // 地理别名由 OPT-045 D4 收编——此前它不在导航配置里，被兜底渲染成左下角
     // 那个风格不一致的「集合」区块。
     //
     // OPT-062：「城市站点配置」原本夹在这五个地理项中间，是六项里唯一的运营配置，
-    // 且与「城市管理」名字相似又相邻，被当成同一件事的两个入口。已挪到内容管理、
+    // 且与「城市管理」名字相似又相邻，被当成同一件事的两个入口。已挪到站点与内容、
     // 紧挨「站点设置」——两者正是「全局默认 → 单城覆盖/单城独有」的两层。
     await expect(regionGroup.locator('.admin-navigation__item')).toHaveCount(5)
     await expect(regionGroup).toContainText('城市管理')
@@ -222,20 +222,22 @@ test.describe.serial('地理管理后台 E2E', () => {
     await expect(regionGroup).toContainText('商圈管理')
     await expect(regionGroup).toContainText('地铁管理')
 
-    // OPT-062：只断言「区域管理里没有它」只锁了一半——还要确认它真的落到了内容管理，
+    // OPT-062：只断言「城市与区域里没有它」只锁了一半——还要确认它真的落到了站点与内容，
     // 否则「配置漏渲染」和「成功挪走」这两种情况在测试里长得一样。
-    await openTopGroup(page, '内容管理')
-    const contentGroup = topGroupButton(page, '内容管理').locator('..')
+    await openTopGroup(page, '站点与内容')
+    const contentGroup = topGroupButton(page, '站点与内容').locator('..')
     await expect(contentGroup).toContainText('站点设置')
     await expect(contentGroup).toContainText('城市站点配置')
 
-    await openTopGroup(page, '系统管理')
-    const systemConfig = page.locator('.admin-navigation__subgroup').filter({ hasText: '基础配置' })
-    await expect(systemConfig.locator('.admin-navigation__subgroup-item')).toHaveCount(1)
-    await expect(systemConfig).toContainText('配套字典')
+    // OPT-084：子分组已删，「基础配置」不再存在；配套字典与审计日志、搜索索引
+    // 平铺在「设置与工具」组下（ADM 三片都有权，所以这里是组而不是扁平叶）。
+    await openTopGroup(page, '设置与工具')
+    const systemGroup = topGroupButton(page, '设置与工具').locator('..')
+    await expect(systemGroup.locator('.admin-navigation__item')).toHaveCount(3)
+    await expect(systemGroup).toContainText('配套字典')
   })
 
-  test('六条地理路由保留后台框架，区域管理为激活展开组', async ({ page }) => {
+  test('六条地理路由保留后台框架，城市与区域为激活展开组', async ({ page }) => {
     expect(cityId).not.toBeNull()
     await loginAs(page)
 
@@ -253,7 +255,7 @@ test.describe.serial('地理管理后台 E2E', () => {
       await expect(page.locator('.admin-navigation')).toBeVisible()
       await expect(page.locator('.app-header')).toBeVisible()
 
-      const regionButton = topGroupButton(page, '区域管理')
+      const regionButton = topGroupButton(page, '城市与区域')
       await expect(regionButton).toHaveClass(/admin-navigation__group-toggle--active/)
       await expect(regionButton).toHaveAttribute('aria-expanded', 'true')
       await expect(regionButton.locator('..')).toHaveClass(/admin-navigation__group--open/)

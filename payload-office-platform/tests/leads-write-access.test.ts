@@ -84,19 +84,9 @@ function reqForRole(code: BuiltinRoleCode): RequestContext {
   return makeReq({ user: makeUser({ roles: [1] }), roles: [makeBuiltinRole(code)] })
 }
 
-/** 把导航树摊平成叶子（AdminNavLeaf 上是 `children?: never`，故用真值判定收窄）。 */
-function flattenNavLeaves(): AdminNavLeaf[] {
-  const out: AdminNavLeaf[] = []
-  for (const group of ADMIN_NAV_GROUPS) {
-    for (const child of group.children) {
-      if (child.children) {
-        out.push(...child.children)
-      } else {
-        out.push(child)
-      }
-    }
-  }
-  return out
+/** 把导航树摊平成叶子（OPT-084 后导航只有两级，组的 children 即叶子）。 */
+function flattenNavLeaves(): readonly AdminNavLeaf[] {
+  return ADMIN_NAV_GROUPS.flatMap((group) => group.children)
 }
 
 describe('Leads 写侧准入', () => {

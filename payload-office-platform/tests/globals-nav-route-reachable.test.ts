@@ -27,21 +27,11 @@ import { describe, expect, it } from 'vitest'
 
 import config from '@/payload.config'
 import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
-import type { AdminNavGroup, AdminNavItem, AdminNavLeaf } from '@/domain/admin-navigation/navigation-types'
+import type { AdminNavGroup, AdminNavLeaf } from '@/domain/admin-navigation/navigation-types'
 
-function isSubgroup(item: AdminNavItem): item is Exclude<AdminNavItem, AdminNavLeaf> {
-  return 'children' in item
-}
-
-function flattenLeaves(groups: readonly AdminNavGroup[]): AdminNavLeaf[] {
-  const out: AdminNavLeaf[] = []
-  for (const group of groups) {
-    for (const item of group.children) {
-      if (isSubgroup(item)) out.push(...item.children)
-      else out.push(item)
-    }
-  }
-  return out
+/** 导航只有两级（OPT-084 Phase 1），组的 children 就是叶子。 */
+function flattenLeaves(groups: readonly AdminNavGroup[]): readonly AdminNavLeaf[] {
+  return groups.flatMap((group) => group.children)
 }
 
 /** `/admin/globals/<slug>` → slug */

@@ -24,6 +24,8 @@ type BadgeRequestResult =
   | { status: 'aborted' }
   | { status: 'error' }
 
+// 解析白名单：顺序不参与语义（parseBadgeCounts 只用它做键过滤），
+// 这里与 buildAdminNavigationBadgeQueries 的查询块顺序保持一致，纯为对读方便。
 const BADGE_KEYS = [
   'tasks',
   'notifications',
@@ -32,6 +34,8 @@ const BADGE_KEYS = [
   'leads',
   'formSubmissions',
   'cityPartnerApplications',
+  'supplySubmissions',
+  'informationCorrections',
 ] as const satisfies readonly AdminNavigationBadgeKey[]
 
 export async function loadAdminNavigationBadges({

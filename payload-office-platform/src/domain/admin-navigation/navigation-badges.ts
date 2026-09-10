@@ -22,6 +22,8 @@ export type AdminNavigationBadgeQuery = {
     | 'listing-reports'
     | 'leads'
     | 'form-submissions'
+    | 'supply-submissions'
+    | 'information-corrections'
     | 'city-partner-applications'
   where: Where
 }
@@ -130,9 +132,11 @@ export function buildAdminNavigationBadgeQueries(
 
   if (canReadCityPartnerApplications(permission)) {
     const scopeWhere = buildCityPartnerCityScopeWhere(permission)
-    // false 表示该用户没有城市合伙人的数据范围（如内置 OPS：cityIds 是 'all' 而不是 Set），
-    // 此时只跳过这一条角标。这里绝不能 return queries——那会连带吞掉排在后面的所有查询，
-    // 而且没有任何报错（曾迫使 OPT-084 把新增角标刻意排在本块之前来绕开）。
+    // 拿不到城市范围时只跳过这一条，**绝不能写成 `return queries`**：
+    // 该分支在真实角色上天天走到（OPS 是 dataScope=global + cityIds='all'，
+    // 不是 Set，buildCityPartnerCityScopeWhere 判为 false），提前返回会把排在
+    // 本块之后新增的任何查询一起吞掉——而且吞得毫无声响：类型、单测、CI 全绿，
+    // 只有线上少一个角标。跳过而不返回，本函数的查询块顺序就不再有语义。
     if (scopeWhere !== false) {
       queries.push({
         key: 'cityPartnerApplications',
@@ -143,6 +147,35 @@ export function buildAdminNavigationBadgeQueries(
         ),
       })
     }
+  }
+
+  // 以下两块刻意排在 cityPartnerApplications 之后：那一块曾写成提前 `return`，
+  // 把后面的查询整片吞掉。排在它后面，OPS 口径的整集合回归测试才真的会咬人。
+  if (canReadSupplySubmissions(permission)) {
+    // 与列表页、dashboard-stats 的 pendingSubmissions 同口径：status=pending 即待审单。
+    // 刻意不做数据范围收窄——SupplySubmissions.access.read 是 createCollectionAccess
+    // 的纯操作码校验（只看 supply_submission:read），没有任何城市/团队收窄，
+    // 有权限者列表页看到的就是全量待审单。角标若比列表页更严（例如 team 范围的 MGR
+    // 会被 buildBadgeDataScopeWhere fail-closed 成 no-match），就会出现「角标显示 0、
+    // 点进去满屏待处理」；而统计用户本就能列出的行不构成任何泄漏。
+    queries.push({
+      key: 'supplySubmissions',
+      collection: 'supply-submissions',
+      where: combineWhere({ status: { equals: 'pending' } }),
+    })
+  }
+
+  if (canReadInformationCorrections(permission)) {
+    // 同上：InformationCorrections.access.read 也只校验 correction:read，
+    // 且该集合一个可收窄的维度都没有（只有 targetType/targetSlug/category，
+    // 没有 city、team 或负责人），硬套 buildBadgeDataScopeWhere 会让所有
+    // 非 global 角色恒得 0——角标不该比列表页更严。
+    queries.push({
+      key: 'informationCorrections',
+      collection: 'information-corrections',
+      // 未关闭 = 新建 + 已分诊；resolved / rejected 是终态，不再计入待处理。
+      where: combineWhere({ status: { in: ['new', 'triaged'] } }),
+    })
   }
 
   return queries
@@ -208,6 +241,33 @@ function canReadListingReports(permission: PermissionContext): boolean {
   return (
     hasMenuPermission(permission, 'reports') &&
     hasOperationPermission(permission, 'report:read')
+  )
+}
+
+/**
+ * 投放申请：菜单码与叶子的 requiredOperationCode 一字不差。
+ *
+ * 操作码这一层不能省——BRK 恰恰是「没有 supply-submissions 菜单」才读不到房东
+ * 手机号与地址（roles fixture 里写明的渠道绕开风险），角标查询若比列表页宽，
+ * 就等于从侧门把这批数据的存在性泄漏出去。
+ */
+function canReadSupplySubmissions(permission: PermissionContext): boolean {
+  return (
+    hasMenuPermission(permission, 'supply-submissions') &&
+    hasOperationPermission(permission, 'supply_submission:read')
+  )
+}
+
+/**
+ * 信息纠错与举报处理共用 reports 菜单码，但各自的操作码不同。
+ *
+ * 只判菜单会让「有 report:read 没 correction:read」的角色多看到一个它根本
+ * 打不开的角标，故与 canReadListingReports 同构地再判一次操作码。
+ */
+function canReadInformationCorrections(permission: PermissionContext): boolean {
+  return (
+    hasMenuPermission(permission, 'reports') &&
+    hasOperationPermission(permission, 'correction:read')
   )
 }
 
