@@ -279,6 +279,8 @@ export interface WriteAuditParams {
   after?: Record<string, unknown> | null
   /** 变更字段路径列表（如 ['stage', 'assigneeId']） */
   changedFields?: string[]
+  /** 操作人填写的原因（如下架原因）；仅部分动作有 */
+  reason?: string | null
   requestContext: RequestContextSnapshot
   /** 失败时的错误码（result=failed 时必填） */
   errorCode?: string | null

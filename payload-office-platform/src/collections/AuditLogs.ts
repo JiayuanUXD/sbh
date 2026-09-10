@@ -221,6 +221,15 @@ export const AuditLogs: CollectionConfig = {
                 description: '本次变更的字段路径列表（如 ["stage", "assigneeId"]）。',
               },
             },
+            {
+              name: 'reason',
+              label: '操作原因',
+              type: 'text',
+              admin: {
+                readOnly: true,
+                description: '操作人填写的原因（如房源下架原因）。仅部分动作要求填写，其余为空。',
+              },
+            },
           ],
         },
         {

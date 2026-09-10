@@ -193,8 +193,12 @@ export const Listings: CollectionConfig = {
     preview: (doc) => (doc?.slug ? `/listings/${doc.slug}` : null),
     components: {
       edit: {
+        // OPT-086 PR1：发布轴动作条（下架 / 标记已租 / 已售 / 重新上架），权限与状态机在端点强制。
         // OPT-030 P0-2：表单修改态桥，把 useFormModified 同步给根部离开守卫。
-        beforeDocumentControls: ['/components/admin/unsaved-changes/FormModifiedBridge'],
+        beforeDocumentControls: [
+          '/components/admin/ListingPublicationActions',
+          '/components/admin/unsaved-changes/FormModifiedBridge',
+        ],
       },
       // OPT-056：整页替换默认列表视图（Arco 表格 + 状态标签 + 推荐位快捷编辑）。
       views: {

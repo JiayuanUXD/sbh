@@ -336,6 +336,17 @@ export default function AuditLogListClient({
                         changedFieldsText(d.changedFields)
                       ),
                   },
+                  // 「为什么改」和「改了什么」放一起。这个抽屉是运营读审计的实际入口
+                  // （列表视图整页替换掉了默认的，详情不走原生编辑页），原因不在这里显示，
+                  // 就等于下架弹层那句「会记入审计」在运营视角依然是空头承诺。
+                  {
+                    label: '操作原因',
+                    value: d.reason ? (
+                      d.reason
+                    ) : (
+                      <Typography.Text type="secondary">—</Typography.Text>
+                    ),
+                  },
                 ]}
               />
               <div style={{ marginTop: 8 }}>

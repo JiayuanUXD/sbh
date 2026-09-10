@@ -5,6 +5,10 @@ import { shouldDeferToDefaultListView } from './list-view-context'
 import { renderDefaultListView } from './payload-default-list-fallback'
 
 import {
+  buildPermissionContext,
+  hasOperationPermission,
+} from '@/domain/auth/permission-context'
+import {
   BUSINESS_TYPES,
   BUSINESS_TYPE_LABELS,
   LISTING_TYPES,
@@ -15,7 +19,7 @@ import {
   PUBLICATION_STATUS_LABELS,
 } from '@/domain/review/publication-status'
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
-import type { Listing } from '@/payload-types'
+import type { Listing, Role, User } from '@/payload-types'
 import ListingsListViewClient, { type ListingRow } from './ListingsListViewClient'
 
 /**
@@ -29,6 +33,8 @@ import ListingsListViewClient, { type ListingRow } from './ListingsListViewClien
  * 权限：collection access 与字段权限仍由服务端强制——列表查询走 Local API
  * （默认 overrideAccess: true，所以匿名读收窄与 roomNumber 的字段级权限都不在这条路上
  * 生效，后台该看见的都看得见），行内快捷编辑走 REST PATCH（access + hooks 全跑）。
+ * OPT-086：操作列「下架」按 listing:unpublish 决定显隐，动作本身走
+ * POST /api/listings/:id/publish（状态机、权限、原因、乐观锁、审计都在端点里）。
  *
  * 仅接管「整页列表」；回收站与关系抽屉让位给 Payload 原生视图，
  * 判定与理由见 `list-view-context.ts`。
@@ -88,7 +94,7 @@ export default async function ListingsListView(props: ListViewServerProps) {
     pendingRecheck,
   })
 
-  const [result, buildingDoc] = await Promise.all([
+  const [result, buildingDoc, permissionCtx] = await Promise.all([
     payload.find({
       collection: 'listings',
       where: conditions.length > 0 ? { and: conditions } : undefined,
@@ -102,7 +108,32 @@ export default async function ListingsListView(props: ListViewServerProps) {
           .findByID({ collection: 'buildings', id: building, depth: 0 })
           .catch(() => null)
       : Promise.resolve(null),
+    // OPT-086：操作列「下架」是否渲染，取决于会话级权限（表单/文档里没有，只能服务端算）。
+    // 构造方式照 ListingReviewQueue：列表视图只给 payload + user（无 req），走不了
+    // getPermissionContext(req)。与楼盘/房源列表同批发起，不多一次串行往返。
+    // 吞异常回落 null（= 不显示按钮）：一次角色查询失败不该把整张房源列表打成 500，
+    // 隐藏按钮也不损失安全性——端点才是唯一强制点。
+    buildPermissionContext({
+      user: user as unknown as Pick<
+        User,
+        'id' | 'roles' | 'cityScope' | 'status' | 'sessionVersion'
+      >,
+      loadRoles: async (roleIds) => {
+        const docs = await payload.find({
+          collection: 'roles',
+          where: { id: { in: roleIds } },
+          depth: 0,
+          overrideAccess: true,
+          limit: roleIds.length,
+        })
+        return docs.docs as unknown as Role[]
+      },
+    }).catch(() => null),
   ])
+
+  const canUnpublish = permissionCtx
+    ? hasOperationPermission(permissionCtx, 'listing:unpublish')
+    : false
 
   const rows: ListingRow[] = (result.docs as Listing[]).map((doc) => {
     const building = doc.building
@@ -135,6 +166,7 @@ export default async function ListingsListView(props: ListViewServerProps) {
   return (
     <ListingsListViewClient
       rows={rows}
+      canUnpublish={canUnpublish}
       page={result.page ?? 1}
       pageSize={limit}
       totalDocs={result.totalDocs ?? 0}

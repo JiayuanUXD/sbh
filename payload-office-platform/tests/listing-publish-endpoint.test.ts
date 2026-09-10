@@ -8,13 +8,13 @@ import type { Role, User } from '@/payload-types'
  * 房源显式发布 endpoint 的 HTTP 装配层测试（M4.6 / R4, R8）
  *
  * POST /api/listings/:id/publish  body { action, reason?, expectedVersion? }
- *   action ∈ publish | unpublish | mark_leased
+ *   action ∈ publish | unpublish | mark_leased | mark_sold
  *
  * 覆盖的不变量：
- *  - 权限：publish/mark_leased 要 listing:publish；unpublish 要 listing:unpublish。
+ *  - 权限：publish/mark_leased/mark_sold 要 listing:publish；unpublish 要 listing:unpublish。
  *  - 发布前置：reviewStatus 必须 approved 且有效供给谓词通过，否则拒绝（不改状态）。
  *  - 下架必填原因。
- *  - mark_leased 副作用：publicationStatus=leased + isFeatured=false（撤销推荐+收回可见）。
+ *  - mark_leased / mark_sold 副作用：publicationStatus 落成交终态 + isFeatured=false（撤销推荐+收回可见）。
  *  - 版本乐观锁：expectedVersion 与当前不符 → 409，且 update 不触发。
  *  - 审核通过不隐式发布：本端点只动发布轴，不写 reviewStatus。
  *
@@ -84,6 +84,8 @@ function makeReq(params: {
   userRoles?: Role[]
   listing?: Record<string, unknown> | null
   findByIDThrows?: boolean
+  /** 让 payload.update 抛错，用来走 withAudit 的 failed 审计路径 */
+  updateThrows?: boolean
   body?: Record<string, unknown>
 }): {
   req: PayloadRequest
@@ -97,6 +99,7 @@ function makeReq(params: {
     userRoles = [makeAdmRole()],
     listing = makeEffectiveListing(),
     findByIDThrows = false,
+    updateThrows = false,
     body = { action: 'publish' },
   } = params
 
@@ -112,7 +115,10 @@ function makeReq(params: {
     if (findByIDThrows) throw new Error('not found')
     return listing
   })
-  const update = vi.fn(async () => ({ id: 1 }))
+  const update = vi.fn(async () => {
+    if (updateThrows) throw new Error('db down')
+    return { id: 1 }
+  })
   const create = vi.fn(async () => ({ id: 999, auditId: 'aud_test001' }))
   const req = {
     user: user ?? null,
@@ -130,6 +136,21 @@ async function run(req: PayloadRequest): Promise<{ status: number; body: any }> 
   const res = (await endpoint.handler!(req)) as Response
   const body = await res.json()
   return { status: res.status, body }
+}
+
+/**
+ * 取本次请求写进 audit-logs 的那一条 create 载荷。
+ *
+ * 审计走的是真实的 withAudit → writeAuditSuccess → payload.create（没有 mock 中间层），
+ * 所以这里直接从 create mock 里挑 collection === 'audit-logs' 的调用——换句话说，
+ * 断言的是「真的会落库的那份 data」，而不是某个被 stub 掉的中间参数。
+ */
+function auditCreateData(create: ReturnType<typeof vi.fn>): Record<string, unknown> {
+  const call = create.mock.calls.find(
+    (args: unknown[]) => (args[0] as { collection?: string })?.collection === 'audit-logs',
+  )
+  expect(call, '高风险动作必须写一条审计').toBeDefined()
+  return (call![0] as { data: Record<string, unknown> }).data
 }
 
 describe('listing-publish-endpoint/权限门', () => {
@@ -262,6 +283,36 @@ describe('listing-publish-endpoint/下架', () => {
     // 不触碰审核轴
     expect(arg.data.reviewStatus).toBeUndefined()
   })
+
+  // 弹层正文与输入框 placeholder 都写着「会记入审计」。原因只做非空校验、写完就丢的话，
+  // 这句承诺就是假的：事后没人能回答「这套房源当初为什么被下架」。
+  it('下架原因落进审计（首尾空格 trim 后写入 audit_logs.reason）', async () => {
+    const { req, create } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published' }),
+      body: { action: 'unpublish', reason: '  房东撤单  ' },
+    })
+    const { status } = await run(req)
+    expect(status).toBe(200)
+    const audit = auditCreateData(create)
+    expect(audit.action).toBe('listing.unpublish')
+    expect(audit.result).toBe('success')
+    expect(audit.reason).toBe('房东撤单')
+  })
+
+  it('下架写入抛错 → failed 审计也带原因（追责时知道操作人当时想做什么），错误原样上抛', async () => {
+    const { req, create } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published' }),
+      body: { action: 'unpublish', reason: '  房东撤单  ' },
+      updateThrows: true,
+    })
+    // withAudit 的 throwOnError:false 只吞 fn 返回 ok:false 的业务失败；fn 抛异常时它先记 failed 审计再重抛，
+    // 由 Payload 的 REST 层统一转成 500——这里只守「失败审计带原因」，不重复断言 Payload 的错误包装。
+    await expect(run(req)).rejects.toThrow('db down')
+    const audit = auditCreateData(create)
+    expect(audit.action).toBe('listing.unpublish')
+    expect(audit.result).toBe('failed')
+    expect(audit.reason).toBe('房东撤单')
+  })
 })
 
 describe('listing-publish-endpoint/发布成功', () => {
@@ -278,6 +329,17 @@ describe('listing-publish-endpoint/发布成功', () => {
     expect(arg.data.reviewStatus).toBeUndefined()
     expect(arg.req).toBeDefined()
   })
+
+  // 不收原因的动作必须显式落 null，而不是把上一次请求的原因带过来或干脆缺字段：
+  // 审计列里「空」和「没这个字段」在排查时是两件事。
+  it('publish 不收原因，审计里 reason 为 null', async () => {
+    const { req, create } = makeReq({ body: { action: 'publish' } })
+    const { status } = await run(req)
+    expect(status).toBe(200)
+    const audit = auditCreateData(create)
+    expect(audit.action).toBe('listing.publish')
+    expect(audit.reason).toBeNull()
+  })
 })
 
 describe('listing-publish-endpoint/标记成交副作用', () => {
@@ -292,6 +354,78 @@ describe('listing-publish-endpoint/标记成交副作用', () => {
     const arg = update.mock.calls[0][0]
     expect(arg.data.publicationStatus).toBe('leased')
     expect(arg.data.isFeatured).toBe(false)
+  })
+
+  it('mark_sold：与 mark_leased 对称，publicationStatus=sold 且 isFeatured=false', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published', businessType: 'sale', isFeatured: true }),
+      body: { action: 'mark_sold' },
+    })
+    const res = await run(req)
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ ok: true, publicationStatus: 'sold' })
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(update.mock.calls[0][0].data).toEqual({ publicationStatus: 'sold', isFeatured: false })
+  })
+})
+
+/**
+ * 租售守卫：动作条只按「已保存的 businessType」显隐成交按钮，但直调 API 绕得过界面。
+ * leased 与 sold 都是终态，一旦写反就没有任何动作能改回来（状态机不给终态出边），
+ * 所以端点必须自己再挡一次——这是本 endpoint 唯一一处新增拒绝。
+ */
+describe('listing-publish-endpoint/租售错标守卫', () => {
+  it('mark_leased 拒绝出售房源：422 BUSINESS_TYPE_MISMATCH，不 update', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published', businessType: 'sale' }),
+      body: { action: 'mark_leased' },
+    })
+    const res = await run(req)
+    expect(res.status).toBe(422)
+    expect(res.body.code).toBe('BUSINESS_TYPE_MISMATCH')
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('mark_sold 拒绝租赁房源：422 BUSINESS_TYPE_MISMATCH，不 update', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published', businessType: 'lease' }),
+      body: { action: 'mark_sold' },
+    })
+    const res = await run(req)
+    expect(res.status).toBe(422)
+    expect(res.body.code).toBe('BUSINESS_TYPE_MISMATCH')
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  // 缺省（历史数据没有 businessType）按租赁处理，与动作条的缺省口径一致：
+  // 缺省放行的是可发生的那一侧（mark_leased），拒绝的是不可解释的那一侧（mark_sold）。
+  it('businessType 缺省时按租赁处理：mark_leased 放行、mark_sold 被拒', async () => {
+    const leased = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published' }),
+      body: { action: 'mark_leased' },
+    })
+    expect((await run(leased.req)).status).toBe(200)
+    expect(leased.update).toHaveBeenCalledTimes(1)
+
+    const sold = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published' }),
+      body: { action: 'mark_sold' },
+    })
+    expect((await run(sold.req)).status).toBe(422)
+    expect(sold.update).not.toHaveBeenCalled()
+  })
+
+  // 守卫不能吃掉更早的拒绝：终态房源上点 mark_sold 仍应是 409 非法转移，
+  // 否则「已租房源」会被回报成「租售类型不对」，把运营指向错误的修法。
+  it('非法转移优先于租售守卫：leased 上 mark_sold → 409', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'leased', businessType: 'lease' }),
+      body: { action: 'mark_sold' },
+    })
+    const res = await run(req)
+    expect(res.status).toBe(409)
+    expect(res.body.code).toBe('ILLEGAL_TRANSITION')
+    expect(update).not.toHaveBeenCalled()
   })
 })
 

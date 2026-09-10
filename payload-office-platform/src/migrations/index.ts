@@ -80,6 +80,7 @@ import * as migration_20260905_172526_opt_071_watermark_image_source from './202
 import * as migration_20260906_064958_opt_073_featured_district_count from './20260906_064958_opt_073_featured_district_count';
 import * as migration_20260908_150000_grant_ops_supply_write_codes from './20260908_150000_grant_ops_supply_write_codes';
 import * as migration_20260909_164334_opt_083_detail_spec_visibility from './20260909_164334_opt_083_detail_spec_visibility';
+import * as migration_20260910_141436_opt_086_audit_log_reason from './20260910_141436_opt_086_audit_log_reason';
 
 export const migrations = [
   {
@@ -490,6 +491,11 @@ export const migrations = [
   {
     up: migration_20260909_164334_opt_083_detail_spec_visibility.up,
     down: migration_20260909_164334_opt_083_detail_spec_visibility.down,
-    name: '20260909_164334_opt_083_detail_spec_visibility'
+    name: '20260909_164334_opt_083_detail_spec_visibility',
+  },
+  {
+    up: migration_20260910_141436_opt_086_audit_log_reason.up,
+    down: migration_20260910_141436_opt_086_audit_log_reason.down,
+    name: '20260910_141436_opt_086_audit_log_reason'
   },
 ];
