@@ -16,6 +16,7 @@
  */
 
 import { collectCosProductionViolations } from '../storage/cos-config'
+import { collectSmsProductionViolations } from '@/domain/member/sms-provider'
 
 export type ConfigGuardEnv = {
   NODE_ENV?: string
@@ -28,6 +29,14 @@ export type ConfigGuardEnv = {
   COS_ENDPOINT?: string
   COS_SECRET_ID?: string
   COS_SECRET_KEY?: string
+  SMS_PROVIDER?: string
+  TENCENT_SMS_SECRET_ID?: string
+  TENCENT_SMS_SECRET_KEY?: string
+  TENCENT_SMS_SDK_APP_ID?: string
+  TENCENT_SMS_SIGN_NAME?: string
+  TENCENT_SMS_TEMPLATE_ID?: string
+  TENCENT_SMS_TEMPLATE_PARAMS?: string
+  TENCENT_SMS_REGION?: string
 }
 
 export type ConfigGuardViolation = {
@@ -120,6 +129,7 @@ export function validateProductionConfig(env: ConfigGuardEnv): ConfigGuardViolat
   }
 
   violations.push(...collectCosProductionViolations(env))
+  violations.push(...collectSmsProductionViolations(env))
 
   return violations
 }
