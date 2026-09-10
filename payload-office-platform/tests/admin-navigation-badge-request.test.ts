@@ -39,6 +39,28 @@ describe('admin navigation badge request', () => {
     })
   })
 
+  it('解析投放申请与信息纠错两个新 key', async () => {
+    const controller = new AbortController()
+
+    await expect(
+      loadAdminNavigationBadges({
+        fetcher: async () =>
+          createResponse(200, {
+            ok: true,
+            badges: {
+              supplySubmissions: 4,
+              informationCorrections: 0,
+            },
+          }),
+        signal: controller.signal,
+        url: '/api/admin-navigation',
+      }),
+    ).resolves.toEqual({
+      status: 'success',
+      badges: { supplySubmissions: 4, informationCorrections: 0 },
+    })
+  })
+
   it('treats AbortError as silent cancellation', async () => {
     const controller = new AbortController()
     const fetcher = vi.fn(async () => {

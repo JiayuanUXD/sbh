@@ -50,7 +50,7 @@ describe('formatBadgeCount', () => {
 })
 
 describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
-  it('为全权限用户构造六个固定统计口径', () => {
+  it('为全权限用户构造九个固定统计口径', () => {
     const queries = buildAdminNavigationBadgeQueries(permission(), AS_OF)
 
     expect(queries.map((query) => query.key)).toEqual([
@@ -60,6 +60,8 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
       'listingReports',
       'leads',
       'formSubmissions',
+      'supplySubmissions',
+      'informationCorrections',
       'cityPartnerApplications',
     ])
     expect(queryByKey(queries, 'tasks')).toMatchObject({
@@ -100,6 +102,14 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
     expect(queryByKey(queries, 'formSubmissions')).toMatchObject({
       collection: 'form-submissions',
       where: { processingStatus: { equals: 'new' } },
+    })
+    expect(queryByKey(queries, 'supplySubmissions')).toMatchObject({
+      collection: 'supply-submissions',
+      where: { status: { equals: 'pending' } },
+    })
+    expect(queryByKey(queries, 'informationCorrections')).toMatchObject({
+      collection: 'information-corrections',
+      where: { status: { in: ['new', 'triaged'] } },
     })
     expect(queryByKey(queries, 'cityPartnerApplications')).toMatchObject({
       collection: 'city-partner-applications',
@@ -310,6 +320,124 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
     expect(queryByKey(queries, 'formSubmissions').where).toEqual({
       and: [
         { processingStatus: { equals: 'new' } },
+        { id: { exists: false } },
+      ],
+    })
+  })
+
+  it('OPS 同时拿到投放申请与信息纠错两条角标，且各自按自己的字段收窄', () => {
+    const queries = buildAdminNavigationBadgeQueries(
+      permission({
+        roleCodes: ['OPS'],
+        cityIds: new Set([11, 12]),
+        operationPermissions: new Set([
+          'supply_submission:read',
+          'correction:read',
+        ]),
+        menuPermissions: new Set(['supply-submissions', 'reports']),
+        dataScope: 'city',
+      }),
+      AS_OF,
+    )
+
+    // 投放申请自带 city 关系字段，城市上限能表达 → 合并进 where。
+    expect(queryByKey(queries, 'supplySubmissions')).toEqual({
+      key: 'supplySubmissions',
+      collection: 'supply-submissions',
+      where: {
+        and: [
+          { status: { equals: 'pending' } },
+          { city: { in: [11, 12] } },
+        ],
+      },
+    })
+    // 信息纠错没有任何地理字段，收窄无从表达；这里刻意不收窄，
+    // 与该集合 access.read（只校验 correction:read、不做范围收窄）保持同口径。
+    expect(queryByKey(queries, 'informationCorrections')).toEqual({
+      key: 'informationCorrections',
+      collection: 'information-corrections',
+      where: { status: { in: ['new', 'triaged'] } },
+    })
+  })
+
+  it.each([
+    [
+      'BRK',
+      permission({
+        roleCodes: ['BRK'],
+        cityIds: new Set([11]),
+        teamIds: new Set(),
+        operationPermissions: new Set([
+          'task:read',
+          'notification:read',
+          'lead:claim',
+        ]),
+        menuPermissions: new Set([
+          'dashboard',
+          'todos',
+          'notifications',
+          'listings',
+          'my-leads',
+        ]),
+        dataScope: 'self',
+      }),
+    ],
+    [
+      'CSR',
+      permission({
+        roleCodes: ['CSR'],
+        operationPermissions: new Set([
+          'task:read',
+          'notification:read',
+          'lead:create',
+        ]),
+        menuPermissions: new Set([
+          'dashboard',
+          'todos',
+          'notifications',
+          'leads',
+          'customers',
+          'form-submissions',
+        ]),
+        dataScope: 'global',
+      }),
+    ],
+  ] as const)(
+    '%s 拿不到投放申请与信息纠错角标（两个入口都不在其菜单里）',
+    (_roleCode, context) => {
+      const keys = buildAdminNavigationBadgeQueries(context, AS_OF).map(
+        (query) => query.key,
+      )
+
+      expect(keys).not.toContain('supplySubmissions')
+      expect(keys).not.toContain('informationCorrections')
+    },
+  )
+
+  it('MGR 只拿到投放申请角标：有 supply_submission:read，但没有 reports 菜单与 correction:read', () => {
+    const queries = buildAdminNavigationBadgeQueries(
+      permission({
+        roleCodes: ['MGR'],
+        cityIds: new Set([11]),
+        teamIds: new Set([7]),
+        operationPermissions: new Set([
+          'task:read',
+          'supply_submission:read',
+        ]),
+        menuPermissions: new Set(['supply-submissions', 'leads']),
+        dataScope: 'team',
+      }),
+      AS_OF,
+    )
+    const keys = queries.map((query) => query.key)
+
+    expect(keys).toContain('supplySubmissions')
+    expect(keys).not.toContain('informationCorrections')
+    // 团队范围在 supply-submissions 上无字段可表达（该集合只有 city，没有 team），
+    // 因此按既有约定 fail-closed 成 no-match，宁可少算也不放大到全平台房东信息。
+    expect(queryByKey(queries, 'supplySubmissions').where).toEqual({
+      and: [
+        { status: { equals: 'pending' } },
         { id: { exists: false } },
       ],
     })

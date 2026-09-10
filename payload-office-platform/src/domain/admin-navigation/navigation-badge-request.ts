@@ -31,6 +31,8 @@ const BADGE_KEYS = [
   'listingReports',
   'leads',
   'formSubmissions',
+  'supplySubmissions',
+  'informationCorrections',
   'cityPartnerApplications',
 ] as const satisfies readonly AdminNavigationBadgeKey[]
 
