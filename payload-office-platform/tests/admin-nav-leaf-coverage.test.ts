@@ -19,21 +19,12 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
-import type { AdminNavItem, AdminNavLeaf } from '@/domain/admin-navigation/navigation-types'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
 
-function isSubgroup(item: AdminNavItem): item is Exclude<AdminNavItem, AdminNavLeaf> {
-  return 'children' in item
-}
-
-/** 配置里的全部叶子标签（展平子分组） */
+/** 配置里的全部叶子标签（OPT-084 后导航只有两级，组的 children 就是叶子） */
 function configLeafLabels(): string[] {
-  return ADMIN_NAV_GROUPS.flatMap((group) =>
-    group.children.flatMap((child) =>
-      isSubgroup(child) ? child.children.map((leaf) => leaf.label) : [child.label],
-    ),
-  )
+  return ADMIN_NAV_GROUPS.flatMap((group) => group.children.map((leaf) => leaf.label))
 }
 
 /** 从 e2e spec 源码里取 ALL_LEAF_LABELS 字面量 */

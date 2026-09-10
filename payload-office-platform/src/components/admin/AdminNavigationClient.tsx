@@ -18,13 +18,14 @@ import {
   IconLocation,
   IconMenuFold,
   IconMenuUnfold,
+  IconNotification,
   IconSafe,
   IconSettings,
   IconUser,
   IconUserGroup,
 } from '@arco-design/web-react/icon'
 import { usePathname } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import {
   loadAdminNavigationBadges,
@@ -38,14 +39,15 @@ import {
   toggleGroupInSet,
 } from '@/domain/admin-navigation/navigation-state'
 import type {
+  ResolvedAdminNavEntry,
+  ResolvedAdminNavFlatLeaf,
   ResolvedAdminNavGroup,
   ResolvedAdminNavLeaf,
-  ResolvedAdminNavSubgroup,
 } from '@/domain/admin-navigation/resolve-navigation'
 import type { AdminNavIconKey } from '@/domain/admin-navigation/navigation-types'
 
 type AdminNavigationClientProps = {
-  groups: readonly ResolvedAdminNavGroup[]
+  entries: readonly ResolvedAdminNavEntry[]
 }
 
 const COLLAPSE_STORAGE_KEY = 'sbh-admin-nav-collapsed'
@@ -61,6 +63,7 @@ const WARNING_BADGE_KEYS = new Set([
 
 const GROUP_ICONS: Record<AdminNavIconKey, ReactNode> = {
   dashboard: <IconDashboard />,
+  inbox: <IconNotification />,
   building: <IconHome />,
   location: <IconLocation />,
   shield: <IconSafe />,
@@ -70,6 +73,10 @@ const GROUP_ICONS: Record<AdminNavIconKey, ReactNode> = {
   file: <IconFile />,
   form: <IconEdit />,
   settings: <IconSettings />,
+}
+
+function iconFor(key: string): ReactNode {
+  return GROUP_ICONS[key as AdminNavIconKey] ?? <IconApps />
 }
 
 function getInitialCollapsed(): boolean {
@@ -82,7 +89,7 @@ function getInitialCollapsed(): boolean {
 }
 
 export default function AdminNavigationClient({
-  groups,
+  entries,
 }: AdminNavigationClientProps) {
   const pathname = usePathname()
   const { config } = useConfig()
@@ -90,10 +97,9 @@ export default function AdminNavigationClient({
   useWindowInfo() // 保持 hook 调用以维持上下文响应
   const [badges, setBadges] = useState<AdminNavigationBadgeCounts>({})
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => {
-    // 初始展开集：包含当前激活路径上的所有父节点 ID (一级 Group 与二级 Subgroup)
+    // 初始展开集：包含当前激活路径所属的组（激活的是扁平叶时为空，扁平叶没有面板可展）
     const s = new Set<string>()
-    const activeParentKeys = findActiveParentKeys(groups, pathname)
-    for (const key of activeParentKeys) {
+    for (const key of findActiveParentKeys(entries, pathname)) {
       s.add(key)
     }
     return s
@@ -103,8 +109,8 @@ export default function AdminNavigationClient({
   const [mounted, setMounted] = useState(false)
   const [windowWidth, setWindowWidth] = useState<number>(0)
   const badgeFailureReported = useRef(false)
-  const activeLeafId = findActiveLeaf(groups, pathname)?.id ?? null
-  const activeGroupId = deriveOpenGroupId(groups, pathname)
+  const activeLeafId = findActiveLeaf(entries, pathname)?.id ?? null
+  const activeGroupId = deriveOpenGroupId(entries, pathname)
   const apiRoute = config.routes.api.replace(/\/$/, '')
 
   // 桌面端断点：>= 1024px 时侧边栏常驻（CSS 媒体查询强制可见），启用折叠功能
@@ -191,11 +197,11 @@ export default function AdminNavigationClient({
     }
   }, [effectiveCollapsed])
 
-  // 路由变化时：在渲染阶段增量将新激活路径上的父级 key (Group & Subgroup) 加入展开集
+  // 路由变化时：在渲染阶段增量将新激活路径所属的组加入展开集
   const [prevPathname, setPrevPathname] = useState(pathname)
   if (prevPathname !== pathname) {
     setPrevPathname(pathname)
-    const activeParentKeys = findActiveParentKeys(groups, pathname)
+    const activeParentKeys = findActiveParentKeys(entries, pathname)
     if (activeParentKeys.length > 0) {
       setOpenKeys((prev) => {
         let changed = false
@@ -234,7 +240,7 @@ export default function AdminNavigationClient({
 
   const handleToggleKey = (key: string) => {
     if (effectiveCollapsed) return
-    // 多展开模式：切换点击的分组/子分组，不影响其他分组
+    // 多展开模式：切换点击的分组，不影响其他分组
     setOpenKeys((prev) => toggleGroupInSet(prev, key))
   }
 
@@ -244,114 +250,33 @@ export default function AdminNavigationClient({
       className={`admin-navigation${effectiveCollapsed ? ' admin-navigation--collapsed' : ''}`}
     >
       <ul className="admin-navigation__groups">
-        {groups.map((group) => {
-          const isOpen = !effectiveCollapsed && openKeys.has(group.id)
-          const isActiveGroup = group.id === activeGroupId
-          const isHovered = effectiveCollapsed && group.id === hoveredGroupId
-          const panelId = `admin-navigation-group-${group.id}`
-          const icon = GROUP_ICONS[group.icon as AdminNavIconKey] ?? <IconApps />
-
-          return (
-            <li
-              className={`admin-navigation__group${isOpen ? ' admin-navigation__group--open' : ''}${isActiveGroup ? ' admin-navigation__group--active' : ''}`}
-              key={group.id}
-              onMouseEnter={
-                effectiveCollapsed
-                  ? () => setHoveredGroupId(group.id)
-                  : undefined
+        {entries.map((entry) =>
+          entry.kind === 'leaf' ? (
+            <NavigationFlatLeaf
+              active={entry.id === activeLeafId}
+              badges={badges}
+              collapsed={effectiveCollapsed}
+              key={entry.id}
+              leaf={entry}
+            />
+          ) : (
+            <NavigationGroup
+              activeLeafId={activeLeafId}
+              badges={badges}
+              collapsed={effectiveCollapsed}
+              group={entry}
+              hovered={effectiveCollapsed && entry.id === hoveredGroupId}
+              isActiveGroup={entry.id === activeGroupId}
+              isOpen={!effectiveCollapsed && openKeys.has(entry.id)}
+              key={entry.id}
+              onHoverEnd={() =>
+                setHoveredGroupId((prev) => (prev === entry.id ? null : prev))
               }
-              onMouseLeave={
-                effectiveCollapsed
-                  ? () => setHoveredGroupId((prev) => (prev === group.id ? null : prev))
-                  : undefined
-              }
-            >
-              <button
-                aria-controls={panelId}
-                aria-expanded={isOpen}
-                className={[
-                  'admin-navigation__group-toggle',
-                  isActiveGroup ? 'admin-navigation__group-toggle--active' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                onClick={() => handleToggleKey(group.id)}
-                title={effectiveCollapsed ? group.label : undefined}
-                type="button"
-              >
-                <span className="admin-navigation__group-icon" aria-hidden="true">
-                  {icon}
-                </span>
-                <span className="admin-navigation__group-label">{group.label}</span>
-                <IconCaretRight
-                  aria-hidden="true"
-                  className="admin-navigation__chevron"
-                />
-              </button>
-
-              {/* 展开模式：内联面板 */}
-              {!effectiveCollapsed && (
-                <div
-                  className={`admin-navigation__group-panel${isOpen ? ' admin-navigation__group-panel--open' : ''}`}
-                  id={panelId}
-                >
-                  <ul className="admin-navigation__items">
-                    {group.children.map((item) => (
-                      <li className="admin-navigation__item" key={item.id}>
-                        {'children' in item ? (
-                          <NavigationSubgroup
-                            activeLeafId={activeLeafId}
-                            badges={badges}
-                            onToggleKey={handleToggleKey}
-                            openKeys={openKeys}
-                            subgroup={item}
-                          />
-                        ) : (
-                          <NavigationLeaf
-                            active={item.id === activeLeafId}
-                            badges={badges}
-                            leaf={item}
-                          />
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* 折叠模式：浮层面板 */}
-              {effectiveCollapsed && isHovered && (
-                <div className="admin-navigation__flyout" role="menu">
-                  <div className="admin-navigation__flyout-title">{group.label}</div>
-                  <ul className="admin-navigation__flyout-items">
-                    {group.children.map((item) => (
-                      <li className="admin-navigation__flyout-item" key={item.id}>
-                        {'children' in item ? (
-                          <NavigationSubgroup
-                            activeLeafId={activeLeafId}
-                            badges={badges}
-                            collapsed
-                            onNavigate={() => setHoveredGroupId(null)}
-                            onToggleKey={handleToggleKey}
-                            openKeys={openKeys}
-                            subgroup={item}
-                          />
-                        ) : (
-                          <NavigationLeaf
-                            active={item.id === activeLeafId}
-                            badges={badges}
-                            leaf={item}
-                            onNavigate={() => setHoveredGroupId(null)}
-                          />
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </li>
-          )
-        })}
+              onHoverStart={() => setHoveredGroupId(entry.id)}
+              onToggleKey={handleToggleKey}
+            />
+          ),
+        )}
       </ul>
 
       {/* 底部收起/展开按钮（仅桌面端显示） */}
@@ -370,67 +295,70 @@ export default function AdminNavigationClient({
   )
 }
 
-function NavigationSubgroup({
+function NavigationGroup({
   activeLeafId,
   badges,
-  collapsed = false,
-  onNavigate,
+  collapsed,
+  group,
+  hovered,
+  isActiveGroup,
+  isOpen,
+  onHoverEnd,
+  onHoverStart,
   onToggleKey,
-  openKeys,
-  subgroup,
 }: {
   activeLeafId: string | null
   badges: AdminNavigationBadgeCounts
-  collapsed?: boolean
-  onNavigate?: () => void
+  collapsed: boolean
+  group: ResolvedAdminNavGroup
+  hovered: boolean
+  isActiveGroup: boolean
+  isOpen: boolean
+  onHoverEnd: () => void
+  onHoverStart: () => void
   onToggleKey: (key: string) => void
-  openKeys: Set<string>
-  subgroup: ResolvedAdminNavSubgroup
 }) {
-  const isOpen = openKeys.has(subgroup.id)
-  const panelId = `admin-navigation-subgroup-${subgroup.id}`
-  const isActive = useMemo(
-    () => subgroup.children.some((leaf) => leaf.id === activeLeafId),
-    [subgroup.children, activeLeafId],
-  )
+  const panelId = `admin-navigation-group-${group.id}`
 
   return (
-    <div className={`admin-navigation__subgroup${isOpen ? ' admin-navigation__subgroup--open' : ''}`}>
+    <li
+      className={`admin-navigation__group${isOpen ? ' admin-navigation__group--open' : ''}${isActiveGroup ? ' admin-navigation__group--active' : ''}`}
+      onMouseEnter={collapsed ? onHoverStart : undefined}
+      onMouseLeave={collapsed ? onHoverEnd : undefined}
+    >
       <button
-        aria-controls={collapsed ? undefined : panelId}
+        aria-controls={panelId}
         aria-expanded={isOpen}
         className={[
-          'admin-navigation__subgroup-toggle',
-          isActive ? 'admin-navigation__subgroup-toggle--active' : '',
+          'admin-navigation__group-toggle',
+          isActiveGroup ? 'admin-navigation__group-toggle--active' : '',
         ]
           .filter(Boolean)
           .join(' ')}
-        onClick={() => onToggleKey(subgroup.id)}
+        onClick={() => onToggleKey(group.id)}
+        title={collapsed ? group.label : undefined}
         type="button"
       >
-        <span className="admin-navigation__subgroup-label">{subgroup.label}</span>
-        {!collapsed && (
-          <IconCaretRight
-            aria-hidden="true"
-            className="admin-navigation__chevron admin-navigation__chevron--sub"
-          />
-        )}
+        <span className="admin-navigation__group-icon" aria-hidden="true">
+          {iconFor(group.icon)}
+        </span>
+        <span className="admin-navigation__group-label">{group.label}</span>
+        <IconCaretRight aria-hidden="true" className="admin-navigation__chevron" />
       </button>
 
+      {/* 展开模式：内联面板 */}
       {!collapsed && (
         <div
-          className={`admin-navigation__subgroup-panel${isOpen ? ' admin-navigation__subgroup-panel--open' : ''}`}
+          className={`admin-navigation__group-panel${isOpen ? ' admin-navigation__group-panel--open' : ''}`}
           id={panelId}
         >
-          <ul className="admin-navigation__subgroup-items">
-            {subgroup.children.map((leaf) => (
-              <li className="admin-navigation__subgroup-item" key={leaf.id}>
+          <ul className="admin-navigation__items">
+            {group.children.map((leaf) => (
+              <li className="admin-navigation__item" key={leaf.id}>
                 <NavigationLeaf
                   active={leaf.id === activeLeafId}
                   badges={badges}
                   leaf={leaf}
-                  onNavigate={onNavigate}
-                  subgroup
                 />
               </li>
             ))}
@@ -438,22 +366,68 @@ function NavigationSubgroup({
         </div>
       )}
 
-      {collapsed && isOpen && (
-        <ul className="admin-navigation__flyout-items admin-navigation__flyout-items--sub">
-          {subgroup.children.map((leaf) => (
-            <li className="admin-navigation__flyout-item" key={leaf.id}>
-              <NavigationLeaf
-                active={leaf.id === activeLeafId}
-                badges={badges}
-                leaf={leaf}
-                onNavigate={onNavigate}
-                subgroup
-              />
-            </li>
-          ))}
-        </ul>
+      {/* 折叠模式：浮层面板 */}
+      {collapsed && hovered && (
+        <div className="admin-navigation__flyout" role="menu">
+          <div className="admin-navigation__flyout-title">{group.label}</div>
+          <ul className="admin-navigation__flyout-items">
+            {group.children.map((leaf) => (
+              <li className="admin-navigation__flyout-item" key={leaf.id}>
+                <NavigationLeaf
+                  active={leaf.id === activeLeafId}
+                  badges={badges}
+                  leaf={leaf}
+                  onNavigate={onHoverEnd}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
-    </div>
+    </li>
+  )
+}
+
+/**
+ * 扁平叶：解析层把只剩一片叶子的组降下来的顶级链接。
+ *
+ * 刻意**不渲染 toggle 按钮**——组头按钮既是视觉上的「可展开」暗示，也是 e2e
+ * 数组数的依据（`.admin-navigation__group-toggle` 的数量 = 组数）。扁平叶点了直接跳转，
+ * 没有可展开的东西，给它一个按钮会同时骗到用户和测试。
+ */
+function NavigationFlatLeaf({
+  active,
+  badges,
+  collapsed,
+  leaf,
+}: {
+  active: boolean
+  badges: AdminNavigationBadgeCounts
+  collapsed: boolean
+  leaf: ResolvedAdminNavFlatLeaf
+}) {
+  return (
+    <li className="admin-navigation__group admin-navigation__group--flat">
+      <Link
+        aria-current={active ? 'page' : undefined}
+        className={[
+          'admin-navigation__link',
+          'admin-navigation__link--flat',
+          active ? 'admin-navigation__link--active' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        href={leaf.href}
+        prefetch={false}
+        title={collapsed ? leaf.label : undefined}
+      >
+        <span className="admin-navigation__group-icon" aria-hidden="true">
+          {iconFor(leaf.icon)}
+        </span>
+        <span className="admin-navigation__link-label">{leaf.label}</span>
+        <LeafBadge badges={badges} leaf={leaf} />
+      </Link>
+    </li>
   )
 }
 
@@ -462,27 +436,18 @@ function NavigationLeaf({
   badges,
   leaf,
   onNavigate,
-  subgroup = false,
 }: {
   active: boolean
   badges: AdminNavigationBadgeCounts
   leaf: ResolvedAdminNavLeaf
   onNavigate?: () => void
-  subgroup?: boolean
 }) {
-  const badge = leaf.badgeKey
-    ? formatBadgeCount(badges[leaf.badgeKey] ?? 0)
-    : null
-  const isWarningBadge =
-    leaf.badgeKey !== undefined && WARNING_BADGE_KEYS.has(leaf.badgeKey)
-
   return (
     <Link
       aria-current={active ? 'page' : undefined}
       className={[
         'admin-navigation__link',
         active ? 'admin-navigation__link--active' : '',
-        subgroup ? 'admin-navigation__link--sub' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -491,20 +456,35 @@ function NavigationLeaf({
       prefetch={false}
     >
       <span className="admin-navigation__link-label">{leaf.label}</span>
-      {badge ? (
-        <span
-          aria-label={`${leaf.label}待处理 ${badge} 项`}
-          className={[
-            'admin-navigation__badge',
-            isWarningBadge ? 'admin-navigation__badge--warning' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
-          {badge}
-        </span>
-      ) : null}
+      <LeafBadge badges={badges} leaf={leaf} />
     </Link>
+  )
+}
+
+function LeafBadge({
+  badges,
+  leaf,
+}: {
+  badges: AdminNavigationBadgeCounts
+  leaf: ResolvedAdminNavLeaf
+}) {
+  if (!leaf.badgeKey) return null
+
+  const badge = formatBadgeCount(badges[leaf.badgeKey] ?? 0)
+  if (!badge) return null
+
+  return (
+    <span
+      aria-label={`${leaf.label}待处理 ${badge} 项`}
+      className={[
+        'admin-navigation__badge',
+        WARNING_BADGE_KEYS.has(leaf.badgeKey) ? 'admin-navigation__badge--warning' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {badge}
+    </span>
   )
 }
 

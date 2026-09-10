@@ -12,7 +12,6 @@
   --admin-nav-warning: #d46b08;
   --admin-nav-warning-soft: #fff7e8;
   --admin-nav-icon-size: 18px;
-  --admin-nav-indent: 12px;
   --admin-nav-collapsed-width: 48px;
 
   box-sizing: border-box;
@@ -47,7 +46,6 @@
   // 列表重置
   &__groups,
   &__items,
-  &__subgroup-items,
   &__flyout-items {
     list-style: none;
     margin: 0;
@@ -150,23 +148,13 @@
     .arco-icon {
       font-size: 12px;
     }
-
-    &--sub {
-      font-size: 10px;
-
-      .arco-icon {
-        font-size: 10px;
-      }
-    }
   }
 
-  &__group-toggle:hover &__chevron,
-  &__subgroup-toggle:hover &__chevron {
+  &__group-toggle:hover &__chevron {
     color: var(--admin-nav-text-light);
   }
 
-  &__group-toggle[aria-expanded='true'] &__chevron,
-  &__subgroup-toggle[aria-expanded='true'] &__chevron {
+  &__group-toggle[aria-expanded='true'] &__chevron {
     color: var(--admin-nav-accent);
   }
 
@@ -198,8 +186,7 @@
     padding: 2px 0 4px 0;
   }
 
-  &__item,
-  &__subgroup-item {
+  &__item {
     margin: 0;
   }
 
@@ -236,10 +223,28 @@
       font-weight: 500;
     }
 
-    &--sub {
-      font-size: 13px;
-      height: 34px;
-      padding-left: calc(var(--admin-nav-icon-size) + 10px + 10px + var(--admin-nav-indent));
+    // 扁平叶（单叶组降下来的顶级链接）：视觉上必须与组头同一行，
+    // 否则侧栏会出现两种高度不同的「顶级项」，看起来像渲染坏了。
+    // 行高 / 图标位 / 字号 / 字重全部对齐 &__group-toggle；外边距交给外层的
+    // &__group（扁平叶复用同一个 li 类名），这里置 0 免得两层叠加。
+    &--flat {
+      color: var(--admin-nav-text);
+      font-weight: 600;
+      gap: 10px;
+      height: 40px;
+      justify-content: flex-start;
+      margin: 0;
+      padding: 0 10px;
+
+      .admin-navigation__link-label {
+        flex: 1 1 auto;
+      }
+
+      // &--active 写在前面，与本块同权重，不显式覆盖的话激活色会被上面的 color 压掉。
+      &.admin-navigation__link--active {
+        color: var(--admin-nav-accent);
+        font-weight: 600;
+      }
     }
   }
 
@@ -248,91 +253,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  // ─── 二级子组 ───
-
-  &__subgroup {
-    margin-bottom: 1px;
-  }
-
-  &__subgroup-toggle {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    border-radius: 6px;
-    color: var(--admin-nav-muted);
-    cursor: pointer;
-    display: flex;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    gap: 8px;
-    height: 34px;
-    justify-content: space-between;
-    padding: 0 10px 0 calc(var(--admin-nav-icon-size) + 10px + 10px);
-    text-align: start;
-    transition: background-color 150ms ease, color 150ms ease;
-    width: 100%;
-
-    &:hover {
-      background: var(--admin-nav-hover);
-      color: var(--admin-nav-text-light);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--admin-nav-focus);
-      outline-offset: -2px;
-    }
-
-    &--active {
-      color: var(--admin-nav-text-light);
-    }
-  }
-
-  &__subgroup-label {
-    flex: 1 1 auto;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-transform: none;
-    white-space: nowrap;
-  }
-
-  &__subgroup-panel {
-    display: grid;
-    grid-template-rows: 0fr;
-    isolation: isolate;
-    overflow: hidden;
-    transition: grid-template-rows 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      visibility 0s linear 200ms;
-    visibility: hidden;
-
-    &--open {
-      grid-template-rows: 1fr;
-      transition: grid-template-rows 200ms cubic-bezier(0.4, 0, 0.2, 1),
-        visibility 0s linear 0s;
-      visibility: visible;
-    }
-  }
-
-  &__subgroup-panel > &__subgroup-items {
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  &__subgroup-items {
-    padding: 1px 0;
-    position: relative;
-
-    // 左侧竖线（Arco Pro 风格的层级指示线）
-    &::before {
-      border-left: 1px solid var(--theme-elevation-150, #e5e6eb);
-      bottom: 4px;
-      content: '';
-      left: calc(var(--admin-nav-icon-size) + 10px + 10px + 6px);
-      position: absolute;
-      top: 4px;
-    }
   }
 
   // ─── 徽标 ───
@@ -396,8 +316,19 @@
       }
     }
 
+    // 收起态的扁平叶：与组头一样只留居中图标，文字进 title 属性
+    .admin-navigation__link--flat {
+      border-radius: 8px;
+      height: 40px;
+      justify-content: center;
+      margin: 0 auto;
+      padding: 0;
+      width: 40px;
+    }
+
     // 隐藏文字和箭头
     .admin-navigation__group-label,
+    .admin-navigation__link--flat .admin-navigation__link-label,
     .admin-navigation__chevron {
       display: none;
     }
@@ -444,36 +375,15 @@
   &__flyout-items {
     display: flex;
     flex-direction: column;
-
-    &--sub {
-      padding-left: 12px;
-    }
   }
 
   &__flyout-item {
     margin: 0;
 
-    // 浮层内的子组 toggle
-    .admin-navigation__subgroup-toggle {
-      height: 34px;
-      padding: 0 10px;
-    }
-
     // 浮层内的叶子链接
     .admin-navigation__link {
       height: 34px;
       padding: 0 10px;
-    }
-
-    .admin-navigation__link--sub {
-      font-size: 13px;
-      height: 32px;
-      padding-left: 22px;
-    }
-
-    // 浮层内的子组竖线指示
-    .admin-navigation__subgroup-items::before {
-      left: 16px;
     }
   }
 

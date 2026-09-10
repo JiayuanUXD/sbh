@@ -76,8 +76,7 @@ describe('resolve-navigation/城市范围账号看得到审核队列', () => {
     })
 
     return groups
-      .flatMap((g) => g.children)
-      .flatMap((child) => ('children' in child ? child.children : [child]))
+      .flatMap((entry) => (entry.kind === 'group' ? entry.children : [entry]))
       .some((leaf) => leaf.id === 'listing-reviews')
   }
 

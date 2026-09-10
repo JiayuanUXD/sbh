@@ -1,25 +1,26 @@
 import type {
-  ResolvedAdminNavGroup,
+  ResolvedAdminNavEntry,
   ResolvedAdminNavLeaf,
 } from './resolve-navigation'
 
+/** 把一条解析结果摊成它包含的叶子：组给出 children，扁平叶给出它自己。 */
+function leavesOf(entry: ResolvedAdminNavEntry): readonly ResolvedAdminNavLeaf[] {
+  return entry.kind === 'group' ? entry.children : [entry]
+}
+
 export function findActiveLeaf(
-  groups: readonly ResolvedAdminNavGroup[],
+  entries: readonly ResolvedAdminNavEntry[],
   pathname: string,
 ): ResolvedAdminNavLeaf | null {
   let activeLeaf: ResolvedAdminNavLeaf | null = null
 
-  for (const group of groups) {
-    for (const item of group.children) {
-      const leaves = 'children' in item ? item.children : [item]
-
-      for (const leaf of leaves) {
-        if (
-          isMatchingPathname(pathname, leaf.href) &&
-          (!activeLeaf || leaf.href.length > activeLeaf.href.length)
-        ) {
-          activeLeaf = leaf
-        }
+  for (const entry of entries) {
+    for (const leaf of leavesOf(entry)) {
+      if (
+        isMatchingPathname(pathname, leaf.href) &&
+        (!activeLeaf || leaf.href.length > activeLeaf.href.length)
+      ) {
+        activeLeaf = leaf
       }
     }
   }
@@ -27,20 +28,23 @@ export function findActiveLeaf(
   return activeLeaf
 }
 
+/**
+ * 当前路径所在的**组** id；激活的是扁平叶时返回 null。
+ *
+ * 扁平叶没有组头、也不参与展开/收起，所以它「所属的组」这个概念在渲染上不存在——
+ * 返回它原来的组 id 会让客户端去展开一个根本没渲染出来的面板。
+ */
 export function deriveOpenGroupId(
-  groups: readonly ResolvedAdminNavGroup[],
+  entries: readonly ResolvedAdminNavEntry[],
   pathname: string,
 ): string | null {
-  const activeLeaf = findActiveLeaf(groups, pathname)
+  const activeLeaf = findActiveLeaf(entries, pathname)
   if (!activeLeaf) return null
 
   return (
-    groups.find((group) =>
-      group.children.some((item) =>
-        'children' in item
-          ? item.children.some((leaf) => leaf.id === activeLeaf.id)
-          : item.id === activeLeaf.id,
-      ),
+    entries.find(
+      (entry) =>
+        entry.kind === 'group' && entry.children.some((leaf) => leaf.id === activeLeaf.id),
     )?.id ?? null
   )
 }
@@ -53,30 +57,18 @@ export function toggleOpenGroup(
 }
 
 /**
- * 获取当前 pathname 下激活节点的全部父层级 key 列表（包含父 Group ID 及 父 Subgroup ID）。
+ * 当前 pathname 下激活节点的父层级 key 列表。
+ *
+ * 导航只剩两级，所以结果要么是 `[组 id]`，要么是 `[]`（激活的是扁平叶或没有激活项）。
+ * 保留数组形态是因为调用方拿它去并入「展开集」，空数组正好表示「没有需要展开的东西」。
  */
 export function findActiveParentKeys(
-  groups: readonly ResolvedAdminNavGroup[],
+  entries: readonly ResolvedAdminNavEntry[],
   pathname: string,
 ): string[] {
-  const activeLeaf = findActiveLeaf(groups, pathname)
-  if (!activeLeaf) return []
+  const groupId = deriveOpenGroupId(entries, pathname)
 
-  for (const group of groups) {
-    for (const item of group.children) {
-      if ('children' in item) {
-        if (item.children.some((leaf) => leaf.id === activeLeaf.id)) {
-          return [group.id, item.id]
-        }
-      } else {
-        if (item.id === activeLeaf.id) {
-          return [group.id]
-        }
-      }
-    }
-  }
-
-  return []
+  return groupId ? [groupId] : []
 }
 
 /**
