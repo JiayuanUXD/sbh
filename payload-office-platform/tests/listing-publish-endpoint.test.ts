@@ -8,13 +8,13 @@ import type { Role, User } from '@/payload-types'
  * 房源显式发布 endpoint 的 HTTP 装配层测试（M4.6 / R4, R8）
  *
  * POST /api/listings/:id/publish  body { action, reason?, expectedVersion? }
- *   action ∈ publish | unpublish | mark_leased
+ *   action ∈ publish | unpublish | mark_leased | mark_sold
  *
  * 覆盖的不变量：
- *  - 权限：publish/mark_leased 要 listing:publish；unpublish 要 listing:unpublish。
+ *  - 权限：publish/mark_leased/mark_sold 要 listing:publish；unpublish 要 listing:unpublish。
  *  - 发布前置：reviewStatus 必须 approved 且有效供给谓词通过，否则拒绝（不改状态）。
  *  - 下架必填原因。
- *  - mark_leased 副作用：publicationStatus=leased + isFeatured=false（撤销推荐+收回可见）。
+ *  - mark_leased / mark_sold 副作用：publicationStatus 落成交终态 + isFeatured=false（撤销推荐+收回可见）。
  *  - 版本乐观锁：expectedVersion 与当前不符 → 409，且 update 不触发。
  *  - 审核通过不隐式发布：本端点只动发布轴，不写 reviewStatus。
  *
@@ -292,6 +292,18 @@ describe('listing-publish-endpoint/标记成交副作用', () => {
     const arg = update.mock.calls[0][0]
     expect(arg.data.publicationStatus).toBe('leased')
     expect(arg.data.isFeatured).toBe(false)
+  })
+
+  it('mark_sold：与 mark_leased 对称，publicationStatus=sold 且 isFeatured=false', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published', businessType: 'sale', isFeatured: true }),
+      body: { action: 'mark_sold' },
+    })
+    const res = await run(req)
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ ok: true, publicationStatus: 'sold' })
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(update.mock.calls[0][0].data).toEqual({ publicationStatus: 'sold', isFeatured: false })
   })
 })
 

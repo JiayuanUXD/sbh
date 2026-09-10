@@ -15,7 +15,7 @@ import {
  * 房源显式发布 endpoint（tasks.md M4.6「实现显式发布动作」/ R4, R8）
  *
  * POST /api/listings/:id/publish  body { action, reason?, expectedVersion? }
- *   action ∈ publish | unpublish | mark_leased
+ *   action ∈ publish | unpublish | mark_leased | mark_sold
  *
  * 语义（design §3.4 / M4 验收门）：
  *   - 发布轴独立于审核轴。本端点**只动 publicationStatus / isFeatured**，绝不写 reviewStatus。
@@ -23,6 +23,7 @@ import {
  *     （媒体≥3 §6、商户关系在有效期 §8、商户合格 §9-§10）；否则 422 并回显 reasons，不改状态。
  *   - unpublish 必须填写下架原因，否则 422。
  *   - mark_leased 自动撤销推荐（isFeatured=false）并收回前台可见（发布轴落 leased）。
+ *   - mark_sold 同 mark_leased（撤销推荐 + 收回可见，落 sold）。
  *   - 非法发布转移（如 leased 再 publish）→ 409。
  *   - 版本乐观锁：expectedVersion 与当前 version 不符 → 409，不 update。
  *
@@ -37,7 +38,7 @@ import {
  *   - 422: 发布前置不满足 / 下架缺原因
  */
 
-/** publish/mark_leased 需要 listing:publish；unpublish 需要 listing:unpublish。 */
+/** publish/mark_leased/mark_sold 需要 listing:publish；unpublish 需要 listing:unpublish（同口径的只读副本见 @/domain/listing/publication-actions 的 permissionForPublishAction）。 */
 function permissionForAction(action: PublishAction): string {
   return action === 'unpublish' ? 'listing:unpublish' : 'listing:publish'
 }
@@ -167,14 +168,14 @@ export function createListingPublishEndpoint(): Endpoint {
       const auditAction =
         action === 'publish' ? 'listing.publish' :
         action === 'unpublish' ? 'listing.unpublish' :
-        'listing.unpublish' // mark_leased 也归为下架类审计
+        'listing.unpublish' // mark_leased / mark_sold 也归为下架类审计
       const data: Record<string, unknown> = { publicationStatus: next }
-      if (action === 'mark_leased') {
-        // 已租自动撤销推荐（收回前台可见由 publicationStatus=leased 保证）
+      if (action === 'mark_leased' || action === 'mark_sold') {
+        // 成交（已租 / 已售）自动撤销推荐——已售房源留在首页推荐位是比已租更明显的错误；收回前台可见由 publicationStatus 落终态保证。
         data.isFeatured = false
       }
       const changedFields: string[] = ['publicationStatus']
-      if (action === 'mark_leased') changedFields.push('isFeatured')
+      if (action === 'mark_leased' || action === 'mark_sold') changedFields.push('isFeatured')
 
       const result = await withAudit({
         req,
