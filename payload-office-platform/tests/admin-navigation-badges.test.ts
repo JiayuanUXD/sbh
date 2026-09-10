@@ -360,6 +360,59 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
     })
   })
 
+  it('OPS：城市合伙人角标因城市范围判为 false 被跳过，其余角标一条都不能少', () => {
+    // 与 src/test/factory/roles.ts 里真实的 OPS 同形：dataScope=global、cityIds='all'、
+    // 既有 city-partner-applications 菜单也有 city_partner_application:read。
+    // buildCityPartnerCityScopeWhere 对「非 ADM 且 cityIds 不是 Set」返回 false，
+    // 也就是说这条分支在生产上天天被真实角色走到（不是理论边界）。它一旦写成提前
+    // 返回，排在它之后的查询就会被整片吞掉，而且单测全绿、只在线上静默少角标。
+    const ops = permission({
+      roleCodes: ['OPS'],
+      cityIds: 'all',
+      teamIds: 'all',
+      dataScope: 'global',
+      operationPermissions: new Set([
+        'task:read',
+        'notification:read',
+        'listing:review',
+        'report:read',
+        'supply_submission:read',
+        'city_partner_application:read',
+      ]),
+      menuPermissions: new Set([
+        'todos',
+        'notifications',
+        'listing-reviews',
+        'reports',
+        'form-submissions',
+        'supply-submissions',
+        'city-partner-applications',
+      ]),
+    })
+
+    const queries = buildAdminNavigationBadgeQueries(ops, AS_OF)
+    const keys = queries.map((query) => query.key)
+
+    expect(keys).not.toContain('cityPartnerApplications')
+    expect(keys).toContain('supplySubmissions')
+    // 排序后整体比对：钉的是「该上下文有资格拿到的 key 一个不少」，
+    // 与各查询块在源码里的先后顺序无关——按顺序写死的断言挡不住这类回归，
+    // 因为搬动块顺序时它本来就会跟着改。OPS 没有 correction:read，
+    // 故 informationCorrections 不在其中；没有 leads / my-leads 菜单，故无 leads。
+    expect([...keys].sort()).toEqual([
+      'formSubmissions',
+      'listingReports',
+      'listingReviews',
+      'notifications',
+      'supplySubmissions',
+      'tasks',
+    ])
+    // 顺带把值钉死：global + cityIds='all' 不产生任何收窄片段，只剩业务口径。
+    expect(queryByKey(queries, 'supplySubmissions').where).toEqual({
+      status: { equals: 'pending' },
+    })
+  })
+
   it.each([
     [
       'BRK',

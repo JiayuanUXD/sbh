@@ -130,8 +130,6 @@ export function buildAdminNavigationBadgeQueries(
     })
   }
 
-  // 这两块必须排在城市合伙人之前：下面那块在拿不到城市范围时是 `return queries`
-  // 提前返回（而不是 `continue` 语义），排在它后面的查询会被整片吞掉。
   if (canReadSupplySubmissions(permission)) {
     // 口径与 dashboard-stats 的 pendingSubmissions 一致：status=pending 即「待审单」。
     // 该集合有 city 关系字段，城市这一维能表达就必须表达——房东手机号与地址属于
@@ -166,9 +164,11 @@ export function buildAdminNavigationBadgeQueries(
 
   if (canReadCityPartnerApplications(permission)) {
     const scopeWhere = buildCityPartnerCityScopeWhere(permission)
-    // false 表示该用户没有城市合伙人的数据范围（如内置 OPS：cityIds 是 'all' 而不是 Set），
-    // 此时只跳过这一条角标。这里绝不能 return queries——那会连带吞掉排在后面的所有查询，
-    // 而且没有任何报错（曾迫使 OPT-084 把新增角标刻意排在本块之前来绕开）。
+    // 拿不到城市范围时只跳过这一条，**绝不能写成 `return queries`**：
+    // 该分支在真实角色上天天走到（OPS 是 dataScope=global + cityIds='all'，
+    // 不是 Set，buildCityPartnerCityScopeWhere 判为 false），提前返回会把排在
+    // 本块之后新增的任何查询一起吞掉——而且吞得毫无声响：类型、单测、CI 全绿，
+    // 只有线上少一个角标。跳过而不返回，本函数的查询块顺序就不再有语义。
     if (scopeWhere !== false) {
       queries.push({
         key: 'cityPartnerApplications',
