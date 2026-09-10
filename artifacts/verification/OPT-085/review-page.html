@@ -1,0 +1,486 @@
+<title>后台页面与交互评审</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --surface-2: #ececf0;
+    --ink: #1d1d1f;
+    --ink-2: #5c5c63;
+    --ink-3: #85858d;
+    --line: #d9d9de;
+    --accent: #0071e3;
+    --accent-soft: #e5f0fd;
+    --warn: #b45309;
+    --warn-soft: #fdf1e3;
+    --crit: #c92a2a;
+    --crit-soft: #fbe7e7;
+    --ok: #2b8a3e;
+    --ok-soft: #e6f4ea;
+    --serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+    --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141416; --surface: #1f1f23; --surface-2: #2a2a30;
+      --ink: #f2f2f4; --ink-2: #b0b0b8; --ink-3: #7e7e88;
+      --line: #35353c; --accent: #5aa5ff; --accent-soft: #1d2b40;
+      --warn: #f0a04b; --warn-soft: #3a2a17;
+      --crit: #ff6b6b; --crit-soft: #3d1f1f;
+      --ok: #6cc47c; --ok-soft: #1d3324;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141416; --surface: #1f1f23; --surface-2: #2a2a30;
+    --ink: #f2f2f4; --ink-2: #b0b0b8; --ink-3: #7e7e88;
+    --line: #35353c; --accent: #5aa5ff; --accent-soft: #1d2b40;
+    --warn: #f0a04b; --warn-soft: #3a2a17;
+    --crit: #ff6b6b; --crit-soft: #3d1f1f;
+    --ok: #6cc47c; --ok-soft: #1d3324;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .page { max-width: 1120px; margin: 0 auto; padding: 48px 28px 96px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-3);
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--crit); }
+  h1 {
+    font-family: var(--serif); font-weight: 700; font-size: 38px; line-height: 1.25;
+    margin: 10px 0 14px; letter-spacing: 0.01em; text-wrap: balance;
+  }
+  h2 {
+    font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 1.35;
+    margin: 0 0 6px; text-wrap: balance;
+  }
+  .lede { max-width: 68ch; font-size: 17px; color: var(--ink-2); margin: 0 0 28px; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .toc {
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+    padding: 12px 0 28px; border-bottom: 1px solid var(--line);
+    margin-bottom: 40px; font-size: 13px;
+  }
+  .toc a { color: var(--ink-2); }
+  .toc a:hover { color: var(--accent); }
+
+  section { margin: 0 0 56px; }
+  .section-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 18px; }
+  .section-head .num { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.08em; }
+  .section-head p { margin: 0; color: var(--ink-2); max-width: 62ch; font-size: 14px; }
+  .prose { max-width: 68ch; color: var(--ink-2); }
+  .prose p { margin: 0 0 12px; }
+  .prose strong { color: var(--ink); font-weight: 600; }
+
+  .verdict {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 26px 28px;
+  }
+  .verdict p { margin: 0 0 12px; max-width: 78ch; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict .k {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+  }
+  .verdict strong { color: var(--ink); font-weight: 600; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .stat .v { font-family: var(--mono); font-weight: 500; font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 13px; color: var(--ink-3); font-weight: 400; margin-left: 4px; }
+  .stat .l { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; letter-spacing: 0.04em; color: var(--ink-3); font-weight: 600; background: var(--surface-2); }
+  tr:last-child td { border-bottom: 0; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+  .chip {
+    display: inline-block; font-size: 11px; line-height: 18px; padding: 0 7px;
+    border-radius: 4px; font-weight: 500; white-space: nowrap; vertical-align: middle;
+  }
+  .chip.crit { background: var(--crit-soft); color: var(--crit); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .chip.info { background: var(--accent-soft); color: var(--accent); }
+  .chip.dim { background: var(--surface-2); color: var(--ink-2); }
+
+  .none { color: var(--crit); font-weight: 600; }
+  .has { color: var(--ok); font-weight: 600; }
+
+  /* pattern cards */
+  .patterns { display: grid; gap: 12px; }
+  .pat {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 16px 18px; display: grid; grid-template-columns: 52px 1fr; gap: 16px;
+  }
+  .pat.lead { border-color: var(--crit); }
+  .pat .id {
+    font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--ink-3);
+    padding-top: 2px;
+  }
+  .pat.lead .id { color: var(--crit); }
+  .pat h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pat p { margin: 0 0 8px; color: var(--ink-2); font-size: 13.5px; max-width: 82ch; }
+  .pat p:last-child { margin-bottom: 0; }
+  .pat .fix {
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+    font-size: 13.5px; color: var(--ink-2);
+  }
+  .pat .fix b { color: var(--ink); font-weight: 600; }
+  .pat .span { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+
+  .plan { display: grid; gap: 10px; }
+  .row {
+    display: grid; grid-template-columns: 34px 1fr 150px 62px; gap: 14px; align-items: start;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 13px 16px;
+  }
+  .row.first { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .row .letter { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--accent); }
+  .row h4 { margin: 0 0 3px; font-size: 14.5px; font-weight: 600; }
+  .row p { margin: 0; font-size: 13px; color: var(--ink-2); }
+  .row .cover { font-size: 12.5px; color: var(--ink-2); }
+  .row .size { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+
+  .batches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .batch { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
+  .batch.now { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .batch .ph { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--ink-3); text-transform: uppercase; }
+  .batch h3 { margin: 6px 0 8px; font-size: 15px; font-weight: 600; }
+  .batch ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-2); }
+  .batch li { margin-bottom: 4px; }
+
+  .open { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .open li {
+    display: grid; grid-template-columns: 28px 1fr; gap: 10px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px; font-size: 13.5px;
+  }
+  .open li .q { font-family: var(--mono); font-size: 12px; color: var(--ink-3); padding-top: 3px; }
+  .open li .rec { color: var(--ink-2); }
+
+  .foot { border-top: 1px solid var(--line); padding-top: 18px; font-size: 12.5px; color: var(--ink-3); }
+
+  @media (max-width: 880px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .batches { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 28px 1fr; }
+    .row .cover, .row .size { grid-column: 2; }
+    .pat { grid-template-columns: 1fr; gap: 6px; }
+    h1 { font-size: 30px; }
+  }
+</style>
+
+<div class="page">
+  <div class="eyebrow"><span class="dot"></span>OPT-085 · 评审报告 · 2026-09-10</div>
+  <h1>后台页面与交互评审</h1>
+  <p class="lede">
+    43 个页面逐页看过之后，结论收敛成一句：<strong>数据层与规则层做得扎实，动作层大面积缺席</strong>。
+    至少 7 个业务对象写了完整状态机、权限码和领域服务，界面上却没有任何按钮能推进它们。
+    房源举报与信息纠错是极端案例，在后台走界面<strong>完全无法处理</strong>。
+  </p>
+  <nav class="toc">
+    <a href="#verdict">结论</a>
+    <a href="#scale">功能结构总盘</a>
+    <a href="#m1">有状态机没有操纵杆</a>
+    <a href="#patterns">另外六个横向模式</a>
+    <a href="#pages">逐页最值得改的一条</a>
+    <a href="#plan">更优方案</a>
+    <a href="#batch">实施切分</a>
+    <a href="#open">未决</a>
+  </nav>
+
+  <section id="verdict">
+    <div class="verdict">
+      <div class="k">先回答第一问</div>
+      <p>之前<strong>没有</strong>做过页面层的梳理。上一轮只评了导航层，把 31 个集合和 9 个自定义视图作为入口清点了一遍，没有逐页看信息结构与交互。这一轮补上了。</p>
+      <p>页面层的问题不是分散的 43 份小毛病，而是 <strong>7 个横向模式</strong>，每个横跨五个以上页面。逐页修会修出七种不同的补丁；按模式修，一次收口一批。</p>
+      <p>最值得先动的是第一个模式。它同时解释了「为什么运营说后台能看不能用」和「为什么举报功能上线后一直没人反馈问题」，后者的答案是：生产里举报数为 0，这个缺口至今没人踩到。</p>
+    </div>
+  </section>
+
+  <section id="scale">
+    <div class="section-head"><span class="num">01</span><h2>功能结构总盘</h2></div>
+    <div class="stats">
+      <div class="stat"><div class="v">43 <small>个页面</small></div><div class="l">8 自定义视图 · 4 自定义列表 · 29 原生 · 2 全局配置</div></div>
+      <div class="stat"><div class="v">31 <small>集合</small></div><div class="l">4 个被自定义视图整页替换，5 个退出导航</div></div>
+      <div class="stat"><div class="v">约 30</div><div class="l">自定义字段与文档组件</div></div>
+      <div class="stat"><div class="v">2 780 <small>行</small></div><div class="l">覆盖原生界面的样式，约 12 块</div></div>
+    </div>
+    <p class="prose">这不是一个「装好就用」的通用后台，而是一套改动很深的定制系统。定制的重心明显落在读侧：自定义列表、聚合卡片、完备度指标、审计抽屉，全是把信息组织得更好看、更好查。写侧的定制则集中在两处，房源审核台和楼盘停用，其余对象基本停在 Payload 的默认表单。</p>
+  </section>
+
+  <section id="m1">
+    <div class="section-head"><span class="num">02</span><h2>模式一：有状态机，没有操纵杆</h2><p>写了状态机、权限码、领域服务，界面上却没有按钮能推进。这是七个模式里最严重的一个。</p></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>业务对象</th><th>规则层写了什么</th><th>界面上能做什么</th><th>判据</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>房源举报</td>
+            <td>6 态状态机，关闭校验，供给暂停自动推导，事件外发</td>
+            <td><span class="none">无</span>。状态字段只读，说明写着「由状态转换服务推导」</td>
+            <td>转换服务零调用点，端点目录下<strong>没有对应端点</strong></td>
+          </tr>
+          <tr>
+            <td>信息纠错</td>
+            <td>4 态状态机</td>
+            <td><span class="none">无</span>。状态永远停在「新建」，与字段说明「由后台流转」自相矛盾</td>
+            <td>状态字段只读，无端点</td>
+          </tr>
+          <tr>
+            <td>线索阶段</td>
+            <td>8 态 + 转换表 + 流失需填原因</td>
+            <td>普通下拉，可任意跳选</td>
+            <td>转换校验函数零调用点；<strong>流失原因字段根本不存在</strong></td>
+          </tr>
+          <tr>
+            <td>线索归属</td>
+            <td>分配 / 转派 / 认领 / 进公海 / 回收，纯逻辑齐全</td>
+            <td><span class="none">无端点也无界面</span>。唯一路径是去归属历史表手工新建一条</td>
+            <td>而那张表已被排除出导航</td>
+          </tr>
+          <tr>
+            <td>我的待办</td>
+            <td>5 个端点：我的 / 认领 / 转派 / 批量认领 / 批量转派</td>
+            <td><span class="none">组件里零调用</span></td>
+            <td>且任务创建函数也零调用，这张表长期为空</td>
+          </tr>
+          <tr>
+            <td>消息通知</td>
+            <td>已读状态</td>
+            <td>勾选复选框再点保存</td>
+            <td>无「标记已读」「全部已读」，来源不可点</td>
+          </tr>
+          <tr>
+            <td>房源发布</td>
+            <td>上架 / 下架 / 标记已租，三个动作齐全</td>
+            <td>只有上架有一个半入口</td>
+            <td><strong>下架与标记已租在全后台的页面代码里零引用</strong>。运营无法在后台下架一套房源</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose" style="margin-top:14px;">
+      <strong>唯二做对的两处</strong>：房源审核台（通过 / 驳回 / 撤回，带乐观锁、确认抽屉、缺失项预警）和楼盘停用
+      （先查影响面，展示后再确认）。楼盘停用是全后台确认体验的最佳范例，早前的评审已经把它标为模板。
+      <span class="chip ok">可直接复用</span>
+    </p>
+  </section>
+
+  <section id="patterns">
+    <div class="section-head"><span class="num">03</span><h2>另外六个横向模式</h2></div>
+    <div class="patterns">
+      <div class="pat">
+        <div class="id">M2</div>
+        <div>
+          <h3>两套列表界面，能力与数据量成反比 <span class="span">横跨 12 个页面</span></h3>
+          <p>房源、楼盘、城市、审计走自定义表格：有状态标记、有行内操作列，但<strong>没有批量选择、没有列排序、没有列自定义</strong>。线索、商户、用户、待办走原生表格：批量能力齐全。</p>
+          <p>后果是最大的两张表反而不能批量操作。2 229 条房源要批量下架、批量取消推荐，没有复选框；3 条商户有全套批量。同一件事两种手势，每页默认条数 10 和 25 混用。</p>
+          <div class="fix"><b>更优方案</b>：不推翻任何一边。给自定义列表补行选择、批量动作条、列排序、可保存的筛选条件集，统一每页默认值。</div>
+        </div>
+      </div>
+      <div class="pat">
+        <div class="id">M3</div>
+        <div>
+          <h3>一件事，多处保存，各有各的版本号 <span class="span">地理 · 媒体</span></h3>
+          <p>商圈的基础字段在抽屉里保存，空间扩展在内嵌面板里另有一个「保存更新」和一套独立版本号，封面又在弹层里选。改完一轮，运营不知道该点几次保存、哪次没生效。地铁站点排序、房源媒体工作台同理。</p>
+          <div class="fix"><b>更优方案</b>：内嵌面板的保存并入文档保存流；做不到时在保存按钮旁明说「本页有 N 个独立保存区」。</div>
+        </div>
+      </div>
+      <div class="pat">
+        <div class="id">M4</div>
+        <div>
+          <h3>只读字段淹没可操作字段，而右侧栏全站闲置 <span class="span">线索 · 房源 · 投放申请</span></h3>
+          <p>线索表单 7 个页签、约 25 个只读字段集中在后 3 个页签，真正每天要改的只有姓名、电话、阶段、负责人四个，还分散在第一和第三个页签。房源编辑页单个页签承载 50 个字段，主区滚动高度 2 326 像素，约 2.3 屏。</p>
+          <p>同时，<strong>31 个集合里只有审计日志一个用了右侧栏</strong>，其余页面右列长期空置。这是最省力的一处结构红利。</p>
+          <div class="fix"><b>更优方案</b>：溯源与存档类页签折到最后并默认收起；状态、负责人、版本移入右侧栏。</div>
+        </div>
+      </div>
+      <div class="pat">
+        <div class="id">M5</div>
+        <div>
+          <h3>内容没有草稿，也没有预览 <span class="span">页面 · 资讯 · 站点设置</span></h3>
+          <p>页面与资讯<strong>都没有开启草稿版本</strong>，状态只是个普通下拉，保存即改线上数据，没有草稿预览也没有版本回滚，发布时间要手填。页面的预览只对首页生效，其余页面没有。改一句首页文案要走五六步，最后还得另开前台标签页自查。</p>
+          <p>全后台唯一有效的所见即所得，是水印的实时预览。房源与楼盘已经有三档断点的实时预览，内容页照抄即可。</p>
+          <div class="fix"><b>更优方案</b>：打开草稿版本 + 预览覆盖全部页面。这是内容侧性价比最高的一步。</div>
+        </div>
+      </div>
+      <div class="pat">
+        <div class="id">M6</div>
+        <div>
+          <h3>高危动作与普通字段同权重 <span class="span">城市 · 经纪人 · 水印</span></h3>
+          <p>把一个城市从前台摘下来，是个普通下拉，没有确认也没有影响面。经纪人和团队下线只能改字段保存，而「仍有未完成线索」这条守卫在<strong>提交之后</strong>才报。1.7 万条素材的全量水印重刷没有二次确认，只有一句「可能要跑一会儿」，没有批次号、没有进度、没有回执。</p>
+          <p>还有一条不可逆语义只写在代码注释里：改了素材用途之后重刷不会反烘焙。界面上完全看不到。</p>
+          <div class="fix"><b>更优方案</b>：同 M1，用共享动作条统一承载影响面预算、确认、结果回执；把提交后才报的守卫改成进入表单就展示的前置提示。</div>
+        </div>
+      </div>
+      <div class="pat">
+        <div class="id">M7</div>
+        <div>
+          <h3>有些事在界面上根本做不到 <span class="span">五处结构缺口</span></h3>
+          <p><strong>商圈无法新建</strong>：地理模块只有行政区配了新建入口，而原生创建页的类型字段是只读的，偏偏又是必填，填不进去。</p>
+          <p><strong>4 213 条审核记录无处可查</strong>：原生列表被审核台整页替换，而审核台只呈现待审房源，历史事件流只能在某条待审房源的抽屉里看到。</p>
+          <p>此外：城市详情页没有导航入口，只能靠全局搜索抵达；导出功能没有入口，50 条上限也没有任何提示；领域事件有错误信息却没有重放按钮。</p>
+          <div class="fix"><b>更优方案</b>：补全四个地理模块的新建配置（创建视图本就是参数化的）；审核台加「队列 / 全部记录」双页签；城市列表行名做成详情链接。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pages">
+    <div class="section-head"><span class="num">04</span><h2>逐页最值得改的一条</h2><p>完整结构、字段数、组件职责、路径长度、空错权态见工作项文档。这里每页只留最重的一条。</p></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>页面</th><th>结构</th><th>最值得改的一条</th></tr></thead>
+        <tbody>
+          <tr><td>房源编辑</td><td class="num">2 页签 / 63 字段 / 2 326 px</td><td>「审核与发布」分节里既不能审核也不能发布，唯一按钮是保存</td></tr>
+          <tr><td>房源可见性卡</td><td class="num">4 项自检</td><td>卡片自己写明「商户、楼盘、服务城市等关联条件未包含」，答不了「为什么前台看不到」这个真问题</td></tr>
+          <tr><td>房源列表</td><td class="num">9 列 / 4 筛选</td><td>2 229 条数据没有批量选择</td></tr>
+          <tr><td>楼盘编辑</td><td class="num">5 页签 / 66 字段</td><td>字段量最大却没有右侧栏；停用的确认范式应该外推给其他对象</td></tr>
+          <tr><td>楼盘商户关系</td><td class="num">6 字段</td><td>每行标题是数字主键；建关系 18 次点击且没有批量入口</td></tr>
+          <tr><td>投放申请</td><td class="num">3 页签 / 29 字段</td><td>「转为房源草稿」的权限码已定义，界面上没有这个动作</td></tr>
+          <tr><td>批量导入</td><td class="num">四阶段</td><td>全后台设计最完整的流程页，预检不写库、需人工确认。问题只在导航拆成三个入口</td></tr>
+          <tr><td>咨询线索</td><td class="num">7 页签 / 零按钮</td><td>阶段机没接线，归属五动作没有端点</td></tr>
+          <tr><td>跟进记录</td><td class="num">8 字段</td><td>详情页的保存按钮恒定失败（集合禁止更新）</td></tr>
+          <tr><td>我的待办</td><td class="num">原生列表</td><td>说明写着「由业务事件驱动创建」，右上角却有「创建新条目」</td></tr>
+          <tr><td>房源审核台</td><td class="num">确认抽屉 + 乐观锁</td><td>服务端一次取 200 条硬上限、客户端分页、无筛选；撤回没有二次确认，与通过驳回不对称</td></tr>
+          <tr><td>房源举报 / 信息纠错</td><td class="num">零按钮</td><td>状态机在界面上不可推进，见模式一</td></tr>
+          <tr><td>素材库</td><td class="num">1.7 万条</td><td>没有按用途或水印状态筛选的能力；真正的媒体工作台不在这里，挂在房源和楼盘表单内</td></tr>
+          <tr><td>站点设置</td><td class="num">6 页签</td><td>水印页签深度 4 层 11 个参数，与其余 5 个纯文案页签不是一个量级，宜独立</td></tr>
+          <tr><td>城市站点配置</td><td class="num">3 页签</td><td>同一页签里混着「全站生效 / 仅未开城页 / 本城覆盖」三种作用域，只靠字段说明区分</td></tr>
+          <tr><td>顾问服务时段</td><td class="num">5 字段</td><td>缺少更新权限声明，任何登录账号都能改（已确认未修）</td></tr>
+          <tr><td>地理四模块</td><td class="num">抽屉 6 至 7 字段</td><td>商圈无法新建；抽屉与完整编辑双入口，三处独立保存</td></tr>
+          <tr><td>用户</td><td class="num">12 字段 + 权限预览</td><td>新建时预览不渲染，必须先保存一次才能看到自己配出了什么权限</td></tr>
+          <tr><td>角色</td><td class="num">8 字段</td><td><strong>菜单、操作、字段三层权限是裸的 JSON 代码编辑器</strong>，运营角色要手写 42 行数组；字段说明写着「可多选」，界面上没有任何多选控件</td></tr>
+          <tr><td>审计日志</td><td class="num">列表 + 640 px 抽屉</td><td>全后台交互最好的一处。但「查看详情」本身被审计并倒序排在最前，淹没真实操作；操作人显示数字主键</td></tr>
+          <tr><td>工作台 / 数据看板</td><td class="num">两个仪表盘</td><td>三对同义卡片分列两页；三个已注册的分析端点全仓没有消费者</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="plan">
+    <div class="section-head"><span class="num">05</span><h2>更优方案</h2><p>四个共享机制加三个结构补口，不是 43 页各修各的。按投入产出排序。</p></div>
+    <div class="plan">
+      <div class="row first">
+        <div class="letter">A</div>
+        <div><h4>共享文档动作条</h4><p>以楼盘停用为范式，抽出「状态机定义 → 影响面查询 → 确认 → 乐观锁提交 → 结果回执」的通用组件</p></div>
+        <div class="cover">模式一的 7 个对象<br>模式六的 4 处高危动作</div>
+        <div class="size">大</div>
+      </div>
+      <div class="row first">
+        <div class="letter">B</div>
+        <div><h4>补两个缺失的端点</h4><p>举报状态转换、纠错状态转换。规则层和权限码都已就绪，缺的只是这一层</p></div>
+        <div class="cover">让两条业务线从<br>不可处理变成可处理</div>
+        <div class="size">中</div>
+      </div>
+      <div class="row">
+        <div class="letter">C</div>
+        <div><h4>自定义列表补齐</h4><p>行选择、批量动作、列排序、可保存筛选集、统一每页默认值</p></div>
+        <div class="cover">房源 楼盘 城市 审计<br>四个大表</div>
+        <div class="size">中</div>
+      </div>
+      <div class="row">
+        <div class="letter">D</div>
+        <div><h4>启用右侧栏</h4><p>状态、负责人、版本、溯源移入右列，主列只留录入项</p></div>
+        <div class="cover">房源 楼盘 线索<br>投放申请</div>
+        <div class="size">小</div>
+      </div>
+      <div class="row">
+        <div class="letter">E</div>
+        <div><h4>打开草稿与预览</h4><p>内容页开启草稿版本，预览覆盖全部页面</p></div>
+        <div class="cover">页面 资讯<br>间接改善站点设置</div>
+        <div class="size">小</div>
+      </div>
+      <div class="row">
+        <div class="letter">F</div>
+        <div><h4>权限改为分组多选</h4><p>按注册表分组，编码与中文名同屏；保存前给出能力增减的对照</p></div>
+        <div class="cover">角色页<br>连带用户权限预览</div>
+        <div class="size">中</div>
+      </div>
+      <div class="row">
+        <div class="letter">G</div>
+        <div><h4>三个结构补口</h4><p>补全地理四模块新建；审核台加全部记录页签；城市列表行名做成详情链接</p></div>
+        <div class="cover">模式七的<br>三个缺口</div>
+        <div class="size">小</div>
+      </div>
+    </div>
+    <p class="prose" style="margin-top:14px;">先做 A 加 B，能把「有状态机没有操纵杆」这条主线一次性掀掉，这是运营效率上最大的一块。D 和 E 是小改动大收益，可以并行。</p>
+  </section>
+
+  <section id="batch">
+    <div class="section-head"><span class="num">06</span><h2>实施切分：按域，不按层</h2><p>裁定后改写。A 到 G 是机制，不是工作项。按层切会让同一个页面被改多次；按域切，一个域一次做到位，运营走一遍即可验收。导航是单个配置文件，整体一次改，作为前置。</p></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>顺序</th><th>域</th><th>覆盖的机制</th><th>工作项</th><th>依据</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0</td><td>导航整体切换</td><td>084 全部</td><td>OPT-084 第一阶段</td><td>单配置文件</td></tr>
+          <tr><td class="num">1</td><td><strong>房源域</strong><br><span style="color:var(--ink-3);font-size:12.5px">房源 · 楼盘 · 商户 · 关系 · 审核台 · 导入</span></td><td>A 第一版、C、D、审核台补口</td><td><strong>OPT-086</strong></td><td>生产 2 229 条，唯一日常运转的域。「先补房源下架」就是它的第一个 PR</td></tr>
+          <tr><td class="num">2</td><td>风控域</td><td>B、A 外推（第二个样本，抽通用层）</td><td>待立项</td><td>状态机在界面上不可推进</td></tr>
+          <tr><td class="num">3</td><td>系统域</td><td>F</td><td>待立项</td><td>3 个管理员天天碰角色页</td></tr>
+          <tr><td class="num">4</td><td>内容域</td><td>E</td><td>待立项</td><td>小改动大收益</td></tr>
+          <tr><td class="num">5</td><td>地理域</td><td>G 之地理两条</td><td>待立项</td><td>建设期已过，频率低</td></tr>
+          <tr><td class="num">6</td><td>客户域</td><td>A 外推</td><td>待立项，等事件消费链裁定</td><td>生产 4 条线索，待办通知空表</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="batches" style="margin-top:14px">
+      <div class="batch now">
+        <div class="ph">房源域 · OPT-086 · 六个 PR</div>
+        <h3>一条主线闭环：让一套房源在前台可见</h3>
+        <ul>
+          <li>PR 1 动作条 + 下架 / 标记已租 / 重新上架（<strong>已裁定先做</strong>）</li>
+          <li>PR 2 可见性诊断：逐条跑有效供给 12 条谓词，每条原因带修复链接</li>
+          <li>PR 3 工作站右栏收口 + 列表状态分段 / 排序 / 批量</li>
+          <li>PR 4 楼盘页内嵌商户关系面板，18 次点击变 4 次</li>
+          <li>PR 5 审核台服务端分页 + 全部记录 + 撤回确认；导入三合一</li>
+        </ul>
+      </div>
+      <div class="batch">
+        <div class="ph">对账订正</div>
+        <h3>写评审时不知道的事</h3>
+        <ul>
+          <li>房源表单布局（OPT-032 第三部分）<strong>已实施并合并</strong>，工作项状态行过期。本页「2 326 像素」描述的是重排之后的页面，且与那份方案的 1 735 口径不同，不构成未达标结论</li>
+          <li>右栏方案与已落地布局兼容：只移出三节，不动其余行</li>
+          <li>另有 054 / 062 / 069 / 071 状态行同样过期。状态行不能作为判断依据，得看 git</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="open">
+    <div class="section-head"><span class="num">07</span><h2>未决，需裁定</h2></div>
+    <ul class="open">
+      <li><span class="q">Q1</span><div>动作条做成字段组件还是独立文档组件？<div class="rec">影响它能否复用在全局配置页上。</div></div></li>
+      <li><span class="q">Q2</span><div><s>举报与纠错在生产里都是 0 条，B 的优先级要不要让位给房源下架？</s><div class="rec"><strong>已裁定</strong>：先补房源下架，作为房源域 OPT-086 的第一个 PR，不单独立项。</div></div></li>
+      <li><span class="q">Q3</span><div>待办与通知值不值得现在投入动作层？<div class="rec">两张表因为事件消费链未接线而长期为空，建议等那件事裁定后再说。</div></div></li>
+      <li><span class="q">Q4</span><div>审核台改服务端分页时，要不要顺带把 4 213 条历史记录的入口一起做？<div class="rec">倾向一起做，两者改的是同一个视图。</div></div></li>
+      <li><span class="q">Q5</span><div>权限分组多选与「四层权限」这个设计本身是否要一起重估？<div class="rec">四层的表达力是够的，问题只在编辑方式，倾向只改编辑方式。</div></div></li>
+    </ul>
+  </section>
+
+  <div class="foot">
+    完整工作项：<code>specs/work-items/OPT-085-admin-page-ia-review.md</code>。
+    浏览器实测证据：<code>artifacts/verification/OPT-085/browser-evidence.md</code>。
+    导航层评审见 OPT-084。取证环境为本地开发库与生产只读查询，2026-09-10。
+  </div>
+</div>
