@@ -130,15 +130,19 @@ export function buildAdminNavigationBadgeQueries(
 
   if (canReadCityPartnerApplications(permission)) {
     const scopeWhere = buildCityPartnerCityScopeWhere(permission)
-    if (scopeWhere === false) return queries
-    queries.push({
-      key: 'cityPartnerApplications',
-      collection: 'city-partner-applications',
-      where: combineWhere(
-        { status: { equals: 'pending' } },
-        scopeWhere === true ? null : scopeWhere,
-      ),
-    })
+    // false 表示该用户没有城市合伙人的数据范围（如内置 OPS：cityIds 是 'all' 而不是 Set），
+    // 此时只跳过这一条角标。这里绝不能 return queries——那会连带吞掉排在后面的所有查询，
+    // 而且没有任何报错（曾迫使 OPT-084 把新增角标刻意排在本块之前来绕开）。
+    if (scopeWhere !== false) {
+      queries.push({
+        key: 'cityPartnerApplications',
+        collection: 'city-partner-applications',
+        where: combineWhere(
+          { status: { equals: 'pending' } },
+          scopeWhere === true ? null : scopeWhere,
+        ),
+      })
+    }
   }
 
   return queries
