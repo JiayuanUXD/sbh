@@ -228,7 +228,8 @@ export const Users: CollectionConfig = {
   // M1.5 收紧 access：
   //   - read：具备 user:manage 者可读全部；否则仅可读自己（返回 Where 约束，list/单文档同时生效）
   //   - create/update/delete：需具备 user:manage 操作权限（仅 ADM 默认拥有）
-  //   - 首次创建管理员由 Payload 在数据库无用户时自动允许（payload 自身机制）
+  //   - 匿名一律拒绝（含 create）：首建管理员与 seed 都走 overrideAccess，不经过本 access，
+  //     详见 create 分支的注释与 tests/users-anonymous-create.test.ts
   access: {
     read: async ({ req }) => {
       if (!req.user) return false
@@ -240,8 +241,13 @@ export const Users: CollectionConfig = {
       return { id: { equals: req.user.id } }
     },
     create: async ({ req }) => {
-      // 首次创建管理员（数据库无用户）由 Payload 自身逻辑放行，req.user 为空时通过
-      if (!req.user) return true
+      // 匿名一律拒绝。此处曾写 `return true`，理由是「首次创建管理员需要放行」，
+      // 该前提不成立：registerFirstUser 自己用 payload.create({ overrideAccess: true })
+      // 建号（node_modules/payload/dist/auth/operations/registerFirstUser.js），
+      // 且在 users 表非空时先抛 Forbidden；scripts/seed.ts 走 Local API 同样默认
+      // overrideAccess。两条首建路径都不经过这里，放行只等于开放匿名自注册
+      // ——任何人 POST /api/users 就能拿到一个可登录的后台账号。
+      if (!req.user) return false
       const ctx = await getPermissionContext(req)
       if (!ctx) return false
       return hasOperationPermission(ctx, 'user:manage')
