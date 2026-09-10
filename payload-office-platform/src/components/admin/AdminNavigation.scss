@@ -326,9 +326,11 @@
       width: 40px;
     }
 
-    // 隐藏文字和箭头
+    // 隐藏文字、箭头，以及扁平叶的角标——40px 方块塞不下「图标 + 间距 + 角标」，
+    // 角标会顶偏图标并溢出 48px 侧栏；收起态的图标角标由 Task 2 的 __rail-badge 统一提供，别在这里恢复。
     .admin-navigation__group-label,
     .admin-navigation__link--flat .admin-navigation__link-label,
+    .admin-navigation__link--flat .admin-navigation__badge,
     .admin-navigation__chevron {
       display: none;
     }
