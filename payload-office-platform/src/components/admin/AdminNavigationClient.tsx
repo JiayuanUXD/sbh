@@ -33,9 +33,13 @@ import {
 } from '@/domain/admin-navigation/navigation-badge-request'
 import { formatBadgeCount } from '@/domain/admin-navigation/navigation-badges'
 import {
+  defaultOpenGroupIds,
   deriveOpenGroupId,
   findActiveLeaf,
   findActiveParentKeys,
+  groupHasWarningBadge,
+  parseStoredOpenGroups,
+  sumGroupBadges,
   toggleGroupInSet,
 } from '@/domain/admin-navigation/navigation-state'
 import type {
@@ -51,14 +55,19 @@ type AdminNavigationClientProps = {
 }
 
 const COLLAPSE_STORAGE_KEY = 'sbh-admin-nav-collapsed'
+const OPEN_GROUPS_STORAGE_KEY = 'sbh-admin-nav-open-groups'
 const COLLAPSED_WIDTH = '48px'
 const DESKTOP_BREAKPOINT = 1024
 
-const WARNING_BADGE_KEYS = new Set([
+// 「工作队列」类角标：数字代表等着人处理的事，用警示色；
+// 纯提醒类（notifications / tasks）用常规蓝色。
+const WARNING_BADGE_KEYS: ReadonlySet<string> = new Set([
   'listingReviews',
   'listingReports',
   'leads',
   'formSubmissions',
+  'supplySubmissions',
+  'informationCorrections',
 ])
 
 const GROUP_ICONS: Record<AdminNavIconKey, ReactNode> = {
@@ -88,6 +97,70 @@ function getInitialCollapsed(): boolean {
   }
 }
 
+/**
+ * 挂载后的初始展开集：读得回存储值就用它（并上当前激活组，免得用户从深层链接
+ * 进来时所在的组是收着的）；读不回（首次进入 / 坏数据 / 存储不可用）用默认集。
+ */
+function resolveInitialOpenGroups(
+  entries: readonly ResolvedAdminNavEntry[],
+  pathname: string,
+): Set<string> {
+  const stored = readStoredOpenGroups(entries)
+  if (!stored) return defaultOpenGroupIds(entries, pathname)
+
+  for (const key of findActiveParentKeys(entries, pathname)) {
+    stored.add(key)
+  }
+  return stored
+}
+
+function readStoredOpenGroups(
+  entries: readonly ResolvedAdminNavEntry[],
+): Set<string> | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return parseStoredOpenGroups(
+      window.localStorage.getItem(OPEN_GROUPS_STORAGE_KEY),
+      entries,
+    )
+  } catch {
+    // 隐私模式下 localStorage 访问本身会抛：当作首次进入，导航照常可用
+    return null
+  }
+}
+
+function persistOpenGroups(openKeys: ReadonlySet<string>): void {
+  try {
+    window.localStorage.setItem(
+      OPEN_GROUPS_STORAGE_KEY,
+      JSON.stringify([...openKeys]),
+    )
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function leafBadgeText(
+  badges: AdminNavigationBadgeCounts,
+  leaf: ResolvedAdminNavLeaf,
+): string | null {
+  if (!leaf.badgeKey) return null
+  return formatBadgeCount(badges[leaf.badgeKey] ?? 0)
+}
+
+function isWarningLeaf(leaf: ResolvedAdminNavLeaf): boolean {
+  return Boolean(leaf.badgeKey && WARNING_BADGE_KEYS.has(leaf.badgeKey))
+}
+
+function leafBadgeLabel(label: string, text: string): string {
+  return `${label}待处理 ${text} 项`
+}
+
+/** 组头是汇总数字，措辞与叶子分开：否则「待处理」组会读成「待处理待处理 5 项」。 */
+function groupBadgeLabel(label: string, text: string): string {
+  return `${label}共 ${text} 项待处理`
+}
+
 export default function AdminNavigationClient({
   entries,
 }: AdminNavigationClientProps) {
@@ -109,6 +182,10 @@ export default function AdminNavigationClient({
   const [mounted, setMounted] = useState(false)
   const [windowWidth, setWindowWidth] = useState<number>(0)
   const badgeFailureReported = useRef(false)
+  // 用 ref 冻结首屏的树与路径供挂载时的定时器使用：那个效果只该跑一次，
+  // 把 entries / pathname 写进它的依赖会让每次路由变化都重读一遍存储、
+  // 把用户中途的开合覆盖掉。
+  const initialOpenGroupsRef = useRef(() => resolveInitialOpenGroups(entries, pathname))
   const activeLeafId = findActiveLeaf(entries, pathname)?.id ?? null
   const activeGroupId = deriveOpenGroupId(entries, pathname)
   const apiRoute = config.routes.api.replace(/\/$/, '')
@@ -128,6 +205,9 @@ export default function AdminNavigationClient({
       updateWidth()
       setMounted(true)
       setCollapsed(getInitialCollapsed())
+      // 展开集与折叠态在同一处读：首次渲染必须与服务端输出逐字相同，
+      // 在渲染期同步读 localStorage 会直接造成 hydration 不一致。
+      setOpenKeys(initialOpenGroupsRef.current())
     }, 0)
     return () => {
       window.clearTimeout(initialTimer)
@@ -241,7 +321,11 @@ export default function AdminNavigationClient({
   const handleToggleKey = (key: string) => {
     if (effectiveCollapsed) return
     // 多展开模式：切换点击的分组，不影响其他分组
-    setOpenKeys((prev) => toggleGroupInSet(prev, key))
+    const next = toggleGroupInSet(openKeys, key)
+    setOpenKeys(next)
+    // 只有用户主动开合才落盘。路由变化时并入激活组是系统行为，
+    // 一并写回会把「用户特意收起了这个组」的意图慢慢冲掉。
+    persistOpenGroups(next)
   }
 
   return (
@@ -319,6 +403,8 @@ function NavigationGroup({
   onToggleKey: (key: string) => void
 }) {
   const panelId = `admin-navigation-group-${group.id}`
+  const groupBadge = formatBadgeCount(sumGroupBadges(group, badges))
+  const groupBadgeWarning = groupHasWarningBadge(group, badges, WARNING_BADGE_KEYS)
 
   return (
     <li
@@ -342,7 +428,30 @@ function NavigationGroup({
         <span className="admin-navigation__group-icon" aria-hidden="true">
           {iconFor(group.icon)}
         </span>
+        {/* 收起态（48px）没有文字可挂角标，汇总数字挂到图标右上角 */}
+        {collapsed && groupBadge ? (
+          <RailBadge
+            ariaLabel={groupBadgeLabel(group.label, groupBadge)}
+            text={groupBadge}
+            warning={groupBadgeWarning}
+          />
+        ) : null}
         <span className="admin-navigation__group-label">{group.label}</span>
+        {/* 汇总角标只在该组收起时出现：展开后每片叶子各自显示，
+            再挂一份组头角标等于把同一批事情数两遍。 */}
+        {!collapsed && !isOpen && groupBadge ? (
+          <span
+            aria-label={groupBadgeLabel(group.label, groupBadge)}
+            className={[
+              'admin-navigation__group-badge',
+              groupBadgeWarning ? 'admin-navigation__group-badge--warning' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {groupBadge}
+          </span>
+        ) : null}
         <IconCaretRight aria-hidden="true" className="admin-navigation__chevron" />
       </button>
 
@@ -406,6 +515,8 @@ function NavigationFlatLeaf({
   collapsed: boolean
   leaf: ResolvedAdminNavFlatLeaf
 }) {
+  const badge = leafBadgeText(badges, leaf)
+
   return (
     <li className="admin-navigation__group admin-navigation__group--flat">
       <Link
@@ -424,6 +535,14 @@ function NavigationFlatLeaf({
         <span className="admin-navigation__group-icon" aria-hidden="true">
           {iconFor(leaf.icon)}
         </span>
+        {/* 收起态：行内角标被 CSS 隐藏（40px 方块塞不下），改挂图标右上角 */}
+        {collapsed && badge ? (
+          <RailBadge
+            ariaLabel={leafBadgeLabel(leaf.label, badge)}
+            text={badge}
+            warning={isWarningLeaf(leaf)}
+          />
+        ) : null}
         <span className="admin-navigation__link-label">{leaf.label}</span>
         <LeafBadge badges={badges} leaf={leaf} />
       </Link>
@@ -468,22 +587,51 @@ function LeafBadge({
   badges: AdminNavigationBadgeCounts
   leaf: ResolvedAdminNavLeaf
 }) {
-  if (!leaf.badgeKey) return null
-
-  const badge = formatBadgeCount(badges[leaf.badgeKey] ?? 0)
+  const badge = leafBadgeText(badges, leaf)
   if (!badge) return null
 
   return (
     <span
-      aria-label={`${leaf.label}待处理 ${badge} 项`}
+      aria-label={leafBadgeLabel(leaf.label, badge)}
       className={[
         'admin-navigation__badge',
-        WARNING_BADGE_KEYS.has(leaf.badgeKey) ? 'admin-navigation__badge--warning' : '',
+        isWarningLeaf(leaf) ? 'admin-navigation__badge--warning' : '',
       ]
         .filter(Boolean)
         .join(' ')}
     >
       {badge}
+    </span>
+  )
+}
+
+/**
+ * 收起态（48px）图标右上角的角标。
+ *
+ * 刻意用独立类名而不是复用 `__badge`：收起态下 `__badge` 是被显式隐藏的
+ * （40px 方块塞不下「图标 + 间距 + 角标」，见 AdminNavigation.scss），
+ * 复用类名会把那条隐藏规则一起继承过来，角标就永远不显示。
+ */
+function RailBadge({
+  ariaLabel,
+  text,
+  warning,
+}: {
+  ariaLabel: string
+  text: string
+  warning: boolean
+}) {
+  return (
+    <span
+      aria-label={ariaLabel}
+      className={[
+        'admin-navigation__rail-badge',
+        warning ? 'admin-navigation__rail-badge--warning' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {text}
     </span>
   )
 }

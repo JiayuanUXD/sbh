@@ -235,6 +235,9 @@
       justify-content: flex-start;
       margin: 0;
       padding: 0 10px;
+      // 收起态图标角标（&__rail-badge）以它为定位参照；组头按钮本就是 relative，
+      // 扁平叶要单独补上，否则角标会跑到最近的定位祖先（侧栏顶部）去。
+      position: relative;
 
       .admin-navigation__link-label {
         flex: 1 1 auto;
@@ -257,7 +260,11 @@
 
   // ─── 徽标 ───
 
-  &__badge {
+  // 叶子角标与组头汇总角标共用一套视觉：折叠组头上的数字就是组内各叶子数字之和，
+  // 两处长得不一样会让人以为它们是两种不同的计数。
+  // 颜色全部走 --admin-nav-* 变量，深色主题由文件顶部的 dark 段一次性覆盖。
+  &__badge,
+  &__group-badge {
     align-items: center;
     background: var(--admin-nav-badge);
     border-radius: 10px;
@@ -272,12 +279,43 @@
     line-height: 1;
     min-width: 18px;
     padding: 0 5px;
+  }
 
-    &--warning {
-      background: var(--admin-nav-warning-soft);
-      box-shadow: inset 0 0 0 1px var(--admin-nav-warning);
-      color: var(--admin-nav-warning);
-    }
+  &__badge--warning,
+  &__group-badge--warning {
+    background: var(--admin-nav-warning-soft);
+    box-shadow: inset 0 0 0 1px var(--admin-nav-warning);
+    color: var(--admin-nav-warning);
+  }
+
+  // 收起态（48px）图标右上角的角标。绝对定位而不是排在图标后面：
+  // 40px 方块里「图标 + 间距 + 角标」会把图标顶偏并溢出侧栏。
+  // 定位参照是 &__group-toggle / &__link--flat（两者都已 position: relative）。
+  &__rail-badge {
+    align-items: center;
+    background: var(--admin-nav-badge);
+    border-radius: 9px;
+    color: var(--admin-nav-badge-ink);
+    display: inline-flex;
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    height: 15px;
+    justify-content: center;
+    line-height: 1;
+    min-width: 15px;
+    padding: 0 4px;
+    // 角标压在按钮/链接上方，不能把点击吃掉
+    pointer-events: none;
+    position: absolute;
+    right: 2px;
+    top: 2px;
+  }
+
+  &__rail-badge--warning {
+    background: var(--admin-nav-warning-soft);
+    box-shadow: inset 0 0 0 1px var(--admin-nav-warning);
+    color: var(--admin-nav-warning);
   }
 
   // ═══════════════════════════════════════════════════
@@ -327,7 +365,7 @@
     }
 
     // 隐藏文字、箭头，以及扁平叶的角标——40px 方块塞不下「图标 + 间距 + 角标」，
-    // 角标会顶偏图标并溢出 48px 侧栏；收起态的图标角标由 Task 2 的 __rail-badge 统一提供，别在这里恢复。
+    // 角标会顶偏图标并溢出 48px 侧栏；收起态的图标角标由 __rail-badge 统一提供，别在这里恢复。
     .admin-navigation__group-label,
     .admin-navigation__link--flat .admin-navigation__link-label,
     .admin-navigation__link--flat .admin-navigation__badge,
