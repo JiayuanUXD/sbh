@@ -151,6 +151,9 @@ export const ADMIN_NAV_GROUPS = [
     }),
     leaf('customers', '客户档案', '/admin/collections/customers', ['customers', 'my-customers']),
     leaf('follow-ups', '跟进记录', '/admin/collections/follow-ups', ['follow-ups']),
+    leaf('members', '会员', '/admin/collections/members', ['members'], {
+      requiredOperationCode: 'member:manage',
+    }),
   ]),
   group('content', '站点与内容', 'file', [
     // OPT-053：站点设置是 Global，`custom.scss` 隐藏了 Payload 原生导航，
