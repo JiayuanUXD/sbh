@@ -41,7 +41,9 @@ describe('buildListingOverviewGroups', () => {
     expect(areaRow?.value).toBe('1,240 ㎡')
   })
 
-  it('listing.factGroups 里查不到值时，行的 value 为 null（交给 SpecTable 渲染 —），不隐藏该行', () => {
+  // OPT-083 起规则反转：缺值的行不再渲染 — 而是整行不出现。
+  // 裁定与已知代价见 specs/work-items/OPT-083-detail-spec-field-visibility.md §2 / §11。
+  it('listing.factGroups 里查不到值时，该行不出现（同组内有值的行照常在）', () => {
     const groups = buildListingOverviewGroups({
       factGroups: BASE_FACT_GROUPS,
       price: null,
@@ -49,13 +51,10 @@ describe('buildListingOverviewGroups', () => {
       building: null,
     })
     const termsGroup = groups.find((g) => g.id === 'terms')
-    const depositRow = termsGroup?.rows.find((r) => r.label === '押金')
-    const paymentRow = termsGroup?.rows.find((r) => r.label === '付款方式')
-    // 行必须存在（不是被过滤掉），值为 null
-    expect(depositRow).toBeDefined()
-    expect(depositRow?.value).toBeNull()
-    expect(paymentRow).toBeDefined()
-    expect(paymentRow?.value).toBeNull()
+    expect(termsGroup?.rows.find((r) => r.label === '押金')).toBeUndefined()
+    expect(termsGroup?.rows.find((r) => r.label === '付款方式')).toBeUndefined()
+    // 同组的「起租期」有值，不受影响——过滤是逐行的，不是整组的
+    expect(termsGroup?.rows.find((r) => r.label === '起租期')?.value).toBe('36 个月')
   })
 
   it('物业费金额缺失时，回退到物业费类别事实（双源取第二来源）', () => {
@@ -134,7 +133,15 @@ describe('buildListingOverviewGroups', () => {
     expect(byLabel.get('家具')).toBe('带家具')
   })
 
-  it('这 5 条同样遵守「缺值渲染 — 不隐藏行」：值为 null 时行仍在', () => {
+  /**
+   * OPT-083 起规则反转：这 5 条与其它字段一样，值为 null 时该行不出现。
+   *
+   * **本用例守的仍然是「这 5 条不许从清单里消失」**，只是判据从「行在、值为 null」
+   * 换成了「有值时行在」——那一半由上一条用例断言，本条断言的是反面：它们参与
+   * 同一套隐藏规则，没有被偷偷改成「永远显示」或「永远不显示」。
+   * 不要因为断言变成 toBeUndefined 就把整条用例删掉，那样这 5 条就再没有守卫了。
+   */
+  it('这 5 条同样遵守 OPT-083 的新规则：值为 null 时该行不出现', () => {
     const rows = buildListingOverviewGroups({
       factGroups: BASE_FACT_GROUPS,
       price: null,
@@ -142,9 +149,7 @@ describe('buildListingOverviewGroups', () => {
       building: null,
     }).flatMap((group) => group.rows)
     for (const label of ['房源楼层', '朝向', '可分割', '家具', '其他固定费用']) {
-      const row = rows.find((item) => item.label === label)
-      expect(row, `${label} 行必须存在`).toBeDefined()
-      expect(row?.value).toBeNull()
+      expect(rows.find((item) => item.label === label), `${label} 无值时不该出现`).toBeUndefined()
     }
   })
 })

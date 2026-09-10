@@ -27,6 +27,7 @@ import type {
   BuildingSupplySnapshot,
 } from '@/domain/public-catalog'
 import type { PoiByCategory } from '@/lib/frontend/location-pois'
+import type { SpecVisibilityMap } from '@/lib/frontend/detail-spec/fields'
 import type { ServiceSchedule } from '@/domain/advisor-availability'
 
 /**
@@ -94,6 +95,7 @@ export default function BuildingDetailLayout({
   citySlug,
   supplyCurrentSearch,
   disclaimers,
+  specVisibility,
 }: BuildingDetailLayoutProps & Readonly<{
 /**
  * 合规声明（OPT-053）。来自「站点设置 → 合规声明」，由路由层取好传入。
@@ -101,6 +103,12 @@ export default function BuildingDetailLayout({
  * dev-story 演示页也不该被迫构造这个对象。
  */
   disclaimers?: Readonly<{ price?: string; image?: string }>
+  /**
+   * 参数区展示哪些字段（OPT-083）。来自「站点设置 → 详情页参数」，由路由层
+   * 取好传入。**可选**：缺省时按 registry 默认走（即改造前的现状），
+   * dev-story 演示页与单测同理不必构造它。
+   */
+  specVisibility?: SpecVisibilityMap
 }>) {
   const visibleRelatedBuildings = relatedBuildings.filter((item) => item.id !== building.id)
   const hasRelated = visibleRelatedBuildings.length > 0
@@ -114,14 +122,16 @@ export default function BuildingDetailLayout({
   // aggregateAreaRange），不另算一份；无有效供给时是 null 而不是 0。
   const minLeasableArea = aggregateAreaRange(supply.availableGroups)?.min ?? null
   const specInput = { factGroups: building.factGroups, amenityGroups: building.amenityGroups }
-  // 「整段不渲染」的判据落在**最终会不会有内容**上：`BuildingSpecPanel` 的四组
-  // 是固定行清单（缺值渲染 —，不隐藏行，Task 6 的既定契约），所以「这栋楼一条
-  // 参数都没有」时它会渲染 19 行 — ——那是空货架，不是诚实空态。这里复用同一个
-  // 导出的纯函数判断，不在页面层另写一套「哪些字段算参数」的逻辑
-  // （多算一次纯函数，换掉一份会漂移的重复判断）。
-  const hasSpecValues = buildBuildingSpecGroups(specInput, minLeasableArea).some((group) =>
-    group.rows.some((row) => row.value != null),
-  )
+  // 「整段不渲染」的判据落在**最终会不会有内容**上：这栋楼一条参数都没有时，
+  // 面板会是一张空白卡片——那是空货架，不是诚实空态。这里复用同一个导出的纯
+  // 函数判断，不在页面层另写一套「哪些字段算参数」的逻辑（多算一次纯函数，
+  // 换掉一份会漂移的重复判断）。
+  //
+  // OPT-083：判据从「某行 value 非 null」改成「还剩不剩组」——registry 消费函数
+  // 现在自己就把未勾选的与无值的行滤掉、空组也收掉了，剩下的组必然有内容。
+  // 不改这一句的话，运营把字段全关掉后这里仍判 true，页面会留一张空白面板。
+  const specGroups = buildBuildingSpecGroups(specInput, minLeasableArea, specVisibility)
+  const hasSpecValues = specGroups.length > 0
   const hasFeatures = building.amenities.length > 0
   const hasDescription = Boolean(building.description)
   // 参数面板与介绍段是两块内容，判据必须分开：`|| hasDescription` 曾一起挂在
@@ -302,6 +312,7 @@ export default function BuildingDetailLayout({
               building={specInput}
               minLeasableArea={minLeasableArea}
               features={building.amenities}
+              visibility={specVisibility}
             />
           )}
           {building.description && (

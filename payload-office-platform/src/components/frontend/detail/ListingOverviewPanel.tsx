@@ -1,9 +1,12 @@
 import React from 'react'
 import DetailPanel from './DetailPanel'
-import { factValue, findFact } from './fact-lookup'
-import SpecTable, { type SpecRow } from './SpecTable'
-import type { ListingDetailViewModel } from '@/domain/public-catalog'
-import { formatAvailableDate } from '@/lib/frontend/format'
+import SpecTable from './SpecTable'
+import {
+  buildListingOverviewGroupsFromRegistry,
+  type ListingSpecContext,
+  type ListingSpecGroup,
+} from '@/lib/frontend/detail-spec/listing-rows'
+import type { SpecVisibilityMap } from '@/lib/frontend/detail-spec/fields'
 
 /**
  * 房源概况面板 —— 通栏，取代原稿「房源概况 / 租金账」双 tab。
@@ -99,86 +102,54 @@ import { formatAvailableDate } from '@/lib/frontend/format'
  * 「按 comp 收敛概况面板」的后续清理会先撞到那条用例，而不是撞到用户。
  */
 
-type ListingOverviewInput = Pick<ListingDetailViewModel, 'factGroups' | 'price' | 'availableFrom' | 'building'>
-
-export type ListingOverviewGroup = Readonly<{
-  id: string
-  title: string
-  rows: readonly SpecRow[]
-}>
-
-export function buildListingOverviewGroups(
-  listing: ListingOverviewInput,
-): readonly ListingOverviewGroup[] {
-  const fact = (label: string) => factValue(findFact(listing.factGroups, label))
-  const propertyFeeAmount = factValue(findFact(listing.factGroups, '物业费金额'))
-  const propertyFeeInclusion = factValue(findFact(listing.factGroups, '物业费'))
-
-  return [
-    {
-      id: 'space',
-      title: '面积与格局',
-      rows: [
-        { label: '建筑面积', value: fact('建筑面积') },
-        { label: '套内参考面积', value: fact('套内参考面积') },
-        { label: '得房率', value: fact('得房率') },
-        { label: '净层高', value: fact('净层高') },
-        { label: '工位估算', value: fact('工位数') },
-        // 以下 3 条见文件头「comp 之外的 5 条」：域层已产出、旧 DetailFacts 一直
-        // 在展示，不补回就是接线造成的静默内容删除。
-        { label: '房源楼层', value: fact('房源楼层') },
-        { label: '朝向', value: fact('朝向') },
-        { label: '可分割', value: fact('可分割') },
-      ],
-    },
-    {
-      id: 'terms',
-      title: '租赁条件',
-      rows: [
-        { label: '合同单价', value: listing.price?.text ?? null },
-        { label: '起租期', value: fact('最短租期') },
-        { label: '押金', value: fact('押金月数') },
-        { label: '付款方式', value: fact('付款方式') },
-      ],
-    },
-    {
-      id: 'delivery',
-      title: '交付与资质',
-      rows: [
-        { label: '装修状态', value: fact('装修') },
-        // 与「装修状态」同源于 spaceDetails、同属交付口径，见文件头。
-        { label: '家具', value: fact('家具') },
-        { label: '交付时间', value: formatAvailableDate(listing.availableFrom) },
-        { label: '可注册', value: fact('注册') },
-        { label: '空调', value: listing.building?.airConditioning ?? null },
-        { label: '网络', value: listing.building?.network ?? null },
-      ],
-    },
-    {
-      id: 'cost',
-      title: '费用明细',
-      rows: [
-        { label: '物业费', value: propertyFeeAmount ?? propertyFeeInclusion },
-        { label: '停车费', value: listing.building?.parkingFee ?? null },
-        { label: '发票', value: fact('发票') },
-        // 费用披露，见文件头：删一条费用条款与删一条装修状态不是一个量级。
-        { label: '其他固定费用', value: fact('其他固定费用') },
-      ],
-    },
-  ]
-}
 
 /**
- * 整组字段全缺时依然渲染该组（含组标签）——与行级「不隐藏」同一判断逻辑，
- * 不为「组」另开一套隐藏规则。本面板的分组本身是代码时依据字段可达性定好的
- * 固定行清单（见上方逐组注释），不随某一套房源的数据完整度变化；至于某套
- * 房源恰好这组全部字段都是 null，那和单行值缺失是同一件事——渲染出来的
- * 「—」本身就是信息（这套房源在这个维度上确实没有可核实的数据），不是噪音。
+ * ── OPT-083：行清单已搬到 `src/lib/frontend/detail-spec/` ──
+ *
+ * 上面那份「域层没有 / DTO 没有」的逐项核查**依然有效**，只是它描述的对象从本
+ * 文件里的数组字面量变成了 registry：
+ *   - 元数据（key / 标签 / 分组 / 默认是否展示）→ `detail-spec/fields.ts`
+ *   - 取值表达式（原样搬过去，一个字没改）    → `detail-spec/listing-rows.ts`
+ *
+ * 「comp 之外的 5 条」与「押金 / 付款方式不硬拼」这两处是复盘后写下的结论，
+ * 改动前先读上面那段。
+ */
+
+export type ListingOverviewGroup = ListingSpecGroup
+
+type ListingOverviewInput = ListingSpecContext
+
+/**
+ * 保留本函数的导出名与首参：`CityListingDetailView` 与既有测试都在用。
+ * 第二个参数是 OPT-083 新增的运营可见性配置，缺省时按 registry 默认走。
+ */
+export function buildListingOverviewGroups(
+  listing: ListingOverviewInput,
+  visibility?: SpecVisibilityMap,
+): readonly ListingOverviewGroup[] {
+  return buildListingOverviewGroupsFromRegistry(listing, visibility)
+}
+
+
+/**
+ * 组的收起（OPT-083 起，与 `BuildingSpecPanel` 同一判断逻辑）：
+ * 一组内**没有任何可见且有值的行**时，连组标签一起不渲染。
+ *
+ * 旧口径是「不为『组』另开一套隐藏规则，缺值渲染的『—』本身就是信息」——那与
+ * 当时的行级规则是自洽的一对。行级规则被产品裁定反转后（规格 §2），组级跟着反转
+ * 才仍然自洽；保留空组只会在页面上留一个没有内容的标题。
+ *
+ * **整块（含 `<h2>房源概况</h2>` 那层 section）的收起不在本组件**——本组件返回
+ * 什么由调用方 `CityListingDetailView` 决定要不要渲染，见那里的 `overviewGroups`。
+ */
+/**
+ * 本组件接收**已算好的分组**而不是 listing：调用方
+ * （`CityListingDetailView`）要用同一份分组判断整块渲不渲染，传 listing 会让
+ * 同一个纯函数在一次渲染里算两遍，且判断用的那份与渲染用的那份有分叉可能。
  */
 export default function ListingOverviewPanel({
-  listing,
-}: Readonly<{ listing: ListingOverviewInput }>) {
-  const groups = buildListingOverviewGroups(listing)
+  groups,
+}: Readonly<{ groups: readonly ListingOverviewGroup[] }>) {
   return (
     <DetailPanel variant="full" className="dt-overview">
       {groups.map((group) => (

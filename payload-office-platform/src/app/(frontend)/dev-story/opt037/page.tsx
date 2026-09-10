@@ -8,7 +8,9 @@ import AnchorNavBar, { type AnchorNavItem } from '@/components/frontend/detail/A
 import BuildingSpecPanel from '@/components/frontend/detail/BuildingSpecPanel'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
 import ListingDecisionCard, { buildListingPriceDigest } from '@/components/frontend/detail/ListingDecisionCard'
-import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
+import ListingOverviewPanel, {
+  buildListingOverviewGroups,
+} from '@/components/frontend/detail/ListingOverviewPanel'
 import LocationPanel, { type LocationPanelBuilding } from '@/components/frontend/LocationPanel'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
 import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
@@ -950,24 +952,24 @@ export default async function Opt037PreviewPage({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>字段齐全</span>
               <ListingOverviewPanel
-                listing={{ factGroups: OVERVIEW_FULL_GROUPS, price: OVERVIEW_PRICE_FULL, availableFrom: '2026-09-01T00:00:00.000Z', building: OVERVIEW_BUILDING_FULL }}
+                groups={buildListingOverviewGroups({ factGroups: OVERVIEW_FULL_GROUPS, price: OVERVIEW_PRICE_FULL, availableFrom: '2026-09-01T00:00:00.000Z', building: OVERVIEW_BUILDING_FULL })}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>部分缺失（组内夹杂 null）</span>
               <ListingOverviewPanel
-                listing={{ factGroups: OVERVIEW_PARTIAL_GROUPS, price: null, availableFrom: null, building: OVERVIEW_BUILDING_PARTIAL }}
+                groups={buildListingOverviewGroups({ factGroups: OVERVIEW_PARTIAL_GROUPS, price: null, availableFrom: null, building: OVERVIEW_BUILDING_PARTIAL })}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>整组缺失（费用明细）</span>
               <ListingOverviewPanel
-                listing={{
+                groups={buildListingOverviewGroups({
                   factGroups: OVERVIEW_GROUP_MISSING_GROUPS,
                   price: OVERVIEW_PRICE_GROUP_MISSING,
                   availableFrom: '2026-10-15T00:00:00.000Z',
                   building: OVERVIEW_BUILDING_GROUP_MISSING,
-                }}
+                })}
               />
             </div>
           </div>
@@ -1045,12 +1047,12 @@ export default async function Opt037PreviewPage({
               />
 
               <ListingOverviewPanel
-                listing={{
+                groups={buildListingOverviewGroups({
                   factGroups: OVERVIEW_FULL_GROUPS,
                   price: OVERVIEW_PRICE_FULL,
                   availableFrom: '2026-09-01T00:00:00.000Z',
                   building: OVERVIEW_BUILDING_FULL,
-                }}
+                })}
               />
             </div>
           </div>

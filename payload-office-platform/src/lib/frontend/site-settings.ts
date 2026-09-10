@@ -9,6 +9,11 @@ import {
 import type { Media, SiteSetting } from '@/payload-types'
 import { mapMedia } from '@/domain/public-catalog/mappers'
 import { navTargetById } from './nav-targets'
+import {
+  BUILDING_SPEC_FIELDS,
+  LISTING_SPEC_FIELDS,
+  resolveSpecVisibility,
+} from './detail-spec/fields'
 import { SITE_SETTINGS_FALLBACK, type SiteSettingsView } from './site-settings-view'
 
 // 客户端组件只能从 './site-settings-view' 取（本文件 import 了 payload，
@@ -148,6 +153,12 @@ function toView(doc: SiteSetting | null): SiteSettingsView {
     typeCards: mapTypeCards(doc.typeCards),
     mainNav: mapMainNav(doc.mainNav),
     footerColumns: mapFooterColumns(doc.footerColumns),
+    // 「缺键 / NULL 落回 registry 默认」这条判断收在 detail-spec/fields.ts 里，
+    // 与 isFieldVisible 共用同一个实现——此前这里有一份重复实现（见该文件注释）。
+    detailSpecFields: {
+      building: resolveSpecVisibility(doc.detailSpecFieldsBuilding, BUILDING_SPEC_FIELDS),
+      listing: resolveSpecVisibility(doc.detailSpecFieldsListing, LISTING_SPEC_FIELDS),
+    },
   }
 }
 
