@@ -1,8 +1,8 @@
-import type { CollectionConfig, Field } from 'payload'
+import type { CollectionConfig, Field, FieldAccess } from 'payload'
 import { normalizePhone } from '@/domain/shared/phone'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getUserMaskRules } from '@/domain/auth/field-mask'
-import { getPermissionContext } from '@/domain/auth/access'
+import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import {
   protectLastAdminBeforeChange,
@@ -10,6 +10,26 @@ import {
   protectSelfPrivilegeEscalation,
 } from '@/domain/auth/user-protect'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+
+/**
+ * 敏感字段的字段级写权限：`roles` / `cityScope` / `status` 直接决定权限与数据范围，
+ * 只有具备 `user:manage` 的账号才能改。
+ *
+ * 为什么必须放在字段层（M1 审查 P0「自我提权」的正式收口）：
+ * 集合层 `access.update` 对「自己改自己」整体放行（否则没人能改自己的密码和姓名），
+ * 于是集合层拦不住自改 `roles`。Payload 对被拒的字段是 `delete` 后立刻用
+ * `getFallbackValue` 回填**原文档的值**
+ * （`payload/dist/fields/hooks/beforeValidate/promise.js`），因此字段既改不动，
+ * 也不会变成缺失去触发 `status` 的必填校验——这正是钩子式「剥离」做不到的那一点。
+ *
+ * 该函数在 `overrideAccess: true` 时被 Payload 整体跳过（seed、首建管理员、
+ * 登录时回写 failedLoginCount 等内部写入都走这条路），第二道防线是
+ * `protectSelfPrivilegeEscalation`。
+ */
+const requireUserManage: FieldAccess = async ({ req }) => {
+  const ctx = await getPermissionContext(req as RequestContext)
+  return Boolean(ctx && hasOperationPermission(ctx, 'user:manage'))
+}
 
 /**
  * 用户账号 Collection（tasks.md M1.1, design.md §3.1）
@@ -144,6 +164,8 @@ export const Users: CollectionConfig = {
           type: 'select',
           defaultValue: 'active',
           required: true,
+          // 自改会变成"自行解除停用/锁定"，见 requireUserManage 的注释
+          access: { update: requireUserManage },
           options: [
             { label: '启用', value: 'active' },
             { label: '停用', value: 'disabled' },
@@ -162,6 +184,8 @@ export const Users: CollectionConfig = {
       type: 'relationship',
       relationTo: 'roles',
       hasMany: true,
+      // 自改即自我提权（低权账号给自己加 ADM），见 requireUserManage 的注释
+      access: { update: requireUserManage },
       admin: {
         description: '可绑定多个角色；最终权限采用允许并集，账号城市作为最终上限。',
       },
@@ -172,6 +196,8 @@ export const Users: CollectionConfig = {
       type: 'relationship',
       relationTo: 'locations',
       hasMany: true,
+      // 自改即扩大数据范围上限，见 requireUserManage 的注释
+      access: { update: requireUserManage },
       admin: {
         description:
           '账号城市绑定（多城市）。留空表示无城市上限（受角色 dataScope 约束）。',
@@ -228,7 +254,8 @@ export const Users: CollectionConfig = {
   // M1.5 收紧 access：
   //   - read：具备 user:manage 者可读全部；否则仅可读自己（返回 Where 约束，list/单文档同时生效）
   //   - create/update/delete：需具备 user:manage 操作权限（仅 ADM 默认拥有）
-  //   - 首次创建管理员由 Payload 在数据库无用户时自动允许（payload 自身机制）
+  //   - 匿名一律拒绝（含 create）：首建管理员与 seed 都走 overrideAccess，不经过本 access，
+  //     详见 create 分支的注释与 tests/users-anonymous-create.test.ts
   access: {
     read: async ({ req }) => {
       if (!req.user) return false
@@ -240,8 +267,13 @@ export const Users: CollectionConfig = {
       return { id: { equals: req.user.id } }
     },
     create: async ({ req }) => {
-      // 首次创建管理员（数据库无用户）由 Payload 自身逻辑放行，req.user 为空时通过
-      if (!req.user) return true
+      // 匿名一律拒绝。此处曾写 `return true`，理由是「首次创建管理员需要放行」，
+      // 该前提不成立：registerFirstUser 自己用 payload.create({ overrideAccess: true })
+      // 建号（node_modules/payload/dist/auth/operations/registerFirstUser.js），
+      // 且在 users 表非空时先抛 Forbidden；scripts/seed.ts 走 Local API 同样默认
+      // overrideAccess。两条首建路径都不经过这里，放行只等于开放匿名自注册
+      // ——任何人 POST /api/users 就能拿到一个可登录的后台账号。
+      if (!req.user) return false
       const ctx = await getPermissionContext(req)
       if (!ctx) return false
       return hasOperationPermission(ctx, 'user:manage')
