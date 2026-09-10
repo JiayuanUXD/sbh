@@ -106,8 +106,12 @@ function ListingPublicationActionModalBody({
       } else {
         setError(data.error ?? `${spec.label}失败（HTTP ${res.status}）`)
       }
-      if (res.status === 409) {
+      if (res.status === 409 || (res.status === 422 && data.code === 'BUSINESS_TYPE_MISMATCH')) {
         // 顺手把服务端组件重取一遍：拿到新的 version 与可用动作，用户刷新前重试就不会再撞 409。
+        // 422 里的 BUSINESS_TYPE_MISMATCH 和 409 是同一类事：本页读到的房源已经不是库里的房源
+        // （租售类型被别人改过），动作条却还按旧的 businessType 显示着成交按钮——不重取，
+        // 运营会对着一个永远点不动的按钮反复试。其余 422 是业务前置不满足（审核未过、供给不齐），
+        // 重取也不会变，不刷。
         // 弹层不自动关闭——错误文案要留在屏幕上，否则用户只看到按钮没反应。
         router.refresh()
       }
@@ -127,6 +131,10 @@ function ListingPublicationActionModalBody({
       visible
       onCancel={onClose}
       onOk={submit}
+      // 提交中不给 ESC / 点遮罩关闭：请求已经发出去了，弹层一关运营就看不到结果，
+      // 多半会以为没生效再点一次。取消按钮照常（onCancel 不变），确认键有 confirmLoading。
+      escToExit={!submitting}
+      maskClosable={false}
       confirmLoading={submitting}
       okText={okText}
       cancelText="取消"
