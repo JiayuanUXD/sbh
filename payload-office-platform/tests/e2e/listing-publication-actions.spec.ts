@@ -12,7 +12,7 @@
  *
  * 运行前置：`pnpm seed`（5 个 E2E 账号 + 至少一套已上架、未被举报暂停的租赁房源）。
  */
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
 type Account = Readonly<{ email: string; password: string }>
 
@@ -82,7 +82,14 @@ async function publicationStatusOf(
     : null
 }
 
-/** 某类审计动作的现存条数（下架 / 标记成交都记为 listing.unpublish）。 */
+/**
+ * 某类审计动作的现存条数（下架 / 标记成交都记为 listing.unpublish）。
+ *
+ * 注意：这里读的是全局 `totalDocs`，因此「跑完 +1」这条断言只在 `workers: 1` 下成立
+ * （见 `playwright.config.ts`：`fullyParallel: false` + `workers: 1`）。将来若把 e2e 改成并行，
+ * 别的用例同时产生 `listing.unpublish` 审计就会把这个计数带偏，届时要改成按 `reason` 之类
+ * 本用例专属的条件去筛。
+ */
 async function countAudit(request: APIRequestContext, action: string): Promise<number> {
   const response = await request.get(
     `/api/audit-logs?limit=1&depth=0&where[action][equals]=${encodeURIComponent(action)}`,
@@ -96,22 +103,66 @@ async function countAudit(request: APIRequestContext, action: string): Promise<n
 }
 
 /**
- * 把夹具恢复成「已上架」。只在 `finally` 里调用，因此两处刻意的设计：
+ * 把夹具恢复成「已上架」。只在 `finally` 里调用，因此三处刻意的设计：
  *   - 先读当前状态：房源仍是 published 时 `publish` 不是合法转移（端点回 409），直接跳过。
  *     否则「下架还没发生就失败」的用例会在 finally 里再抛一个 409，把真正的失败原因盖掉。
- *   - 用 `expect.soft`：恢复失败作为附加错误一并报出，同样不覆盖首个失败。
+ *   - 失败就等 1s 再试一次：恢复实际上只有这一次机会，CI 的 `retries: 2` 救不了——重跑时
+ *     `pickPublishedListing` 的 where 条件（`publicationStatus=published`）已经把这套被留在
+ *     下架态的房源排除掉，重试会静默换一套房源做，坏掉的那套永远没人恢复；而 spec 文件按字母序
+ *     执行，排在本文件之后的 `multi-city-routing.spec.ts` 正是按 slug 断言「已上架房源」的。
+ *   - 用 `expect.soft`：恢复失败作为附加错误一并报出，同样不覆盖首个失败；消息里必须带上房源 id、
+ *     HTTP 状态与响应体，让这条连锁反应从第一个红灯就能定位，而不必去翻后面那些被殃及的用例。
  */
 async function restorePublished(request: APIRequestContext, id: number): Promise<void> {
   if ((await publicationStatusOf(request, id)) === 'published') return
 
-  const response = await request.post(`/api/listings/${id}/publish`, {
-    data: { action: 'publish' },
-    failOnStatusCode: false,
-  })
-  expect.soft(response.status(), '恢复上架应成功（夹具房源满足有效供给条件）').toBe(200)
-  expect.soft(await publicationStatusOf(request, id), '跑完必须把夹具还原成已上架').toBe(
-    'published',
-  )
+  const publishOnce = async (): Promise<{ status: number; body: string }> => {
+    const response = await request.post(`/api/listings/${id}/publish`, {
+      data: { action: 'publish' },
+      failOnStatusCode: false,
+    })
+    return { status: response.status(), body: await response.text() }
+  }
+
+  let result = await publishOnce()
+  if (result.status !== 200) {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 1_000)
+    })
+    result = await publishOnce()
+  }
+
+  expect.soft(
+    result.status,
+    `恢复上架应成功（夹具房源满足有效供给条件）；重试一次后仍失败：房源 id=${id}、` +
+      `HTTP ${result.status}、响应体 ${result.body}。该房源已被留在下架态，` +
+      '后续依赖「夹具里有若干已上架房源」的 spec 会跟着红。',
+  ).toBe(200)
+  expect.soft(
+    await publicationStatusOf(request, id),
+    `跑完必须把夹具还原成已上架（房源 id=${id}）`,
+  ).toBe('published')
+}
+
+/**
+ * 点触发按钮，直到确认弹层真的挂上来。
+ *
+ * 为什么要重试而不是点一次：`page.goto` 等到的是 `load` 事件，而 React 把 `onClick`
+ * 挂到这些按钮上还要更晚——本地 next dev 实测 `load` → 水合完成约 140ms（组件刚改过、
+ * chunk 需要重编译时能拉到 2s）。落在这段窗口里的点击打在服务端渲染出来的裸 `<button>` 上，
+ * 被整页静默吞掉：按钮可见、可用、也点得中，就是还没有事件处理器。Playwright 的可操作性
+ * 检查（visible / stable / enabled / receives events）覆盖不到「有没有挂处理器」，所以只能
+ * 按官方对水合竞态的建议用 `toPass` 重试。
+ *
+ * 弹层已经开着就不再点：慢一拍才出现的弹层会把重试的点击挡在遮罩外（`intercepts pointer
+ * events`），那样重试反而会把一次成功的点击拖成 20s 超时。
+ */
+async function clickUntilModalOpens(page: Page, trigger: Locator, label: string): Promise<void> {
+  const modal = page.locator('.arco-modal')
+  await expect(async () => {
+    if (!(await modal.isVisible())) await trigger.click()
+    await expect(modal, `点${label}后应弹出确认层`).toBeVisible({ timeout: 1_000 })
+  }).toPass({ timeout: 20_000 })
 }
 
 /**
@@ -147,7 +198,11 @@ test.describe('OPT-086 房源发布轴动作', () => {
     await expect(bar.getByText('已发布', { exact: true })).toBeVisible()
 
     try {
-      await bar.getByRole('button', { name: '下架', exact: true }).click()
+      await clickUntilModalOpens(
+        page,
+        bar.getByRole('button', { name: '下架', exact: true }),
+        '编辑页动作条的「下架」',
+      )
       await confirmUnpublish(page, 'e2e：编辑页下架验证')
 
       await expect(bar.getByText('已下架', { exact: true }), '动作条状态标签应翻成已下架')
@@ -176,9 +231,10 @@ test.describe('OPT-086 房源发布轴动作', () => {
     await login(page.request, ADM)
     const { id, title } = await pickPublishedListing(page.request)
 
-    // 带 q 搜索把目标行筛到第一页（列表默认 25 条 / 页，按 -updatedAt 排序，不筛不保证在第一页）。
+    // 带 q 搜索把目标行筛出来，再用 limit=100（列表视图允许的最大档，取值 10/25/50/100）把它
+    // 钉在第一页——只靠 q 仍要赌命中数不超过默认的 25 条 / 页。
     // 故意不带 publicationStatus 筛选：那样下架成功后该行会从结果里消失，就没法断言它翻成已下架。
-    await page.goto(`/admin/collections/listings?q=${encodeURIComponent(title)}`)
+    await page.goto(`/admin/collections/listings?q=${encodeURIComponent(title)}&limit=100`)
 
     // 按 id 锁定行，而不是按标题文本：夹具里存在标题极短（如「test」）的房源，
     // 用文本匹配会连带命中标题包含它的其它行。
@@ -189,7 +245,11 @@ test.describe('OPT-086 房源发布轴动作', () => {
     await expect(row.getByText('已发布', { exact: true })).toBeVisible()
 
     try {
-      await row.getByRole('button', { name: '下架', exact: true }).click()
+      await clickUntilModalOpens(
+        page,
+        row.getByRole('button', { name: '下架', exact: true }),
+        '列表操作列的「下架」',
+      )
       await expect(page.locator('.arco-modal'), '弹层标题应指向被点的那一行').toContainText(
         `下架「${title}」`,
       )
