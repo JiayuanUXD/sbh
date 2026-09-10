@@ -84,6 +84,8 @@ function makeReq(params: {
   userRoles?: Role[]
   listing?: Record<string, unknown> | null
   findByIDThrows?: boolean
+  /** 让 payload.update 抛错，用来走 withAudit 的 failed 审计路径 */
+  updateThrows?: boolean
   body?: Record<string, unknown>
 }): {
   req: PayloadRequest
@@ -97,6 +99,7 @@ function makeReq(params: {
     userRoles = [makeAdmRole()],
     listing = makeEffectiveListing(),
     findByIDThrows = false,
+    updateThrows = false,
     body = { action: 'publish' },
   } = params
 
@@ -112,7 +115,10 @@ function makeReq(params: {
     if (findByIDThrows) throw new Error('not found')
     return listing
   })
-  const update = vi.fn(async () => ({ id: 1 }))
+  const update = vi.fn(async () => {
+    if (updateThrows) throw new Error('db down')
+    return { id: 1 }
+  })
   const create = vi.fn(async () => ({ id: 999, auditId: 'aud_test001' }))
   const req = {
     user: user ?? null,
@@ -290,6 +296,21 @@ describe('listing-publish-endpoint/下架', () => {
     const audit = auditCreateData(create)
     expect(audit.action).toBe('listing.unpublish')
     expect(audit.result).toBe('success')
+    expect(audit.reason).toBe('房东撤单')
+  })
+
+  it('下架写入抛错 → failed 审计也带原因（追责时知道操作人当时想做什么），错误原样上抛', async () => {
+    const { req, create } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published' }),
+      body: { action: 'unpublish', reason: '  房东撤单  ' },
+      updateThrows: true,
+    })
+    // withAudit 的 throwOnError:false 只吞 fn 返回 ok:false 的业务失败；fn 抛异常时它先记 failed 审计再重抛，
+    // 由 Payload 的 REST 层统一转成 500——这里只守「失败审计带原因」，不重复断言 Payload 的错误包装。
+    await expect(run(req)).rejects.toThrow('db down')
+    const audit = auditCreateData(create)
+    expect(audit.action).toBe('listing.unpublish')
+    expect(audit.result).toBe('failed')
     expect(audit.reason).toBe('房东撤单')
   })
 })
