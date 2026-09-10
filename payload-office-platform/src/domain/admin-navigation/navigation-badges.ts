@@ -130,38 +130,6 @@ export function buildAdminNavigationBadgeQueries(
     })
   }
 
-  if (canReadSupplySubmissions(permission)) {
-    // 口径与 dashboard-stats 的 pendingSubmissions 一致：status=pending 即「待审单」。
-    // 该集合有 city 关系字段，城市这一维能表达就必须表达——房东手机号与地址属于
-    // 越界即泄漏的数据，宁可漏算不可放大。代价是 team / self 范围的角色（MGR）
-    // 在这里没有对应字段，按 buildBadgeDataScopeWhere 的既定约定 fail-closed 成
-    // no-match，角标恒 0；这是刻意选的方向，不是漏改。
-    const scopeWhere = buildBadgeDataScopeWhere(permission, { city: 'city' })
-    queries.push({
-      key: 'supplySubmissions',
-      collection: 'supply-submissions',
-      where: combineWhere(
-        { status: { equals: 'pending' } },
-        ...scopeWhere,
-      ),
-    })
-  }
-
-  if (canReadInformationCorrections(permission)) {
-    // 不收窄数据范围：information-corrections 一个可收窄的维度都没有
-    // （只有 targetType/targetSlug/category，没有 city、team 或负责人），
-    // 硬套 buildBadgeDataScopeWhere 会让所有非 global 角色恒得 0。
-    // 这与该集合自己的 access.read 同口径：createCollectionAccess 只校验
-    // correction:read，读到即读全量——角标不该比列表页更严，否则角标显示 0、
-    // 点进去却满屏待处理。
-    queries.push({
-      key: 'informationCorrections',
-      collection: 'information-corrections',
-      // 未关闭 = 新建 + 已分诊；resolved / rejected 是终态，不再计入待处理。
-      where: { status: { in: ['new', 'triaged'] } },
-    })
-  }
-
   if (canReadCityPartnerApplications(permission)) {
     const scopeWhere = buildCityPartnerCityScopeWhere(permission)
     // 拿不到城市范围时只跳过这一条，**绝不能写成 `return queries`**：
@@ -179,6 +147,35 @@ export function buildAdminNavigationBadgeQueries(
         ),
       })
     }
+  }
+
+  // 以下两块刻意排在 cityPartnerApplications 之后：那一块曾写成提前 `return`，
+  // 把后面的查询整片吞掉。排在它后面，OPS 口径的整集合回归测试才真的会咬人。
+  if (canReadSupplySubmissions(permission)) {
+    // 与列表页、dashboard-stats 的 pendingSubmissions 同口径：status=pending 即待审单。
+    // 刻意不做数据范围收窄——SupplySubmissions.access.read 是 createCollectionAccess
+    // 的纯操作码校验（只看 supply_submission:read），没有任何城市/团队收窄，
+    // 有权限者列表页看到的就是全量待审单。角标若比列表页更严（例如 team 范围的 MGR
+    // 会被 buildBadgeDataScopeWhere fail-closed 成 no-match），就会出现「角标显示 0、
+    // 点进去满屏待处理」；而统计用户本就能列出的行不构成任何泄漏。
+    queries.push({
+      key: 'supplySubmissions',
+      collection: 'supply-submissions',
+      where: combineWhere({ status: { equals: 'pending' } }),
+    })
+  }
+
+  if (canReadInformationCorrections(permission)) {
+    // 同上：InformationCorrections.access.read 也只校验 correction:read，
+    // 且该集合一个可收窄的维度都没有（只有 targetType/targetSlug/category，
+    // 没有 city、team 或负责人），硬套 buildBadgeDataScopeWhere 会让所有
+    // 非 global 角色恒得 0——角标不该比列表页更严。
+    queries.push({
+      key: 'informationCorrections',
+      collection: 'information-corrections',
+      // 未关闭 = 新建 + 已分诊；resolved / rejected 是终态，不再计入待处理。
+      where: combineWhere({ status: { in: ['new', 'triaged'] } }),
+    })
   }
 
   return queries

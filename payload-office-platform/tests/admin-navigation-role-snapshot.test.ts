@@ -6,10 +6,10 @@
  * **collection read 权限也参与筛选**。这条快照补的正是这两件事——它跑的是
  * `resolveAdminNavigation` 本身，断言的是每个角色最终拿到的组顺序、扁平叶和叶子总数。
  *
- * `canReadCollection` 固定成「MGR 读不到 city-partner-applications，其余一律可读」：
- * 这是从 master 上 e2e 的 `ROLE_NAVIGATION` 反推的（MGR 有 city_partner_application:read
- * 却看不到那个入口，差额只能出在 collection read 上）。本测试不复刻真实的 access 判定，
- * 只把那一处差异钉住——真实判定由 `admin-nav-scoped-read` 与权限矩阵各自覆盖。
+ * `canReadCollection` 是桩，但**按真实 collection access 逐条对齐**（见 UNREADABLE_BY_ROLE）：
+ * 桩若一律返回 true，快照会数出生产上根本不会出现的叶子数（本文件曾把 OPS 写成 26，
+ * 浏览器实测是 24）。本测试不复刻 access 的判定过程，只把判定结果钉住——
+ * 真实判定由 `admin-nav-scoped-read` 与权限矩阵各自覆盖。
  */
 
 import { describe, expect, it } from 'vitest'
@@ -26,8 +26,21 @@ import {
 import { BUILTIN_ROLES, type BuiltinRoleCode } from '@/test/factory/roles'
 import type { Role, User } from '@/payload-types'
 
-/** MGR 读不到城市合伙人申请（见文件头注释）。 */
-const UNREADABLE_FOR_MGR = new Set(['city-partner-applications'])
+/**
+ * 各角色实际读不到的 collection——每一条都对应一处真实的 access 判定：
+ *
+ * - `information-corrections`：`InformationCorrections.access.read` 要 `correction:read`，
+ *   内置角色里只有 ADM 有；OPS 有 `reports` 菜单（所以看得到「举报处理」）却没有这个操作码。
+ * - `city-partner-applications`：`buildCityPartnerCityScopeWhere` 对「非 ADM 且 cityIds
+ *   不是 Set」返回 false，OPS 正是 dataScope=global + cityIds='all'；MGR 则是 team 范围
+ *   在该集合上无字段可表达，同样读不到。这与 master 上的行为一致，不是本次导航改动引入的。
+ *
+ * 未列出的角色（ADM / BRK / CSR）在其菜单可见的 collection 上都读得到。
+ */
+const UNREADABLE_BY_ROLE: Partial<Record<BuiltinRoleCode, readonly string[]>> = {
+  OPS: ['information-corrections', 'city-partner-applications'],
+  MGR: ['city-partner-applications'],
+}
 
 function roleFromFixture(code: BuiltinRoleCode): Role {
   const fixture = BUILTIN_ROLES[code]
@@ -68,10 +81,11 @@ async function permissionFor(code: BuiltinRoleCode): Promise<PermissionContext> 
 }
 
 async function navigationFor(code: BuiltinRoleCode): Promise<readonly ResolvedAdminNavEntry[]> {
+  const unreadable = UNREADABLE_BY_ROLE[code] ?? []
   return resolveAdminNavigation({
     groups: ADMIN_NAV_GROUPS,
     permission: await permissionFor(code),
-    canReadCollection: (slug) => !(code === 'MGR' && UNREADABLE_FOR_MGR.has(slug)),
+    canReadCollection: (slug) => !unreadable.includes(slug),
   })
 }
 
@@ -96,7 +110,7 @@ function leafLabelsOfGroup(entries: readonly ResolvedAdminNavEntry[], label: str
   return group.children.map((leaf) => leaf.label)
 }
 
-describe('五角色导航快照', () => {
+describe('五角色导航快照（canReadCollection 桩按真实 collection access 对齐）', () => {
   it('ADM：八个组全在，没有扁平叶，39 片叶子', async () => {
     const navigation = await navigationFor('ADM')
 
@@ -114,7 +128,7 @@ describe('五角色导航快照', () => {
     expect(leafCount(navigation)).toBe(39)
   })
 
-  it('OPS：五个组 + 扁平叶「配套字典」，26 片叶子', async () => {
+  it('OPS：五个组 + 扁平叶「配套字典」，24 片叶子', async () => {
     const navigation = await navigationFor('OPS')
 
     expect(groupLabels(navigation)).toEqual([
@@ -125,8 +139,17 @@ describe('五角色导航快照', () => {
       '城市与区域',
     ])
     expect(flatLeafLabels(navigation)).toEqual(['配套字典'])
-    expect(leafCount(navigation)).toBe(26)
+    expect(leafCount(navigation)).toBe(24)
 
+    // 「信息纠错」（缺 correction:read）与「城市合伙人申请」（城市范围判 false）
+    // 两片按真实 collection access 隐藏，浏览器实测同此，故是 5 片而非 7 片。
+    expect(leafLabelsOfGroup(navigation, '待处理')).toEqual([
+      '我的待办',
+      '审核队列',
+      '举报处理',
+      '房源投放申请',
+      '提交数据',
+    ])
     // 「设置与工具」组只剩配套字典一片 → 扁平化，OPS 缺 audit:view 与 search 菜单码
     expect(leafLabelsOfGroup(navigation, '站点与内容')).toEqual([
       '页面内容',

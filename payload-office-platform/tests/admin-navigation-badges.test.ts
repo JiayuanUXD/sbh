@@ -53,16 +53,18 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
   it('为全权限用户构造九个固定统计口径', () => {
     const queries = buildAdminNavigationBadgeQueries(permission(), AS_OF)
 
-    expect(queries.map((query) => query.key)).toEqual([
-      'tasks',
-      'notifications',
-      'listingReviews',
-      'listingReports',
-      'leads',
-      'formSubmissions',
-      'supplySubmissions',
-      'informationCorrections',
+    // 排序后比对：钉的是「全权限用户应拿到的九个 key 一个不少」，
+    // 与查询块在源码里的先后无关（块顺序本就允许调整）。
+    expect([...queries.map((query) => query.key)].sort()).toEqual([
       'cityPartnerApplications',
+      'formSubmissions',
+      'informationCorrections',
+      'leads',
+      'listingReports',
+      'listingReviews',
+      'notifications',
+      'supplySubmissions',
+      'tasks',
     ])
     expect(queryByKey(queries, 'tasks')).toMatchObject({
       collection: 'tasks',
@@ -325,7 +327,7 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
     })
   })
 
-  it('OPS 同时拿到投放申请与信息纠错两条角标，且各自按自己的字段收窄', () => {
+  it('OPS 同时拿到投放申请与信息纠错两条角标，且都与列表页同口径不再收窄', () => {
     const queries = buildAdminNavigationBadgeQueries(
       permission({
         roleCodes: ['OPS'],
@@ -340,16 +342,13 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
       AS_OF,
     )
 
-    // 投放申请自带 city 关系字段，城市上限能表达 → 合并进 where。
+    // 投放申请虽有 city 字段，但 SupplySubmissions.access.read 只校验
+    // supply_submission:read、不做任何范围收窄，列表页对 city 范围的 OPS 也是全量；
+    // 角标跟着列表页走，不能更严，否则数字与点进去看到的内容对不上。
     expect(queryByKey(queries, 'supplySubmissions')).toEqual({
       key: 'supplySubmissions',
       collection: 'supply-submissions',
-      where: {
-        and: [
-          { status: { equals: 'pending' } },
-          { city: { in: [11, 12] } },
-        ],
-      },
+      where: { status: { equals: 'pending' } },
     })
     // 信息纠错没有任何地理字段，收窄无从表达；这里刻意不收窄，
     // 与该集合 access.read（只校验 correction:read、不做范围收窄）保持同口径。
@@ -407,7 +406,7 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
       'supplySubmissions',
       'tasks',
     ])
-    // 顺带把值钉死：global + cityIds='all' 不产生任何收窄片段，只剩业务口径。
+    // 顺带把值钉死：该角标与列表页同口径，任何角色下都只有业务条件、不带收窄片段。
     expect(queryByKey(queries, 'supplySubmissions').where).toEqual({
       status: { equals: 'pending' },
     })
@@ -486,13 +485,11 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
 
     expect(keys).toContain('supplySubmissions')
     expect(keys).not.toContain('informationCorrections')
-    // 团队范围在 supply-submissions 上无字段可表达（该集合只有 city，没有 team），
-    // 因此按既有约定 fail-closed 成 no-match，宁可少算也不放大到全平台房东信息。
+    // MGR 是 dataScope=team，但这条角标刻意不走 buildBadgeDataScopeWhere：
+    // SupplySubmissions.access.read 是纯操作码校验，MGR 的列表页看到的是全量待审单。
+    // 若在这里 fail-closed 成 no-match，角标恒 0、点进去满屏待处理，自相矛盾。
     expect(queryByKey(queries, 'supplySubmissions').where).toEqual({
-      and: [
-        { status: { equals: 'pending' } },
-        { id: { exists: false } },
-      ],
+      status: { equals: 'pending' },
     })
   })
 })
