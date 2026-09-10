@@ -14,12 +14,15 @@
 :root { --dt-sticky-bar-h: 56px; }
 
 /* `.dt-page` 出血到视口宽——**照 `.hm-home` 的既有做法，不新造机制**
- * （home.css 第 15–19 行；`body { overflow-x: clip }`（styles.css:196，:195 是它的注释行）就是配套
- * 用来裁掉 100vw 与滚动条宽度之差的，全站已经在这个组合上跑了一个版本）。
+ * （home.css 的 `.hm-home`）。**主路径已不是这里的 100vw**：styles.css 的
+ * `.site-main:has(...)` 对出血页取消限宽，本壳 `width: auto` 直接等于 body 内宽；
+ * 这里的 100vw 是 `:has()` 不可用时的回退，别删。收口的直接好处正好落在本页：
+ * `.dt-bar` 的内层从 1344 @ left 40.5 变成 1329 @ left 48，与 `.site-header__inner`
+ * **逐像素相同**——下面那句"与正上方的 .site-header 对齐"从此是字面成立的。
  *
  * 为什么必须出血：吸附条（`.dt-bar`）是全幅块，毛玻璃与底线要横贯视口、与正
  * 上方的 `.site-header` 对齐；而它的祖先 `.site-main` 带
- * `max-width: 1440 + padding-inline: 24`（styles.css:597），不破掉这层，条就被
+ * `max-width: 1440 + padding-inline: 24`（styles.css 的 `.site-main`），不破掉这层，条就被
  * 按住在 `clientWidth - 48` 上，玻璃断在容器边界（Task 8 审查 Issue 1 实测
  * 1440 下 `x:24 / width:1392`）。
  * 顺带把 375 下的左右留白从 24+16=40 修回稿子要求的 16（`.dt-container` 自己的

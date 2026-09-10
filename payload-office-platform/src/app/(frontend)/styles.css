@@ -249,9 +249,46 @@
  * 想恢复锚点的平滑效果，正解**不是**把这条加回来，而是只在锚点点击那一刻把
  * scroll-behavior 临时打开；那要另行验证浏览器恢复与 popstate 的先后顺序。
  * 守卫见 tests/frontend-layout-scroll-behavior.test.ts。 */
+
+/* 横向溢出的裁剪：`html` 与 `body` **两条都要在**，缺一不可。
+ *
+ * 现在的主要服务对象是 `.landing-hero`（`/entrust`、`/publish`）——全站仅剩的
+ * 常态 `width: 100vw` 出血。四个出血壳页（`.hm-home` / `.ls-page` / `.dt-page` /
+ * `.rc-page`）已改走下面 `.site-main:has(...)` 取消限宽的路子，`width: auto` 之后
+ * 根本不溢出；但它们在**不支持 `:has()` 的浏览器**上仍回退到 100vw，
+ * 所以这对 clip 对它们同样还在生效。**别看首页不再溢出就删这两条。**
+ *
+ * 为什么会溢出：`100vw` **含**经典滚动条宽度而 `documentElement.clientWidth`
+ * 不含，配合 `margin-inline: calc(50% - 50vw)` 居中后，出血盒每侧探出半条滚动条
+ * （15 ÷ 2 = 7.5px），右侧那半条就是可拖动的 8px。
+ *
+ * **为什么 body 单独一条不够**（2026-09-09 之前就是只有 body 那条，全站能横向
+ * 拖 8px）：body 的 overflow 只有在**根元素为 `visible`** 时才会被提升到视口，
+ * 而提升之后 body 自己按 `visible` 用——等于没裁；被提升上去的 `clip` 又不消除
+ * 视口的可滚动性。于是那条 clip 写了等于没写。把根元素也设成非 `visible`，
+ * 这次提升就不再发生，body 那条才真正开始裁。两条是一对，别单独删任何一条。
+ *
+ * 实测四组（`/entrust` 1440 / 经典滚动条 15px，`documentElement.scrollLeft`
+ * 置 9999 后读回。判据是**滚动条占不占布局宽度**而非视口大小：经典滚动条
+ * （桌面窗口，含 375px 宽的窄窗口）恒复现；覆盖式滚动条（真机与浏览器的移动端
+ * 模拟）宽 0，`100vw` 恰好等于 `clientWidth`，本就不复现）：
+ *     html visible + body clip     →  8   ← 这对 clip 修复前的状态
+ *     html clip    + body visible  →  8
+ *     html clip    + body clip     →  0   ← 现在
+ *     html hidden  + body clip     →  0   （但 hidden 见下，不能用）
+ *
+ * 根元素用 `clip` 不用 `hidden`：`hidden` 会把另一轴的 `visible` 连带升成 `auto`、
+ * 让根元素变成滚动容器，吸顶的 `.site-header` 与 `.dt-bar` 当场失效。`clip` 不
+ * 建立滚动容器——已实测：纵向滚动正常、吸顶头部照常吸住。
+ *
+ * 上面每个数字都由 `scripts/verify-horizontal-bleed-overflow.mjs` 当场重算，原始
+ * 输出在 `artifacts/verification/frontend-horizontal-scroll-clip/probe.output.json`；
+ * 第一行就是修复前状态，不必 checkout 旧代码即可复现。
+ * 写法守卫见 `tests/frontend-horizontal-bleed-overflow.test.ts`（进 pre-push 闸门）。 */
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  overflow-x: clip;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -279,7 +316,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* 配合 hero 100vw 全幅出血，裁掉滚动条宽度造成的横向溢出 */
+  /* 配合 100vw 全幅出血，裁掉滚动条宽度造成的横向溢出。
+     **这条只在根元素的 overflow-x 也非 visible 时才生效**——否则它会被提升到视口、
+     body 自己按 visible 用，等于没裁（2026-09-09 之前的线上状态就是如此）。
+     它与本文件 html 规则那条是一对，理由与实测见那条上方的注释。 */
   overflow-x: clip;
 }
 
@@ -922,6 +962,62 @@ ol {
   margin: 0 auto;
   padding: var(--sp-6) var(--container-pad-x);
   min-height: 60vh;
+}
+
+/* 出血页：把限宽从 `.site-main` 上摘掉，让出血壳直接等于 body 内宽。
+ *
+ * 背景：四个出血壳（`.hm-home` / `.ls-page` / `.dt-page` / `.rc-page`）原本靠
+ * `width: 100vw` 从上面那条 `max-width` + `padding-inline` 里破出来。`100vw` **含**
+ * 经典滚动条宽度而 `documentElement.clientWidth` 不含，于是壳恒比可视区宽一条
+ * 滚动条、每侧探出 7.5px；壳内容器 `min(--w, 100% - --gut*2)` 的那个 `100%` 因此是
+ * 「视口 + 滚动条」，而页眉 `.site-header__inner` / 页脚的 `100%` 是 body 内宽
+ * （不含）。两套参照系差半条滚动条：1440 下容器 1344 @ left 40.5、页眉
+ * 1329 @ left 48——中心重合，边缘差 7.5px。
+ *
+ * 改法是**不再从限宽里破出来**：出血页的 `.site-main` 直接不限宽，壳用默认的
+ * `width: auto` 填满 body 内宽，与页眉页脚共用同一个 `100%`，参照系真正统一
+ * （实测 1440：容器与页眉都是 1329 @ left 48，逐像素相同）。副产品是这四页的
+ * 横向溢出**不复存在**，而不是被裁掉。
+ *
+ * 为什么用 `:has()` 而不是给 `.site-main` 加 modifier 类：`.site-main` 由
+ * layout.tsx 统一渲染，页面无法向上传信号。已实测这四类页面的 `.site-main`
+ * 只装这一个壳（楼盘详情页另有一个零尺寸的 JSON-LD `<script>`），所以直接子代
+ * 匹配是精确的。`.city-coming-soon` 必须单列：`ComingSoonCityView` 的结构是
+ * `.site-main > .city-coming-soon > .rc-page`，`:has(> .rc-page)` 命中不了它。
+ *
+ * `.landing-hero` **不走这条路**：`/entrust`、`/publish` 的 `.site-main` 里它与
+ * 三个需要限宽的兄弟（两个 `.section` + `.bottom-cta-anchor`）并列，取消父级限宽
+ * 会把兄弟一起放开。那一处继续用 `100vw`，靠 html/body 那对 clip 兜住——**这就是
+ * 那对 clip 仍然不能删的原因**，别看这四页不再溢出就去删它。
+ *
+ * 整段包在 `@supports selector(:has(*))` 里，且各文件里的 `100vw` 写法**作为回退
+ * 保留**：不支持 `:has()` 的浏览器（Firefox <121 / Safari <15.4 / Chrome <105）
+ * 仍走原来的 100vw 出血，行为与本次修改前完全一致。宁可在老浏览器上差 7.5px，
+ * 也不能让整幅背景带塌回 1440、两侧露出灰边。
+ *
+ * 覆盖靠**特异性**而不是顺序：styles.css 在 layout.tsx 里先于 home/list/detail/
+ * recruit 导入，同特异性会被后者的 `width: 100vw` 盖掉，所以这里写成
+ * `.site-main > .hm-home`（0,2,0）而不是 `.hm-home`（0,1,0）。
+ *
+ * 守卫见 `tests/frontend-horizontal-bleed-overflow.test.ts`。 */
+@supports selector(:has(*)) {
+  .site-main:has(> .hm-home),
+  .site-main:has(> .ls-page),
+  .site-main:has(> .dt-page),
+  .site-main:has(> .rc-page),
+  .site-main:has(> .city-coming-soon) {
+    max-width: none;
+    padding-inline: 0;
+  }
+
+  .site-main > .hm-home,
+  .site-main > .ls-page,
+  .site-main > .dt-page,
+  .site-main > .rc-page,
+  .site-main > .city-coming-soon > .rc-page {
+    width: auto;
+    margin-inline: 0;
+  }
 }
 
 
