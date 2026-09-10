@@ -19,6 +19,15 @@
  *     BASE_URL=http://localhost:3000 node scripts/verify-horizontal-bleed-overflow.mjs
  *
  * 退出码 0 = 全部通过；1 = 有失败项（详见 stdout 与 JSON 的 failures 段）。
+ *
+ * ## BASE_URL 指不到 CloudBase 测试域名
+ *
+ * `https://sbh-*.sh.run.tcloudbase.com` 是 CloudBase 的**测试域名**，对真实浏览器
+ * 返回「风险提醒」拦截页（HTTP 404 + 「确定访问」按钮），要点过才放行；
+ * `curl` 不跑 JS，拿到的是真实 HTML，于是会出现「curl 200、浏览器全超时」这种
+ * 看起来像页面坏了的假象（2026-09-10 实测踩过，接着整个浏览器 Target crashed）。
+ * 所以本探针只能指向本地 dev / `next start`，或指向已接入的正式自定义域名。
+ * 想验生产，要么配自定义域名，要么由人在浏览器里点过拦截页后手工核对。
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -174,6 +183,7 @@ const run = async () => {
       let status = 0
       let markerPresent = false
       let attempts = 0
+      let pageTitle = ''
       // 重试一次：dev server 首次编译某路由时偶发导航失败（实测 home@768 出过一次
       // HTTP 0，重跑即好）。证据必须可复现，不能靠「再跑一遍碰运气」。
       for (attempts = 1; attempts <= 2 && !markerPresent; attempts++) {
@@ -183,14 +193,29 @@ const run = async () => {
           status = res ? res.status() : 0
           // 先证明页面真的渲染了：状态码 + 该路由特有的选择器
           //（.agent/testing.md 证据质量第 2 条：拿两张 404 页比出过「0 差异像素」的空结论）
-          await page.waitForSelector(route.marker, { timeout: 15000 })
+          // 用 attached 而不是默认的 visible：出血壳只是布局容器，远程慢网下等
+          // "可见"会被首屏大图拖到超时；几何量的是布局盒，attached 就够。
+          await page.waitForSelector(route.marker, { state: 'attached', timeout: 60000 })
           markerPresent = true
         } catch {
           markerPresent = (await page.locator(route.marker).count()) > 0
         }
       }
+      try {
+        pageTitle = await page.title()
+      } catch {
+        pageTitle = ''
+      }
       if (status !== 200) failures.push(route.name + '@' + width + ': HTTP ' + status)
-      if (!markerPresent) failures.push(route.name + '@' + width + ': 缺选择器 ' + route.marker)
+      if (!markerPresent) {
+        // 把标题带上：页面「不是被测页面」和「被测页面坏了」是两回事，只报选择器
+        // 缺失会把前者误导成后者。实测踩过：CloudBase 测试域名对真实浏览器返回
+        // 「风险提醒」拦截页（HTTP 404 + 确定访问按钮），curl 不跑 JS 看不到，
+        // 于是"curl 200 但浏览器全超时"，一度像是页面坏了。
+        failures.push(
+          route.name + '@' + width + ': 缺选择器 ' + route.marker + '（HTTP ' + status + '，标题「' + pageTitle + '」）',
+        )
+      }
 
       let m = null
       if (status === 200 && markerPresent) {
@@ -220,6 +245,7 @@ const run = async () => {
         status,
         markerPresent,
         marker: route.marker,
+        pageTitle,
         navAttempts: attempts - 1,
         ...(m || {}),
       }
@@ -229,13 +255,18 @@ const run = async () => {
 
   // 机制对照在 /entrust 上做（全站仅剩的 100vw 出血，见 mechanism 的注释）
   const mechPage = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  await mechPage.goto(BASE + '/entrust', { waitUntil: 'domcontentloaded', timeout: 120000 })
-  await mechPage.waitForSelector('.landing-hero', { timeout: 15000 })
-  report.mechanism = { page: '/entrust', viewport: 1440, combos: await mechanism(mechPage) }
-  if (report.mechanism.combos[0].maxScrollLeft === 0) {
-    // 对照组失效就等于没有对照组：这一定是 /entrust 也不再溢出了，
-    // 说明该换个还在用 100vw 的页面，而不是默默报通过。
-    failures.push('机制对照失效：/entrust 的 html visible + body clip 未复现横向溢出')
+  try {
+    await mechPage.goto(BASE + '/entrust', { waitUntil: 'domcontentloaded', timeout: 120000 })
+    await mechPage.waitForSelector('.landing-hero', { state: 'attached', timeout: 60000 })
+    report.mechanism = { page: '/entrust', viewport: 1440, combos: await mechanism(mechPage) }
+    if (report.mechanism.combos[0].maxScrollLeft === 0) {
+      // 对照组失效就等于没有对照组：这多半是 /entrust 也不再溢出了，
+      // 说明该换个还在用 100vw 的页面，而不是默默报通过。
+      failures.push('机制对照失效：/entrust 的 html visible + body clip 未复现横向溢出')
+    }
+  } catch (e) {
+    report.mechanism = { page: '/entrust', viewport: 1440, error: String(e).slice(0, 200), combos: [] }
+    failures.push('机制对照未能执行：' + String(e).slice(0, 120))
   }
   await mechPage.close()
 
@@ -272,4 +303,20 @@ const run = async () => {
   process.exit(failures.length ? 1 : 0)
 }
 
-run()
+// 顶层兜底：以前这里什么都没有，机制那步一抛异常整个进程就崩，**连已经跑完的
+// 路由结果都不落盘**——远程跑一次几分钟，结果一点证据都没留下。现在无论怎么炸，
+// 都先把已收集到的部分写进 probe.output.json 再退出。
+run().catch((e) => {
+  try {
+    mkdirSync(OUT, { recursive: true })
+    writeFileSync(
+      path.join(OUT, 'probe.crash.json'),
+      JSON.stringify({ crashedAt: new Date().toISOString(), baseUrl: BASE, error: String(e) }, null, 2) + '\n',
+      'utf8',
+    )
+  } catch {
+    // 写不了就算了，下面的 stderr 才是主要出口
+  }
+  console.error('探针异常退出：' + String(e).slice(0, 300))
+  process.exit(1)
+})
