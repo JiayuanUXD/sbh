@@ -30,10 +30,13 @@ export type PublicationActionInput = {
   canUnpublish: boolean
 }
 
-/** 动作条从 Payload 表单状态里取到的原始值（`useFormFields` 给的是 unknown）。 */
+/**
+ * 动作条从 Payload 表单状态里取到的原始值（`useFormFields` 给的是 unknown）。
+ *
+ * 故意**不含** `businessType`：租售类型只认已保存文档，理由见 `resolveLiveListingState`。
+ */
 export type LiveListingStateFields = {
   publicationStatus?: unknown
-  businessType?: unknown
   version?: unknown
 }
 
@@ -47,12 +50,18 @@ export type LiveListingState = {
 /**
  * 把「表单实时值」与「RSC 初始快照」合成动作条真正要用的状态。
  *
- * 为什么必须读实时值：`beforeDocumentControls` 是服务端组件，只在页面 RSC 渲染时算一次；
- * 而 `protectListing`（`src/domain/review/listing-protect.ts`）每次 update 都把 `version` +1，
- * `adminAutoPublish` 还可能顺带改 `publicationStatus`。编辑视图保存成功后只会把新 form state
- * 合并回表单（`@payloadcms/ui` 的 Form `MERGE_SERVER_STATE`），**不重渲染服务端组件**。
- * 于是「打开 → 改字段 → 保存（21→22）→ 点下架」会带着 21 提交，必撞 409，
- * 运营得被弹一次「本页数据已过期」再点第二次。读表单实时值就没有这一次。
+ * 为什么 `publicationStatus` / `version` 必须读实时值：`beforeDocumentControls` 是服务端组件，
+ * 只在页面 RSC 渲染时算一次；而 `protectListing`（`src/domain/review/listing-protect.ts`）
+ * 每次 update 都把 `version` +1，`adminAutoPublish` 还可能顺带改 `publicationStatus`。
+ * 编辑视图保存成功后只会把新 form state 合并回表单（`@payloadcms/ui` 的 Form
+ * `MERGE_SERVER_STATE`），**不重渲染服务端组件**。于是「打开 → 改字段 → 保存（21→22）→ 点下架」
+ * 会带着 21 提交，必撞 409，运营得被弹一次「本页数据已过期」再点第二次。读实时值就没有这一次。
+ *
+ * 为什么 `businessType` 反过来**只认已保存文档**：它决定的是「标记已租 / 标记已售」哪个按钮出现。
+ * 如果读实时值，表单里把租赁改成出售、还没保存，动作条就立刻解锁「标记已售」；点下去端点按库里的
+ * `lease` 走状态机（`published → sold` 合法），结果是 `publicationStatus=sold` 而 `businessType`
+ * 仍是 `lease`——一条不可撤销的口径错误，恰恰由「防止点错」的控件制造。租售类型改动必须先保存，
+ * 动作后的 `router.refresh()` 会把保存后的新值带回来，所以保存过的切换不会滞后。
  *
  * 回落规则：实时值缺失或类型不对就用初始快照——表单状态里没有该字段（权限裁剪、
  * 字段被条件隐藏）时不能把动作条打成空白，旧快照至少还能撞出一次可解释的 409。
@@ -65,8 +74,8 @@ export function resolveLiveListingState(
     publicationStatus: isPublicationStatus(fields.publicationStatus)
       ? fields.publicationStatus
       : initial.publicationStatus,
-    businessType:
-      typeof fields.businessType === 'string' ? fields.businessType : initial.businessType,
+    // 只取已保存文档的值，表单实时值一律不参与（理由见上）。
+    businessType: initial.businessType,
     // 会被原样当 expectedVersion 发出去，所以 NaN / Infinity / 字符串 '22' 一律不认。
     version:
       typeof fields.version === 'number' && Number.isFinite(fields.version)

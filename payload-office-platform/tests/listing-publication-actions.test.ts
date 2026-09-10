@@ -3,6 +3,7 @@ import {
   availablePublicationActions,
   permissionForPublishAction,
   resolveLiveListingState,
+  type LiveListingStateFields,
 } from '@/domain/listing/publication-actions'
 import {
   PUBLICATION_STATUSES,
@@ -139,7 +140,9 @@ describe('permissionForPublishAction', () => {
  * 动作条在编辑页里读的是 Payload 表单的实时值，不是 RSC 渲染那一刻的快照：
  * 保存一次 protectListing 就把 version +1，而编辑视图保存成功后不重渲染
  * beforeDocumentControls，快照会停在旧版本号 → 第一次点「下架」必撞 409。
- * 这个纯函数就是「实时值优先、脏值回落初始快照」那条规则，单独钉住。
+ * 这个纯函数就是「发布态与版本号实时值优先、脏值回落初始快照」那条规则，单独钉住。
+ *
+ * 唯一的例外是 businessType：它只认已保存文档，永远等于初始快照。理由见下面那条用例。
  */
 describe('resolveLiveListingState', () => {
   const initial = {
@@ -148,13 +151,10 @@ describe('resolveLiveListingState', () => {
     version: 21,
   } as const
 
-  it('表单实时值优先于初始快照（保存后 21 → 22 必须跟上）', () => {
+  it('发布态与版本号的表单实时值优先于初始快照（保存后 21 → 22 必须跟上）', () => {
     expect(
-      resolveLiveListingState(
-        { publicationStatus: 'unpublished', businessType: 'sale', version: 22 },
-        initial,
-      ),
-    ).toEqual({ publicationStatus: 'unpublished', businessType: 'sale', version: 22 })
+      resolveLiveListingState({ publicationStatus: 'unpublished', version: 22 }, initial),
+    ).toEqual({ publicationStatus: 'unpublished', businessType: 'lease', version: 22 })
   })
 
   it('字段缺失（不在表单状态里）时整体回落到初始快照', () => {
@@ -182,9 +182,17 @@ describe('resolveLiveListingState', () => {
     }
   })
 
-  it('businessType 非字符串时回落', () => {
-    expect(resolveLiveListingState({ businessType: 3 }, initial).businessType).toBe('lease')
-    expect(resolveLiveListingState({ businessType: null }, initial).businessType).toBe('lease')
+  // 未保存的租售切换绝不能改动作集合：表单里把租赁改成出售、还没保存，动作条若立刻换成
+  // 「标记已售」，点下去就会把库里 businessType 仍是 lease 的房源写成 sold——一条不可撤销的
+  // 口径错误，恰恰由「防止点错」的控件制造。所以 businessType 只认已保存文档（初始快照），
+  // 表单里就算有实时值也一律忽略；保存之后动作后的 router.refresh() 会把新值带回来。
+  it('未保存的租售切换被忽略：实时 businessType 为 sale 而已保存是 lease → 仍是 lease', () => {
+    const withLiveBusinessType = {
+      publicationStatus: 'published',
+      businessType: 'sale',
+      version: 22,
+    } as LiveListingStateFields
+    expect(resolveLiveListingState(withLiveBusinessType, initial).businessType).toBe('lease')
   })
 
   it('初始快照本身允许 businessType / version 为 null', () => {

@@ -23,6 +23,7 @@ type Props = {
   listingTitle: string
   /** RSC 渲染那一刻的快照，仅作为表单实时值缺失时的兜底 */
   initialPublicationStatus: PublicationStatus
+  /** 已保存文档的租售类型，动作条唯一的来源（不读表单实时值，理由见下方组件注释） */
   initialBusinessType: string | null
   initialVersion: number | null
   /** 权限来自服务端（会话级，表单里没有），只决定按钮显隐；端点才是强制点 */
@@ -46,13 +47,17 @@ const STATUS_COLOR: Record<PublicationStatus, string> = {
 /**
  * 编辑页顶部的发布轴动作条。
  *
- * **状态 / 租售 / 版本号读的是 Payload 表单的实时值，不是服务端快照。** 动作条挂在
+ * **发布态与版本号读 Payload 表单的实时值，不是服务端快照。** 动作条挂在
  * `beforeDocumentControls`，那是服务端组件，只在页面 RSC 渲染时算一次；而
  * `protectListing` 每次 update 都把 `version` +1，`adminAutoPublish` 还可能顺带改
  * `publicationStatus`。编辑视图保存成功后只把新 form state 合并回表单，**不重渲染服务端组件**
  * （`@payloadcms/ui` 的 Edit view：`onSuccess` → `getFormState` → `MERGE_SERVER_STATE`）。
  * 拿快照的后果是「打开 → 改字段 → 保存（21→22）→ 点下架」必撞一次 409，
  * 运营要被弹一次「本页数据已过期」再点第二次。读实时值就没有这一次。
+ *
+ * **租售类型（businessType）恰恰相反，只认已保存文档**：它决定「标记已租」还是「标记已售」出现，
+ * 读实时值的话，未保存的租赁→出售切换会立刻解锁「标记已售」，点下去就把库里仍是租赁的房源
+ * 标成已售——不可撤销，且正是这个用来防止点错的控件造出来的。
  *
  * 本组件渲染在 `DocumentControls` 里，而 `DocumentControls` 是 `<Form>` 的子树
  * （`@payloadcms/ui/dist/views/Edit/index.js:452` 的 Form → `:527` 的 DocumentControls），
@@ -73,15 +78,16 @@ export default function ListingPublicationActionsClient({
   const router = useRouter()
   const [active, setActive] = useState<PublicationActionSpec | null>(null)
 
-  // 三个字段各订阅一次：useFormFields 是选择器式订阅，只有选中的值变了才重渲染动作条。
+  // 两个字段各订阅一次：useFormFields 是选择器式订阅，只有选中的值变了才重渲染动作条。
+  // businessType 故意不订阅表单实时值：未保存的租售切换不能立刻解锁「标记已售」——那会把
+  // DB 里仍是租赁的房源标成已售（端点按库里的 lease 走状态机，published → sold 合法），
+  // 是一条不可撤销的口径错误。租售类型改动必须先保存，动作后的 router.refresh() 会带回新值。
   const liveStatus = useFormFields(([fields]) => fields.publicationStatus?.value)
-  const liveBusinessType = useFormFields(([fields]) => fields.businessType?.value)
   const liveVersion = useFormFields(([fields]) => fields.version?.value)
 
   const { publicationStatus, businessType, version } = resolveLiveListingState(
     {
       publicationStatus: liveStatus,
-      businessType: liveBusinessType,
       version: liveVersion,
     },
     {
