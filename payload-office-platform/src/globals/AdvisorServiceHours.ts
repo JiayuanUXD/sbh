@@ -1,4 +1,5 @@
 import type { GlobalConfig } from 'payload'
+import { isStaffRequest } from '@/domain/member/member-access'
 
 /**
  * P2 Task 3：平台顾问服务时间（Global）
@@ -26,6 +27,7 @@ export const AdvisorServiceHours: GlobalConfig = {
   access: {
     // 读取由前台派生状态使用（overrideAccess），公开访问走页面层；后台读写限管理员
     read: () => true,
+    update: ({ req }) => isStaffRequest(req),
   },
   admin: {
     // 同 SiteSettings：`hidden: true` 会连路由一起排除，导致自定义导航里那条

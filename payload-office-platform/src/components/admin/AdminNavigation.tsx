@@ -16,7 +16,7 @@ export default async function AdminNavigation({
   permissions,
   user,
 }: ServerProps) {
-  if (!user || permissions?.canAccessAdmin !== true) return null
+  if (!user || permissions?.canAccessAdmin !== true || !('sessionVersion' in user)) return null
 
   // 解析在 try/catch 内完成，JSX 构造放到 try 之外：
   // 服务端组件的 JSX 渲染错误不会被此 try/catch 捕获（react-hooks/error-boundaries）。

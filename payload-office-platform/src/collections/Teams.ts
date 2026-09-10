@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isStaffRequest } from '@/domain/member/member-access'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
 import { TEAM_STATUS_LABELS, TEAM_STATUSES } from '@/domain/auth/org'
 import { protectTeam } from '@/domain/auth/team-protect'
@@ -40,7 +41,7 @@ export const Teams: CollectionConfig = {
      * 该集合在 C 端零引用（只被 payload.config 后台导航、admin 组件与其它后台
      * 集合的关系字段消费），收紧不影响前台。
      */
-    read: ({ req }) => Boolean(req.user),
+    read: ({ req }) => isStaffRequest(req),
     create: canManageTeam,
     update: canManageTeam,
     /**

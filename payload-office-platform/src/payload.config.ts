@@ -50,6 +50,9 @@ import { Tasks } from './collections/Tasks'
 import { Notifications } from './collections/Notifications'
 import { SupplyImportBatches } from './collections/SupplyImportBatches'
 import { LocationAliases } from './collections/LocationAliases'
+import { Members } from './collections/Members'
+import { MemberSmsCodes } from './collections/MemberSmsCodes'
+import { MemberFavorites } from './collections/MemberFavorites'
 import { AdvisorServiceHours } from './globals/AdvisorServiceHours'
 import { SiteSettings } from './globals/SiteSettings'
 import {
@@ -384,6 +387,9 @@ export default buildConfig({
     Notifications,
     SupplyImportBatches,
     LocationAliases,
+    Members,
+    MemberSmsCodes,
+    MemberFavorites,
   ],
   globals: [AdvisorServiceHours, SiteSettings],
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）

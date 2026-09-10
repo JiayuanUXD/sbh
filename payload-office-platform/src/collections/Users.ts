@@ -1,4 +1,5 @@
 import type { CollectionConfig, Field, FieldAccess } from 'payload'
+import { isStaffRequest } from '@/domain/member/member-access'
 import { normalizePhone } from '@/domain/shared/phone'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getUserMaskRules } from '@/domain/auth/field-mask'
@@ -258,7 +259,7 @@ export const Users: CollectionConfig = {
   //     详见 create 分支的注释与 tests/users-anonymous-create.test.ts
   access: {
     read: async ({ req }) => {
-      if (!req.user) return false
+      if (!isStaffRequest(req) || !req.user) return false
       // 具备 user:manage 的账号可读全部用户
       const ctx = await getPermissionContext(req)
       if (ctx && hasOperationPermission(ctx, 'user:manage')) return true
@@ -273,13 +274,13 @@ export const Users: CollectionConfig = {
       // 且在 users 表非空时先抛 Forbidden；scripts/seed.ts 走 Local API 同样默认
       // overrideAccess。两条首建路径都不经过这里，放行只等于开放匿名自注册
       // ——任何人 POST /api/users 就能拿到一个可登录的后台账号。
-      if (!req.user) return false
+      if (!isStaffRequest(req) || !req.user) return false
       const ctx = await getPermissionContext(req)
       if (!ctx) return false
       return hasOperationPermission(ctx, 'user:manage')
     },
     update: async ({ req, id }) => {
-      if (!req.user) return false
+      if (!isStaffRequest(req) || !req.user) return false
       // 自己可改自己的非敏感字段（如密码、姓名）；敏感字段（roles/cityScope/status）由 user:manage 收窄
       // 这里仅做粗粒度校验：自己改自己允许，他人修改需 user:manage
       if (req.user.id === id) return true
@@ -288,7 +289,13 @@ export const Users: CollectionConfig = {
       return hasOperationPermission(ctx, 'user:manage')
     },
     delete: async ({ req }) => {
-      if (!req.user) return false
+      if (!isStaffRequest(req) || !req.user) return false
+      const ctx = await getPermissionContext(req)
+      if (!ctx) return false
+      return hasOperationPermission(ctx, 'user:manage')
+    },
+    unlock: async ({ req }) => {
+      if (!isStaffRequest(req) || !req.user) return false
       const ctx = await getPermissionContext(req)
       if (!ctx) return false
       return hasOperationPermission(ctx, 'user:manage')

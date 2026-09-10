@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { isStaffRequest } from '@/domain/member/member-access'
+
 import { protectFollowUp } from '@/domain/crm/follow-up-protect'
 import {
   FOLLOWUP_METHODS,
@@ -36,7 +38,7 @@ export const FollowUps: CollectionConfig = {
      * 该集合在 C 端零引用（只被 payload.config 后台导航、admin 组件与其它后台
      * 集合的关系字段消费），收紧不影响前台。
      */
-    read: ({ req }) => Boolean(req.user),
+    read: ({ req }) => isStaffRequest(req),
     // append-only：跟进记录不可修改、不可物理删除（design §3.6）
     update: () => false,
     delete: () => false,
