@@ -81,6 +81,7 @@ export function buildAuditCreateData(params: WriteAuditParams): Record<string, u
     before: params.before ?? null,
     after: params.after ?? null,
     changedFields: params.changedFields ?? [],
+    reason: params.reason ?? null,
     requestId: params.requestContext.requestId,
     ip: params.requestContext.ip,
     userAgent: params.requestContext.userAgent,

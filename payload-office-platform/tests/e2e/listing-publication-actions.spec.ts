@@ -20,6 +20,12 @@ type Account = Readonly<{ email: string; password: string }>
 const ADM: Account = { email: 'e2e-adm@example.com', password: 'Test1234!' }
 const CSR: Account = { email: 'e2e-csr@example.com', password: 'Test1234!' }
 
+/**
+ * 编辑页下架用例填的原因。同时是审计计数的筛选键，所以必须本用例专属：
+ * 换成通用词就等于回到「按 action 数全局条数」，别的用例一产生 listing.unpublish 就带偏。
+ */
+const UNPUBLISH_REASON = 'e2e：编辑页下架验证'
+
 type PickedListing = {
   id: number
   /** 列表页要靠它把目标行搜出来（列表默认 25 条一页，不筛就未必在第一页） */
@@ -83,16 +89,22 @@ async function publicationStatusOf(
 }
 
 /**
- * 某类审计动作的现存条数（下架 / 标记成交都记为 listing.unpublish）。
+ * 某类审计动作里、原因恰为 `reason` 的现存条数。
  *
- * 注意：这里读的是全局 `totalDocs`，因此「跑完 +1」这条断言只在 `workers: 1` 下成立
- * （见 `playwright.config.ts`：`fullyParallel: false` + `workers: 1`）。将来若把 e2e 改成并行，
- * 别的用例同时产生 `listing.unpublish` 审计就会把这个计数带偏，届时要改成按 `reason` 之类
- * 本用例专属的条件去筛。
+ * 只按 `action` 数是不够的：下架和标记成交都记成 `listing.unpublish`，别的用例只要产生一条
+ * 就会把「跑完 +1」带偏（原先靠 `workers: 1` + `fullyParallel: false` 兜着，等于把断言的
+ * 正确性押在一条与它无关的配置上）。这里连原因一起筛——原因串是本用例专属的，
+ * 顺带把「弹层里填的那句话真的落到了 audit_logs.reason」也验了：只校验非空、
+ * 写完就丢的实现在这条断言下会红。
  */
-async function countAudit(request: APIRequestContext, action: string): Promise<number> {
+async function countAuditByReason(
+  request: APIRequestContext,
+  action: string,
+  reason: string,
+): Promise<number> {
   const response = await request.get(
-    `/api/audit-logs?limit=1&depth=0&where[action][equals]=${encodeURIComponent(action)}`,
+    `/api/audit-logs?limit=1&depth=0&where[action][equals]=${encodeURIComponent(action)}` +
+      `&where[reason][equals]=${encodeURIComponent(reason)}`,
   )
   expect(response.status(), 'ADM 应能读审计日志').toBe(200)
   const body: unknown = await response.json()
@@ -190,7 +202,11 @@ test.describe('OPT-086 房源发布轴动作', () => {
   test('编辑页下架（原因必填）→ 状态与审计变化 → 恢复夹具', async ({ page }) => {
     await login(page.request, ADM)
     const { id } = await pickPublishedListing(page.request)
-    const auditBefore = await countAudit(page.request, 'listing.unpublish')
+    const auditBefore = await countAuditByReason(
+      page.request,
+      'listing.unpublish',
+      UNPUBLISH_REASON,
+    )
 
     await page.goto(`/admin/collections/listings/${id}`)
     const bar = page.locator('.listing-publication-actions')
@@ -203,7 +219,7 @@ test.describe('OPT-086 房源发布轴动作', () => {
         bar.getByRole('button', { name: '下架', exact: true }),
         '编辑页动作条的「下架」',
       )
-      await confirmUnpublish(page, 'e2e：编辑页下架验证')
+      await confirmUnpublish(page, UNPUBLISH_REASON)
 
       await expect(bar.getByText('已下架', { exact: true }), '动作条状态标签应翻成已下架')
         .toBeVisible()
@@ -211,8 +227,8 @@ test.describe('OPT-086 房源发布轴动作', () => {
         'unpublished',
       )
       expect(
-        await countAudit(page.request, 'listing.unpublish'),
-        '下架必须留下一条审计',
+        await countAuditByReason(page.request, 'listing.unpublish', UNPUBLISH_REASON),
+        '下架必须留下一条带原因的审计',
       ).toBe(auditBefore + 1)
 
       // 下架后动作条给上架类动作。按钮标签是「发布」（PUBLISH_ACTION_LABELS），

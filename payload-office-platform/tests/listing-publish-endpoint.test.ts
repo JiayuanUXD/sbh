@@ -132,6 +132,21 @@ async function run(req: PayloadRequest): Promise<{ status: number; body: any }> 
   return { status: res.status, body }
 }
 
+/**
+ * 取本次请求写进 audit-logs 的那一条 create 载荷。
+ *
+ * 审计走的是真实的 withAudit → writeAuditSuccess → payload.create（没有 mock 中间层），
+ * 所以这里直接从 create mock 里挑 collection === 'audit-logs' 的调用——换句话说，
+ * 断言的是「真的会落库的那份 data」，而不是某个被 stub 掉的中间参数。
+ */
+function auditCreateData(create: ReturnType<typeof vi.fn>): Record<string, unknown> {
+  const call = create.mock.calls.find(
+    (args: unknown[]) => (args[0] as { collection?: string })?.collection === 'audit-logs',
+  )
+  expect(call, '高风险动作必须写一条审计').toBeDefined()
+  return (call![0] as { data: Record<string, unknown> }).data
+}
+
 describe('listing-publish-endpoint/权限门', () => {
   it('未登录 → 401', async () => {
     const { req, update } = makeReq({ user: null })
@@ -262,6 +277,21 @@ describe('listing-publish-endpoint/下架', () => {
     // 不触碰审核轴
     expect(arg.data.reviewStatus).toBeUndefined()
   })
+
+  // 弹层正文与输入框 placeholder 都写着「会记入审计」。原因只做非空校验、写完就丢的话，
+  // 这句承诺就是假的：事后没人能回答「这套房源当初为什么被下架」。
+  it('下架原因落进审计（首尾空格 trim 后写入 audit_logs.reason）', async () => {
+    const { req, create } = makeReq({
+      listing: makeEffectiveListing({ publicationStatus: 'published' }),
+      body: { action: 'unpublish', reason: '  房东撤单  ' },
+    })
+    const { status } = await run(req)
+    expect(status).toBe(200)
+    const audit = auditCreateData(create)
+    expect(audit.action).toBe('listing.unpublish')
+    expect(audit.result).toBe('success')
+    expect(audit.reason).toBe('房东撤单')
+  })
 })
 
 describe('listing-publish-endpoint/发布成功', () => {
@@ -277,6 +307,17 @@ describe('listing-publish-endpoint/发布成功', () => {
     expect(arg.data.publicationStatus).toBe('published')
     expect(arg.data.reviewStatus).toBeUndefined()
     expect(arg.req).toBeDefined()
+  })
+
+  // 不收原因的动作必须显式落 null，而不是把上一次请求的原因带过来或干脆缺字段：
+  // 审计列里「空」和「没这个字段」在排查时是两件事。
+  it('publish 不收原因，审计里 reason 为 null', async () => {
+    const { req, create } = makeReq({ body: { action: 'publish' } })
+    const { status } = await run(req)
+    expect(status).toBe(200)
+    const audit = auditCreateData(create)
+    expect(audit.action).toBe('listing.publish')
+    expect(audit.reason).toBeNull()
   })
 })
 

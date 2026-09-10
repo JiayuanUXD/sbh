@@ -100,7 +100,10 @@ export function publicationActionsDisabledReason(formModified: boolean): string 
   return formModified ? '有未保存的改动，请先保存再执行发布动作' : null
 }
 
-/** 与 listing-publish-endpoint.ts 的 permissionForAction 同口径；端点是唯一强制点，这里只用来决定按钮显隐。 */
+/**
+ * 发布动作 → 所需操作权限码。`listing-publish-endpoint.ts` 与动作条共用这一份：
+ * 端点是唯一强制点，界面只用它决定按钮显隐，两处口径不会漂。
+ */
 export function permissionForPublishAction(action: PublishAction): 'listing:publish' | 'listing:unpublish' {
   return action === 'unpublish' ? 'listing:unpublish' : 'listing:publish'
 }

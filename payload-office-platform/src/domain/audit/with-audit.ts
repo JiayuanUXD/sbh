@@ -38,6 +38,8 @@ export interface WithAuditOptions<TResult> {
   object: ObjectRef
   /** 变更前快照（可选；未传则 after 也不记，仅记动作发生） */
   before?: Record<string, unknown> | null
+  /** 操作人填写的原因，随 success / failed 审计一起落库 */
+  reason?: string | null
   /**
    * 业务操作函数。
    *
@@ -78,7 +80,7 @@ export interface WithAuditOptions<TResult> {
 export async function withAudit<TResult>(
   options: WithAuditOptions<TResult>,
 ): Promise<TResult | null> {
-  const { req, action, object, before, fn, throwOnError = true } = options
+  const { req, action, object, before, reason, fn, throwOnError = true } = options
 
   try {
     const result = await fn()
@@ -95,6 +97,7 @@ export async function withAudit<TResult>(
             before: before ?? null,
             after: result.after ?? null,
             changedFields: result.changedFields,
+            reason: reason ?? null,
             eventId: result.eventId ?? null,
           },
         })
@@ -115,6 +118,7 @@ export async function withAudit<TResult>(
             action,
             object,
             before: before ?? null,
+            reason: reason ?? null,
             errorCode: result.errorCode,
             errorMessage: result.errorMessage,
           },
@@ -139,6 +143,7 @@ export async function withAudit<TResult>(
           action,
           object,
           before: before ?? null,
+          reason: reason ?? null,
           errorCode: (err as { code?: string })?.code ?? 'UNKNOWN_ERROR',
           errorMessage: err instanceof Error ? err.message : String(err),
         },
