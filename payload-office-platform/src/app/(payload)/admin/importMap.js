@@ -48,6 +48,7 @@ import { default as default_181346d2083e59b03eff0bedc3d20f68 } from '../../../co
 import { NumberComponent as NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139 } from '@nouance/payload-better-fields-plugin/Number/client'
 import { default as default_e824639d01f5ca07b270b546b9ee9053 } from '../../../components/admin/ListingReadonlyValue'
 import { default as default_5df1f245f9261c4f614a05a75f0ee773 } from '../../../components/admin/ListingMediaManager'
+import { default as default_15b867d1269829aac37bf5806d1f03fb } from '../../../components/admin/ListingPublicationActions'
 import { default as default_c4eb0c1818eaaae48f1870533fcd2a2e } from '../../../components/admin/ListingsListView'
 import { default as default_77e13ea43526b61fb90a3c757ab41c9a } from '../../../components/admin/LeadOwnershipHistoryLink'
 import { default as default_d46c8ffd09e050ed893b9d208aa11db9 } from '../../../components/admin/LeadVisitorPathLink'
@@ -140,6 +141,7 @@ export const importMap = {
   "@nouance/payload-better-fields-plugin/Number/client#NumberComponent": NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139,
   "/components/admin/ListingReadonlyValue#default": default_e824639d01f5ca07b270b546b9ee9053,
   "/components/admin/ListingMediaManager#default": default_5df1f245f9261c4f614a05a75f0ee773,
+  "/components/admin/ListingPublicationActions#default": default_15b867d1269829aac37bf5806d1f03fb,
   "/components/admin/ListingsListView#default": default_c4eb0c1818eaaae48f1870533fcd2a2e,
   "/components/admin/LeadOwnershipHistoryLink#default": default_77e13ea43526b61fb90a3c757ab41c9a,
   "/components/admin/LeadVisitorPathLink#default": default_d46c8ffd09e050ed893b9d208aa11db9,
