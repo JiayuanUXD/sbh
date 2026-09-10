@@ -61,7 +61,13 @@ function mapLogo(value: SiteSetting['logo']): SiteSettingsView['logo'] {
   if (!value || typeof value !== 'object') return null
   const media = value as Media
   return typeof media.url === 'string' && media.url.length > 0
-    ? { src: media.url, alt: typeof media.alt === 'string' ? media.alt : '' }
+    ? {
+        src: media.url,
+        alt: typeof media.alt === 'string' ? media.alt : '',
+        mimeType: typeof media.mimeType === 'string' ? media.mimeType : null,
+        width: typeof media.width === 'number' ? media.width : null,
+        height: typeof media.height === 'number' ? media.height : null,
+      }
     : null
 }
 

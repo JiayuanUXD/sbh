@@ -2,18 +2,25 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import SiteNav from '@/components/frontend/SiteNav'
 import HeaderSearch from '@/components/frontend/HeaderSearch'
 import CitySwitcher, { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
+import { isSvgLogo } from '@/lib/frontend/site-settings-view'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 
 /** 站点标识。由 layout 从 `getCachedSiteSettings()` 取好传进来——本组件是 'use client'，
  *  拿不到服务端读取器。缺省时回落为文字站名，那正是接线前的线上形态。 */
 export type SiteBrand = Readonly<{
   siteName: string
-  logo: Readonly<{ src: string; alt: string }> | null
+  logo: Readonly<{
+    src: string
+    alt: string
+    mimeType?: string | null
+    width?: number | null
+    height?: number | null
+  }> | null
   /** 主导航项（OPT-054），href 已在服务端解析完成。 */
   mainNav: readonly Readonly<{ href: string; label: string }>[]
 }>
@@ -38,10 +45,16 @@ function HeaderContents({
 }: HeaderShellProps & Readonly<{
   searchParams: Pick<URLSearchParams, 'get' | 'getAll' | 'has' | 'size' | 'toString'>
   onRefreshSearchParams?: () => void
-  /** 首页透明态不渲染顶栏搜索——首页 Hero 已有 `HomeSearchPill`，同屏两个搜索框是噪音。 */
+  /** 首页仅在 Hero 搜索框被完全覆盖/滚出顶栏后才渲染顶栏搜索——避免首屏同屏出现两个搜索框造成视觉冗余；非首页始终渲染。 */
   showSearch: boolean
 }>) {
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
+  const isSvg = isSvgLogo(brand.logo)
+  const logoAspectRatio =
+    brand.logo?.width && brand.logo?.height
+      ? `${brand.logo.width} / ${brand.logo.height}`
+      : undefined
+
   return (
     <>
       <Link
@@ -49,9 +62,27 @@ function HeaderContents({
         className="site-logo"
         aria-label={`${brand.siteName}首页`}
       >
-        {brand.logo
-          ? <img src={brand.logo.src} alt={brand.logo.alt || brand.siteName} className="site-logo__img" />
-          : brand.siteName}
+        {brand.logo ? (
+          isSvg ? (
+            <span
+              className="site-logo__icon"
+              style={{
+                '--logo-url': `url("${brand.logo.src}")`,
+                ...(logoAspectRatio ? { aspectRatio: logoAspectRatio, width: 'auto' } : {}),
+              } as React.CSSProperties}
+              aria-hidden="true"
+            />
+          ) : (
+            <img
+              src={brand.logo.src}
+              alt=""
+              className="site-logo__img"
+              width={brand.logo.width ?? undefined}
+              height={brand.logo.height ?? undefined}
+            />
+          )
+        ) : null}
+        <span className="site-logo__text">{brand.siteName}</span>
       </Link>
       {multiCityRoutingEnabled ? (
         <CitySwitcher
@@ -60,12 +91,7 @@ function HeaderContents({
           multiCityRoutingEnabled={multiCityRoutingEnabled}
         />
       ) : null}
-      {showSearch ? (
-        <HeaderSearch
-          citySlug={multiCityRoutingEnabled && currentCity ? currentCity.slug : undefined}
-          initialKeyword={searchParams.get('q') ?? undefined}
-        />
-      ) : null}
+      <span className="site-header__divider" aria-hidden="true" />
       <SiteNav
         items={brand.mainNav}
         cities={cities}
@@ -74,6 +100,14 @@ function HeaderContents({
         pathname={pathname}
         searchParams={searchParams}
         onRefreshSearchParams={onRefreshSearchParams}
+        actions={
+          showSearch ? (
+            <HeaderSearch
+              citySlug={multiCityRoutingEnabled && currentCity ? currentCity.slug : undefined}
+              initialKeyword={searchParams.get('q') ?? undefined}
+            />
+          ) : null
+        }
       />
     </>
   )
@@ -100,6 +134,15 @@ function HeaderContents({
  *  这是本文件里唯一与该 token 联动的常量——CSS 侧的偏移全部走 `calc(var(--header-height) …)`，
  *  不需要在 JS 里重复。改 token 时记得回来看这一行。 */
 const TRANSPARENT_SCROLL_THRESHOLD = 56
+
+/** 首页首屏 Hero 搜索框滑出顶栏下沿的兜底滚动阈值。
+ *
+ *  正常情况下由 getBoundingClientRect 动态精确计算：
+ *  当 .hm-search 的 bottom <= headerHeight 时，表示 Hero 搜索框已完全被顶栏覆盖/滚出视野，
+ *  此时顶栏搜索框才出现（避免首屏视口内同时存在两个搜索框的视觉冗余）。
+ *  若 DOM 中未找到 .hm-search（如未完成渲染或特殊场景），以 450px 作为安全兜底。 */
+const HERO_SEARCH_FALLBACK_THRESHOLD = 450
+
 export default function SiteHeader({
   cities,
   defaultCity,
@@ -116,23 +159,53 @@ export default function SiteHeader({
   const fallbackCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   const isTrustedCityHome = fallbackCity !== null && pathname === `/${fallbackCity.slug}` && fallbackCity.serviceStatus !== 'coming-soon'
   const isHome = pathname === '/' || isTrustedCityHome
+  const headerRef = useRef<HTMLElement | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const [heroSearchCovered, setHeroSearchCovered] = useState(false)
 
   useEffect(() => {
     if (!isHome) return
-    const onScroll = () => setScrolled(window.scrollY > TRANSPARENT_SCROLL_THRESHOLD)
-    onScroll()
+
+    let ticking = false
+    const checkScroll = () => {
+      const scrollY = window.scrollY
+      setScrolled(scrollY > TRANSPARENT_SCROLL_THRESHOLD)
+
+      const heroSearchEl = document.querySelector('.hm-search')
+      if (heroSearchEl) {
+        const rect = heroSearchEl.getBoundingClientRect()
+        const headerHeight = headerRef.current?.offsetHeight ?? TRANSPARENT_SCROLL_THRESHOLD
+        setHeroSearchCovered(rect.bottom <= headerHeight)
+      } else {
+        setHeroSearchCovered(scrollY > HERO_SEARCH_FALLBACK_THRESHOLD)
+      }
+      ticking = false
+    }
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(checkScroll)
+        ticking = true
+      }
+    }
+
+    checkScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    window.addEventListener('resize', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
   }, [isHome])
 
   const transparent = isHome && !scrolled
+  const showSearch = !isHome || heroSearchCovered
   const className = ['site-header', transparent ? 'site-header--transparent' : '']
     .filter(Boolean)
     .join(' ')
 
   return (
-    <header className={className}>
+    <header ref={headerRef} className={className}>
       <div className="site-header__inner">
         <HeaderContents
           cities={cities}
@@ -142,7 +215,7 @@ export default function SiteHeader({
           brand={brand}
           searchParams={searchParams}
           onRefreshSearchParams={refreshSearchParams}
-          showSearch={!transparent}
+          showSearch={showSearch}
         />
       </div>
     </header>

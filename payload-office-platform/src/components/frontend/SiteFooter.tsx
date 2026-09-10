@@ -9,7 +9,7 @@ import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 // 必须从 site-settings-view 取，**不能从 site-settings 取**：后者 import 了 payload，
 // 本组件是 'use client'，那条依赖链会把 sharp 拉进浏览器包，next build 直接失败
 // （57 个 non-ecmascript placeable asset 错误），而 typecheck 与单测全绿。
-import { renderCityPlaceholder, type SiteSettingsView } from '@/lib/frontend/site-settings-view'
+import { isSvgLogo, renderCityPlaceholder, type SiteSettingsView } from '@/lib/frontend/site-settings-view'
 
 type FooterShellProps = Readonly<{
   cities: readonly PublicCityOption[]
@@ -36,11 +36,39 @@ function FooterContents({
   // 页脚此前两处写死「上海」（品牌说明与底栏副标题），七城平台上访问 /beijing
   // 照样宣称服务上海。城市名跟着路由走，不进配置——让运营手写只会换个地方再写死一次。
   const cityName = currentCity?.name ?? ''
+  const isSvg = isSvgLogo(settings.logo)
+  const footerLogoAspectRatio =
+    settings.logo?.width && settings.logo?.height
+      ? `${settings.logo.width} / ${settings.logo.height}`
+      : undefined
+
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
         <div className="site-footer__brand">
-          <Link href={multiCityRoutingEnabled && citySlug ? `/${citySlug}` : '/'} className="site-footer__logo">{settings.siteName}</Link>
+          <Link href={multiCityRoutingEnabled && citySlug ? `/${citySlug}` : '/'} className="site-footer__logo">
+            {settings.logo ? (
+              isSvg ? (
+                <span
+                  className="site-logo__icon site-footer__logo-icon"
+                  style={{
+                    '--logo-url': `url("${settings.logo.src}")`,
+                    ...(footerLogoAspectRatio ? { aspectRatio: footerLogoAspectRatio, width: 'auto' } : {}),
+                  } as React.CSSProperties}
+                  aria-hidden="true"
+                />
+              ) : (
+                <img
+                  src={settings.logo.src}
+                  alt=""
+                  className="site-logo__img site-footer__logo-img"
+                  width={settings.logo.width ?? undefined}
+                  height={settings.logo.height ?? undefined}
+                />
+              )
+            ) : null}
+            <span className="site-footer__logo-text">{settings.siteName}</span>
+          </Link>
           <p className="site-footer__tagline">
             {renderCityPlaceholder(settings.footerBrandBlurb, cityName)}
           </p>
