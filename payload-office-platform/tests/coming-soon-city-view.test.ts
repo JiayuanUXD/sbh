@@ -23,7 +23,19 @@ import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 const view = readFileSync('src/components/frontend/city/ComingSoonCityView.tsx', 'utf8')
 const css = readFileSync('src/app/(frontend)/styles.css', 'utf8')
 const recruitCss = readFileSync('src/app/(frontend)/styles/recruit.css', 'utf8')
-const comingSoonStyles = css.slice(css.indexOf('.city-coming-soon'))
+/**
+ * 只取 styles.css 末尾那段城市外壳规则（从顶层 `.city-coming-soon {` 到文件末）。
+ *
+ * 锚点必须是**规则本身**，不能是「任何一处提到 .city-coming-soon 的地方」。
+ * 真实教训（2026-09-10）：原写法是 `css.indexOf('.city-coming-soon')`，
+ * 后来 styles.css 上方新增了 `.site-main:has(> .city-coming-soon)`（出血页取消
+ * 限宽的清单，见那里的注释），`indexOf` 命中了那处、切片一路扩到大半个文件，
+ * 于是下面「不得出现新体系 token」的断言开始误报——报的是别的规则里的
+ * `var(--ink)`，跟城市外壳毫无关系。
+ *
+ * 带前导换行是为了只认顶层规则，不认任何缩进（嵌套在 @media / @supports 里）的同名写法。
+ */
+const comingSoonStyles = css.slice(css.indexOf('\n.city-coming-soon {'))
 let root: Root | null = null
 
 afterEach(async () => {
