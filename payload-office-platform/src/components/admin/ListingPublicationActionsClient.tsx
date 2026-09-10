@@ -15,6 +15,7 @@ import {
   type PublicationStatus,
 } from '@/domain/review/publication-status'
 import ListingPublicationActionModal from './ListingPublicationActionModal'
+import { PUBLICATION_STATUS_TAG_COLORS } from './publication-status-colors'
 
 const { Text } = Typography
 
@@ -29,19 +30,6 @@ type Props = {
   /** 权限来自服务端（会话级，表单里没有），只决定按钮显隐；端点才是强制点 */
   canPublish: boolean
   canUnpublish: boolean
-}
-
-/**
- * 与房源列表视图的发布态标签同一套配色（`ListingsListViewClient` 的
- * PUBLICATION_STATUS_COLORS）：同一个状态在列表与编辑页必须是同一个颜色，
- * 否则运营会以为是两种东西。
- */
-const STATUS_COLOR: Record<PublicationStatus, string> = {
-  draft: 'gray',
-  published: 'green',
-  unpublished: 'orange',
-  leased: 'arcoblue',
-  sold: 'purple',
 }
 
 /**
@@ -110,7 +98,7 @@ export default function ListingPublicationActionsClient({
         <Text type="secondary" style={{ fontSize: 12 }}>
           发布状态
         </Text>
-        <Tag color={STATUS_COLOR[publicationStatus]}>
+        <Tag color={PUBLICATION_STATUS_TAG_COLORS[publicationStatus]}>
           {PUBLICATION_STATUS_LABELS[publicationStatus]}
         </Tag>
         {actions.map((spec) => (

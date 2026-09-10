@@ -16,6 +16,14 @@ import {
 import { IconDelete, IconPlus } from '@arco-design/web-react/icon'
 import type { ColumnProps } from '@arco-design/web-react/es/Table'
 
+import {
+  availablePublicationActions,
+  type PublicationActionSpec,
+} from '@/domain/listing/publication-actions'
+import { isPublicationStatus } from '@/domain/review/publication-status'
+import ListingPublicationActionModal from './ListingPublicationActionModal'
+import { PUBLICATION_STATUS_TAG_COLORS } from './publication-status-colors'
+
 /**
  * 房源列表 - 客户端（OPT-056 后台列表 Arco 化）
  *
@@ -23,6 +31,8 @@ import type { ColumnProps } from '@arco-design/web-react/es/Table'
  * - 状态列：审核/发布/待复核 用 Arco Tag 分色呈现
  * - 快捷编辑：首页推荐 Switch 行内切换，REST PATCH 携带版本号走乐观锁，
  *   冲突（409/版本不符）与无权限均以服务端结论为准，前端只做提示与刷新
+ * - 操作列「下架」（OPT-086）：与编辑页动作条共用同一个纯函数与确认弹层，
+ *   列表侧不复制任何状态机 / 文案规则，见下方操作列注释
  * - 「创建新条目」为右上角主按钮；不渲染 Payload 原生「所有 房源列表」抬头
  */
 
@@ -52,6 +62,8 @@ interface Option {
 
 interface Props {
   rows: ListingRow[]
+  /** listing:unpublish 权限（服务端算好传下来）；只决定「下架」按钮显隐，端点才是强制点 */
+  canUnpublish: boolean
   page: number
   pageSize: number
   totalDocs: number
@@ -77,12 +89,13 @@ const REVIEW_STATUS_COLORS: Record<string, string> = {
   rejected: 'red',
 }
 
-const PUBLICATION_STATUS_COLORS: Record<string, string> = {
-  draft: 'gray',
-  published: 'green',
-  unpublished: 'orange',
-  leased: 'arcoblue',
-  sold: 'purple',
+/**
+ * 发布态 → Tag 颜色。表本身在 `publication-status-colors.ts`（与编辑页动作条共用）；
+ * 这里只补一层收窄：列表行的 publicationStatus 是 `string | null`（来自 payload-types 的
+ * 宽类型），未知值一律回落 'gray'，与收敛前的 `COLORS[v ?? ''] ?? 'gray'` 同结果。
+ */
+function publicationStatusColor(value: string | null): string {
+  return isPublicationStatus(value) ? PUBLICATION_STATUS_TAG_COLORS[value] : 'gray'
 }
 
 /** 时间戳格式化为北京时间可读串。 */
@@ -117,6 +130,7 @@ async function extractErrorMessage(res: Response): Promise<string | null> {
 
 export default function ListingsListViewClient({
   rows,
+  canUnpublish,
   page,
   pageSize,
   totalDocs,
@@ -136,6 +150,13 @@ export default function ListingsListViewClient({
 }: Props) {
   const router = useRouter()
   const [togglingId, setTogglingId] = useState<number | null>(null)
+  // 下架确认弹层的目标行。整表只挂一个弹层实例（而不是每行一个）：Modal 会往
+  // document.body 挂 portal，一页 100 行就是 100 个常驻空节点。
+  // 连 spec 一起存，避免弹层打开后表格刷新导致行数据与文案对不上。
+  const [unpublishTarget, setUnpublishTarget] = useState<{
+    row: ListingRow
+    spec: PublicationActionSpec
+  } | null>(null)
 
   const labelMaps = useMemo(
     () => ({
@@ -294,7 +315,7 @@ export default function ListingsListViewClient({
         width: 130,
         render: (v: string | null, row: ListingRow) => (
           <Space size={4} wrap>
-            <Tag size="small" color={PUBLICATION_STATUS_COLORS[v ?? ''] ?? 'gray'}>
+            <Tag size="small" color={publicationStatusColor(v)}>
               {labelMaps.publication.get(v ?? '') ?? v ?? '—'}
             </Tag>
             {row.supplyVisibilityHold === 'pending_recheck' ? (
@@ -344,27 +365,52 @@ export default function ListingsListViewClient({
       {
         title: '操作',
         dataIndex: 'op',
-        width: 132,
-        render: (_: unknown, row: ListingRow) => (
-          <Space size={4}>
-            <Button size="mini" href={`/admin/collections/listings/${row.id}`}>
-              编辑
-            </Button>
-            {row.slug && row.publicationStatus === 'published' ? (
-              <Button
-                size="mini"
-                type="text"
-                href={`/listings/${row.slug}`}
-                target="_blank"
-              >
-                前台
+        width: 180,
+        render: (_: unknown, row: ListingRow) => {
+          // 「下架」用与编辑页动作条同一个纯函数取 spec，文案 / 是否必填原因 / 按钮语义
+          // 因此完全同源：列表侧不写一句「已发布才能下架」之类的规则副本。
+          // canPublish 固定 false——列表只给下架这一个动作；上架 / 标记成交都要先看清
+          // 房源详情（有效供给条件、租售类型），不适合在列表里一键完成。
+          const spec =
+            canUnpublish && isPublicationStatus(row.publicationStatus)
+              ? (availablePublicationActions({
+                  publicationStatus: row.publicationStatus,
+                  businessType: row.businessType,
+                  canPublish: false,
+                  canUnpublish: true,
+                }).find((s) => s.action === 'unpublish') ?? null)
+              : null
+          return (
+            <Space size={4}>
+              <Button size="mini" href={`/admin/collections/listings/${row.id}`}>
+                编辑
               </Button>
-            ) : null}
-          </Space>
-        ),
+              {row.slug && row.publicationStatus === 'published' ? (
+                <Button
+                  size="mini"
+                  type="text"
+                  href={`/listings/${row.slug}`}
+                  target="_blank"
+                >
+                  前台
+                </Button>
+              ) : null}
+              {spec ? (
+                <Button
+                  size="mini"
+                  type="text"
+                  status="warning"
+                  onClick={() => setUnpublishTarget({ row, spec })}
+                >
+                  {spec.label}
+                </Button>
+              ) : null}
+            </Space>
+          )
+        },
       },
     ],
-    [labelMaps, toggleFeatured, togglingId],
+    [canUnpublish, labelMaps, toggleFeatured, togglingId],
   )
 
   return (
@@ -492,12 +538,27 @@ export default function ListingsListViewClient({
           onChange: (nextPage, nextSize) =>
             navigate({ limit: nextSize, page: nextSize !== pageSize ? 1 : nextPage }),
         }}
-        // OPT-063：固定宽列合计 884px（110+96+130+90+96+90+140+132），只有「房源标题」
+        // OPT-063：固定宽列合计 932px（110+96+130+90+96+90+140+180），只有「房源标题」
         // 是弹性列。1280 视口下侧边栏吃掉约 250px，标题列会被压到几十像素——中文一行一字，
         // 完全没法读。给一个横向滚动下限：宽度不够时整表横向滚动，而不是牺牲标题列。
-        // 1180 = 884 固定列 + 约 300 的标题列下限。
-        scroll={{ x: 1180 }}
+        // 1232 = 932 固定列 + 约 300 的标题列下限。
+        // OPT-086：操作列 132 → 180 容纳第三个按钮「下架」，两个数字随之各 +48。
+        scroll={{ x: 1232 }}
         noDataElement="暂无房源"
+      />
+
+      {/*
+        下架确认弹层：整表一个实例，spec 为 null 时组件直接返回 null（不渲染 portal）。
+        成功后只 router.refresh()——重取服务端组件即可拿到新的发布态与 version，
+        不在客户端本地改行数据（那会与筛选条件、分页脱节，且不知道钩子的副作用）。
+      */}
+      <ListingPublicationActionModal
+        listingId={unpublishTarget ? String(unpublishTarget.row.id) : ''}
+        listingTitle={unpublishTarget?.row.title ?? ''}
+        spec={unpublishTarget?.spec ?? null}
+        version={unpublishTarget?.row.version ?? null}
+        onClose={() => setUnpublishTarget(null)}
+        onDone={() => router.refresh()}
       />
     </div>
   )
