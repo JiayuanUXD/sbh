@@ -30,3 +30,6 @@ docs/superpowers/*
 .gstack/
 .tmp/
 .workbuddy/
+
+# 应用目录下的验证证据会被 tcb cloudrun deploy 的 ZIP 打进部署包（2026-07-27 曾撑爆），证据一律放仓库根的 artifacts/verification/
+payload-office-platform/artifacts/

@@ -1,0 +1,1362 @@
+[
+ {
+  "page": "home",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "home",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "home",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "home",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "home",
+  "el": "input.hm-search__input",
+  "text": "",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "text",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "button.hm-search__filter-btn",
+  "text": "筛选",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "button.hm-search__submit",
+  "text": "搜索",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.hm-hero__chip",
+  "text": "长宁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.hm-section-link",
+  "text": "查看全部房源 →",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.sf-card.hm-type-card",
+  "text": "01传统办公独立空间 · 灵活面",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "transform, box-shadow"
+ },
+ {
+  "page": "home",
+  "el": "a.hm-bento-card.hm-bento__main",
+  "text": "虹桥虹桥国际商务中心",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.hm-bento-card.hm-bento__small",
+  "text": "徐家汇徐家汇国际大厦",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.hm-bento-card.hm-bento__wide",
+  "text": "南京西路静安待租楼盘 · 南京西",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.sf-card.hm-supply-card",
+  "text": "甲级在租 900 ㎡虹桥国际商务",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "transform, box-shadow"
+ },
+ {
+  "page": "home",
+  "el": "button.hm-rail__arrow.hm-rail__arrow--next",
+  "text": "下一组",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.hm-news__row",
+  "text": "2026 上海写字楼市场观察：核",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "home",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "listings",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "listings",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "listings",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "listings",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "listings",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "listings",
+  "el": "a.ls-unitseg__item",
+  "text": "元/㎡/天4",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, color"
+ },
+ {
+  "page": "listings",
+  "el": "a.ls-filterc__opt",
+  "text": "长宁2",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "listings",
+  "el": "a.ls-toolbar__sort.ls-toolbar__sort--active",
+  "text": "推荐",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "listings",
+  "el": "a.ls-toolbar__sort",
+  "text": "最新",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "listings",
+  "el": "a.ls-toolbar__viewbtn.ls-toolbar__viewbtn--active",
+  "text": "卡片网格",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, color, box-shadow"
+ },
+ {
+  "page": "listings",
+  "el": "a.ls-toolbar__viewbtn",
+  "text": "横向列表",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, color, box-shadow"
+ },
+ {
+  "page": "listings",
+  "el": "a.sf-card.ls-card",
+  "text": "共享办公外滩源 · 共享办公 ·",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "transform, box-shadow"
+ },
+ {
+  "page": "listings",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "listings",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "buildings",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "buildings",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "buildings",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "buildings",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "buildings",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "buildings",
+  "el": "a.ls-filterc__opt",
+  "text": "长宁1",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "buildings",
+  "el": "a.ls-filterc__switch",
+  "text": "仅看有在租5",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background"
+ },
+ {
+  "page": "buildings",
+  "el": "a.ls-toolbar__sort.ls-toolbar__sort--active",
+  "text": "在租最多",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "buildings",
+  "el": "a.ls-toolbar__sort",
+  "text": "在租面积",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "buildings",
+  "el": "a.sf-card.bd-card",
+  "text": "服务式办公南京西路高端商务中心上",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "transform, box-shadow"
+ },
+ {
+  "page": "buildings",
+  "el": "a.bd-row",
+  "text": "静安待租楼盘甲级 · 2020年",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background"
+ },
+ {
+  "page": "buildings",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "buildings",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "listing-detail",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "listing-detail",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "listing-detail",
+  "el": "a.breadcrumb__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.share-save-actions__btn",
+  "text": "分享",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color, border-color, background"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.btn.btn--ghost",
+  "text": "信息纠错",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.detail-gallery__main-media.detail-gallery__open",
+  "text": "查看全屏媒体：上海陆家嘴江景甲级",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "box-shadow, transform"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.detail-gallery__main-nav-button.detail-gallery__main-nav-button--prev",
+  "text": "‹",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, border-color, transform"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.detail-gallery__main-nav-button.detail-gallery__main-nav-button--next",
+  "text": "›",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, border-color, transform"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.detail-gallery__arrow.detail-gallery__arrow--prev",
+  "text": "‹",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.detail-gallery__thumb.detail-gallery__thumb--active",
+  "text": "上海陆家嘴江景甲级写字楼外景（第",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "border-color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.detail-gallery__thumb.",
+  "text": "现代办公楼开放式办公区（第 2 ",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "border-color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.detail-gallery__arrow.detail-gallery__arrow--next",
+  "text": "›",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.location-panel__poi-tab",
+  "text": "交通（6）",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color, border-color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.location-panel__poi-subtab",
+  "text": "地铁（1）",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, color"
+ },
+ {
+  "page": "listing-detail",
+  "el": "button.location-panel__poi-item",
+  "text": "A陆家嘴(地铁站)14号线2号线",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background"
+ },
+ {
+  "page": "listing-detail",
+  "el": "a.btn.btn--ghost",
+  "text": "查看楼盘",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "listing-detail",
+  "el": "a.listing-card.listing-card--grid",
+  "text": "整层办公陆家嘴 · 整层办公 1",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "box-shadow, border-color, transform"
+ },
+ {
+  "page": "listing-detail",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "listing-detail",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "building-detail",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "building-detail",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.dt-anchor-bar__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.breadcrumb__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "building-detail",
+  "el": "button.share-save-actions__btn",
+  "text": "分享",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color, border-color, background"
+ },
+ {
+  "page": "building-detail",
+  "el": "button.btn.btn--ghost",
+  "text": "信息纠错",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.building-supply-browser__tab",
+  "text": "租赁2",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.building-supply-browser__filter",
+  "text": "全部",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.ls-toolbar__sort.ls-toolbar__sort--active",
+  "text": "推荐排序",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.ls-toolbar__sort",
+  "text": "面积从小到大",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.building-supply-browser__table-link",
+  "text": "查看陆家嘴核心区 · 江景甲级办",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "building-detail",
+  "el": "button.location-panel__poi-tab",
+  "text": "交通（6）",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color, border-color"
+ },
+ {
+  "page": "building-detail",
+  "el": "button.location-panel__poi-subtab",
+  "text": "地铁（1）",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background, color"
+ },
+ {
+  "page": "building-detail",
+  "el": "button.location-panel__poi-item",
+  "text": "A陆家嘴(地铁站)14号线2号线",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "building-detail",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "entrust",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "entrust",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "entrust",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "entrust",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "entrust",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "entrust",
+  "el": "select.filter-bar__select",
+  "text": "上海杭州宁波苏州南京嘉兴无锡",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "default",
+  "transition": "border-color, box-shadow"
+ },
+ {
+  "page": "entrust",
+  "el": "input.filter-bar__input",
+  "text": "",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "text",
+  "transition": "border-color, box-shadow"
+ },
+ {
+  "page": "entrust",
+  "el": "a.",
+  "text": "《隐私政策》",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "entrust",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "entrust",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "publish",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "publish",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "publish",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "publish",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "publish",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "publish",
+  "el": "select.filter-bar__select",
+  "text": "上海杭州宁波苏州南京嘉兴无锡",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "default",
+  "transition": "border-color, box-shadow"
+ },
+ {
+  "page": "publish",
+  "el": "input.filter-bar__input",
+  "text": "",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "text",
+  "transition": "border-color, box-shadow"
+ },
+ {
+  "page": "publish",
+  "el": "a.",
+  "text": "《隐私政策》",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "publish",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "publish",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "news",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "news",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "news",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "news",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "news",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "news",
+  "el": "a.article-card__link",
+  "text": "市场洞察2026.07.2820",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "news",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "news",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "city-partner",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "city-partner",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "city-partner",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "city-partner",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "city-partner",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "city-partner",
+  "el": "select.filter-bar__select",
+  "text": "请选择城市上海杭州（筹备中）宁波",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "default",
+  "transition": "border-color, box-shadow"
+ },
+ {
+  "page": "city-partner",
+  "el": "input.filter-bar__input",
+  "text": "",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "text",
+  "transition": "border-color, box-shadow"
+ },
+ {
+  "page": "city-partner",
+  "el": "input.filter-bar__input.sf-num",
+  "text": "",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "text",
+  "transition": "border-color, box-shadow"
+ },
+ {
+  "page": "city-partner",
+  "el": "input.",
+  "text": "",
+  "hover": false,
+  "focus": true,
+  "active": false,
+  "cursor": "default",
+  "transition": "all"
+ },
+ {
+  "page": "city-partner",
+  "el": "a.",
+  "text": "隐私政策",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "city-partner",
+  "el": "button.btn.btn--ghost",
+  "text": "登记找房需求",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "city-partner",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "city-partner",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "privacy",
+  "el": "a.skip-link",
+  "text": "跳到主要内容",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "top"
+ },
+ {
+  "page": "privacy",
+  "el": "a.site-logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "privacy",
+  "el": "button.city-switcher__trigger",
+  "text": "上海",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "background-color, color"
+ },
+ {
+  "page": "privacy",
+  "el": "a.site-nav__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "privacy",
+  "el": "button.btn.btn--primary",
+  "text": "获取选址方案",
+  "hover": true,
+  "focus": true,
+  "active": true,
+  "cursor": "pointer",
+  "transition": "background-color, border-color, color, b"
+ },
+ {
+  "page": "privacy",
+  "el": "a.breadcrumb__link",
+  "text": "首页",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "color"
+ },
+ {
+  "page": "privacy",
+  "el": "a.site-footer__logo",
+  "text": "商办租赁",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ },
+ {
+  "page": "privacy",
+  "el": "a.site-footer__link",
+  "text": "在租房源",
+  "hover": true,
+  "focus": true,
+  "active": false,
+  "cursor": "pointer",
+  "transition": "all"
+ }
+]
