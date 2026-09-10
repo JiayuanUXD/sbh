@@ -65,12 +65,68 @@ describe('小程序工程入口合同', () => {
       backgroundColor: '#ffffff',
       borderStyle: 'black',
       list: [
-        { pagePath: 'pages/home/index', text: '首页' },
-        { pagePath: 'pages/listings/index', text: '找房' },
-        { pagePath: 'pages/buildings/index', text: '楼盘' },
-        { pagePath: 'pages/profile/index', text: '我的' },
+        {
+          pagePath: 'pages/home/index',
+          text: '首页',
+          iconPath: 'assets/tabbar/home.png',
+          selectedIconPath: 'assets/tabbar/home-selected.png',
+        },
+        {
+          pagePath: 'pages/listings/index',
+          text: '找房',
+          iconPath: 'assets/tabbar/listings.png',
+          selectedIconPath: 'assets/tabbar/listings-selected.png',
+        },
+        {
+          pagePath: 'pages/buildings/index',
+          text: '楼盘',
+          iconPath: 'assets/tabbar/buildings.png',
+          selectedIconPath: 'assets/tabbar/buildings-selected.png',
+        },
+        {
+          pagePath: 'pages/profile/index',
+          text: '我的',
+          iconPath: 'assets/tabbar/profile.png',
+          selectedIconPath: 'assets/tabbar/profile-selected.png',
+        },
       ],
     })
+  })
+
+  it('为四个 tab 提供尺寸一致的透明 PNG 双态图标', () => {
+    const app = readJson('miniprogram/app.json')
+    const tabBar = app.tabBar as
+      | {
+          list?: Array<{
+            iconPath?: unknown
+            selectedIconPath?: unknown
+          }>
+        }
+      | undefined
+
+    expect(tabBar?.list).toHaveLength(4)
+
+    for (const item of tabBar?.list ?? []) {
+      const iconBuffers: Buffer[] = []
+
+      for (const iconPath of [item.iconPath, item.selectedIconPath]) {
+        expect(typeof iconPath).toBe('string')
+        const iconFile = resolve(miniprogramRoot, iconPath as string)
+        expect(existsSync(iconFile)).toBe(true)
+
+        const png = readFileSync(iconFile)
+        iconBuffers.push(png)
+        expect(png.subarray(0, 8)).toEqual(
+          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        )
+        expect(png.readUInt32BE(16)).toBe(81)
+        expect(png.readUInt32BE(20)).toBe(81)
+        expect(png.readUInt8(25)).toBe(6)
+        expect(png.byteLength).toBeLessThanOrEqual(40 * 1024)
+      }
+
+      expect(iconBuffers[0]).not.toEqual(iconBuffers[1])
+    }
   })
 
   it('锁定与 jsdom 和 Vite 兼容的 Node 版本边界', () => {

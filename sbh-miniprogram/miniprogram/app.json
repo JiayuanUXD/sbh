@@ -20,10 +20,30 @@
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
-      { "pagePath": "pages/home/index", "text": "首页" },
-      { "pagePath": "pages/listings/index", "text": "找房" },
-      { "pagePath": "pages/buildings/index", "text": "楼盘" },
-      { "pagePath": "pages/profile/index", "text": "我的" }
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "assets/tabbar/home.png",
+        "selectedIconPath": "assets/tabbar/home-selected.png"
+      },
+      {
+        "pagePath": "pages/listings/index",
+        "text": "找房",
+        "iconPath": "assets/tabbar/listings.png",
+        "selectedIconPath": "assets/tabbar/listings-selected.png"
+      },
+      {
+        "pagePath": "pages/buildings/index",
+        "text": "楼盘",
+        "iconPath": "assets/tabbar/buildings.png",
+        "selectedIconPath": "assets/tabbar/buildings-selected.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/tabbar/profile.png",
+        "selectedIconPath": "assets/tabbar/profile-selected.png"
+      }
     ]
   },
   "style": "v2",
