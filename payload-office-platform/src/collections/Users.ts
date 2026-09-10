@@ -1,8 +1,8 @@
-import type { CollectionConfig, Field } from 'payload'
+import type { CollectionConfig, Field, FieldAccess } from 'payload'
 import { normalizePhone } from '@/domain/shared/phone'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getUserMaskRules } from '@/domain/auth/field-mask'
-import { getPermissionContext } from '@/domain/auth/access'
+import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import {
   protectLastAdminBeforeChange,
@@ -10,6 +10,26 @@ import {
   protectSelfPrivilegeEscalation,
 } from '@/domain/auth/user-protect'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+
+/**
+ * 敏感字段的字段级写权限：`roles` / `cityScope` / `status` 直接决定权限与数据范围，
+ * 只有具备 `user:manage` 的账号才能改。
+ *
+ * 为什么必须放在字段层（M1 审查 P0「自我提权」的正式收口）：
+ * 集合层 `access.update` 对「自己改自己」整体放行（否则没人能改自己的密码和姓名），
+ * 于是集合层拦不住自改 `roles`。Payload 对被拒的字段是 `delete` 后立刻用
+ * `getFallbackValue` 回填**原文档的值**
+ * （`payload/dist/fields/hooks/beforeValidate/promise.js`），因此字段既改不动，
+ * 也不会变成缺失去触发 `status` 的必填校验——这正是钩子式「剥离」做不到的那一点。
+ *
+ * 该函数在 `overrideAccess: true` 时被 Payload 整体跳过（seed、首建管理员、
+ * 登录时回写 failedLoginCount 等内部写入都走这条路），第二道防线是
+ * `protectSelfPrivilegeEscalation`。
+ */
+const requireUserManage: FieldAccess = async ({ req }) => {
+  const ctx = await getPermissionContext(req as RequestContext)
+  return Boolean(ctx && hasOperationPermission(ctx, 'user:manage'))
+}
 
 /**
  * 用户账号 Collection（tasks.md M1.1, design.md §3.1）
@@ -144,6 +164,8 @@ export const Users: CollectionConfig = {
           type: 'select',
           defaultValue: 'active',
           required: true,
+          // 自改会变成"自行解除停用/锁定"，见 requireUserManage 的注释
+          access: { update: requireUserManage },
           options: [
             { label: '启用', value: 'active' },
             { label: '停用', value: 'disabled' },
@@ -162,6 +184,8 @@ export const Users: CollectionConfig = {
       type: 'relationship',
       relationTo: 'roles',
       hasMany: true,
+      // 自改即自我提权（低权账号给自己加 ADM），见 requireUserManage 的注释
+      access: { update: requireUserManage },
       admin: {
         description: '可绑定多个角色；最终权限采用允许并集，账号城市作为最终上限。',
       },
@@ -172,6 +196,8 @@ export const Users: CollectionConfig = {
       type: 'relationship',
       relationTo: 'locations',
       hasMany: true,
+      // 自改即扩大数据范围上限，见 requireUserManage 的注释
+      access: { update: requireUserManage },
       admin: {
         description:
           '账号城市绑定（多城市）。留空表示无城市上限（受角色 dataScope 约束）。',

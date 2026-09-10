@@ -319,11 +319,16 @@ function makeLowPrivRole(): Role {
 }
 
 describe('user-protect/selfPrivilegeEscalation', () => {
-  it('低权账号自改 roles/cityScope/status → 敏感字段被剥离', async () => {
+  it('低权账号自改 roles/cityScope/status → 敏感字段被回退为原值', async () => {
     const lowRole = makeLowPrivRole()
     const actor = makeUser({ id: 100, roles: [9] })
     const { payload, user } = makeSelfReq({ actor, actorRoles: [lowRole] })
-    const originalDoc = makeUser({ id: 100, roles: [9], status: 'active' })
+    const originalDoc = makeUser({
+      id: 100,
+      roles: [9],
+      cityScope: [3],
+      status: 'active',
+    })
 
     const data = await protectSelfPrivilegeEscalation({
       operation: 'update',
@@ -332,17 +337,61 @@ describe('user-protect/selfPrivilegeEscalation', () => {
         name: '改个名字',
         roles: [1], // 试图给自己加 ADM
         cityScope: [5],
-        status: 'active',
+        status: 'disabled',
       },
       req: { user, payload } as never,
     } as never)
 
     // 非敏感字段保留
     expect(data.name).toBe('改个名字')
-    // 敏感字段被剥离（保留 originalDoc 原值）
-    expect('roles' in data).toBe(false)
-    expect('cityScope' in data).toBe(false)
-    expect('status' in data).toBe(false)
+    // 敏感字段回退为 originalDoc 的值——提权不成立
+    expect(data.roles).toEqual([9])
+    expect(data.cityScope).toEqual([3])
+    expect(data.status).toBe('active')
+  })
+
+  it('回退而不是 delete：status 是 required，删掉它会让整条自改请求 400', async () => {
+    // 2026-09-11 实测：钩子早先 `delete data.status`，而字段校验跑在集合 beforeChange
+    // 之后，于是 BRK 在后台账户页改个姓名点保存就得到
+    // 「账号状态：该字段为必填项目」400。这条断言锁住"字段必须仍在 data 里"。
+    const lowRole = makeLowPrivRole()
+    const actor = makeUser({ id: 100, roles: [9] })
+    const { payload, user } = makeSelfReq({ actor, actorRoles: [lowRole] })
+    const originalDoc = makeUser({ id: 100, roles: [9], status: 'active' })
+
+    const data = await protectSelfPrivilegeEscalation({
+      operation: 'update',
+      originalDoc,
+      data: { name: '只改姓名', status: 'active' },
+      req: { user, payload } as never,
+    } as never)
+
+    expect('status' in data).toBe(true)
+    expect(data.status).toBe('active')
+  })
+
+  it('originalDoc 的关系字段是文档数组时，回退值归一成 ID', async () => {
+    // depth>=1 时 originalDoc.roles 是文档数组；直接塞回 data 会让 Payload 收到
+    // 意料之外的形状，因此回退时统一取 id。
+    const lowRole = makeLowPrivRole()
+    const actor = makeUser({ id: 100, roles: [9] })
+    const { payload, user } = makeSelfReq({ actor, actorRoles: [lowRole] })
+    const originalDoc = makeUser({
+      id: 100,
+      roles: [lowRole] as never,
+      cityScope: [{ id: 3, name: '上海' }] as never,
+      status: 'active',
+    })
+
+    const data = await protectSelfPrivilegeEscalation({
+      operation: 'update',
+      originalDoc,
+      data: { roles: [1], cityScope: [5], status: 'active' },
+      req: { user, payload } as never,
+    } as never)
+
+    expect(data.roles).toEqual([9])
+    expect(data.cityScope).toEqual([3])
   })
 
   it('低权账号自改仅非敏感字段（密码/姓名）→ 原样放行', async () => {

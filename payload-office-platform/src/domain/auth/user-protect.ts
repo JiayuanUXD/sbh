@@ -73,20 +73,41 @@ async function findActiveAdminUsers(params: {
  */
 const SELF_PROTECTED_FIELDS = ['roles', 'cityScope', 'status'] as const
 
+/** 把 relationship 值归一成 ID 数组（originalDoc 在 depth>=1 时给的是文档数组） */
+function toRelationshipIds(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return typeof value === 'object' && value !== null && 'id' in value
+      ? (value as { id: unknown }).id
+      : value
+  }
+  return value.map((item) =>
+    typeof item === 'object' && item !== null && 'id' in item
+      ? (item as { id: unknown }).id
+      : item,
+  )
+}
+
 /**
  * beforeChange hook：阻止用户给自己提权（tasks.md M1.5, design.md §6.1）。
  *
- * 背景（P0 修复）：Users.access.update 对"自己改自己"整体放行（便于改密码/姓名），
+ * 背景（P0）：Users.access.update 对"自己改自己"整体放行（便于改密码/姓名），
  * 但这会连带放行 roles/cityScope/status → 低权账号可给自己加 ADM 角色。
+ *
+ * 主防线是这三个字段各自的**字段级 access.update**（见 collections/Users.ts，判据
+ * 同为 user:manage）。本钩子是第二道：字段级 access 在 `overrideAccess: true` 时
+ * 被整体跳过，而 Local API 调用方可能带着低权 req.user 走这条路。
  *
  * 策略：
  *   - 仅当"操作者 === 被改账号"且操作者不具备 user:manage 时生效
- *   - 静默剥离 data 中的敏感字段（删除即保留 originalDoc 原值），不抛错
+ *   - 把敏感字段**回退成 originalDoc 的值**，不抛错
  *   - 他人修改（管理员改别人）由 Collection access.update 的 user:manage 把关，不进此分支
  *   - overrideAccess（seed / 首次建管理员）时 req.user 为空 → 直接放行
  *
- * 为何删字段而非比对：relationship 值在 data 里可能是 ID 数组、在 originalDoc 里是文档数组，
- * 直接比对易误判；删除未授权字段让 Payload 保留原值，行为确定且无副作用。
+ * ⚠️ 为什么是"回退"而不是"delete"：字段校验跑在集合 beforeChange **之后**，
+ * 而 `status` 是 `required`——删掉它会让低权账号的**任何**自改请求
+ * （哪怕只改姓名）都返回 400「账号状态：该字段为必填项目」。
+ * 2026-09-11 在后台账户页实测复现过，见 artifacts/verification/OPT-091/。
+ * 回退值统一归一成 ID，避免 depth>=1 时把文档数组塞回 data。
  */
 export const protectSelfPrivilegeEscalation: CollectionBeforeChangeHook<User> = async ({
   operation,
@@ -104,10 +125,12 @@ export const protectSelfPrivilegeEscalation: CollectionBeforeChangeHook<User> = 
   const ctx = await getPermissionContext(req as RequestContext)
   if (ctx && hasOperationPermission(ctx, 'user:manage')) return data
 
-  // 剥离敏感字段：删除即保留 originalDoc 原值
+  // 回退敏感字段为 originalDoc 的值（而不是删除，见上面的注释）
   for (const field of SELF_PROTECTED_FIELDS) {
     if (field in data) {
-      delete (data as Record<string, unknown>)[field]
+      ;(data as Record<string, unknown>)[field] = toRelationshipIds(
+        (originalDoc as unknown as Record<string, unknown>)[field],
+      )
     }
   }
   return data
