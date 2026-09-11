@@ -1,0 +1,50 @@
+{
+  "proof": "三重铁证之一：短信验证码登录抓包",
+  "request": {
+    "url": "http://localhost:3717/api/member/login/sms",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "http://localhost:3717/login",
+      "accept-language": "en-US",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-prefers-color-scheme": "light",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36",
+      "content-type": "application/json"
+    },
+    "postData": {
+      "phone": "13800008888",
+      "code": "123456",
+      "consent": {
+        "accepted": true,
+        "policyVersion": "MVP-R2"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "transfer-encoding": "chunked",
+      "cache-control": "no-store",
+      "accept-ch": "Sec-CH-Prefers-Color-Scheme",
+      "connection": "keep-alive",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "x-content-type-options": "nosniff",
+      "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), interest-cohort=()",
+      "critical-ch": "Sec-CH-Prefers-Color-Scheme",
+      "keep-alive": "timeout=5",
+      "date": "Fri, 11 Sep 2026 03:02:34 GMT",
+      "content-type": "application/json",
+      "vary": "Sec-CH-Prefers-Color-Scheme, rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "x-frame-options": "DENY"
+    },
+    "json": null
+  },
+  "cookie": {
+    "name": "sbh-member-token",
+    "httpOnly": true,
+    "sameSite": "Lax",
+    "path": "/"
+  }
+}
