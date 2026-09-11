@@ -26,6 +26,7 @@ function makeUser(): User {
     updatedAt: '',
     createdAt: '',
     collection: 'users',
+    roles: [1],
   } as unknown as User
 }
 

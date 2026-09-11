@@ -23,6 +23,7 @@ import {
   SAVED_CHANGE_EVENT,
   type SavedDetail,
 } from '@/lib/frontend/saved-details'
+import { useMember } from '@/components/frontend/member/MemberProvider'
 
 type ShareSaveActionsProps = Readonly<{
   canonicalUrl: string
@@ -54,6 +55,9 @@ function subscribeSaved(callback: () => void): () => void {
 }
 
 export default function ShareSaveActions({ canonicalUrl, savedDetail }: ShareSaveActionsProps) {
+  const { member, isFavorite, addFavorite, removeFavorite, favoritesReady } = useMember()
+  const memberSaved = member ? isFavorite(savedDetail.type, savedDetail.id) : false
+  const [memberError, setMemberError] = useState<string | null>(null)
   const lsAvailable = useSyncExternalStore(
     subscribeLsAvailability,
     isLocalStorageAvailable,
@@ -65,6 +69,9 @@ export default function ShareSaveActions({ canonicalUrl, savedDetail }: ShareSav
     () => false,
   )
   const [shareFeedback, setShareFeedback] = useState<string | null>(null)
+
+  const effectiveSaved = member ? memberSaved : saved
+  const canToggle = member ? favoritesReady : lsAvailable
 
   useEffect(() => {
     if (shareFeedback === null) return
@@ -90,7 +97,15 @@ export default function ShareSaveActions({ canonicalUrl, savedDetail }: ShareSav
     }
   }
 
-  const handleToggleSave = () => {
+  const handleToggleSave = async () => {
+    if (member) {
+      setMemberError(null)
+      const err = effectiveSaved
+        ? await removeFavorite({ type: savedDetail.type, id: savedDetail.id })
+        : await addFavorite({ type: savedDetail.type, id: savedDetail.id, slug: savedDetail.slug })
+      if (err) setMemberError(err)
+      return
+    }
     if (!lsAvailable) return
     if (saved) {
       removeDetail(savedDetail.type, savedDetail.id)
@@ -117,23 +132,28 @@ export default function ShareSaveActions({ canonicalUrl, savedDetail }: ShareSav
       <button
         type="button"
         className="share-save-actions__btn"
-        aria-label={saved ? '取消收藏' : '收藏'}
-        aria-pressed={saved}
+        aria-label={effectiveSaved ? '取消收藏' : '收藏'}
+        aria-pressed={effectiveSaved}
         onClick={handleToggleSave}
-        disabled={!lsAvailable}
+        disabled={!canToggle}
       >
-        {saved ? '已收藏' : '收藏'}
+        {effectiveSaved ? '已收藏' : '收藏'}
       </button>
       {shareFeedback !== null && (
         <span className="share-save-actions__feedback" role="status" aria-live="polite">
           {shareFeedback}
         </span>
       )}
-      {!lsAvailable && (
+      {!member && !lsAvailable && (
         <span className="share-save-actions__hint" role="note">
           浏览器限制了保存，收藏暂时用不了
         </span>
       )}
+      {memberError ? (
+        <span className="share-save-actions__hint" role="alert">
+          {memberError}
+        </span>
+      ) : null}
     </div>
   )
 }

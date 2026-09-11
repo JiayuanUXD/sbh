@@ -1,0 +1,67 @@
+================================================================================
+OPT-088 全量门禁检查摘要
+================================================================================
+
+1. TYPECHECK (pnpm typecheck)
+--------------------------------------------------------------------------------
+> payload-office-platform@0.1.0 typecheck
+> tsc --noEmit
+Exit Code: 0 (0 errors)
+
+2. ESLINT (pnpm lint)
+--------------------------------------------------------------------------------
+> payload-office-platform@0.1.0 lint
+> eslint .
+Exit Code: 0 (0 errors, 34 warnings - 全部为既有组件 next/image 提示)
+
+3. VITEST 全量单测 (pnpm test)
+--------------------------------------------------------------------------------
+Test Files  372 passed | 8 skipped (380)
+Tests       4942 passed | 41 skipped (4983)
+Duration    110.52s
+Exit Code: 0
+
+4. 迁移 DRY RUN (pnpm migrate:dry-run)
+--------------------------------------------------------------------------------
+- 20260910_233152_opt_088_members
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260910_233153_opt_088_grant_ops_member_codes
+    up: true, down: true, json: false
+    no forbidden patterns
+Exit Code: 0
+
+5. NEXT.JS 生产构建 (pnpm build)
+--------------------------------------------------------------------------------
+▲ Next.js 16.2.10 (Turbopack)
+✓ Compiled successfully in 24.2s
+✓ Finished TypeScript in 21.2s
+✓ Generating static pages using 7 workers (24/24)
+Route (app)
+├ ƒ /account
+├ ƒ /account/favorites
+├ ƒ /api/member/favorites
+├ ƒ /api/member/favorites/merge
+├ ƒ /api/member/login/password
+├ ƒ /api/member/login/sms
+├ ƒ /api/member/logout
+├ ƒ /api/member/me
+├ ƒ /api/member/password
+├ ƒ /api/member/profile
+├ ƒ /api/member/sms/send
+├ ƒ /login
+├ ƒ /login/reset
+Exit Code: 0
+
+6. 生产守卫自检 (vitest run tests/member-sms-provider.test.ts tests/config-guard.test.ts)
+--------------------------------------------------------------------------------
+✓ tests/member-sms-provider.test.ts (4 tests)
+✓ tests/config-guard.test.ts (18 tests)
+Test Files  2 passed (2)
+Tests       22 passed (22)
+Exit Code: 0
+
+7. E2E 测试 (playwright test tests/e2e/member-auth.spec.ts)
+--------------------------------------------------------------------------------
+15 passed (10.9s)
+全部 15 项会员认证场景（REST 封口、短信登录、限流、密码登录、会话保持、未登录重定向、收藏同步）均通过

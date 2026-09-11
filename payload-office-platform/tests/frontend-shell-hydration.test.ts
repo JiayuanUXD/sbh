@@ -62,6 +62,11 @@ vi.mock('@/lib/frontend/analytics/web-vitals', () => ({
   initWebVitals: async () => () => undefined,
 }))
 
+vi.mock('@/domain/member/current-member', () => ({
+  getCurrentMember: async () => null,
+  getCurrentMemberDto: async () => null,
+}))
+
 import RootLayout from '@/app/(frontend)/layout'
 import SiteHeader from '@/components/frontend/SiteHeader'
 import SiteFooter from '@/components/frontend/SiteFooter'
@@ -130,6 +135,7 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
     // 导航与菜单按钮必须在 shell 里直接出现，而不是滞留在边界内容中
     expect(html).toContain('class="site-nav"')
     expect(html).toContain('class="site-menu-toggle"')
+    expect(html).toContain('member-login')
   })
 
   it('SiteFooter 的外壳内容紧跟容器，未被边界标记顶掉', async () => {
@@ -143,6 +149,7 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
     )
     expect(html).toMatch(/<footer class="site-footer"><div class="site-footer__inner"[^>]*>/)
     expect(html).toContain('class="site-footer__logo"')
+    expect(html).toContain('员工入口')
   })
 
   it('页脚栅格列数跟着「页脚分组」的行数走，不再写死 4 轨', async () => {
@@ -176,6 +183,8 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
     expect(html).toMatch(/<div class="site-header__inner"><a class="site-logo"/)
     expect(html).toMatch(/<footer class="site-footer"><div class="site-footer__inner"[^>]*>/)
     expect(html).toContain('class="site-menu-toggle"')
+    expect(html).toContain('member-login')
+    expect(html).toContain('员工入口')
   })
 
   it('外壳源码不得再消费 query 或引入流式边界', async () => {

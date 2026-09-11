@@ -1,5 +1,6 @@
 import { NumberField } from '@nouance/payload-better-fields-plugin/Number'
 import { createCollectionAccess } from '@/domain/auth/access'
+import { isStaffRequest } from '@/domain/member/member-access'
 import type { CollectionBeforeChangeHook, CollectionConfig, Field, Where } from 'payload'
 
 import {
@@ -235,7 +236,7 @@ export const Listings: CollectionConfig = {
      *     `return true` 走原路。真正被拦的只有匿名 REST / GraphQL。
      */
     read: ({ req }) => {
-      if (req.user) return true
+      if (isStaffRequest(req)) return true
       return getEffectiveSupplyWhere(new Date()) as Where
     },
     /**
@@ -640,7 +641,7 @@ export const Listings: CollectionConfig = {
                       '仅后台可见，前台不展示。同一楼盘内不可重复，用于区分同层同面积的房源。',
                   },
                   access: {
-                    read: ({ req }) => Boolean(req.user),
+                    read: ({ req }) => isStaffRequest(req),
                   },
                 },
               ],

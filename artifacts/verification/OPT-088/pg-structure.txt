@@ -1,0 +1,96 @@
+                                                Table "public.members"
+          Column           |            Type             | Collation | Nullable |               Default               
+---------------------------+-----------------------------+-----------+----------+-------------------------------------
+ id                        | integer                     |           | not null | nextval('members_id_seq'::regclass)
+ nickname                  | character varying           |           |          | 
+ status                    | enum_members_status         |           | not null | 'active'::enum_members_status
+ has_password              | boolean                     |           |          | false
+ last_login_at             | timestamp(3) with time zone |           |          | 
+ wechat_union_id           | character varying           |           |          | 
+ wechat_open_id            | character varying           |           |          | 
+ wechat_bound_at           | timestamp(3) with time zone |           |          | 
+ consent_policy_version    | character varying           |           | not null | 
+ consent_accepted_at       | timestamp(3) with time zone |           | not null | 
+ updated_at                | timestamp(3) with time zone |           | not null | now()
+ created_at                | timestamp(3) with time zone |           | not null | now()
+ email                     | character varying           |           |          | 
+ username                  | character varying           |           | not null | 
+ reset_password_token      | character varying           |           |          | 
+ reset_password_expiration | timestamp(3) with time zone |           |          | 
+ salt                      | character varying           |           |          | 
+ hash                      | character varying           |           |          | 
+ login_attempts            | numeric                     |           |          | 0
+ lock_until                | timestamp(3) with time zone |           |          | 
+Indexes:
+    "members_pkey" PRIMARY KEY, btree (id)
+    "members_created_at_idx" btree (created_at)
+    "members_updated_at_idx" btree (updated_at)
+    "members_username_idx" UNIQUE, btree (username)
+    "members_wechat_union_id_idx" UNIQUE, btree (wechat_union_id)
+Referenced by:
+    TABLE "member_favorites" CONSTRAINT "member_favorites_member_id_members_id_fk" FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
+    TABLE "members_sessions" CONSTRAINT "members_sessions_parent_id_fk" FOREIGN KEY (_parent_id) REFERENCES members(id) ON DELETE CASCADE
+    TABLE "payload_locked_documents_rels" CONSTRAINT "payload_locked_documents_rels_members_fk" FOREIGN KEY (members_id) REFERENCES members(id) ON DELETE CASCADE
+    TABLE "payload_preferences_rels" CONSTRAINT "payload_preferences_rels_members_fk" FOREIGN KEY (members_id) REFERENCES members(id) ON DELETE CASCADE
+
+                                          Table "public.member_sms_codes"
+   Column    |             Type              | Collation | Nullable |                   Default                    
+-------------+-------------------------------+-----------+----------+----------------------------------------------
+ id          | integer                       |           | not null | nextval('member_sms_codes_id_seq'::regclass)
+ phone       | character varying             |           | not null | 
+ purpose     | enum_member_sms_codes_purpose |           | not null | 
+ code_hash   | character varying             |           | not null | 
+ expires_at  | timestamp(3) with time zone   |           | not null | 
+ attempts    | numeric                       |           | not null | 0
+ consumed_at | timestamp(3) with time zone   |           |          | 
+ ip_hash     | character varying             |           |          | 
+ updated_at  | timestamp(3) with time zone   |           | not null | now()
+ created_at  | timestamp(3) with time zone   |           | not null | now()
+Indexes:
+    "member_sms_codes_pkey" PRIMARY KEY, btree (id)
+    "member_sms_codes_created_at_idx" btree (created_at)
+    "member_sms_codes_expires_at_idx" btree (expires_at)
+    "member_sms_codes_phone_idx" btree (phone)
+    "member_sms_codes_updated_at_idx" btree (updated_at)
+Referenced by:
+    TABLE "payload_locked_documents_rels" CONSTRAINT "payload_locked_documents_rels_member_sms_codes_fk" FOREIGN KEY (member_sms_codes_id) REFERENCES member_sms_codes(id) ON DELETE CASCADE
+
+                                             Table "public.member_favorites"
+     Column     |               Type                | Collation | Nullable |                   Default                    
+----------------+-----------------------------------+-----------+----------+----------------------------------------------
+ id             | integer                           |           | not null | nextval('member_favorites_id_seq'::regclass)
+ member_id      | integer                           |           | not null | 
+ target_type    | enum_member_favorites_target_type |           | not null | 
+ target_id      | numeric                           |           | not null | 
+ target_slug    | character varying                 |           | not null | 
+ title_snapshot | character varying                 |           | not null | 
+ saved_at       | timestamp(3) with time zone       |           | not null | 
+ target_key     | character varying                 |           | not null | 
+ updated_at     | timestamp(3) with time zone       |           | not null | now()
+ created_at     | timestamp(3) with time zone       |           | not null | now()
+Indexes:
+    "member_favorites_pkey" PRIMARY KEY, btree (id)
+    "member_favorites_created_at_idx" btree (created_at)
+    "member_favorites_member_idx" btree (member_id)
+    "member_favorites_target_key_idx" UNIQUE, btree (target_key)
+    "member_favorites_updated_at_idx" btree (updated_at)
+Foreign-key constraints:
+    "member_favorites_member_id_members_id_fk" FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL
+Referenced by:
+    TABLE "payload_locked_documents_rels" CONSTRAINT "payload_locked_documents_rels_member_favorites_fk" FOREIGN KEY (member_favorites_id) REFERENCES member_favorites(id) ON DELETE CASCADE
+
+                      Table "public.members_sessions"
+   Column   |            Type             | Collation | Nullable | Default 
+------------+-----------------------------+-----------+----------+---------
+ _order     | integer                     |           | not null | 
+ _parent_id | integer                     |           | not null | 
+ id         | character varying           |           | not null | 
+ created_at | timestamp(3) with time zone |           |          | 
+ expires_at | timestamp(3) with time zone |           | not null | 
+Indexes:
+    "members_sessions_pkey" PRIMARY KEY, btree (id)
+    "members_sessions_order_idx" btree (_order)
+    "members_sessions_parent_id_idx" btree (_parent_id)
+Foreign-key constraints:
+    "members_sessions_parent_id_fk" FOREIGN KEY (_parent_id) REFERENCES members(id) ON DELETE CASCADE
+

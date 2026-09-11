@@ -1,0 +1,20 @@
+Listing tests:
+  [chromium] › member-auth.spec.ts:19:5 › Payload 自带的会员 auth 端点已封 › POST /api/members/login → 404
+  [chromium] › member-auth.spec.ts:19:5 › Payload 自带的会员 auth 端点已封 › POST /api/members/logout → 404
+  [chromium] › member-auth.spec.ts:19:5 › Payload 自带的会员 auth 端点已封 › POST /api/members/refresh-token → 404
+  [chromium] › member-auth.spec.ts:19:5 › Payload 自带的会员 auth 端点已封 › POST /api/members/me → 404
+  [chromium] › member-auth.spec.ts:19:5 › Payload 自带的会员 auth 端点已封 › POST /api/members/first-register → 404
+  [chromium] › member-auth.spec.ts:19:5 › Payload 自带的会员 auth 端点已封 › POST /api/members/forgot-password → 404
+  [chromium] › member-auth.spec.ts:19:5 › Payload 自带的会员 auth 端点已封 › POST /api/members/reset-password → 404
+  [chromium] › member-auth.spec.ts:19:5 › Payload 自带的会员 auth 端点已封 › POST /api/members/unlock → 404
+  [chromium] › member-auth.spec.ts:24:3 › Payload 自带的会员 auth 端点已封 › 匿名 POST /api/members 被拒
+  [chromium] › member-auth.spec.ts:31:3 › 验证码登录 › 未勾同意 → CONSENT_REQUIRED；勾选后登录并进入账户页
+  [chromium] › member-auth.spec.ts:52:3 › 验证码登录 › 60 秒内重复发码 → 429
+  [chromium] › member-auth.spec.ts:70:3 › 密码登录与会话 › 错密码统一文案；对密码登录；退出后 me 为 null
+  [chromium] › member-auth.spec.ts:85:3 › 密码登录与会话 › 未登录访问账户页跳登录并带 returnTo
+  [chromium] › member-auth.spec.ts:90:3 › 密码登录与会话 › 页脚员工入口指向后台登录
+  [chromium] › member-auth.spec.ts:97:3 › 密码登录与会话 › 本地收藏在登录后合并到账号
+Total: 15 tests in 1 file
+
+Run Result (production server with SMS_PROVIDER=fixture):
+  15 passed (10.9s)

@@ -27,6 +27,8 @@ export const MENU_CODES = [
   'listing-reviews',
   'leads',
   'customers',
+  // 会员（OPT-088）：C 端注册用户，与 customers（CRM 客户档案）是两张表
+  'members',
   'follow-ups',
   // 组织与商户
   'merchants',
@@ -128,6 +130,8 @@ export const OPERATION_CODES = [
   'dictionary:manage',
   // 系统管理
   'user:manage', // 创建/启停账号
+  // 会员管理（OPT-088）：读列表 / 改昵称与状态 / 解锁；会员自己的操作不经此码，走 /api/member/*
+  'member:manage',
   'role:manage', // 创建/复制/编辑角色
   'audit:view', // 查看审计日志详情
   'audit:export', // 导出审计日志

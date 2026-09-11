@@ -111,7 +111,7 @@ function leafLabelsOfGroup(entries: readonly ResolvedAdminNavEntry[], label: str
 }
 
 describe('五角色导航快照（canReadCollection 桩按真实 collection access 对齐）', () => {
-  it('ADM：八个组全在，没有扁平叶，39 片叶子', async () => {
+  it('ADM：八个组全在，没有扁平叶，40 片叶子', async () => {
     const navigation = await navigationFor('ADM')
 
     expect(groupLabels(navigation)).toEqual([
@@ -125,10 +125,10 @@ describe('五角色导航快照（canReadCollection 桩按真实 collection acce
       '设置与工具',
     ])
     expect(flatLeafLabels(navigation)).toEqual([])
-    expect(leafCount(navigation)).toBe(39)
+    expect(leafCount(navigation)).toBe(40)
   })
 
-  it('OPS：五个组 + 扁平叶「配套字典」，24 片叶子', async () => {
+  it('OPS：五个组 + 两片扁平叶「会员」「配套字典」，25 片叶子', async () => {
     const navigation = await navigationFor('OPS')
 
     expect(groupLabels(navigation)).toEqual([
@@ -138,8 +138,8 @@ describe('五角色导航快照（canReadCollection 桩按真实 collection acce
       '站点与内容',
       '城市与区域',
     ])
-    expect(flatLeafLabels(navigation)).toEqual(['配套字典'])
-    expect(leafCount(navigation)).toBe(24)
+    expect(flatLeafLabels(navigation)).toEqual(['会员', '配套字典'])
+    expect(leafCount(navigation)).toBe(25)
 
     // 「信息纠错」（缺 correction:read）与「城市合伙人申请」（城市范围判 false）
     // 两片按真实 collection access 隐藏，浏览器实测同此，故是 5 片而非 7 片。

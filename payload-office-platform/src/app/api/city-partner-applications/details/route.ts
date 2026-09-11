@@ -15,17 +15,12 @@ import {
   validateCityPartnerDetailsBody,
 } from '../request-guards'
 import { detailsRatePruneRef } from '../rate-limit-state'
+import { clientIp } from '@/lib/api/request-guards'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const MAX_BODY_BYTES = 16 * 1024
-
-function clientIp(req: Request): string {
-  const forwarded = req.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  return req.headers.get('x-real-ip')?.trim() || 'unknown'
-}
 
 function dailyIpHash(req: Request): string {
   return createHash('sha256')

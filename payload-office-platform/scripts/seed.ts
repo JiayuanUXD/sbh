@@ -7,6 +7,7 @@ import type { Lead } from '../src/payload-types'
 import { BUILTIN_ROLES } from '../src/test/factory/roles'
 import { syncBuiltinRoles } from '../src/domain/auth/sync-builtin-roles'
 import { CITY_SITE_PROFILE_SEEDS } from '../src/migrations/20260813_011000_seed_city_site_profiles'
+import { PRIVACY_POLICY_VERSION } from '../src/lib/frontend/site-config'
 
 type AnyDoc = {
   id: number
@@ -216,6 +217,42 @@ async function seed() {
   }
 
   console.log('E2E Users synced!');
+
+  // === OPT-088：E2E 会员夹具（前台登录用；生产不跑 seed）===
+  const e2eMemberPhone = '13800009999'
+  const existingMember = await payload.find({
+    collection: 'members',
+    where: { username: { equals: e2eMemberPhone } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  if (existingMember.docs[0]) {
+    await payload.update({
+      collection: 'members',
+      id: existingMember.docs[0].id,
+      data: { status: 'active', hasPassword: true, password: 'Member1234!' },
+      overrideAccess: true,
+      context: { memberFlow: 'seed' },
+    })
+    payload.logger.info('E2E 会员已存在，已重置密码与状态')
+  } else {
+    await payload.create({
+      collection: 'members',
+      data: {
+        username: e2eMemberPhone,
+        password: 'Member1234!',
+        nickname: 'E2E 会员',
+        hasPassword: true,
+        status: 'active',
+        consentPolicyVersion: PRIVACY_POLICY_VERSION,
+        consentAcceptedAt: new Date().toISOString(),
+      },
+      overrideAccess: true,
+      context: { memberFlow: 'seed' },
+    })
+    payload.logger.info('E2E 会员创建完成')
+  }
 
   console.log('Upserting locations...');
   const shanghai = await upsertBySlug<AnyDoc>(payload, 'locations', 'shanghai', {

@@ -99,6 +99,8 @@ function FooterContents({
         <div className="site-footer__bar-inner">
           <span>© {year} {settings.copyrightHolder}</span>
           <span>{cityName ? `${cityName} · ` : ''}{settings.footerTaglineSuffix}</span>
+          {/* OPT-088：员工入口放页脚不放顶栏——公开访客用不到，不该占首屏动作区 */}
+          <a href="/admin/login" rel="nofollow" className="site-footer__staff-link">员工入口</a>
         </div>
       </div>
     </footer>

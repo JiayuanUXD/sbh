@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isStaffRequest } from '@/domain/member/member-access'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getLeadMaskRules } from '@/domain/auth/field-mask'
 import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
@@ -575,7 +576,7 @@ export const Leads: CollectionConfig = {
                       // 读不到。它虽不含 PII，但能在 Umami 侧定位到一条完整浏览路径，
                       // 泄露出去等于把「谁看过哪些房源」交出去。
                       access: {
-                        read: ({ req }) => Boolean(req.user),
+                        read: ({ req }) => isStaffRequest(req),
                       },
                     },
                     {

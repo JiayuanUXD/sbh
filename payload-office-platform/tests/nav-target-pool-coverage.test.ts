@@ -34,8 +34,10 @@ const FRONTEND = fileURLToPath(new URL('../src/app/(frontend)/', import.meta.url
  */
 const EXEMPT: Readonly<Record<string, string>> = {
   '[city]': '城市前缀段，不是独立页面——它下面的页面由同名的顶层路由承载',
+  'account': '会员个人中心（OPT-088），由顶栏会员菜单直达，noindex，不作为内容导航目标',
   'api': '接口路由，不面向导航',
   'dev-story': '开发演示页，不对外',
+  'login': '会员登录与重置密码（OPT-088），由顶栏登录入口直达，noindex，不作为内容导航目标',
   'pages': '动态 CMS 页（/pages/[slug]），slug 由内容决定进不了固定池；已由 target=page + 同行 page 关联覆盖（见 nav-page-target.test.ts）',
 }
 

@@ -29,19 +29,13 @@ import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { CORRECTION_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { ratePruneRef } from './rate-limit-state'
+import { clientIp } from '@/lib/api/request-guards'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 /** 每请求 body 最大字节数（FPD-P1 Task 6：20KB） */
 const MAX_BODY_BYTES = 20 * 1024
-
-/** 提取客户端 IP（CloudRun / 反代场景取首跳） */
-function clientIp(req: Request): string {
-  const fwd = req.headers.get('x-forwarded-for')
-  if (fwd) return fwd.split(',')[0].trim()
-  return req.headers.get('x-real-ip')?.trim() || 'unknown'
-}
 
 /** 日级盐：UTC 日期字符串，同一天内进程内哈希稳定，跨天自动轮换。 */
 function getDailySalt(): string {

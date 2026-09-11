@@ -19,6 +19,9 @@ import './styles/detail.css'
 // .btn 这类全局原语。它独立成文件而不是追加到 styles.css 末尾，是因为
 // tests/coming-soon-city-view.test.ts 对 styles.css 尾部切片做内容断言（禁新体系 token）。
 import './styles/recruit.css'
+import './styles/member.css'
+import { MemberProvider } from '@/components/frontend/member/MemberProvider'
+import { getCurrentMemberDto } from '@/domain/member/current-member'
 
 // The shared shell resolves its trusted city options and analytics profiles
 // from Payload. CloudBase builds the image without the runtime PostgreSQL
@@ -64,10 +67,11 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
   // OPT-053：站点设置在这里读一次喂给页头页脚。页面组件是不透明 children，
   // **注入不了 props**——它们自己调 getCachedSiteSettings()，同一请求内由缓存去重。
-  const [cities, profiles, siteSettings] = await Promise.all([
+  const [cities, profiles, siteSettings, member] = await Promise.all([
     listPublicCityOptions(),
     listPublicCityProfiles(),
     getCachedSiteSettings(),
+    getCurrentMemberDto(),
   ])
   const multiCityRoutingEnabled = getMultiCityRoutingEnabled()
   const umami = resolveUmamiConfig()
@@ -80,11 +84,19 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
       <body suppressHydrationWarning>
-        {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
-        <a href="#main-content" className="skip-link">跳到主要内容</a>
-        <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} brand={{ siteName: siteSettings.siteName, logo: siteSettings.logo, mainNav: siteSettings.mainNav }} />
-        <main id="main-content" className="site-main">{children}</main>
-        <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} settings={siteSettings} />
+        <MemberProvider initialMember={member}>
+          {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
+          <a href="#main-content" className="skip-link">跳到主要内容</a>
+          <SiteHeader
+            cities={cities}
+            defaultCity={siteConfig.defaultCity}
+            multiCityRoutingEnabled={multiCityRoutingEnabled}
+            brand={{ siteName: siteSettings.siteName, logo: siteSettings.logo, mainNav: siteSettings.mainNav }}
+            member={member}
+          />
+          <main id="main-content" className="site-main">{children}</main>
+          <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} settings={siteSettings} />
+        </MemberProvider>
         {/*
           OPT-064：自托管 Umami 采集脚本。未配置 NEXT_PUBLIC_UMAMI_* 时整段不渲染，
           adapter 那边同步退化为 Noop（判据同源于 resolveUmamiConfig，不会两边打架）。

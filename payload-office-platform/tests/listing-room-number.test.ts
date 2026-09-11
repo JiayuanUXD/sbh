@@ -247,7 +247,8 @@ describe('Listings 上的 roomNumber 配置', () => {
   it('带字段级 access.read：登录可读、匿名不可读', () => {
     // 删掉这段 access 不会让任何别的测试变红，房间号会悄悄进匿名 REST/GraphQL 响应。
     expect(typeof field?.access?.read).toBe('function')
-    expect(field?.access?.read({ req: { user: { id: 1 } } })).toBe(true)
+    expect(field?.access?.read({ req: { user: { id: 1, collection: 'users' } } })).toBe(true)
+    expect(field?.access?.read({ req: { user: { id: 1, collection: 'members' } } })).toBe(false)
     expect(field?.access?.read({ req: {} })).toBe(false)
     expect(field?.access?.read({ req: { user: null } })).toBe(false)
   })

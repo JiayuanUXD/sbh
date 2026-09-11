@@ -6,6 +6,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import SiteNav from '@/components/frontend/SiteNav'
 import HeaderSearch from '@/components/frontend/HeaderSearch'
 import CitySwitcher, { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
+import MemberMenu from '@/components/frontend/member/MemberMenu'
+import type { MemberDto } from '@/domain/member/member-dto'
 import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import { isSvgLogo } from '@/lib/frontend/site-settings-view'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
@@ -31,6 +33,7 @@ type HeaderShellProps = Readonly<{
   multiCityRoutingEnabled: boolean
   pathname: string
   brand: SiteBrand
+  member?: MemberDto | null
 }>
 
 function HeaderContents({
@@ -39,6 +42,7 @@ function HeaderContents({
   multiCityRoutingEnabled,
   pathname,
   brand,
+  member,
   searchParams,
   onRefreshSearchParams,
   showSearch,
@@ -100,13 +104,19 @@ function HeaderContents({
         pathname={pathname}
         searchParams={searchParams}
         onRefreshSearchParams={onRefreshSearchParams}
+        member={member ?? null}
         actions={
-          showSearch ? (
-            <HeaderSearch
-              citySlug={multiCityRoutingEnabled && currentCity ? currentCity.slug : undefined}
-              initialKeyword={searchParams.get('q') ?? undefined}
-            />
-          ) : null
+          <>
+            {showSearch ? (
+              <HeaderSearch
+                citySlug={multiCityRoutingEnabled && currentCity ? currentCity.slug : undefined}
+                initialKeyword={searchParams.get('q') ?? undefined}
+              />
+            ) : null}
+            <span className="member-menu-slot">
+              <MemberMenu member={member ?? null} pathname={pathname} variant="desktop" />
+            </span>
+          </>
         }
       />
     </>
@@ -148,11 +158,13 @@ export default function SiteHeader({
   defaultCity,
   multiCityRoutingEnabled,
   brand,
+  member,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
   brand: SiteBrand
+  member?: MemberDto | null
 }>) {
   const pathname = usePathname() || '/'
   const [searchParams, refreshSearchParams] = useClientSearchParams()
@@ -213,6 +225,7 @@ export default function SiteHeader({
           multiCityRoutingEnabled={multiCityRoutingEnabled}
           pathname={pathname}
           brand={brand}
+          member={member}
           searchParams={searchParams}
           onRefreshSearchParams={refreshSearchParams}
           showSearch={showSearch}

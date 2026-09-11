@@ -24,6 +24,7 @@ import {
 import { runDistributedRateLimit, type PruneTimestampRef } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { ROUTE_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
+import { clientIp } from '@/lib/api/request-guards'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -32,12 +33,6 @@ export const runtime = 'nodejs'
 const MAX_BODY_BYTES = 10 * 1024
 
 const ratePruneRef: PruneTimestampRef = { value: 0 }
-
-function clientIp(req: Request): string {
-  const fwd = req.headers.get('x-forwarded-for')
-  if (fwd) return fwd.split(',')[0].trim()
-  return req.headers.get('x-real-ip')?.trim() || 'unknown'
-}
 
 /** 同源校验：Origin 必须与 Host 同源（缺 Origin 放行，依赖其他校验） */
 function isSameOrigin(req: Request): boolean {
