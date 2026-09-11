@@ -288,9 +288,13 @@ jobs:
       # 的 quality 作业**没有** DATABASE_URL（它只有 PAYLOAD_SECRET），e2e 与本作业
       # 又都不跑 vitest —— 于是这 6 个套件在 CI 里从来没跑过一次，它们守的东西
       # （如 media 外键 `SET NULL` 撞 `NOT NULL` 的死结）可以静默回归而三闸门全绿。
+      # 2026-09-11 起 vitest.config.ts 在没有 DATABASE_URL 时干脆不收集这些文件
+      # （跳过前顶层 import payload.config 白付 6~8s）；本作业有 DATABASE_URL，
+      # 下面按路径点名仍能选中。别把这一步挪到没有库的作业里——那会一个都选不中，
+      # 所以这里显式 --passWithNoTests=false：选不中就红，而不是静默绿。
       #
       # 放在本作业而不是 quality：这些用例要的正是「migrate + seed 过的真库」，
       # 上面几步刚好把库准备成这个状态。放在 baseline:capture **之后**：用例会建/删
       # 楼盘、房源、媒体等临时数据，跑在前面会污染基线快照。
       - name: Run PostgreSQL-dependent regression suites
-        run: pnpm exec vitest run tests/*-postgres.test.ts
+        run: pnpm exec vitest run --passWithNoTests=false tests/*-postgres.test.ts

@@ -18,6 +18,11 @@ pnpm build
 - 未改 Collection/Global 可省略类型生成。**本地不要为此配占位 `COS_*`**（`Media.ts` 已显式声明 `prefix`，该规避早已作废；占位配置反而让本地上传恒 500，换成真实凭据更会酿成「本地库 + 生产桶」事故）——细节见 `CLAUDE.md` 的「生成物纪律」。生成后仍建议 `grep -c "prefix" src/payload-types.ts` 必须是 2。
 - 未改后台组件注册可省略 import map；改了没重生成 → `/admin` 整站 hydration 白屏（资源全 200）。
 - 未改 `src/migrations/` 可省略 `migrate:dry-run`。
+- 开发中的快速回路用 `pnpm test:changed`（pre-push 跑的就是它）：按 import 图只跑受改动影响的文件，
+  外加常驻的 fs 读源码型契约测试；改两个文件约 15s，全量约 70s。**声明完成前仍要跑一次全量 `pnpm test`**——
+  按图选不中的契约测试只有全量和 CI 才覆盖。
+- 没有 `DATABASE_URL` 时 `pnpm test` 会直接不收集 `tests/*-postgres.test.ts`（它们本来也会整文件跳过，
+  但顶层 import `payload.config` 白付 6~8s）；要跑它们就带上库：CI 的 `postgres-migrations` 作业负责。
 - 不删除、跳过失败测试或新增 suppress。
 - PostgreSQL 专属约束必须在 PostgreSQL 验证。
 

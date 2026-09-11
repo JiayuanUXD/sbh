@@ -1,8 +1,14 @@
 #!/bin/sh
-# 推送前的快速闸门：跑 quality.yml 里最便宜的两道（typecheck + test）。
-# build / migrate / E2E 留给 CI，避免每次 push 等好几分钟。
+# 推送前的快速闸门：typecheck + 只跑与本次改动相关的单测。
+# 全量单测 / build / migrate / E2E 留给 CI（quality.yml 在 PR 与 master 上都跑全量）。
 #
-# 跳过：SKIP_PREPUSH=1 git push
+# 单测为什么不跑全量：4800 个用例约 70s，其中 88% 是 58 个文件各自冷加载一遍
+# payload.config（每次 6~8s）。scripts/test-changed.mjs 按 import 图只挑受影响的文件，
+# 再常驻跑那些用 readFileSync 读源码、按图选不中的契约测试。改两个文件 ≈ 15s，
+# 动到 collection 的 PR ≈ 50s。选取规则与退回全量的条件见该脚本头注释。
+#
+# 本地跑全量：FULL_PREPUSH=1 git push
+# 跳过：        SKIP_PREPUSH=1 git push
 # 禁止用 --no-verify 绕过（Agent 尤其禁止，见 AGENTS.md 四条红线）。
 
 set -u
@@ -36,7 +42,12 @@ fi
 printf '\033[36m→ pre-push: pnpm typecheck\033[0m\n'
 pnpm typecheck || { printf '\033[31m✗ typecheck 失败，推送中止（跳过：SKIP_PREPUSH=1）\033[0m\n'; exit 1; }
 
-printf '\033[36m→ pre-push: pnpm test\033[0m\n'
-pnpm test || { printf '\033[31m✗ 单测失败，推送中止（跳过：SKIP_PREPUSH=1）\033[0m\n'; exit 1; }
+if [ "${FULL_PREPUSH:-0}" = "1" ]; then
+  printf '\033[36m→ pre-push: pnpm test（FULL_PREPUSH=1，全量）\033[0m\n'
+  pnpm test || { printf '\033[31m✗ 单测失败，推送中止（跳过：SKIP_PREPUSH=1）\033[0m\n'; exit 1; }
+else
+  printf '\033[36m→ pre-push: pnpm test:changed（只跑受影响的单测；全量：FULL_PREPUSH=1）\033[0m\n'
+  pnpm test:changed || { printf '\033[31m✗ 单测失败，推送中止（跳过：SKIP_PREPUSH=1）\033[0m\n'; exit 1; }
+fi
 
 exit 0

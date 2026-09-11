@@ -137,7 +137,7 @@ gh workflow run deploy.yml -f promote=true --ref master
 | 时机         | 拦截                                                                                                                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | pre-commit | 在 `master` 上提交 / 暂存了 `public/prd/*.md` 的删除 / `payload-types.ts` 丢了 `Media.prefix` / 改了 collection 却没带迁移 / 新分支名不合命名规范；`payload.config` 变了但 `importMap.js` 没变、老分支名不合规范则只警告 |
-| pre-push   | 涉及应用目录时跑 `typecheck` + `test`（`build`/迁移/E2E 留给 CI）                                                                                                                      |
+| pre-push   | 涉及应用目录时跑 `typecheck` + `test:changed`（按 import 图只跑受影响的单测，外加常驻的 fs 读源码型契约测试；全量单测 / `build` / 迁移 / E2E 留给 CI，`FULL_PREPUSH=1` 本地跑全量）                                    |
 
 - 启用（每个克隆一次即可，worktree 共享）：`cd payload-office-platform && pnpm setup:hooks`。
 
