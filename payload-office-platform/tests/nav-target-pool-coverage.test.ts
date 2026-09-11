@@ -36,7 +36,7 @@ const EXEMPT: Readonly<Record<string, string>> = {
   '[city]': '城市前缀段，不是独立页面——它下面的页面由同名的顶层路由承载',
   'api': '接口路由，不面向导航',
   'dev-story': '开发演示页，不对外',
-  'pages': '动态 CMS 页（/pages/[slug]），目标由内容决定而非固定入口',
+  'pages': '动态 CMS 页（/pages/[slug]），slug 由内容决定进不了固定池；已由 target=page + 同行 page 关联覆盖（见 nav-page-target.test.ts）',
 }
 
 /**
