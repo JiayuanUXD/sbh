@@ -8,7 +8,7 @@ import {
 } from '@/domain/public-catalog'
 import type { Media, SiteSetting } from '@/payload-types'
 import { mapMedia } from '@/domain/public-catalog/mappers'
-import { navTargetById } from './nav-targets'
+import { resolveNavRow } from './nav-targets'
 import {
   BUILDING_SPEC_FIELDS,
   LISTING_SPEC_FIELDS,
@@ -99,12 +99,9 @@ function mapTypeCards(value: SiteSetting['typeCards']): SiteSettingsView['typeCa
 }
 
 /**
- * 导航项：目标 id → 真实 href。**解析在服务端做完**，渲染层拿到的每一条都是真路由。
- *
- * 三种情况会让一项被剔除，都不报错、只是不渲染：
- *   - `visible === false`：运营主动隐藏；
- *   - 目标 id 代码不认识：配置比代码新（回滚后可能出现），宁可少一个入口
- *     也不要渲染一个跳不对的链接。
+ * 导航项：配置行 → 真实 href。**解析在服务端做完**，渲染层拿到的每一条都是真路由。
+ * 逐行判据（隐藏 / 未知目标 / 内容页未发布）收在 `resolveNavRow`，那边是纯函数，
+ * 可以脱离 payload 单测。`findGlobal` 的 depth 1 恰好把 `page` 关联展开一层。
  */
 function mapNavLinks(
   rows: unknown,
@@ -112,13 +109,8 @@ function mapNavLinks(
   if (!Array.isArray(rows)) return []
   const out: Array<{ href: string; label: string }> = []
   for (const row of rows) {
-    if (!row || typeof row !== 'object') continue
-    const r = row as { target?: unknown; label?: unknown; visible?: unknown }
-    if (r.visible === false) continue
-    if (typeof r.target !== 'string') continue
-    const target = navTargetById(r.target)
-    if (!target) continue
-    out.push({ href: target.href, label: text(r.label, target.defaultLabel) })
+    const link = resolveNavRow(row)
+    if (link) out.push(link)
   }
   return out
 }

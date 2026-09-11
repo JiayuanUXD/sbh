@@ -147,9 +147,30 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
         settings: SITE_SETTINGS_FALLBACK,
       }),
     )
-    expect(html).toMatch(/<footer class="site-footer"><div class="site-footer__inner">/)
+    expect(html).toMatch(/<footer class="site-footer"><div class="site-footer__inner"[^>]*>/)
     expect(html).toContain('class="site-footer__logo"')
     expect(html).toContain('员工入口')
+  })
+
+  it('页脚栅格列数跟着「页脚分组」的行数走，不再写死 4 轨', async () => {
+    const render = (columns: number) =>
+      streamToHtml(
+        React.createElement(SiteFooter, {
+          cities: CITIES,
+          defaultCity: 'shanghai',
+          multiCityRoutingEnabled: true,
+          settings: {
+            ...SITE_SETTINGS_FALLBACK,
+            footerColumns: Array.from({ length: columns }, (_, i) => ({
+              title: `分组${i + 1}`,
+              links: [{ href: '/entrust', label: `链接${i + 1}` }],
+            })),
+          },
+        }),
+      )
+    // 线上 2026-09-11 配到第 4 组（公司动态）时掉到品牌栏下面，就是因为列数写死。
+    expect(await render(4)).toMatch(/class="site-footer__inner" style="--footer-cols:\s*4"/)
+    expect(await render(3)).toMatch(/class="site-footer__inner" style="--footer-cols:\s*3"/)
   })
 
   it('layout 内的页头与页脚外壳均直接落在 shell 中', async () => {
@@ -160,7 +181,7 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
 
     expect(html).toContain('city content')
     expect(html).toMatch(/<div class="site-header__inner"><a class="site-logo"/)
-    expect(html).toMatch(/<footer class="site-footer"><div class="site-footer__inner">/)
+    expect(html).toMatch(/<footer class="site-footer"><div class="site-footer__inner"[^>]*>/)
     expect(html).toContain('class="site-menu-toggle"')
     expect(html).toContain('member-login')
     expect(html).toContain('员工入口')

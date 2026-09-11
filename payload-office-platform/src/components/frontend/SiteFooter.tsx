@@ -44,7 +44,11 @@ function FooterContents({
 
   return (
     <footer className="site-footer">
-      <div className="site-footer__inner">
+      <div
+        className="site-footer__inner"
+        // 栅格列数跟着分组数走（CSS 侧 repeat(var(--footer-cols))），别再写死。
+        style={{ '--footer-cols': settings.footerColumns.length } as React.CSSProperties}
+      >
         <div className="site-footer__brand">
           <Link href={multiCityRoutingEnabled && citySlug ? `/${citySlug}` : '/'} className="site-footer__logo">
             {settings.logo ? (

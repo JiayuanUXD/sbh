@@ -1150,8 +1150,10 @@ ol {
   margin-inline: auto;
   padding-block: var(--sp-7) var(--sp-5);
   display: grid;
-  /* 品牌栏 + 浏览/按类型/服务 三链接组同行成列，避免服务组掉行失衡 */
-  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  /* 品牌栏 + N 个链接组同行成列。列数由 SiteFooter 按后台「页脚分组」的实际行数
+     写进 --footer-cols（OPT-054 允许 1~5 组）。此前写死 4 轨，运营配到第 4 组就
+     溢出到第二行、掉在品牌栏下面——线上 2026-09-11 加「公司动态」组时兑现过一次。 */
+  grid-template-columns: minmax(0, 1.6fr) repeat(var(--footer-cols, 3), minmax(0, 1fr));
   gap: var(--sp-6);
   align-items: start;
 }
