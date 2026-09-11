@@ -62,9 +62,16 @@ export function extractPgPool(database: unknown): PoolLike | null {
   return poolLike(candidate?.pool) ? candidate.pool : null
 }
 
-/** 提取客户端 IP（CloudRun / 反代场景取首跳）。 */
+/** 提取客户端 IP（优先 x-real-ip；多跳 x-forwarded-for 取最后一跳真实反代追加的 IP，防伪造首段）。 */
 export function clientIp(req: Request): string {
+  const realIp = req.headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
   const fwd = req.headers.get('x-forwarded-for')
-  if (fwd) return fwd.split(',')[0].trim()
-  return req.headers.get('x-real-ip')?.trim() || 'unknown'
+  if (fwd) {
+    const parts = fwd.split(',').map((s) => s.trim()).filter(Boolean)
+    if (parts.length > 0) {
+      return parts[parts.length - 1]
+    }
+  }
+  return 'unknown'
 }

@@ -31,9 +31,16 @@ describe('共享请求守卫', () => {
     expect(isSameOrigin(new Request('https://sbh.example.com/api'), 'https://sbh.example.com')).toBe(false)
   })
 
-  it('clientIp：x-forwarded-for 首段优先，其次 x-real-ip，否则 unknown', () => {
-    expect(clientIp(new Request('http://x', { headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' } }))).toBe('1.2.3.4')
+  it('clientIp：优先 x-real-ip，其次 x-forwarded-for 末段（反代追加），否则 unknown', () => {
+    // x-real-ip 优先
     expect(clientIp(new Request('http://x', { headers: { 'x-real-ip': ' 9.9.9.9 ' } }))).toBe('9.9.9.9')
+    // x-real-ip 同时存在时优先于 x-forwarded-for
+    expect(clientIp(new Request('http://x', { headers: { 'x-real-ip': '9.9.9.9', 'x-forwarded-for': '1.2.3.4, 5.6.7.8' } }))).toBe('9.9.9.9')
+    // 只有 x-forwarded-for 时取末段（反代追加的真实 IP，防伪造首段）
+    expect(clientIp(new Request('http://x', { headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' } }))).toBe('5.6.7.8')
+    // 单段 x-forwarded-for
+    expect(clientIp(new Request('http://x', { headers: { 'x-forwarded-for': '1.2.3.4' } }))).toBe('1.2.3.4')
+    // 无头则 unknown
     expect(clientIp(new Request('http://x'))).toBe('unknown')
   })
 

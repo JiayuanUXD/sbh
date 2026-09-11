@@ -25,17 +25,12 @@ import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { INQUIRY_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { hashIpForLog } from '@/domain/inquiry'
 import { ratePruneRef } from '../rate-limit-state'
+import { clientIp } from '@/lib/api/request-guards'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const MAX_BODY_BYTES = 16 * 1024
-
-function clientIp(req: Request): string {
-  const fwd = req.headers.get('x-forwarded-for')
-  if (fwd) return fwd.split(',')[0].trim()
-  return req.headers.get('x-real-ip')?.trim() || 'unknown'
-}
 
 function getDailySalt(): string {
   return new Date().toISOString().slice(0, 10)
