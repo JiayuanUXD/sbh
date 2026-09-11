@@ -149,3 +149,17 @@
 | 合并最新 master | `d94cfe3` 合入 `798eb5a`（OPT-092 导航与页脚）；只重叠 `SiteFooter.tsx`，员工入口保留；合并后 typecheck 0 错、lint 0 错、单测 4973 通过、`member-auth.spec.ts` 15/15 对本地 dev 通过 | 完成 |
 
 结论：**通过，可以开 PR。** PR 描述里必须写明灰度期核对项 S6（两个不同网络各提交一次询盘，确认不共用限流桶），以及后续加固项（守卫测试对未定义 access 视为失败、`domain-events` / `audit-logs` 补 `readVersions`）。合并到 master 即上线，由用户决定合并时机。
+
+---
+
+## 9. CI 红灯与 Codex 评论处置（36cc1f1）
+
+| 项 | 根因 | 处置 | 复验 |
+| --- | --- | --- | --- |
+| e2e 红 | fixture 放行条件里的域名启发式把 CI 用的线上 `NEXT_PUBLIC_SITE_URL` 判成生产，`next start` 被 config-guard 拒启 | 只看 `CI` + `MEMBER_SMS_FIXTURE=1`，去掉域名判断 | 单测 |
+| postgres-migrations 红 | 合入 master 后 OPT-092 的快照成为链上最新且不含会员表 | `opt_088_snapshot_chain_repair`（up/down 空 + 对齐快照），照 OPT-069 | 本地 `migrate:drift` OK |
+| Codex 3 验证码消费非原子 | 先读后写，两个并发同码都通过 | attempts 用 RETURNING 自增；消费用 `WHERE consumed_at IS NULL` 条件抢占；抢占前移到建号之前 | 真 PG 并发：首次登录 200/400、改密 200/400，各只建 1 个会员 |
+| Codex 4 撤销的 sid 被当已登录 | 只验签不验存活 | `sessionIsLive` 参与判据 | 单测 |
+| Codex 5 down() 顺序 | CASCADE 删表后再 DROP CONSTRAINT | 约束删除前移 | dry-run 通过 |
+
+自动化：typecheck 0 错、lint 0 错、单测 4980 通过。
