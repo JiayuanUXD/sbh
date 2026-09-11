@@ -4,11 +4,18 @@ import type {
   CollectionConfig,
 } from 'payload'
 
-import { invalidatePagePublicCache as revalidatePagePublicCache } from '@/lib/frontend/public-cache-revalidation'
+import {
+  invalidatePagePublicCache as revalidatePagePublicCache,
+  invalidateSiteSettingsPublicCache,
+} from '@/lib/frontend/public-cache-revalidation'
 import { createMenuAccess } from '@/domain/auth/access'
 
 const invalidatePagePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async () => {
   revalidatePagePublicCache()
+  // 主导航 / 页脚可链到内容页（target=page），链接的可见性由页面的 status 决定，
+  // 而解析结果缓存在站点设置里——页面转草稿 / 删除后要让入口立刻消失，
+  // 得把站点设置一起失效，否则要等它 60 秒自然过期。
+  invalidateSiteSettingsPublicCache()
 }
 
 /**

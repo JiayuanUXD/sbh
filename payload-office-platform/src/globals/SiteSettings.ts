@@ -1,9 +1,9 @@
-import type { AccessArgs, GlobalConfig } from 'payload'
+import type { AccessArgs, GlobalConfig, RelationshipField } from 'payload'
 
 import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import { invalidateSiteSettingsPublicCache } from '@/lib/frontend/public-cache-revalidation'
-import { NAV_TARGET_OPTIONS } from '@/lib/frontend/nav-targets'
+import { NAV_TARGET_OPTIONS, PAGE_TARGET_ID } from '@/lib/frontend/nav-targets'
 import { DEFAULT_WATERMARK_CONFIG } from '@/domain/media/watermark'
 import { detailSpecFieldsTab } from './site-settings-spec-fields'
 
@@ -28,6 +28,32 @@ async function canManageSiteSettings(args: AccessArgs): Promise<boolean> {
   const ctx = await getPermissionContext(args.req as RequestContext)
   if (!ctx) return false
   return hasOperationPermission(ctx, 'site_settings:manage')
+}
+
+/**
+ * 「内容页」关联（2026-09-11）。主导航与页脚链接两处共用同一份定义。
+ *
+ * 只在 `target = page` 时出现；选了「内容页」却没指定页面，保存时拦下——
+ * 否则这一行在前台静默消失，运营看到的是「配了但没显示」，比报错更难排查。
+ *
+ * **故意不写 `filterOptions: { status: published }`**：filterOptions 是保存时的硬校验，
+ * 已链接的页面一旦转草稿，整份站点设置就再也保存不了（记录改不动）。
+ * 未发布的过滤放在前台渲染层（`resolveNavRow`），后台这里什么页面都能选。
+ */
+const navPageField: RelationshipField = {
+  name: 'page',
+  label: '内容页',
+  type: 'relationship',
+  relationTo: 'pages',
+  admin: {
+    condition: (_data, siblingData) => siblingData?.target === PAGE_TARGET_ID,
+    description:
+      '从「内容管理 → 页面内容」里选。只有「已发布」的页面会在前台渲染；页面转草稿或删除后，这条链接自动不显示。',
+  },
+  validate: (value, { siblingData }) => {
+    if ((siblingData as { target?: unknown } | undefined)?.target !== PAGE_TARGET_ID) return true
+    return value == null || value === '' ? '跳转目标选了「内容页」，必须指定一个页面' : true
+  },
 }
 
 export const SiteSettings: GlobalConfig = {
@@ -234,7 +260,7 @@ export const SiteSettings: GlobalConfig = {
         {
           label: '导航',
           description:
-            '主导航与页脚分组。**跳转目标只能选、不能填**——它指向真实路由，自由填写就是死链工厂（404 不抛异常也不进告警，带参路由填错枚举更隐蔽，返回的是空结果页而不是 404）。新增可选目标需要发版。',
+            '主导航与页脚分组。**跳转目标只能选、不能填**——它指向真实路由，自由填写就是死链工厂（404 不抛异常也不进告警，带参路由填错枚举更隐蔽，返回的是空结果页而不是 404）。新增固定目标需要发版；「页面内容」里新建的页面选「内容页」即可，不用发版。',
           fields: [
             {
               name: 'mainNav',
@@ -261,8 +287,12 @@ export const SiteSettings: GlobalConfig = {
                   type: 'select',
                   required: true,
                   options: NAV_TARGET_OPTIONS,
-                  admin: { description: '从已上线的页面里选。选项由代码维护，与实际路由有双向守卫。' },
+                  admin: {
+                    description:
+                      '从已上线的页面里选。选项由代码维护，与实际路由有双向守卫。选「内容页」可链到「页面内容」里新建的页面。',
+                  },
                 },
+                navPageField,
                 { name: 'label', label: '显示文字', type: 'text', required: true },
                 { name: 'visible', label: '显示', type: 'checkbox', defaultValue: true },
               ],
@@ -311,6 +341,7 @@ export const SiteSettings: GlobalConfig = {
                       required: true,
                       options: NAV_TARGET_OPTIONS,
                     },
+                    navPageField,
                     { name: 'label', label: '显示文字', type: 'text', required: true },
                     { name: 'visible', label: '显示', type: 'checkbox', defaultValue: true },
                   ],

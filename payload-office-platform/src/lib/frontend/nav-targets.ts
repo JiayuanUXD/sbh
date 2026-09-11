@@ -81,8 +81,78 @@ export function navTargetById(id: string): NavTarget | undefined {
   return BY_ID.get(id)
 }
 
+/**
+ * 内容页目标（2026-09-11）。
+ *
+ * 后台「页面内容」里新建的页面走 `/pages/[slug]`，slug 由内容决定，**进不了上面
+ * 这个固定枚举**——OPT-054 时把 `pages` 路由列进了豁免名单。结果是运营建了
+ * 「加入我们」却在页脚里选不到，只能拿「城市合伙人」顶替，线上就是一条错链。
+ *
+ * 做法：`target` 多一个值 `page`，同行再加一个 `page` 关联字段指定具体页面。
+ * 护栏不变——仍然只能链到真实存在的页面，不开自由文本 URL。解析在服务端完成
+ * （`resolveNavRow`），页面转草稿或删除后这一行自动不渲染，不会变成 404 死链。
+ *
+ * 这一项**同样要进 PG 枚举**，与上面「新增目标需要迁移」是同一条规则。
+ */
+export const PAGE_TARGET_ID = 'page'
+
 /** 后台 select 的 options。 */
-export const NAV_TARGET_OPTIONS = NAV_TARGETS.map((t) => ({
-  value: t.id,
-  label: `${t.defaultLabel}（${t.href}）`,
-}))
+export const NAV_TARGET_OPTIONS = [
+  ...NAV_TARGETS.map((t) => ({
+    value: t.id,
+    label: `${t.defaultLabel}（${t.href}）`,
+  })),
+  { value: PAGE_TARGET_ID, label: '内容页（/pages/…，在旁边的「内容页」里选具体页面）' },
+]
+
+export type NavLink = Readonly<{ href: string; label: string }>
+
+function text(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback
+}
+
+/**
+ * 把 `page` 关联解析成链接。返回 null 的三种情况都不渲染：
+ *   - 关联没展开（读取 depth 不够，拿到的是数字 id）或为空；
+ *   - 页面不是「已发布」；
+ *   - 页面已进回收站（`deletedAt` 非空）。
+ *
+ * 判据与 C 端 `/pages/[slug]` 的可见条件一致（`findPublishedPageBySlug`）：
+ * 导航里出现的链接，点进去必须是 200。
+ */
+function resolvePageLink(page: unknown): Readonly<{ href: string; defaultLabel: string }> | null {
+  if (!page || typeof page !== 'object') return null
+  const p = page as { slug?: unknown; status?: unknown; deletedAt?: unknown; title?: unknown }
+  if (typeof p.slug !== 'string' || p.slug.length === 0) return null
+  if (p.status !== 'published') return null
+  if (p.deletedAt) return null
+  return {
+    href: `/pages/${encodeURIComponent(p.slug)}`,
+    defaultLabel: text(p.title, p.slug),
+  }
+}
+
+/**
+ * 导航配置行 → 可渲染链接。**解析在服务端做完**，渲染层拿到的每一条都是真路由。
+ *
+ * 返回 null 表示这一行不渲染，都不报错：
+ *   - `visible === false`：运营主动隐藏；
+ *   - 目标 id 代码不认识：配置比代码新（回滚后可能出现），宁可少一个入口
+ *     也不要渲染一个跳不对的链接；
+ *   - `target = page` 但页面未发布 / 已删 / 没选：同上。
+ */
+export function resolveNavRow(row: unknown): NavLink | null {
+  if (!row || typeof row !== 'object') return null
+  const r = row as { target?: unknown; label?: unknown; visible?: unknown; page?: unknown }
+  if (r.visible === false) return null
+  if (typeof r.target !== 'string') return null
+
+  if (r.target === PAGE_TARGET_ID) {
+    const link = resolvePageLink(r.page)
+    return link ? { href: link.href, label: text(r.label, link.defaultLabel) } : null
+  }
+
+  const target = navTargetById(r.target)
+  if (!target) return null
+  return { href: target.href, label: text(r.label, target.defaultLabel) }
+}
