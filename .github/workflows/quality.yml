@@ -143,6 +143,7 @@ jobs:
       NEXT_PUBLIC_UMAMI_WEBSITE_ID: e2e-fake-website-id
       # OPT-088：会员验证码 E2E 用固定码 123456；生产 config-guard 拒绝该取值，只在 CI/本地用
       SMS_PROVIDER: fixture
+      MEMBER_SMS_FIXTURE: '1'
       # 出售频道：不再有功能开关（OPT-057 起常开），这里**刻意不设任何相关变量**。
       #
       # 沿革：曾有 NEXT_PUBLIC_SALE_CHANNEL_ENABLED，CI 必须跟着 Dockerfile 一起开，

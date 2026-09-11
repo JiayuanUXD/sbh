@@ -33,18 +33,48 @@ describe('sms-provider', () => {
     }
     expect(resolveSmsProvider(full, () => {})?.name).toBe('tencent')
   })
-  it('生产拒绝 console / fixture，允许 tencent；CI 环境允许 fixture', () => {
+  it('生产拒绝 console / fixture，允许 tencent；CI 环境仅在显式 MEMBER_SMS_FIXTURE 且非生产域名时允许 fixture', () => {
     expect(
       collectSmsProductionViolations({ NODE_ENV: 'production', SMS_PROVIDER: 'console' }),
     ).toHaveLength(1)
     expect(
       collectSmsProductionViolations({ NODE_ENV: 'production', SMS_PROVIDER: 'fixture' }),
     ).toHaveLength(1)
+    // 仅有 CI 未设 MEMBER_SMS_FIXTURE=1 仍应拒绝
     expect(
       collectSmsProductionViolations({ NODE_ENV: 'production', SMS_PROVIDER: 'fixture', CI: '1' }),
-    ).toEqual([])
+    ).toHaveLength(1)
+    // CI + MEMBER_SMS_FIXTURE=1 + 测试域名 允许通过
     expect(
-      resolveSmsProvider({ NODE_ENV: 'production', SMS_PROVIDER: 'fixture', CI: '1' }, () => {})?.name,
+      collectSmsProductionViolations({
+        NODE_ENV: 'production',
+        SMS_PROVIDER: 'fixture',
+        CI: '1',
+        MEMBER_SMS_FIXTURE: '1',
+        NEXT_PUBLIC_SITE_URL: 'https://sbh-e2e.example.com',
+      }),
+    ).toEqual([])
+    // 生产真实域名下即便带 CI 仍严格拒绝
+    expect(
+      collectSmsProductionViolations({
+        NODE_ENV: 'production',
+        SMS_PROVIDER: 'fixture',
+        CI: '1',
+        MEMBER_SMS_FIXTURE: '1',
+        NEXT_PUBLIC_SITE_URL: 'https://www.shanghai-office.cn',
+      }),
+    ).toHaveLength(1)
+    expect(
+      resolveSmsProvider(
+        {
+          NODE_ENV: 'production',
+          SMS_PROVIDER: 'fixture',
+          CI: '1',
+          MEMBER_SMS_FIXTURE: '1',
+          NEXT_PUBLIC_SITE_URL: 'https://sbh-e2e.example.com',
+        },
+        () => {},
+      )?.name,
     ).toBe('fixture')
     expect(
       resolveSmsProvider({ NODE_ENV: 'production', SMS_PROVIDER: 'fixture' }, () => {}),

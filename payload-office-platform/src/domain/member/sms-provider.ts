@@ -17,6 +17,8 @@ export type SmsEnv = Readonly<
     Record<
       | 'NODE_ENV'
       | 'CI'
+      | 'MEMBER_SMS_FIXTURE'
+      | 'NEXT_PUBLIC_SITE_URL'
       | 'SMS_PROVIDER'
       | 'TENCENT_SMS_SECRET_ID'
       | 'TENCENT_SMS_SECRET_KEY'
@@ -53,17 +55,39 @@ function missingTencent(env: SmsEnv): string[] {
   return TENCENT_REQUIRED.filter((k) => !env[k] || env[k]!.trim().length === 0)
 }
 
+function isProductionDomain(siteUrl: string | undefined): boolean {
+  if (!siteUrl) return true
+  try {
+    const u = new URL(siteUrl)
+    const host = u.hostname.toLowerCase()
+    return !host.includes('localhost') && !host.includes('127.0.0.1') && !host.includes('example.com') && !host.includes('test')
+  } catch {
+    return true
+  }
+}
+
 export function collectSmsProductionViolations(env: SmsEnv): { field: string; reason: string }[] {
   if (env.NODE_ENV !== 'production') return []
   const provider = env.SMS_PROVIDER
   if (!provider) return []
-  // CI E2E 允许 fixture 模式（验证码恒为 123456）；真实生产环境（无 CI）严格禁止
-  if (env.CI && provider === 'fixture') return []
-  if (provider === 'console' || provider === 'fixture') {
+  // CI E2E 仅在显式设置 MEMBER_SMS_FIXTURE=1 且非正式生产域名时允许 fixture 模式（S3 防御）
+  if (provider === 'fixture') {
+    const isExplicitCiFixture = Boolean(env.CI) && env.MEMBER_SMS_FIXTURE === '1'
+    if (isExplicitCiFixture && !isProductionDomain(env.NEXT_PUBLIC_SITE_URL)) {
+      return []
+    }
     return [
       {
         field: 'SMS_PROVIDER',
-        reason: `生产环境不允许 SMS_PROVIDER=${provider}（验证码会进日志或恒为常量）`,
+        reason: '生产环境不允许 SMS_PROVIDER=fixture（验证码恒为常量）',
+      },
+    ]
+  }
+  if (provider === 'console') {
+    return [
+      {
+        field: 'SMS_PROVIDER',
+        reason: '生产环境不允许 SMS_PROVIDER=console（验证码会进日志）',
       },
     ]
   }
@@ -126,7 +150,13 @@ export function resolveSmsProvider(
   const isProd = env.NODE_ENV === 'production'
   if (!provider) return isProd ? null : consoleProvider(log)
   if (provider === 'console') return isProd ? null : consoleProvider(log)
-  if (provider === 'fixture') return isProd && !env.CI ? null : fixtureProvider()
+  if (provider === 'fixture') {
+    if (isProd) {
+      const allowed = Boolean(env.CI) && env.MEMBER_SMS_FIXTURE === '1' && !isProductionDomain(env.NEXT_PUBLIC_SITE_URL)
+      return allowed ? fixtureProvider() : null
+    }
+    return fixtureProvider()
+  }
   if (provider === 'tencent') return tencentProvider(env)
   return null
 }

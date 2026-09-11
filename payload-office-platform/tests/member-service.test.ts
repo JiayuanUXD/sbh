@@ -170,10 +170,11 @@ describe('member-service', () => {
       loginWithPassword(d, { phone, password: 'wrong' }),
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' })
     const r = await loginWithPassword(d, { phone, password: 'Member1234!' })
-    expect(r.cookie).toContain('sbh-member-token=payload-token-value')
+    expect(r.cookie).toMatch(/^sbh-member-token=eyJ/)
+    expect(r.cookie).toContain('HttpOnly')
   })
 
-  it('setPasswordWithSms：校验码后写密码、hasPassword、只留当前 sid', async () => {
+  it('setPasswordWithSms：校验码后写密码、hasPassword、只留当前 sid（核验 currentMemberId）', async () => {
     const store: Store = {
       codes: [],
       members: [
@@ -197,6 +198,7 @@ describe('member-service', () => {
         code: '123456',
         newPassword: 'short',
         currentSid: 'keep',
+        currentMemberId: 1,
       }),
     ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
     const r = await setPasswordWithSms(d, {
@@ -204,9 +206,22 @@ describe('member-service', () => {
       code: '123456',
       newPassword: 'Member1234!',
       currentSid: 'keep',
+      currentMemberId: 1,
     })
     expect(r.member.hasPassword).toBe(true)
     expect(store.members[0].sessions?.map((s) => s.id)).toEqual(['keep'])
+
+    // 当 currentMemberId 不匹配（未登录或串号）时，不保留目标会员的 currentSid，而是签发新 sid
+    await sendSmsCode(d, { phone, purpose: 'set-password', ip: 'x' })
+    const r2 = await setPasswordWithSms(d, {
+      phone,
+      code: '123456',
+      newPassword: 'Member1234!',
+      currentSid: 'keep',
+      currentMemberId: 999,
+    })
+    expect(store.members[0].sessions?.map((s) => s.id)).not.toContain('keep')
+    expect(store.members[0].sessions).toHaveLength(1)
   })
 
   it('isValidPassword', () => {

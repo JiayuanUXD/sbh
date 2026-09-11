@@ -1,4 +1,4 @@
-﻿import { getPayload } from 'payload'
+import { getPayload } from 'payload'
 import config from '@payload-config'
 import { clientIp } from '@/lib/api/request-guards'
 import { handleMemberRoute, ok, readJsonBody, MemberHttpError } from '@/domain/member/http'
@@ -28,6 +28,7 @@ export async function POST(req: Request): Promise<Response> {
       code: body.code,
       newPassword: body.newPassword,
       currentSid: claims?.sid ?? null,
+      currentMemberId: claims?.id ?? null,
     })
     return ok({ member: toMemberDto(member) }, { cookie })
   })

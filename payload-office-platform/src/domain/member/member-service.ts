@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 会员领域服务（OPT-088 §6.2–6.4）。路由只做参数收口与响应，业务都在这里，便于用内存版 payload 单测。
  * 所有 Local API 调用 overrideAccess:true 并带 context.memberFlow——那是创建闸门与登录闸门的通行证。
  */
@@ -95,7 +95,7 @@ export async function sendSmsCode(
   await pruneExpiredCodes(deps)
   const code = generateSmsCode(deps.codeMode)
   const now = deps.now()
-  await deps.payload.create({
+  const created = await deps.payload.create({
     collection: 'member-sms-codes',
     data: {
       phone: input.phone,
@@ -110,6 +110,14 @@ export async function sendSmsCode(
   try {
     await deps.smsProvider.send({ phone: input.phone, code, minutes: 5 })
   } catch (error) {
+    // D9 防御：短信网关发送失败时立即删除新插入的记录，防止残留孤立验证码行
+    await deps.payload
+      .delete({
+        collection: 'member-sms-codes',
+        id: created.id,
+        overrideAccess: true,
+      })
+      .catch(() => undefined)
     deps.payload.logger.warn(
       { err: error instanceof Error ? error.message : String(error) },
       'member_sms_send_failed',
@@ -140,12 +148,13 @@ async function latestCode(
   return result.docs[0] ?? null
 }
 
-export async function consumeSmsCode(
+/** 仅核验验证码合法性并记录错误尝试次数，不打上已消费标记（D1） */
+export async function verifySmsCode(
   deps: MemberServiceDeps,
   input: { phone: string; purpose: SmsPurpose; code: string },
-): Promise<SmsCodeCheck> {
+): Promise<{ check: SmsCodeCheck; codeId: number | null }> {
   const stored = await latestCode(deps, input.phone, input.purpose)
-  if (!stored) return 'invalid'
+  if (!stored) return { check: 'invalid', codeId: null }
   const attempts = (stored.attempts ?? 0) + 1
   await deps.payload.update({
     collection: 'member-sms-codes',
@@ -166,13 +175,28 @@ export async function consumeSmsCode(
       consumedAt: stored.consumedAt ?? null,
     },
   })
-  if (check === 'ok') {
-    await deps.payload.update({
-      collection: 'member-sms-codes',
-      id: stored.id,
-      data: { consumedAt: deps.now().toISOString() },
-      overrideAccess: true,
-    })
+  return { check, codeId: check === 'ok' ? stored.id : null }
+}
+
+export async function markSmsCodeConsumed(
+  deps: MemberServiceDeps,
+  codeId: number,
+): Promise<void> {
+  await deps.payload.update({
+    collection: 'member-sms-codes',
+    id: codeId,
+    data: { consumedAt: deps.now().toISOString() },
+    overrideAccess: true,
+  })
+}
+
+export async function consumeSmsCode(
+  deps: MemberServiceDeps,
+  input: { phone: string; purpose: SmsPurpose; code: string },
+): Promise<SmsCodeCheck> {
+  const { check, codeId } = await verifySmsCode(deps, input)
+  if (check === 'ok' && codeId !== null) {
+    await markSmsCodeConsumed(deps, codeId)
   }
   return check
 }
@@ -229,9 +253,13 @@ export async function loginWithSms(
     consent: { accepted: boolean; policyVersion: string } | null
   },
 ): Promise<{ member: Member; isNew: boolean; cookie: string }> {
-  throwOnCode(
-    await consumeSmsCode(deps, { phone: input.phone, purpose: 'login', code: input.code }),
-  )
+  // D1 防御：先核验验证码，但不立即标记消费。若未勾选协议则抛 CONSENT_REQUIRED，验证码依然有效
+  const { check, codeId } = await verifySmsCode(deps, {
+    phone: input.phone,
+    purpose: 'login',
+    code: input.code,
+  })
+  throwOnCode(check)
   let member = await findMemberByPhone(deps, input.phone)
   let isNew = false
   if (!member) {
@@ -246,6 +274,9 @@ export async function loginWithSms(
     isNew = true
   }
   assertActive(member)
+  if (codeId !== null) {
+    await markSmsCodeConsumed(deps, codeId)
+  }
   const { cookie } = await issueMemberSession(deps.payload, member, deps.now())
   return { member, isNew, cookie }
 }
@@ -266,42 +297,53 @@ export async function loginWithPassword(
     // 密码错、账号锁定、账号停用、不存在：一律同一文案，不泄露存在性与锁定态
     throw new MemberHttpError('INVALID_CREDENTIALS')
   }
-  if (!result.token) throw new MemberHttpError('INVALID_CREDENTIALS')
-  await deps.payload.update({
-    collection: 'members',
-    id: result.user.id,
-    data: { lastLoginAt: deps.now().toISOString() },
-    overrideAccess: true,
-    context: { memberFlow: 'session' },
-  })
-  return { member: result.user, cookie: await tokenToCookie(deps.payload, result.token) }
+  if (!result.user) throw new MemberHttpError('INVALID_CREDENTIALS')
+  // S1 防御：丢弃 payload.login 返回的原生 Token（它使用 payload.secret 签发），
+  // 必须经由 issueMemberSession 用独立派生子密钥签发 Token，断绝成为后台 req.user 的途径
+  const { cookie } = await issueMemberSession(deps.payload, result.user, deps.now())
+  return { member: result.user, cookie }
 }
 
 export async function setPasswordWithSms(
   deps: MemberServiceDeps,
-  input: { phone: string; code: string; newPassword: string; currentSid: string | null },
+  input: {
+    phone: string
+    code: string
+    newPassword: string
+    currentSid: string | null
+    currentMemberId?: number | null
+  },
 ): Promise<{ member: Member; cookie: string }> {
   if (!isValidPassword(input.newPassword)) throw new MemberHttpError('BAD_REQUEST')
-  throwOnCode(
-    await consumeSmsCode(deps, {
-      phone: input.phone,
-      purpose: 'set-password',
-      code: input.code,
-    }),
-  )
+  const { check, codeId } = await verifySmsCode(deps, {
+    phone: input.phone,
+    purpose: 'set-password',
+    code: input.code,
+  })
+  throwOnCode(check)
   const member = await findMemberByPhone(deps, input.phone)
   if (!member) throw new MemberHttpError('CODE_INVALID')
   assertActive(member)
-  const kept = (member.sessions ?? []).filter((s) => s.id === input.currentSid)
-  const updated = (await deps.payload.update({
-    collection: 'members',
-    id: member.id,
-    data: { password: input.newPassword, hasPassword: true, sessions: kept },
-    overrideAccess: true,
-    context: { memberFlow: 'password-set' },
-  })) as Member
-  if (input.currentSid) {
-    // 已登录改密码：保留当前 sid、重签 token，本设备不掉线，其它设备全部下线
+  if (codeId !== null) {
+    await markSmsCodeConsumed(deps, codeId)
+  }
+
+  // D8 防御：核验当前 Cookie 中的会员 ID 是否与改密的目标会员一致
+  const isSelfChange =
+    Boolean(input.currentSid) &&
+    typeof input.currentMemberId === 'number' &&
+    input.currentMemberId === member.id
+
+  if (isSelfChange && input.currentSid) {
+    // 已登录改密码：保留当前 sid、派生密钥重签 token，本设备不掉线，其它设备全部下线
+    const kept = (member.sessions ?? []).filter((s) => s.id === input.currentSid)
+    const updated = (await deps.payload.update({
+      collection: 'members',
+      id: member.id,
+      data: { password: input.newPassword, hasPassword: true, sessions: kept },
+      overrideAccess: true,
+      context: { memberFlow: 'password-set' },
+    })) as Member
     const token = await signMemberToken(
       { id: member.id, collection: 'members', sid: input.currentSid },
       deps.payload.secret,
@@ -309,6 +351,14 @@ export async function setPasswordWithSms(
     )
     return { member: updated, cookie: await tokenToCookie(deps.payload, token) }
   }
+
+  const updated = (await deps.payload.update({
+    collection: 'members',
+    id: member.id,
+    data: { password: input.newPassword, hasPassword: true, sessions: [] },
+    overrideAccess: true,
+    context: { memberFlow: 'password-set' },
+  })) as Member
   const { cookie } = await issueMemberSession(deps.payload, updated, deps.now())
   return { member: updated, cookie }
 }
