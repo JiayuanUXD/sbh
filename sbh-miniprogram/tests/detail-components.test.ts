@@ -29,6 +29,7 @@ interface JsdomModule {
 }
 
 const projectRoot = resolve(import.meta.dirname, '..')
+const miniprogramRoot = resolve(projectRoot, 'miniprogram')
 const componentRoot = resolve(projectRoot, 'miniprogram/components')
 const componentNames = ['detail-gallery', 'monthly-cost-card', 'spec-grid'] as const
 const require = createRequire(import.meta.url)
@@ -76,7 +77,7 @@ function render(
   if (!childId) {
     childId = simulate.load(resolve(componentRoot, name, 'index'), {
       compiler: 'simulate',
-      rootPath: componentRoot,
+      rootPath: miniprogramRoot,
     })
     componentIds.set(name, childId)
   }
@@ -128,7 +129,7 @@ describe('detail-gallery', () => {
     expect(subject?.querySelectorAll('.detail-gallery__item')).toHaveLength(2)
     expect(subject?.querySelector('.detail-gallery__counter')?.dom?.textContent).toContain('1 / 2')
     expect(readComponent('detail-gallery', 'wxml')).toMatch(/<swiper[\s\S]*autoplay="\{\{false\}\}"/)
-    expect(readComponent('detail-gallery', 'wxss')).toMatch(/height:\s*auto;[\s\S]*aspect-ratio:\s*4\s*\/\s*3;/)
+    expect(readComponent('detail-gallery', 'wxss')).toMatch(/height:\s*auto;[\s\S]*aspect-ratio:\s*16\s*\/\s*10;/)
     host.detach()
   })
 
@@ -149,7 +150,7 @@ describe('detail-gallery', () => {
 
     subject?.querySelector('.detail-gallery__image')?.dispatchEvent('error')
     await simulate.sleep(0)
-    expect(subject?.querySelector('.detail-gallery__placeholder')?.dom?.textContent).toContain('尚办好')
+    expect(subject?.querySelector('.detail-gallery__placeholder')).toBeDefined()
     expect(subject?.data.failedImages).toEqual([true])
 
     host.setData({ images: [{ src: 'https://cdn.example/new.jpg', alt: '新房源' }] })
@@ -242,6 +243,13 @@ describe('详情组件视觉与触达合同', () => {
       expect(readComponent(name, 'wxml'), `${name} 缺少 num 标记`).toContain(' num')
       expect(readComponent(name, 'wxss'), `${name} 缺少等宽数字`).toMatch(/\.num\s*\{[\s\S]*?font-variant-numeric:\s*tabular-nums;/)
     }
+  })
+
+  it('无图状态压缩为 140px，避免在首屏制造大面积空洞', () => {
+    const styles = readComponent('detail-gallery', 'wxss')
+
+    expect(styles).toMatch(/\.detail-gallery__empty\s*\{[\s\S]*?height:\s*280rpx;/)
+    expect(styles).not.toMatch(/\.detail-gallery__empty\s*\{[\s\S]*?aspect-ratio:/)
   })
 
   it('三个组件均限制在父级宽度内并以 border-box 计算窄屏宽度', () => {

@@ -1,3 +1,6 @@
 {
-  "component": true
+  "component": true,
+  "usingComponents": {
+    "media-placeholder": "/components/media-placeholder/index"
+  }
 }

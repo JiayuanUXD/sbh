@@ -41,7 +41,7 @@ describe('我的页面服务端资产合同', () => {
 
     expect(markup).toContain("assetsState === 'ready' ? '已连接当前微信'")
     expect(markup).toContain("assetsState === 'loading' ? '正在连接当前微信'")
-    expect(markup).toContain("'未能连接当前微信'")
+    expect(markup).toContain("'暂未连接当前微信'")
     expect(markup.match(/已连接当前微信/g)).toHaveLength(1)
   })
 
@@ -52,10 +52,21 @@ describe('我的页面服务端资产合同', () => {
     expect(markup).toContain("assetsState === 'loading'")
     expect(markup).toContain("assetsState === 'ready'")
     expect(markup).toContain("assetsState === 'error'")
-    expect(markup).toContain('bindretry="handleRetryAssets"')
+    expect(markup).toContain('bindtap="handleRetryAssets"')
+    expect(markup).toContain('找房和楼盘浏览不受影响')
     expect(source).toContain('loadUserAssets')
     expect(source).toContain('refreshUserAssets')
     expect(source).toMatch(/catch[\s\S]*assetsState:\s*'error'[\s\S]*favoriteListings:\s*\[\][\s\S]*favoriteBuildings:\s*\[\][\s\S]*inquiries:\s*\[\]/)
+  })
+
+  it('连接失败使用紧凑横向状态，不放大成大面积错误卡', () => {
+    const markup = readPageFile('index.wxml')
+    const styles = readPageFile('index.wxss')
+
+    expect(markup).toContain('class="profile-connect-error"')
+    expect(markup).toContain('class="profile-connect-error__action"')
+    expect(styles).toMatch(/\.profile-connect-error\s*\{[\s\S]*?display:\s*flex;[\s\S]*?min-height:\s*var\(--sbh-size-touch-target\);/)
+    expect(styles).not.toMatch(/\.profile-connect-error\s*\{[\s\S]*?height:\s*[3-9]\d{2}rpx;/)
   })
 
   it('收藏指标只打开已确认收藏集合，不跳转普通全列表', () => {

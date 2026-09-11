@@ -19,6 +19,7 @@ describe('楼盘详情页面合同', () => {
         'sbh-skeleton': '../../components/sbh-skeleton/index',
         'sbh-state': '../../components/sbh-state/index',
         'inquiry-sheet': '/components/inquiry-sheet/index',
+        'media-placeholder': '/components/media-placeholder/index',
       },
     })
   })
@@ -45,7 +46,8 @@ describe('楼盘详情页面合同', () => {
     expect(template).toMatch(/building-listing-image[\s\S]*alt="\{\{item\.coverImage\.alt \|\| item\.title\}\}"[\s\S]*binderror="handleListingImageError"/)
     expect(template).toMatch(/building-comparable-image[\s\S]*alt="\{\{item\.coverImage\.alt \|\| item\.name\}\}"[\s\S]*binderror="handleComparableImageError"/)
     expect(source).toContain('markImageFailed')
-    expect(template.match(/>尚办好<\/view>/g)?.length ?? 0).toBeGreaterThanOrEqual(4)
+    expect(template.match(/<media-placeholder/g)?.length ?? 0).toBeGreaterThanOrEqual(4)
+    expect(template).not.toContain('>尚办好</view>')
   })
 
   it('脚本包含跳转房源详情与可比楼盘的穿梭逻辑', () => {

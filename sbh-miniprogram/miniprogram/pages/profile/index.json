@@ -6,6 +6,7 @@
   "enablePullDownRefresh": true,
   "usingComponents": {
     "sbh-skeleton": "/components/sbh-skeleton/index",
-    "sbh-state": "/components/sbh-state/index"
+    "sbh-state": "/components/sbh-state/index",
+    "media-placeholder": "/components/media-placeholder/index"
   }
 }

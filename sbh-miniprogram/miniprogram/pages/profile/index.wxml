@@ -3,7 +3,7 @@
     <view class="profile-avatar" aria-hidden="true">微</view>
     <view class="profile-user-info">
       <view class="profile-username">微信用户</view>
-      <view class="profile-user-state">{{assetsState === 'ready' ? '已连接当前微信' : (assetsState === 'loading' ? '正在连接当前微信' : '未能连接当前微信')}}</view>
+      <view class="profile-user-state">{{assetsState === 'ready' ? '已连接当前微信' : (assetsState === 'loading' ? '正在连接当前微信' : '暂未连接当前微信')}}</view>
     </view>
   </view>
 
@@ -11,14 +11,18 @@
     <sbh-skeleton rows="3" />
   </view>
 
-  <view wx:elif="{{assetsState === 'error'}}" class="profile-state">
-    <sbh-state
-      kind="error"
-      title="个人资产暂时无法加载"
-      description="请检查网络后重试"
-      action-label="重新加载"
-      bindretry="handleRetryAssets"
-    />
+  <view wx:elif="{{assetsState === 'error'}}" class="profile-connect-error">
+    <view class="profile-connect-error__body">
+      <view class="profile-connect-error__title">微信连接暂不可用</view>
+      <view class="profile-connect-error__description">找房和楼盘浏览不受影响，可稍后重试</view>
+    </view>
+    <view
+      class="profile-connect-error__action"
+      hover-class="sbh-pressable"
+      aria-role="button"
+      aria-label="重新连接当前微信"
+      bindtap="handleRetryAssets"
+    >重新连接</view>
   </view>
 
   <block wx:elif="{{assetsState === 'ready'}}">
@@ -65,7 +69,9 @@
             data-slug="{{item.slug}}"
             binderror="handleFavoriteListingImageError"
           />
-          <view wx:else class="profile-asset-placeholder">尚办好</view>
+          <view wx:else class="profile-asset-placeholder">
+            <media-placeholder mode="compact" label="房源实景图片待补充" />
+          </view>
           <text class="profile-asset-title">{{item.title}}</text>
           <text class="profile-arrow">›</text>
         </view>
@@ -88,7 +94,9 @@
             data-slug="{{item.slug}}"
             binderror="handleFavoriteBuildingImageError"
           />
-          <view wx:else class="profile-asset-placeholder">尚办好</view>
+          <view wx:else class="profile-asset-placeholder">
+            <media-placeholder mode="compact" label="楼盘实景图片待补充" />
+          </view>
           <text class="profile-asset-title">{{item.name}}</text>
           <text class="profile-arrow">›</text>
         </view>

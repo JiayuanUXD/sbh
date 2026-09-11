@@ -163,11 +163,12 @@ describe('房源列表页面合同', () => {
     expect(source).not.toContain('地图模式即将开放')
   })
 
-  it('共享房源卡缺图使用不含“图”字的中性品牌占位', () => {
+  it('共享房源卡缺图使用统一中性线稿，不重复展示品牌文字', () => {
     const cardTemplate = readFileSync(resolve(listingCardRoot, 'index.wxml'), 'utf8')
 
-    expect(cardTemplate).toContain('class="listing-card__placeholder">尚办好</view>')
-    expect(cardTemplate).not.toContain('暂无图片')
+    expect(cardTemplate).toContain('class="listing-card__placeholder"')
+    expect(cardTemplate).toContain('<media-placeholder mode="compact"')
+    expect(cardTemplate).not.toContain('>尚办好</view>')
     expect(cardTemplate).not.toContain('listing.badge')
     expect(cardTemplate).not.toContain('listing.isNew')
     expect(cardTemplate).not.toContain("'新上'")

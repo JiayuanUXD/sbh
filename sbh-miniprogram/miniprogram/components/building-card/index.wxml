@@ -16,7 +16,9 @@
       mode="aspectFill"
       binderror="handleImageError"
     />
-    <view wx:else class="building-card__placeholder">尚办好</view>
+    <view wx:else class="building-card__placeholder">
+      <media-placeholder mode="compact" label="实景图片待补充" />
+    </view>
   </view>
 
   <view class="building-card__body">

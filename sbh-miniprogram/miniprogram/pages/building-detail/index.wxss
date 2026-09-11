@@ -30,6 +30,10 @@
   background: #e8e8ea;
 }
 
+.building-gallery--empty {
+  height: 280rpx;
+}
+
 .building-gallery__swiper,
 .building-gallery__image {
   width: 100%;

@@ -81,10 +81,11 @@ describe('楼盘列表页面合同', () => {
     expect(cardTemplate).toContain('wx:if="{{inquiryEnabled && building.activeListingCount === 0}}"')
   })
 
-  it('共享楼盘卡缺图使用不含“图”字的中性品牌占位', () => {
+  it('共享楼盘卡缺图使用统一中性线稿占位', () => {
     const cardTemplate = readFileSync(resolve(buildingCardRoot, 'index.wxml'), 'utf8')
 
-    expect(cardTemplate).toContain('class="building-card__placeholder">尚办好</view>')
-    expect(cardTemplate).not.toContain('暂无图片')
+    expect(cardTemplate).toContain('class="building-card__placeholder"')
+    expect(cardTemplate).toContain('<media-placeholder mode="compact"')
+    expect(cardTemplate).not.toContain('>尚办好</view>')
   })
 })

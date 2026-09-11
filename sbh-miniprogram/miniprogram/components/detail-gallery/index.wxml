@@ -18,11 +18,15 @@
           data-index="{{index}}"
           binderror="handleImageError"
         />
-        <view wx:else class="detail-gallery__placeholder">尚办好</view>
+        <view wx:else class="detail-gallery__placeholder">
+          <media-placeholder mode="detail" label="实景图片暂不可用" />
+        </view>
       </view>
     </swiper-item>
   </swiper>
-  <view wx:else class="detail-gallery__empty">尚办好</view>
+  <view wx:else class="detail-gallery__empty">
+    <media-placeholder mode="detail" label="实景图片待补充" />
+  </view>
   <view wx:if="{{displayImages.length}}" class="detail-gallery__counter num">
     {{currentLabel}} / {{displayImages.length}}
   </view>

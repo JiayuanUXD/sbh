@@ -35,6 +35,7 @@ interface HostMethodContext {
 }
 
 const projectRoot = resolve(import.meta.dirname, '..')
+const miniprogramRoot = resolve(projectRoot, 'miniprogram')
 const componentRoot = resolve(projectRoot, 'miniprogram/components')
 const componentScriptPath = resolve(componentRoot, 'listing-card', 'index.ts')
 const simulatedScriptPath = resolve(componentRoot, 'listing-card', 'index.js')
@@ -113,7 +114,7 @@ beforeAll(() => {
   prepareComponentScript()
   listingCardId = simulate.load(resolve(componentRoot, 'listing-card', 'index'), {
     compiler: 'simulate',
-    rootPath: componentRoot,
+    rootPath: miniprogramRoot,
   })
 })
 
@@ -152,7 +153,7 @@ describe('listing-card', () => {
     host.detach()
   })
 
-  it('图片失败后显示文字占位，点击仍携带 slug', async () => {
+  it('图片失败后显示统一中性占位，点击仍携带 slug', async () => {
     const host = renderHost(
       { item, openedSlug: '' },
       {
@@ -171,7 +172,7 @@ describe('listing-card', () => {
     await simulate.sleep(0)
 
     expect(subject?.data.imageFailed).toBe(true)
-    expect(subject?.querySelectorAll('.listing-card__placeholder')[0]?.dom?.textContent).toContain('尚办好')
+    expect(subject?.querySelectorAll('.listing-card__placeholder')[0]).toBeDefined()
     expect(host.data.openedSlug).toBe('jing-an-center-101')
     host.detach()
   })

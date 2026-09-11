@@ -95,12 +95,13 @@ describe('房源详情页面合同', () => {
     }
   })
 
-  it('详情画廊缺图使用不含“图”字的中性品牌占位', () => {
+  it('详情画廊缺图使用统一中性线稿，并诚实说明图片状态', () => {
     const gallery = readFileSync(resolve(miniprogramRoot, 'components/detail-gallery/index.wxml'), 'utf8')
 
-    expect(gallery).toContain('class="detail-gallery__placeholder">尚办好</view>')
-    expect(gallery).toContain('class="detail-gallery__empty">尚办好</view>')
-    expect(gallery).not.toContain('暂无图片')
+    expect(gallery).toContain('class="detail-gallery__placeholder"')
+    expect(gallery).toContain('class="detail-gallery__empty"')
+    expect(gallery).toContain('<media-placeholder mode="detail"')
+    expect(gallery).not.toContain('>尚办好</view>')
     expect(gallery).not.toContain('户型图 · 平面图')
   })
 

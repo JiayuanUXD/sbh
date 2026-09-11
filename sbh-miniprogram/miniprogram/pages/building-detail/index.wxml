@@ -31,7 +31,7 @@
   <!-- 正常状态 -->
   <block wx:elif="{{state === 'ready' && building}}">
     <!-- 楼盘画廊 -->
-    <view class="building-gallery">
+    <view class="building-gallery {{building.gallery.length === 0 ? 'building-gallery--empty' : ''}}">
       <swiper
         class="building-gallery__swiper"
         circular
@@ -47,10 +47,14 @@
             data-index="{{index}}"
             binderror="handleGalleryImageError"
           />
-          <view wx:else class="building-gallery__placeholder">尚办好</view>
+          <view wx:else class="building-gallery__placeholder">
+            <media-placeholder mode="detail" label="实景图片暂不可用" />
+          </view>
         </swiper-item>
         <swiper-item wx:if="{{building.gallery.length === 0}}">
-          <view class="building-gallery__placeholder">尚办好</view>
+          <view class="building-gallery__placeholder">
+            <media-placeholder mode="detail" label="楼盘实景图片待补充" />
+          </view>
         </swiper-item>
       </swiper>
       <view wx:if="{{building.gallery.length > 0}}" class="building-gallery__badge num">
@@ -114,7 +118,9 @@
                 data-id="{{item.id}}"
                 binderror="handleListingImageError"
               />
-              <view wx:else class="building-listing-placeholder">尚办好</view>
+              <view wx:else class="building-listing-placeholder">
+                <media-placeholder mode="compact" label="房源实景图片待补充" />
+              </view>
             </view>
             <view class="building-listing-info">
               <view class="building-listing-title">{{item.title}}</view>
@@ -184,7 +190,9 @@
               data-id="{{item.id}}"
               binderror="handleComparableImageError"
             />
-            <view wx:else class="building-comparable-placeholder">尚办好</view>
+            <view wx:else class="building-comparable-placeholder">
+              <media-placeholder mode="compact" label="楼盘实景图片待补充" />
+            </view>
           </view>
           <view class="building-comparable-name">{{item.name}}</view>
           <view wx:if="{{item.activeListingCount !== null}}" class="building-comparable-stock num">{{item.activeListingCount}} 套在租</view>

@@ -10,7 +10,8 @@
 .profile-metrics-card,
 .profile-collection-card,
 .profile-inquiry-card,
-.profile-state {
+.profile-state,
+.profile-connect-error {
   background: var(--sbh-card-background);
 }
 
@@ -61,6 +62,7 @@
 }
 
 .profile-state,
+.profile-connect-error,
 .profile-metrics-card,
 .profile-collection-card,
 .profile-inquiry-card {
@@ -71,6 +73,47 @@
 
 .profile-state {
   padding: var(--sbh-card-padding);
+}
+
+.profile-connect-error {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: var(--sbh-size-touch-target);
+  gap: var(--sbh-layout-content-gap);
+  padding: var(--sbh-layout-space-md) var(--sbh-card-padding);
+}
+
+.profile-connect-error__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-connect-error__title {
+  font-size: var(--sbh-type-body-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.profile-connect-error__description {
+  margin-top: var(--sbh-layout-space-xs);
+  color: var(--sbh-text-tertiary);
+  font-size: var(--sbh-type-auxiliary-size);
+  line-height: var(--sbh-type-body-line-height);
+}
+
+.profile-connect-error__action {
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 152rpx;
+  min-height: var(--sbh-size-touch-target);
+  padding: 0 var(--sbh-layout-space-md);
+  color: var(--sbh-interaction-primary);
+  border: var(--sbh-stroke-default) solid var(--sbh-interaction-primary);
+  border-radius: var(--sbh-shape-control-radius);
+  font-size: var(--sbh-type-body-size);
 }
 
 .profile-metrics-grid {

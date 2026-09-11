@@ -20,7 +20,7 @@
   max-width: 100%;
   min-height: var(--sbh-size-touch-target);
   height: auto;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 10;
 }
 
 .detail-gallery__media,
@@ -57,7 +57,8 @@
 }
 
 .detail-gallery__empty {
-  aspect-ratio: 4 / 3;
+  height: 280rpx;
+  overflow: hidden;
 }
 
 .detail-gallery__counter {
