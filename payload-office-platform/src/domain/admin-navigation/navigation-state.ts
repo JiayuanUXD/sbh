@@ -220,3 +220,37 @@ function normalizePath(path: string): string {
   if (withoutQueryOrHash.length <= 1) return withoutQueryOrHash
   return withoutQueryOrHash.replace(/\/+$/, '')
 }
+
+/**
+ * 挂载时的初始展开集，按「这次挂载是不是首屏水合」分两条路：
+ *
+ *   - 水合（整页加载）：客户端首次渲染必须与服务端 HTML 逐字相同，而服务端读不到
+ *     localStorage，所以只能给当前激活组；真实展开集由挂载后的效果补回。
+ *   - 客户端导航后的重挂载：Payload 每次后台路由跳转都会把导航整个重新挂载（DOM
+ *     节点被替换，2026-09-11 实测），这条路没有水合约束，可以在初始化时就同步读回
+ *     存储值——否则用户展开着的其它组每次点击都会「收起再展开」一次。
+ *
+ * `readStored` 只在非水合路径被调用；水合路径调用它会读到与服务端不同的值。
+ */
+export function initialOpenGroupsForMount(input: {
+  hydrating: boolean
+  entries: readonly ResolvedAdminNavEntry[]
+  pathname: string
+  readStored: () => Set<string> | null
+}): Set<string> {
+  const active = findActiveParentKeys(input.entries, input.pathname)
+  if (input.hydrating) return new Set(active)
+
+  const stored = input.readStored()
+  if (!stored) return defaultOpenGroupIds(input.entries, input.pathname)
+  for (const key of active) stored.add(key)
+  return stored
+}
+
+/** 折叠态的挂载初值，判据与 {@link initialOpenGroupsForMount} 相同。 */
+export function initialCollapsedForMount(input: {
+  hydrating: boolean
+  readStored: () => boolean
+}): boolean {
+  return input.hydrating ? false : input.readStored()
+}

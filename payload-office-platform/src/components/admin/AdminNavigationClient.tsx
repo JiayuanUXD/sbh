@@ -35,6 +35,8 @@ import { formatBadgeCount } from '@/domain/admin-navigation/navigation-badges'
 import {
   defaultOpenGroupIds,
   deriveOpenGroupId,
+  initialCollapsedForMount,
+  initialOpenGroupsForMount,
   findActiveLeaf,
   findActiveParentKeys,
   groupHasWarningBadge,
@@ -58,6 +60,20 @@ const COLLAPSE_STORAGE_KEY = 'sbh-admin-nav-collapsed'
 const OPEN_GROUPS_STORAGE_KEY = 'sbh-admin-nav-open-groups'
 const COLLAPSED_WIDTH = '48px'
 const DESKTOP_BREAKPOINT = 1024
+
+/**
+ * 本模块在浏览器里是否已经完成过一次挂载。
+ *
+ * Payload 每次后台路由跳转都会把本组件整个重新挂载（DOM 节点被替换，2026-09-11
+ * 实测），而 localStorage 里的展开集与折叠态此前只在挂载后的定时器里读回——于是
+ * 用户展开着的其它组每次点击二级项都会「收起再展开」一次（220ms 面板过渡放大成
+ * 肉眼可见的跳动），折叠过侧栏的用户还会看到侧栏宽度跳一下。
+ *
+ * 首屏水合的那次挂载必须与服务端 HTML 逐字相同，只能给激活组；之后的重挂载没有
+ * 水合约束，初始化时就同步读回存储值。用模块级变量区分两者：整页刷新会重置它，
+ * 客户端导航不会。它只在效果里置真，所以 StrictMode 双调用初始化函数不受影响。
+ */
+let hydratedOnce = false
 
 // 「工作队列」类角标：数字代表等着人处理的事，用警示色；
 // 纯提醒类（notifications / tasks）用常规蓝色。
@@ -169,18 +185,26 @@ export default function AdminNavigationClient({
   const { navOpen, navRef, setNavOpen } = useNav()
   useWindowInfo() // 保持 hook 调用以维持上下文响应
   const [badges, setBadges] = useState<AdminNavigationBadgeCounts>({})
-  const [openKeys, setOpenKeys] = useState<Set<string>>(() => {
-    // 初始展开集：包含当前激活路径所属的组（激活的是扁平叶时为空，扁平叶没有面板可展）
-    const s = new Set<string>()
-    for (const key of findActiveParentKeys(entries, pathname)) {
-      s.add(key)
-    }
-    return s
-  })
-  const [collapsed, setCollapsed] = useState<boolean>(false)
+  // 首屏水合只能给激活组（见 hydratedOnce 注释）；客户端导航后的重挂载直接读回存储值
+  const hydrating = !hydratedOnce
+  const [openKeys, setOpenKeys] = useState<Set<string>>(() =>
+    initialOpenGroupsForMount({
+      hydrating,
+      entries,
+      pathname,
+      readStored: () => readStoredOpenGroups(entries),
+    }),
+  )
+  const [collapsed, setCollapsed] = useState<boolean>(() =>
+    initialCollapsedForMount({ hydrating, readStored: getInitialCollapsed }),
+  )
   const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null)
-  const [mounted, setMounted] = useState(false)
-  const [windowWidth, setWindowWidth] = useState<number>(0)
+  // mounted / windowWidth 决定 isDesktop，进而决定折叠态是否生效：重挂载时也要同步给出，
+  // 否则折叠用户的侧栏会先按展开宽度渲染一帧
+  const [mounted, setMounted] = useState(!hydrating)
+  const [windowWidth, setWindowWidth] = useState<number>(() =>
+    hydrating || typeof window === 'undefined' ? 0 : window.innerWidth,
+  )
   const badgeFailureReported = useRef(false)
   // 用 ref 冻结首屏的树与路径供挂载时的定时器使用：那个效果只该跑一次，
   // 把 entries / pathname 写进它的依赖会让每次路由变化都重读一遍存储、
@@ -207,7 +231,9 @@ export default function AdminNavigationClient({
       setCollapsed(getInitialCollapsed())
       // 展开集与折叠态在同一处读：首次渲染必须与服务端输出逐字相同，
       // 在渲染期同步读 localStorage 会直接造成 hydration 不一致。
+      // 重挂载时初始化已经同步读过，这里再读一次得到相同集合，不会引起可见变化。
       setOpenKeys(initialOpenGroupsRef.current())
+      hydratedOnce = true
     }, 0)
     return () => {
       window.clearTimeout(initialTimer)
