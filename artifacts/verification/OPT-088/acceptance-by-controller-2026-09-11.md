@@ -136,3 +136,16 @@
 ### 7.2 结论
 
 **安全项全部关闭，功能项还剩 D5 半个。** 修完 D5、提交、订正 Task Packet 勾选、合并最新 master 重跑闸门后可以开 PR；S6 作为灰度期核对项写进 PR 描述。
+
+---
+
+## 8. 第三轮复验（收尾四项）
+
+| 项 | 实测 | 结论 |
+| --- | --- | --- |
+| D5 顶栏昵称即时刷新 | `MemberMenu` 改为 `contextMember ?? initialMember`；浏览器改昵称 → 「已保存」→ 头像立即从「复」变「终」，`/api/member/me` 同步 | 已修 |
+| 提交 | 工作树干净；`8fa00c1` 之后 7 个功能提交 + 1 个合并提交；证据提交只含 `artifacts/verification/OPT-088/`；`payload-types.ts` 未入库 | 完成 |
+| Task Packet | 「OPS 脱敏」改为「OPS 持 phone:full 看到完整手机号」，「一天第 11 次」「10 分钟后恢复」两行改为未勾并注明只有单测证据 | 完成 |
+| 合并最新 master | `d94cfe3` 合入 `798eb5a`（OPT-092 导航与页脚）；只重叠 `SiteFooter.tsx`，员工入口保留；合并后 typecheck 0 错、lint 0 错、单测 4973 通过、`member-auth.spec.ts` 15/15 对本地 dev 通过 | 完成 |
+
+结论：**通过，可以开 PR。** PR 描述里必须写明灰度期核对项 S6（两个不同网络各提交一次询盘，确认不共用限流桶），以及后续加固项（守卫测试对未定义 access 视为失败、`domain-events` / `audit-logs` 补 `readVersions`）。合并到 master 即上线，由用户决定合并时机。
