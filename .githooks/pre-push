@@ -2,10 +2,9 @@
 # 推送前的快速闸门：typecheck + 只跑与本次改动相关的单测。
 # 全量单测 / build / migrate / E2E 留给 CI（quality.yml 在 PR 与 master 上都跑全量）。
 #
-# 单测为什么不跑全量：4800 个用例约 70s，其中 88% 是 58 个文件各自冷加载一遍
-# payload.config（每次 6~8s）。scripts/test-changed.mjs 按 import 图只挑受影响的文件，
-# 再常驻跑那些用 readFileSync 读源码、按图选不中的契约测试。改一个叶子组件 ≈ 20s（含启动），
-# 动到 collection 的 PR ≈ 50s。选取规则与退回全量的条件见该脚本头注释。
+# 单测为什么不跑全量：大头是几十个文件各自冷加载一遍 payload.config，不是用例本身。
+# scripts/test-changed.mjs 按 import 图只挑受影响的文件，再常驻跑那些用 fs 读源码、
+# 按图选不中的契约测试。选取规则、退回全量的条件与实测耗时见该脚本头注释。
 #
 # 本地跑全量：FULL_PREPUSH=1 git push
 # 跳过：        SKIP_PREPUSH=1 git push
@@ -23,10 +22,12 @@ root=$(git rev-parse --show-toplevel) || exit 1
 # 汇总本次推送真正新增的提交所涉及的文件；不碰应用目录就直接放行
 #（纯文档分支不必等类型检查）。用 --not --remotes=origin 而不是与 master 比，
 # 否则从已推送分支切出的新分支会把上游旧提交一起算进来。
+# -m --first-parent：merge 提交默认不列文件，「只推了一个 merge origin/master 且顺手
+# 解了冲突」的推送会被当成没碰应用目录直接放行；按第一父展开后能看到合并带进来的改动。
 touched=''
 while read -r _local_ref local_sha _remote_ref _remote_sha; do
   [ "$local_sha" = "$ZERO" ] && continue                     # 删除远端分支
-  files=$(git log --name-only --pretty=format: "$local_sha" --not --remotes=origin 2>/dev/null) || continue
+  files=$(git log -m --first-parent --name-only --pretty=format: "$local_sha" --not --remotes=origin 2>/dev/null) || continue
   touched="$touched
 $files"
 done

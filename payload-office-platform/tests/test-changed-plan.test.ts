@@ -47,6 +47,7 @@ import {
   isContractTest,
   normalizeChanged,
   parseGitLines,
+  vitestMode,
 } from '../scripts/lib/test-changed-plan.mjs'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
@@ -66,6 +67,8 @@ describe('test-changed 的纯决策逻辑（scripts/lib/test-changed-plan.mjs）
     expect(parseGitLines('a.ts\nb.ts\n')).toEqual(['a.ts', 'b.ts'])
     expect(parseGitLines('a.ts\r\n  b.ts \r\n\r\n')).toEqual(['a.ts', 'b.ts'])
     expect(parseGitLines('')).toEqual([])
+    // -z 的 NUL 分隔：中文 / 带引号的路径只有这样才拿得到原样（默认 core.quotePath 会 C 转义）
+    expect(parseGitLines('tests/中文契约.test.ts\0src/a "b".ts\0')).toEqual(['tests/中文契约.test.ts', 'src/a "b".ts'])
   })
 
   it('normalizeChanged：去重，并丢掉已不存在的路径（删除 / 改名走掉的文件）', () => {
@@ -92,6 +95,18 @@ describe('test-changed 的纯决策逻辑（scripts/lib/test-changed-plan.mjs）
     expect(fullRunReason(['scripts/package.json', 'tests/fixtures/vitest.config.ts'])).toBeNull()
   })
 
+  it('fullRunReason：以 - 开头的文件名退回全量（会被 vitest 当成选项，--dir=x 能让它静默绿）', () => {
+    expect(fullRunReason(['src/a.ts', '--dir=nope'])).toContain('--dir=nope')
+    expect(fullRunReason(['-u'])).not.toBeNull()
+    expect(fullRunReason(['src/-not-an-option.ts'])).toBeNull() // 只看整个路径的首字符
+  })
+
+  it('vitestMode：改动含 tests/ 之外的文件才需要 related 重建依赖图，否则 run', () => {
+    expect(vitestMode([])).toBe('run')
+    expect(vitestMode(['tests/a.test.ts', 'tests/helpers/x.ts'])).toBe('run')
+    expect(vitestMode(['tests/a.test.ts', 'src/a.ts'])).toBe('related')
+  })
+
   it('fullRunReason：改动数刚好等于上限不退回，超过 1 个就退回并带上数量', () => {
     const many = (n: number) => Array.from({ length: n }, (_, i) => `src/f${i}.ts`)
     expect(fullRunReason(many(MAX_CHANGED))).toBeNull()
@@ -109,13 +124,13 @@ describe('test-changed 的纯决策逻辑（scripts/lib/test-changed-plan.mjs）
       'const entries = await readdir(FRONTEND, { withFileTypes: true })',
       "const files = await glob('src/**/*.ts')",
       'readFileSync (p)', // 调用括号前有空格也算
+      'expect(existsSync(file), `${file} 存在会让抽屉每次导航都被重挂`).toBe(false)', // 「不该存在」的守卫
     ]
     for (const src of positives) expect(isContractTest(src), src).toBe(true)
   })
 
-  it('isContractTest：existsSync / stat / 只 import 不调用 / 前缀相似的标识符都不算', () => {
+  it('isContractTest：stat / 只 import 不调用 / 前缀相似的标识符都不算', () => {
     const negatives = [
-      "if (existsSync(resolve(appDir, f))) {}",
       'const info = await stat(file)',
       "import { readFileSync } from 'node:fs'", // 只 import，没调用
       'const readFileSyncCount = 3',
@@ -166,10 +181,19 @@ describe('test-changed 的纯决策逻辑（scripts/lib/test-changed-plan.mjs）
       'tests/sale-channel-always-on.test.ts',
       'tests/frontend-shell-hydration.test.ts',
       'tests/nav-target-pool-coverage.test.ts',
+      // existsSync 型——断言 loading.tsx 不存在
+      'tests/opt036-listings-view-wiring.test.ts',
       // 本文件
       'tests/test-changed-plan.test.ts',
     ]
     for (const f of mustInclude) expect(contract, f).toContain(f)
+  })
+
+  it('tests/ 下没有嵌套的 *.test.ts（契约扫描、-postgres 排除、chdir 守卫都只看顶层，vitest include 却是递归的）', () => {
+    const nested = readdirSync(testsDir, { recursive: true })
+      .map(String)
+      .filter((f) => f.endsWith('.test.ts') && /[\\/]/.test(f))
+    expect(nested).toEqual([])
   })
 
   it('扫真实 tests/ 目录：纯 import 图型的单测不在常驻名单里', () => {
@@ -195,8 +219,18 @@ describe('test:changed 的接线', () => {
     expect(script).toContain("from './lib/test-changed-plan.mjs'")
     // 决策逻辑不许在入口脚本里再长出一份副本，否则测的和跑的不是同一套
     expect(script).not.toMatch(/const (FULL_RUN_TRIGGERS|CONTRACT_RE|MAX_CHANGED)\s*=/)
-    // related 与契约测试混排、一次 vitest 调用
-    expect(script).toContain("runVitest(['related', '--run', ...changed, ...contract])")
+    // related 与契约测试混排、一次 vitest 调用；只改 tests/ 时走 run
+    expect(script).toContain("['related', '--run', ...changed, ...contract]")
+    expect(script).toContain("['run', ...changed, ...contract]")
+    // git 输出用 -z 拿原样路径；有删除即退回全量
+    expect(script).toContain("git('diff', '--name-only', '--relative', '-z', base)")
+    expect(script).toContain("git('ls-files', '--others', '--exclude-standard', '-z')")
+    expect(script).toContain("'--diff-filter=D'")
+    // linked worktree 里 hook 环境带 GIT_DIR，会让 -C appDir 把应用目录当顶层；必须剥掉
+    for (const v of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE']) expect(script).toContain(`'${v}'`)
+    expect(script).toContain('env: gitEnv')
+    // vitest 入口走 package.json 的 bin 字段
+    expect(script).not.toContain("'vitest.mjs'")
   })
 
   it('pre-push 默认跑 pnpm test:changed，FULL_PREPUSH=1 才全量，SKIP_PREPUSH=1 直接放行', () => {
@@ -303,7 +337,7 @@ describe('quality.yml 的真库回归步骤', () => {
   it('postgres-migrations 作业带 DATABASE_URL，步骤显式 --passWithNoTests=false 并按同一模式点名', () => {
     const job = jobBlock('postgres-migrations')
     expect(job).toMatch(/^\s+DATABASE_URL: postgres:\/\//m)
-    expect(job).toContain(`run: pnpm exec vitest run --passWithNoTests=false ${POSTGRES_GLOB}`)
+    expect(job).toContain(`run: pnpm exec vitest run --pool=forks --passWithNoTests=false ${POSTGRES_GLOB}`)
     // 排除模式的字面量在 vitest.config 里也必须是同一个，两处才指向同一批文件
     expect(read('vitest.config.ts')).toContain(`'${POSTGRES_GLOB}'`)
   })

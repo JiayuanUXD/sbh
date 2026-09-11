@@ -8,6 +8,8 @@ on:
       - 'payload-office-platform/**'
       - '!payload-office-platform/**/*.md'
       - '.github/workflows/quality.yml'
+      # tests/test-changed-plan.test.ts 对 pre-push hook 的内容下了断言；只改 hook 也得跑
+      - '.githooks/**'
       # deploy.yml 改动也要跑本工作流：production-deploy-config.test.ts 对它下了断言
       # （流量门、构建失败判定、触发方式），只改 deploy.yml 时这些断言必须有机会跑。
       - '.github/workflows/deploy.yml'
@@ -20,6 +22,7 @@ on:
       - 'payload-office-platform/**'
       - '!payload-office-platform/**/*.md'
       - '.github/workflows/quality.yml'
+      - '.githooks/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -292,9 +295,12 @@ jobs:
       # （跳过前顶层 import payload.config 白付 6~8s）；本作业有 DATABASE_URL，
       # 下面按路径点名仍能选中。别把这一步挪到没有库的作业里——那会一个都选不中，
       # 所以这里显式 --passWithNoTests=false：选不中就红，而不是静默绿。
+      # --pool=forks：vitest.config 默认池已切 threads，而这 8 个套件在没库的本地从不收集，
+      # 「切线程池后 4796 全绿」的证据天然不含它们；getPayload + pg 连接池 + sharp 在
+      # worker_threads 里的 teardown 没验过，这一步留在验过的进程池上。
       #
       # 放在本作业而不是 quality：这些用例要的正是「migrate + seed 过的真库」，
       # 上面几步刚好把库准备成这个状态。放在 baseline:capture **之后**：用例会建/删
       # 楼盘、房源、媒体等临时数据，跑在前面会污染基线快照。
       - name: Run PostgreSQL-dependent regression suites
-        run: pnpm exec vitest run --passWithNoTests=false tests/*-postgres.test.ts
+        run: pnpm exec vitest run --pool=forks --passWithNoTests=false tests/*-postgres.test.ts
