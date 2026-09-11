@@ -61,6 +61,7 @@ import {
   overrideExportsCollection,
   overrideImportsCollection,
 } from './domain/audit/export-controls'
+import { isStaffRequest } from './domain/member/member-access'
 import { metricRegistry } from './domain/analytics/metric-registry'
 import { registerBuiltinMetrics } from './domain/analytics/metrics/builtin'
 import { createDashboardEndpoint } from './endpoints/dashboard-endpoint'
@@ -149,7 +150,7 @@ if (!metricRegistry.has('listings.total')) {
   registerBuiltinMetrics(metricRegistry)
 }
 
-export default buildConfig({
+const configPromise = buildConfig({
   // Dedicated CloudRun / Next container: Payload's persistent Jobs Queue is
   // safe to auto-run here (unlike request-only serverless runtimes).
   jobs: {
@@ -508,6 +509,13 @@ export default buildConfig({
           singular: '搜索记录',
           plural: '搜索索引',
         },
+        access: {
+          read: ({ req }) => isStaffRequest(req),
+          create: () => false,
+          update: () => false,
+          delete: ({ req }) => isStaffRequest(req),
+          readVersions: ({ req }) => isStaffRequest(req),
+        },
       },
     }),
     // Form Builder:后台可视化表单构建(leads 咨询表单可用它替代手写)
@@ -527,6 +535,13 @@ export default buildConfig({
           singular: '表单',
           plural: '表单管理',
         },
+        access: {
+          read: ({ req }) => isStaffRequest(req),
+          create: ({ req }) => isStaffRequest(req),
+          update: ({ req }) => isStaffRequest(req),
+          delete: ({ req }) => isStaffRequest(req),
+          readVersions: ({ req }) => isStaffRequest(req),
+        },
       },
       formSubmissionOverrides: {
         labels: {
@@ -539,7 +554,11 @@ export default buildConfig({
         },
         fields: appendFormSubmissionStatusFields,
         access: {
+          read: ({ req }) => isStaffRequest(req),
+          create: () => false,
           update: formSubmissionUpdateAccess,
+          delete: ({ req }) => isStaffRequest(req),
+          readVersions: ({ req }) => isStaffRequest(req),
         },
         hooks: {
           beforeChange: [protectFormSubmissionStatus],
@@ -597,4 +616,62 @@ export default buildConfig({
       },
     }),
   ],
+})
+
+export default configPromise.then((sanitizedConfig) => {
+  for (const collection of sanitizedConfig.collections) {
+    if (collection.slug.startsWith('payload-') || collection.slug === 'exports' || collection.slug === 'imports') {
+      const existingRead = collection.access?.read
+      const existingCreate = collection.access?.create
+      const existingUpdate = collection.access?.update
+      const existingDelete = collection.access?.delete
+      const existingReadVersions = collection.access?.readVersions
+      collection.access = {
+        ...collection.access,
+        read: async (args) => {
+          if (!isStaffRequest(args.req)) return false
+          return existingRead ? existingRead(args) : true
+        },
+        create: async (args) => {
+          if (!isStaffRequest(args.req)) return false
+          return existingCreate ? existingCreate(args) : true
+        },
+        update: async (args) => {
+          if (!isStaffRequest(args.req)) return false
+          return existingUpdate ? existingUpdate(args) : true
+        },
+        delete: async (args) => {
+          if (!isStaffRequest(args.req)) return false
+          return existingDelete ? existingDelete(args) : true
+        },
+        readVersions: async (args) => {
+          if (!isStaffRequest(args.req)) return false
+          return existingReadVersions ? existingReadVersions(args) : true
+        },
+      }
+    }
+  }
+  for (const global of sanitizedConfig.globals) {
+    if (global.slug.startsWith('payload-')) {
+      const existingRead = global.access?.read
+      const existingUpdate = global.access?.update
+      const existingReadVersions = global.access?.readVersions
+      global.access = {
+        ...global.access,
+        read: async (args) => {
+          if (!isStaffRequest(args.req)) return false
+          return existingRead ? existingRead(args) : true
+        },
+        update: async (args) => {
+          if (!isStaffRequest(args.req)) return false
+          return existingUpdate ? existingUpdate(args) : true
+        },
+        readVersions: async (args) => {
+          if (!isStaffRequest(args.req)) return false
+          return existingReadVersions ? existingReadVersions(args) : true
+        },
+      }
+    }
+  }
+  return sanitizedConfig
 })

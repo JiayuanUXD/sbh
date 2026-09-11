@@ -1,10 +1,10 @@
-﻿/**
+/**
  * 会员会话（OPT-088 §5）。
  * token 是 HS256 JWT，claims 只有 { id, collection:'members', sid }，用 Payload 的 jwtSign 签、jose 验；
  * sid 写进会员的 sessions 数组（Payload 自带字段），撤销即从数组删除。
  * cookie 名 sbh-member-token，与后台的 payload-token 完全分开。
  */
-import { randomUUID } from 'node:crypto'
+import { createHmac, randomUUID } from 'node:crypto'
 import { jwtVerify } from 'jose'
 import { jwtSign, type Payload } from 'payload'
 import type { Member } from '@/payload-types'
@@ -13,6 +13,14 @@ import { MEMBER_TOKEN_EXPIRATION_SECONDS } from './member-access'
 export const MEMBER_COOKIE_NAME = 'sbh-member-token'
 
 export type MemberTokenClaims = Readonly<{ id: number; collection: 'members'; sid: string }>
+
+/**
+ * 派生会员 Token 签名专用密钥（OPT-088 S1 防御）：
+ * 绝对不可使用 payload.secret 直签，避免客户端经 Authorization: JWT 头被 Payload 原生策略识别并成为 req.user。
+ */
+export function getMemberTokenSecret(payloadSecret: string): string {
+  return createHmac('sha256', payloadSecret).update('sbh:member:token:v1').digest('hex')
+}
 
 export function serializeMemberCookie(
   token: string,
@@ -44,9 +52,10 @@ export function readCookie(cookieHeader: string | null, name: string): string | 
 
 export async function signMemberToken(
   claims: MemberTokenClaims,
-  secret: string,
+  payloadSecret: string,
   expiresInSeconds: number,
 ): Promise<string> {
+  const secret = getMemberTokenSecret(payloadSecret)
   const { token } = await jwtSign({
     fieldsToSign: { ...claims },
     secret,
@@ -57,9 +66,10 @@ export async function signMemberToken(
 
 export async function verifyMemberToken(
   token: string,
-  secret: string,
+  payloadSecret: string,
 ): Promise<MemberTokenClaims | null> {
   try {
+    const secret = getMemberTokenSecret(payloadSecret)
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
       algorithms: ['HS256'],
     })
@@ -79,6 +89,8 @@ export async function verifyMemberToken(
 
 type Session = NonNullable<Member['sessions']>[number]
 
+export const MAX_MEMBER_SESSIONS = 10
+
 export function newSession(
   existing: Member['sessions'],
   now: Date,
@@ -91,7 +103,9 @@ export function newSession(
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + ttlSeconds * 1000).toISOString(),
   }
-  return { sid, sessions: [...live, session] }
+  // 保留最近 (MAX_MEMBER_SESSIONS - 1) 条有效会话 + 当前新会话，封顶 10 条（D6）
+  const trimmed = live.slice(-(MAX_MEMBER_SESSIONS - 1))
+  return { sid, sessions: [...trimmed, session] }
 }
 
 export function sessionIsLive(sessions: Member['sessions'], sid: string, now: Date): boolean {

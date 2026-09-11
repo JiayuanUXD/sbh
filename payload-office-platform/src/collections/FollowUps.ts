@@ -39,6 +39,8 @@ export const FollowUps: CollectionConfig = {
      * 集合的关系字段消费），收紧不影响前台。
      */
     read: ({ req }) => isStaffRequest(req),
+    create: ({ req }) => isStaffRequest(req),
+    readVersions: ({ req }) => isStaffRequest(req),
     // append-only：跟进记录不可修改、不可物理删除（design §3.6）
     update: () => false,
     delete: () => false,

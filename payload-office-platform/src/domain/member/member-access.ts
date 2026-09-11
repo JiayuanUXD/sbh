@@ -41,6 +41,7 @@ const manage = (args: AccessArgs): Promise<boolean> => canManageMembers({ req: a
 
 export const memberCollectionAccess: CollectionConfig['access'] = {
   read: manage,
+  readVersions: manage,
   create: manage,
   update: manage,
   // 会员不物理删：停用即可。有收藏 / 会话引用，删了会级联丢历史。

@@ -60,6 +60,7 @@ export const Members: CollectionConfig = {
       unique: true,
       index: true,
       admin: { readOnly: true, description: '规范化 11 位手机号，注册后不可修改。' },
+      access: { update: () => false },
       validate: (value: unknown) => {
         if (typeof value !== 'string' || !isValidCnMobile(value)) return '请输入正确的大陆手机号'
         return true

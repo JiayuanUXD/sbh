@@ -32,6 +32,7 @@ export const CityPartnerApplications: CollectionConfig = {
   },
   access: {
     read: cityPartnerApplicationReadAccess,
+    readVersions: cityPartnerApplicationReadAccess,
     update: cityPartnerApplicationManageAccess,
     create: () => false,
     delete: () => false,

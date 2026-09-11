@@ -293,12 +293,15 @@ export function createMenuAccess(
 function extractUser(req: RequestContext): Pick<User, 'id' | 'roles' | 'cityScope' | 'status' | 'sessionVersion'> | null {
   const raw = req.user as PayloadUser | undefined
   if (!raw) return null
+  // S1 / S5 防御：绝对拒绝非 users 集合的用户（如 members）进入员工鉴权上下文
+  const collection = (raw as { collection?: unknown }).collection
+  if (collection && collection !== 'users') return null
   // Payload 的 user 类型为 Record<string, unknown>；运行期字段来自 users Collection
   const u = raw as unknown as User
   if (u.id === undefined || u.id === null) return null
   return {
     id: u.id,
-    roles: u.roles,
+    roles: Array.isArray(u.roles) ? u.roles : [],
     cityScope: u.cityScope,
     status: u.status,
     sessionVersion: u.sessionVersion,
