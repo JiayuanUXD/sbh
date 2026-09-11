@@ -425,10 +425,13 @@ export function isBlockedMemberAuthPath(segments: readonly string[]): boolean
 
 | 变量 | 分期 | 说明 |
 | --- | --- | --- |
-| `SMS_PROVIDER` | 088 | `console` / `fixture` / `tencent`。非生产缺省 `console`；生产缺省视为未配置，短信端点 503；生产取值 `console` / `fixture` → `assertProductionConfig` 抛错 |
+| `SMS_PROVIDER` | 088 | `console` / `fixture` / `tencent` / `cloudmarket`。非生产缺省 `console`；生产缺省视为未配置，短信端点 503；生产取值 `console` / `fixture` → `assertProductionConfig` 抛错 |
 | `TENCENT_SMS_SECRET_ID` `TENCENT_SMS_SECRET_KEY` `TENCENT_SMS_SDK_APP_ID` `TENCENT_SMS_SIGN_NAME` `TENCENT_SMS_TEMPLATE_ID` | 088 | `tencent` 时必填，缺任一项启动即报错 |
 | `TENCENT_SMS_TEMPLATE_PARAMS` | 088 | 缺省 `{code},{minutes}` |
 | `TENCENT_SMS_REGION` | 088 | 缺省 `ap-guangzhou` |
+| `CLOUDMARKET_SMS_SECRET_ID` `CLOUDMARKET_SMS_SECRET_KEY` `CLOUDMARKET_SMS_TEMPLATE_ID` | 088 | `cloudmarket` 时必填。2026-09-11 用户裁定：腾讯云自营短信认证门槛高，改用云市场第三方短信（杭州华际云数「短信验证码」，产品 32818）。鉴权是云市场网关通用签名：`Authorization` 为 JSON `{id, x-date, signature}`，`signature = Base64(HMAC-SHA1(secretKey, "x-date: <GMT>"))`；请求体表单 `mobile` / `templateId` / `tag` |
+| `CLOUDMARKET_SMS_TAG_PARAMS` | 088 | 缺省 `{code}`；多变量按模板顺序逗号分隔，发送时用竖线拼接 |
+| `CLOUDMARKET_SMS_ENDPOINT` | 088 | 缺省产品页地址，服务商换地址时覆盖 |
 | `WECHAT_LOGIN_ENABLED` | 089 | `true` 才渲染入口与启用端点；缺省 false |
 | `WECHAT_APP_ID` `WECHAT_APP_SECRET` | 089 | 开关为 true 时必填。生产缺任一项 `assertProductionConfig` 抛错；非生产缺则启动 warn，三个微信端点返回 503 `SMS_UNAVAILABLE` 同款的 `WECHAT_UNAVAILABLE`，入口按钮仍按开关渲染 |
 

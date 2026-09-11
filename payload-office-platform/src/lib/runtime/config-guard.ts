@@ -37,6 +37,11 @@ export type ConfigGuardEnv = {
   TENCENT_SMS_TEMPLATE_ID?: string
   TENCENT_SMS_TEMPLATE_PARAMS?: string
   TENCENT_SMS_REGION?: string
+  CLOUDMARKET_SMS_SECRET_ID?: string
+  CLOUDMARKET_SMS_SECRET_KEY?: string
+  CLOUDMARKET_SMS_TEMPLATE_ID?: string
+  CLOUDMARKET_SMS_TAG_PARAMS?: string
+  CLOUDMARKET_SMS_ENDPOINT?: string
 }
 
 export type ConfigGuardViolation = {
