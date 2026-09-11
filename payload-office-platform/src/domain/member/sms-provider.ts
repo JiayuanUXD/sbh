@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 短信适配器（OPT-088 §6.2）。三个实现：
  *   console  非生产缺省，把验证码打进日志（脱敏手机号）；
  *   fixture  E2E 用，什么都不发（验证码由 sms-code 的 fixture 模式恒为 123456）；
@@ -16,6 +16,7 @@ export type SmsEnv = Readonly<
   Partial<
     Record<
       | 'NODE_ENV'
+      | 'CI'
       | 'SMS_PROVIDER'
       | 'TENCENT_SMS_SECRET_ID'
       | 'TENCENT_SMS_SECRET_KEY'
@@ -56,6 +57,8 @@ export function collectSmsProductionViolations(env: SmsEnv): { field: string; re
   if (env.NODE_ENV !== 'production') return []
   const provider = env.SMS_PROVIDER
   if (!provider) return []
+  // CI E2E 允许 fixture 模式（验证码恒为 123456）；真实生产环境（无 CI）严格禁止
+  if (env.CI && provider === 'fixture') return []
   if (provider === 'console' || provider === 'fixture') {
     return [
       {
@@ -123,7 +126,7 @@ export function resolveSmsProvider(
   const isProd = env.NODE_ENV === 'production'
   if (!provider) return isProd ? null : consoleProvider(log)
   if (provider === 'console') return isProd ? null : consoleProvider(log)
-  if (provider === 'fixture') return isProd ? null : fixtureProvider()
+  if (provider === 'fixture') return isProd && !env.CI ? null : fixtureProvider()
   if (provider === 'tencent') return tencentProvider(env)
   return null
 }

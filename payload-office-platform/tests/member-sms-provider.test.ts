@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   collectSmsProductionViolations,
   expandTemplateParams,
@@ -33,13 +33,22 @@ describe('sms-provider', () => {
     }
     expect(resolveSmsProvider(full, () => {})?.name).toBe('tencent')
   })
-  it('生产拒绝 console / fixture，允许 tencent', () => {
+  it('生产拒绝 console / fixture，允许 tencent；CI 环境允许 fixture', () => {
     expect(
       collectSmsProductionViolations({ NODE_ENV: 'production', SMS_PROVIDER: 'console' }),
     ).toHaveLength(1)
     expect(
       collectSmsProductionViolations({ NODE_ENV: 'production', SMS_PROVIDER: 'fixture' }),
     ).toHaveLength(1)
+    expect(
+      collectSmsProductionViolations({ NODE_ENV: 'production', SMS_PROVIDER: 'fixture', CI: '1' }),
+    ).toEqual([])
+    expect(
+      resolveSmsProvider({ NODE_ENV: 'production', SMS_PROVIDER: 'fixture', CI: '1' }, () => {})?.name,
+    ).toBe('fixture')
+    expect(
+      resolveSmsProvider({ NODE_ENV: 'production', SMS_PROVIDER: 'fixture' }, () => {}),
+    ).toBeNull()
     expect(
       collectSmsProductionViolations({
         NODE_ENV: 'production',
