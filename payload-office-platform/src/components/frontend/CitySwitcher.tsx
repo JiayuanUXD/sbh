@@ -38,16 +38,7 @@ export function resolveTrustedCity(
   return resolveTrustedRouteCity(pathname, searchParams, cities, defaultCity)?.city ?? null
 }
 
-export function cityAwareHref(href: string, citySlug: string, multiCityRoutingEnabled = true): string {
-  const pageType = getCityPageType(href)
-  let cityHref = href
-  if (pageType === 'home') cityHref = buildCityPath(citySlug, 'home') ?? href
-  if (pageType === 'listings' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
-  if (pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner') {
-    cityHref = buildCityPath(citySlug, pageType) ?? href
-  }
-  return multiCityRoutingEnabled ? cityHref : legacyCanonicalPath(cityHref) ?? href
-}
+export { cityAwareHref } from '@/lib/frontend/city-routes'
 
 export function citySwitchHref(
   sourceUrl: string,

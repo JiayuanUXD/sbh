@@ -12,19 +12,19 @@ describe('MemberMenu', () => {
   it('loginHref 带 returnTo', () => {
     expect(loginHref('/listings?type=coworking')).toBe('/login?returnTo=%2Flistings%3Ftype%3Dcoworking')
   })
-  it('显示名：昵称首字 / 尾号', () => {
+  it('显示名：昵称首字 / 尾号后两位', () => {
     expect(memberDisplayName({ ...member, nickname: '小王' })).toBe('小')
-    expect(memberDisplayName(member)).toBe('尾号 1234')
+    expect(memberDisplayName(member)).toBe('34')
   })
   it('未登录桌面态渲染登录链接', () => {
     const html = renderToStaticMarkup(React.createElement(MemberMenu, { member: null, pathname: '/buildings', variant: 'desktop' }))
     expect(html).toContain('href="/login?returnTo=%2Fbuildings"')
     expect(html).toContain('登录')
   })
-  it('已登录抽屉态渲染四项', () => {
+  it('已登录抽屉态渲染菜单项（收藏、设置、退出）', () => {
     const html = renderToStaticMarkup(React.createElement(MemberMenu, { member, pathname: '/', variant: 'drawer' }))
-    for (const text of ['我的收藏', '我的咨询与委托', '账号设置', '退出登录']) expect(html).toContain(text)
+    for (const text of ['我的收藏', '账号设置', '退出登录']) expect(html).toContain(text)
     expect(html).toContain('/account/favorites')
-    expect(html).toContain('/account/inquiries')
+    expect(html).not.toContain('/account/inquiries')
   })
 })

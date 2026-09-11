@@ -12,12 +12,11 @@ export function loginHref(pathname: string): string {
 export function memberDisplayName(member: MemberDto): string {
   const nick = member.nickname?.trim()
   if (nick) return Array.from(nick)[0]
-  return `尾号 ${member.phoneMasked.slice(-4)}`
+  return member.phoneMasked.slice(-2)
 }
 
 const ITEMS = [
   { href: '/account/favorites', label: '我的收藏' },
-  { href: '/account/inquiries', label: '我的咨询与委托' },
   { href: '/account', label: '账号设置' },
 ] as const
 
@@ -26,13 +25,14 @@ const ITEMS = [
  * desktop：登录 pill 或头像触发器 + 下拉；drawer：抽屉顶部的平铺列表。
  * 下拉的 Esc / 外点关闭 / 焦点归还照 SiteNav 抽屉的做法。
  */
-export default function MemberMenu({ member, pathname, variant, onNavigate }: Readonly<{
+export default function MemberMenu({ member: initialMember, pathname, variant, onNavigate }: Readonly<{
   member: MemberDto | null
   pathname: string
   variant: 'desktop' | 'drawer'
   onNavigate?: () => void
 }>) {
-  const { logout } = useMember()
+  const { logout, member: contextMember } = useMember()
+  const member = contextMember ?? initialMember
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)

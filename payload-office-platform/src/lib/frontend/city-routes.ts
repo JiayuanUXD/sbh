@@ -31,6 +31,7 @@ const URL_BASE = 'https://city-route.invalid'
 const PERCENT_ENCODED_OCTET = /%[0-9A-Fa-f]{2}/
 const RESERVED_CITY_ROOT_SEGMENTS = new Set([
   '_next',
+  'account',
   'admin',
   'api',
   'buildings',
@@ -38,6 +39,7 @@ const RESERVED_CITY_ROOT_SEGMENTS = new Set([
   'dev-story',
   'entrust',
   'listings',
+  'login',
   'media',
   'sale',
   'news',
@@ -547,4 +549,15 @@ export function prefixedCanonicalPath(sourceUrl: unknown, citySlug: string): str
     case 'unknown':
       return null
   }
+}
+
+export function cityAwareHref(href: string, citySlug: string, multiCityRoutingEnabled = true): string {
+  const pageType = getCityPageType(href)
+  let cityHref = href
+  if (pageType === 'home') cityHref = buildCityPath(citySlug, 'home') ?? href
+  if (pageType === 'listings' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
+  if (pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner') {
+    cityHref = buildCityPath(citySlug, pageType) ?? href
+  }
+  return multiCityRoutingEnabled ? cityHref : legacyCanonicalPath(cityHref) ?? href
 }

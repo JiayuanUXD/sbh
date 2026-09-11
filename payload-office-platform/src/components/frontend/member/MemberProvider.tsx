@@ -8,6 +8,7 @@ import { memberGet, memberPost } from './member-api'
 
 export type MemberContextValue = Readonly<{
   member: MemberDto | null
+  setMember: (member: MemberDto) => void
   favorites: readonly FavoriteItem[]
   favoritesReady: boolean
   isFavorite: (type: FavoriteType, id: number) => boolean
@@ -18,6 +19,7 @@ export type MemberContextValue = Readonly<{
 
 const EMPTY: MemberContextValue = {
   member: null,
+  setMember: () => undefined,
   favorites: [],
   favoritesReady: false,
   isFavorite: () => false,
@@ -36,6 +38,7 @@ type ItemsBody = { items: FavoriteItem[] }
  * 未登录时本 Provider 只提供 member=null，收藏按钮走原来的 localStorage 分支。
  */
 export function MemberProvider({ initialMember, children }: { initialMember: MemberDto | null; children: React.ReactNode }) {
+  const [member, setMember] = useState<MemberDto | null>(initialMember)
   const [favorites, setFavorites] = useState<readonly FavoriteItem[]>([])
   const [favoritesReady, setFavoritesReady] = useState(false)
   const bootstrapped = useRef(false)
@@ -85,9 +88,11 @@ export function MemberProvider({ initialMember, children }: { initialMember: Mem
     window.location.assign('/')
   }, [])
 
+  const handleSetMember = useCallback((updated: MemberDto) => { setMember(updated) }, [])
+
   const value = useMemo<MemberContextValue>(() => ({
-    member: initialMember, favorites, favoritesReady, isFavorite, addFavorite, removeFavorite, logout,
-  }), [initialMember, favorites, favoritesReady, isFavorite, addFavorite, removeFavorite, logout])
+    member, setMember: handleSetMember, favorites, favoritesReady, isFavorite, addFavorite, removeFavorite, logout,
+  }), [member, handleSetMember, favorites, favoritesReady, isFavorite, addFavorite, removeFavorite, logout])
 
   return <MemberContext.Provider value={value}>{children}</MemberContext.Provider>
 }
