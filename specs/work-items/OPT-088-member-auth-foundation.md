@@ -43,20 +43,20 @@
 
 ## 5. 验收标准
 
-- [ ] 匿名 `POST /api/members/login`、`/logout`、`/refresh-token`、`/me`、`/first-register`、`/forgot-password`、`/reset-password`、`/unlock`、`/verify/x` 全部 404；`GET /api/members` 匿名 403，持 `member:manage` 员工 200；GraphQL 中不存在 `Member` 类型。
-- [ ] `POST /api/members` 匿名与会员上下文均被拒；服务端 `memberFlow` 路径可建。
-- [ ] 验证码登录（fixture 码 123456）：未勾同意 → `CONSENT_REQUIRED`；勾选 → 201 会员创建、cookie `sbh-member-token` 落下、顶栏显示会员菜单；刷新仍登录。
-- [ ] 60 秒内重复发码 429；同号一天第 11 次 429；同 IP 一小时第 21 次 429。
-- [ ] 设密码后密码登录成功；错 5 次后正确密码也返回 `INVALID_CREDENTIALS`，10 分钟后恢复。
-- [ ] 退出后 `/api/member/me` 返回 null，旧 cookie 重放无效（sid 已撤销）。
-- [ ] 后台停用会员后，会员下一次请求即失效。
-- [ ] 收藏：未登录收藏两条 → 登录 → 合并上传 → localStorage 键清空 → `/account/favorites` 两条；移除一条后刷新仍是一条。
-- [ ] 页脚「员工入口」`href="/admin/login"`、`rel="nofollow"`；`/login` 页底部员工提示存在。
-- [ ] `/login` `/account*` 响应头或 meta 含 `noindex`；未登录访问 `/account/favorites` 302 到 `/login?returnTo=/account/favorites`；`returnTo=//evil` 被拒回落。
-- [ ] 后台：ADM 与 OPS 见「会员」菜单并可打开列表；BRK 直敲 `/admin/collections/members` 得到无权限；OPS 看到的手机号为 `138****1111`。
-- [ ] 四断点截图与三重铁证进 `artifacts/verification/OPT-088/`，随附取证脚本。
-- [ ] `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm migrate:dry-run`、`pnpm build` 全绿；`tests/e2e/member-auth.spec.ts` 通过；既有 e2e 不红。
-- [ ] `tests/member-never-req-user.test.ts` 存在并通过；`.env.example` 含全部新变量并有注释。
+- [x] 匿名 `POST /api/members/login`、`/logout`、`/refresh-token`、`/me`、`/first-register`、`/forgot-password`、`/reset-password`、`/unlock`、`/verify/x` 全部 404；`GET /api/members` 匿名 403，持 `member:manage` 员工 200；GraphQL 中不存在 `Member` 类型。
+- [x] `POST /api/members` 匿名与会员上下文均被拒；服务端 `memberFlow` 路径可建。
+- [x] 验证码登录（fixture 码 123456）：未勾同意 → `CONSENT_REQUIRED`；勾选 → 201 会员创建、cookie `sbh-member-token` 落下、顶栏显示会员菜单；刷新仍登录。
+- [ ] 60 秒内重复发码 429 实测通过；同号一天第 11 次 429 与同 IP 一小时第 21 次 429 仅单元测试覆盖，无端到端实测证据。
+- [ ] 设密码后密码登录成功；错 5 次后正确密码也返回 `INVALID_CREDENTIALS`（DB 确认 lock_until 写入），但「10 分钟后恢复」未实测等待、仍无证据。
+- [x] 退出后 `/api/member/me` 返回 null，旧 cookie 重放无效（sid 已撤销）。
+- [x] 后台停用会员后，会员下一次请求即失效。
+- [x] 收藏：未登录收藏两条 → 登录 → 合并上传 → localStorage 键清空 → `/account/favorites` 两条；移除一条后刷新仍是一条。
+- [x] 页脚「员工入口」`href="/admin/login"`、`rel="nofollow"`；`/login` 页底部员工提示存在。
+- [x] `/login` `/account*` 响应头或 meta 含 `noindex`；未登录访问 `/account/favorites` 302 到 `/login?returnTo=/account/favorites`；`returnTo=//evil` 被拒回落。
+- [ ] 后台：ADM 与 OPS 见「会员」菜单并可打开列表；BRK 直敲 `/admin/collections/members` 得到无权限；OPS 持 `phone:full` 看到完整手机号（与「脱敏」事实相反）。
+- [x] 四断点截图与三重铁证进 `artifacts/verification/OPT-088/`，随附取证脚本 `verify-browser-opt088.spec.ts`。
+- [x] `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm migrate:dry-run`、`pnpm build` 全绿；`tests/e2e/member-auth.spec.ts` 通过；既有 e2e 不红。
+- [x] `tests/member-never-req-user.test.ts` 存在并通过；`.env.example` 含全部新变量并有注释。
 
 ## 6. 风险与注意
 

@@ -270,7 +270,7 @@ type MemberDto = Readonly<{
 
 `POST /api/member/login/password`
 请求 `{ phone, password }`
-流程：格式校验 → `member-login:ip` 限流 → `payload.login({ collection: 'members', data: { username: phone, password }, context: { memberFlow: 'password' } })`，任何抛错（含 `LockedAuth`）统一 `INVALID_CREDENTIALS` → 停用 `ACCOUNT_DISABLED`（`beforeLogin` 钩子里判 `status`）→ 更新 `lastLoginAt` → 设 cookie → 200 `{ ok: true, member }`。
+流程：格式校验 → `member-login:ip` 限流 → `payload.login({ collection: 'members', data: { username: phone, password }, context: { memberFlow: 'password' } })`，任何抛错（含 `LockedAuth`、账号停用、账号不存在、密码错误）一律统一返回 401 `INVALID_CREDENTIALS`（文案统一「手机号或密码错误」，防账号存在性与状态枚举；短信登录因已完成手机所有权核身故返回 `ACCOUNT_DISABLED`） → 更新 `lastLoginAt` → 设 cookie → 200 `{ ok: true, member }`。
 
 `GET /api/member/me` → 200 `{ ok: true, member: MemberDto | null }`。
 `POST /api/member/logout` → 撤销 sid，清 cookie，200 `{ ok: true }`；未登录也 200。
