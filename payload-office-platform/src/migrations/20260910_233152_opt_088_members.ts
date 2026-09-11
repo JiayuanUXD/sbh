@@ -98,10 +98,8 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   ALTER TABLE "members" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "member_sms_codes" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "member_favorites" DISABLE ROW LEVEL SECURITY;
-  DROP TABLE "members_sessions" CASCADE;
-  DROP TABLE "members" CASCADE;
-  DROP TABLE "member_sms_codes" CASCADE;
-  DROP TABLE "member_favorites" CASCADE;
+  -- 先删引用这几张表的外键，再删表：CASCADE 删表会顺带删掉这些约束，
+  -- 之后再 DROP CONSTRAINT 就是「约束不存在」，整条 down 都会中止（Codex 评论 5）。
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_members_fk";
   
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_member_sms_codes_fk";
@@ -110,6 +108,10 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   
   ALTER TABLE "payload_preferences_rels" DROP CONSTRAINT "payload_preferences_rels_members_fk";
   
+  DROP TABLE "members_sessions" CASCADE;
+  DROP TABLE "members" CASCADE;
+  DROP TABLE "member_sms_codes" CASCADE;
+  DROP TABLE "member_favorites" CASCADE;
   DROP INDEX "payload_locked_documents_rels_members_id_idx";
   DROP INDEX "payload_locked_documents_rels_member_sms_codes_id_idx";
   DROP INDEX "payload_locked_documents_rels_member_favorites_id_idx";

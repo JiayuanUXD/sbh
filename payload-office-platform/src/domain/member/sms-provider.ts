@@ -28,7 +28,6 @@ export type SmsEnv = Readonly<
       | 'NODE_ENV'
       | 'CI'
       | 'MEMBER_SMS_FIXTURE'
-      | 'NEXT_PUBLIC_SITE_URL'
       | 'SMS_PROVIDER'
       | 'TENCENT_SMS_SECRET_ID'
       | 'TENCENT_SMS_SECRET_KEY'
@@ -79,6 +78,10 @@ const CLOUDMARKET_REQUIRED = [
 /** 产品页给出的调用地址；服务商换地址时用 CLOUDMARKET_SMS_ENDPOINT 覆盖，不改代码。 */
 export const CLOUDMARKET_SMS_DEFAULT_ENDPOINT =
   'https://ap-shanghai.cloudmarket-apigw.com/service-5ipqbocr/sms/send'
+
+function fixtureAllowedInProduction(env: SmsEnv): boolean {
+  return Boolean(env.CI) && env.MEMBER_SMS_FIXTURE === '1'
+}
 
 function missingCloudMarket(env: SmsEnv): string[] {
   return CLOUDMARKET_REQUIRED.filter((k) => !env[k] || env[k]!.trim().length === 0)
@@ -159,27 +162,15 @@ function cloudMarketProvider(env: SmsEnv, deps: CloudMarketSmsDeps): SmsProvider
   }
 }
 
-function isProductionDomain(siteUrl: string | undefined): boolean {
-  if (!siteUrl) return true
-  try {
-    const u = new URL(siteUrl)
-    const host = u.hostname.toLowerCase()
-    return !host.includes('localhost') && !host.includes('127.0.0.1') && !host.includes('example.com') && !host.includes('test')
-  } catch {
-    return true
-  }
-}
-
 export function collectSmsProductionViolations(env: SmsEnv): { field: string; reason: string }[] {
   if (env.NODE_ENV !== 'production') return []
   const provider = env.SMS_PROVIDER
   if (!provider) return []
-  // CI E2E 仅在显式设置 MEMBER_SMS_FIXTURE=1 且非正式生产域名时允许 fixture 模式（S3 防御）
+  // fixture 在生产构建下只给 CI 的 E2E 用：必须同时有 CI 与显式的 MEMBER_SMS_FIXTURE=1。
+  // 生产容器（Dockerfile / CloudRun 服务级变量）两个都不设。不再按站点域名猜——CI 的
+  // NEXT_PUBLIC_SITE_URL 就是线上域名（canonical/sitemap 要它），按域名判会把 CI 自己拒掉。
   if (provider === 'fixture') {
-    const isExplicitCiFixture = Boolean(env.CI) && env.MEMBER_SMS_FIXTURE === '1'
-    if (isExplicitCiFixture && !isProductionDomain(env.NEXT_PUBLIC_SITE_URL)) {
-      return []
-    }
+    if (fixtureAllowedInProduction(env)) return []
     return [
       {
         field: 'SMS_PROVIDER',
@@ -259,10 +250,7 @@ export function resolveSmsProvider(
   if (!provider) return isProd ? null : consoleProvider(log)
   if (provider === 'console') return isProd ? null : consoleProvider(log)
   if (provider === 'fixture') {
-    if (isProd) {
-      const allowed = Boolean(env.CI) && env.MEMBER_SMS_FIXTURE === '1' && !isProductionDomain(env.NEXT_PUBLIC_SITE_URL)
-      return allowed ? fixtureProvider() : null
-    }
+    if (isProd) return fixtureAllowedInProduction(env) ? fixtureProvider() : null
     return fixtureProvider()
   }
   if (provider === 'tencent') return tencentProvider(env)

@@ -27,10 +27,22 @@ function fakePayload(store: Store) {
     logger: { info: vi.fn(), warn: vi.fn() },
     db: {
       pool: {
-        query: vi.fn(async (args: { values?: unknown[] }) => ({
-          rows: [{ count: 1, window_start: args?.values?.[1] ?? 0 }],
-          rowCount: 1,
-        })),
+        // 假 pool：把 member-service 用到的两条原子 SQL 映射到内存 store，其余当限流表
+        query: vi.fn(async (args: { text: string; values?: unknown[] }) => {
+          if (args.text.includes('SET attempts = attempts + 1')) {
+            const row = store.codes.find((c) => c.id === args.values?.[0])
+            if (!row) return { rows: [], rowCount: 0 }
+            ;(row as unknown as { attempts: number }).attempts = (row.attempts ?? 0) + 1
+            return { rows: [{ attempts: row.attempts }], rowCount: 1 }
+          }
+          if (args.text.includes('SET consumed_at = NOW()')) {
+            const row = store.codes.find((c) => c.id === args.values?.[0])
+            if (!row || row.consumedAt) return { rows: [], rowCount: 0 }
+            ;(row as unknown as { consumedAt: string }).consumedAt = now.toISOString()
+            return { rows: [{ id: row.id }], rowCount: 1 }
+          }
+          return { rows: [{ count: 1, window_start: args?.values?.[1] ?? 0 }], rowCount: 1 }
+        }),
       },
     },
     find: vi.fn(
@@ -237,5 +249,32 @@ describe('member-service', () => {
       code: 'RATE_LIMITED',
       retryAfterSeconds: 30,
     })
+  })
+
+  it('同一有效码并发登录只有一个能成功（条件更新抢占消费权）', async () => {
+    const store: Store = { codes: [], members: [{ id: 1, username: phone, status: 'active', hasPassword: false, sessions: [] } as unknown as Member] }
+    const d = deps(store)
+    await sendSmsCode(d, { phone, purpose: 'login', ip: 'x' })
+    const results = await Promise.allSettled([
+      loginWithSms(d, { phone, code: '123456', consent: null }),
+      loginWithSms(d, { phone, code: '123456', consent: null }),
+    ])
+    const ok = results.filter((r) => r.status === 'fulfilled')
+    const failed = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[]
+    expect(ok).toHaveLength(1)
+    expect(failed).toHaveLength(1)
+    expect(failed[0].reason).toMatchObject({ code: 'CODE_INVALID' })
+    expect(store.codes[0].consumedAt).toBeTruthy()
+  })
+
+  it('带着已被撤销的 sid 改密：不当作已登录改密，走找回路径并发放新会话', async () => {
+    const store: Store = { codes: [], members: [{ id: 1, username: phone, status: 'active', hasPassword: true, sessions: [] } as unknown as Member] }
+    const d = deps(store)
+    await sendSmsCode(d, { phone, purpose: 'set-password', ip: 'x' })
+    const r = await setPasswordWithSms(d, { phone, code: '123456', newPassword: 'Member1234!', currentSid: 'revoked-sid', currentMemberId: 1 })
+    const sessions = store.members[0].sessions ?? []
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].id).not.toBe('revoked-sid')
+    expect(r.cookie).toMatch(/^sbh-member-token=/)
   })
 })

@@ -10,10 +10,11 @@ import { createPgRateLimitDeps } from '@/lib/rate-limit-pg'
 import { runDistributedRateLimit, type RateLimitConfig } from '@/lib/rate-limit-distributed'
 import { extractPgPool } from '@/lib/api/request-guards'
 import { isValidCnMobile, normalizePhone } from '@/domain/shared/phone'
+import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import { MemberHttpError } from './http'
 import { MEMBER_TOKEN_EXPIRATION_SECONDS } from './member-access'
 import { MEMBER_RATE_LIMITS, memberRatePruneRef, rateLimitKey } from './rate-limits'
-import { issueMemberSession, signMemberToken, tokenToCookie } from './session'
+import { issueMemberSession, sessionIsLive, signMemberToken, tokenToCookie } from './session'
 import {
   SMS_CODE_TTL_MS,
   checkSmsCode,
@@ -148,6 +149,28 @@ async function latestCode(
   return result.docs[0] ?? null
 }
 
+/**
+ * 验证码表的两个写操作必须原子：
+ *   - 尝试次数用 `attempts = attempts + 1 ... RETURNING attempts`，并发猜码不会互相覆盖计数；
+ *   - 消费用 `WHERE consumed_at IS NULL` 的条件更新，只有抢到那一行的请求算数——
+ *     两个并发请求带同一个有效码，先 SELECT 再各自 UPDATE 会让两个都通过（Codex 评论 3）。
+ * Payload Local API 没有条件更新，直接走 pg pool；pool 拿不到是部署问题，直接抛，不静默降级。
+ */
+function requirePool(payload: Payload) {
+  const pool = extractPgPool(payload.db)
+  if (!pool) throw new Error('member-sms-codes 需要 PostgreSQL 连接池做原子更新')
+  return pool
+}
+
+async function incrementSmsAttempts(deps: MemberServiceDeps, codeId: number): Promise<number> {
+  const result = await requirePool(deps.payload).query({
+    text: 'UPDATE member_sms_codes SET attempts = attempts + 1, updated_at = NOW() WHERE id = $1 RETURNING attempts',
+    values: [codeId],
+  })
+  const raw = result.rows[0]?.attempts
+  return typeof raw === 'number' ? raw : Number(raw ?? 0)
+}
+
 /** 仅核验验证码合法性并记录错误尝试次数，不打上已消费标记（D1） */
 export async function verifySmsCode(
   deps: MemberServiceDeps,
@@ -155,13 +178,7 @@ export async function verifySmsCode(
 ): Promise<{ check: SmsCodeCheck; codeId: number | null }> {
   const stored = await latestCode(deps, input.phone, input.purpose)
   if (!stored) return { check: 'invalid', codeId: null }
-  const attempts = (stored.attempts ?? 0) + 1
-  await deps.payload.update({
-    collection: 'member-sms-codes',
-    id: stored.id,
-    data: { attempts },
-    overrideAccess: true,
-  })
+  const attempts = await incrementSmsAttempts(deps, stored.id)
   const check = checkSmsCode({
     secret: deps.payload.secret,
     phone: input.phone,
@@ -178,16 +195,23 @@ export async function verifySmsCode(
   return { check, codeId: check === 'ok' ? stored.id : null }
 }
 
+/** 原子地把验证码标为已消费；返回 false 表示已被别的请求抢先消费。 */
 export async function markSmsCodeConsumed(
   deps: MemberServiceDeps,
   codeId: number,
-): Promise<void> {
-  await deps.payload.update({
-    collection: 'member-sms-codes',
-    id: codeId,
-    data: { consumedAt: deps.now().toISOString() },
-    overrideAccess: true,
+): Promise<boolean> {
+  const result = await requirePool(deps.payload).query({
+    text: 'UPDATE member_sms_codes SET consumed_at = NOW(), updated_at = NOW() WHERE id = $1 AND consumed_at IS NULL RETURNING id',
+    values: [codeId],
   })
+  return (result.rowCount ?? result.rows.length) > 0
+}
+
+/** 校验通过后必须抢到消费权，抢不到就当无效码。 */
+async function claimSmsCodeOrThrow(deps: MemberServiceDeps, codeId: number | null): Promise<void> {
+  if (codeId === null) throw new MemberHttpError('CODE_INVALID')
+  const claimed = await markSmsCodeConsumed(deps, codeId)
+  if (!claimed) throw new MemberHttpError('CODE_INVALID')
 }
 
 export async function consumeSmsCode(
@@ -195,10 +219,8 @@ export async function consumeSmsCode(
   input: { phone: string; purpose: SmsPurpose; code: string },
 ): Promise<SmsCodeCheck> {
   const { check, codeId } = await verifySmsCode(deps, input)
-  if (check === 'ok' && codeId !== null) {
-    await markSmsCodeConsumed(deps, codeId)
-  }
-  return check
+  if (check !== 'ok' || codeId === null) return check
+  return (await markSmsCodeConsumed(deps, codeId)) ? 'ok' : 'invalid'
 }
 
 function throwOnCode(check: SmsCodeCheck): void {
@@ -261,21 +283,31 @@ export async function loginWithSms(
   })
   throwOnCode(check)
   let member = await findMemberByPhone(deps, input.phone)
-  let isNew = false
   if (!member) {
     const consentOk =
       input.consent?.accepted === true && input.consent.policyVersion === PRIVACY_POLICY_VERSION
     if (!consentOk) throw new MemberHttpError('CONSENT_REQUIRED')
-    member = await createMemberFromVerifiedPhone(deps, {
-      phone: input.phone,
-      policyVersion: PRIVACY_POLICY_VERSION,
-      flow: 'sms',
-    })
-    isNew = true
   }
-  assertActive(member)
-  if (codeId !== null) {
-    await markSmsCodeConsumed(deps, codeId)
+  if (member) assertActive(member)
+  // 消费权必须在建号之前抢：两个并发的首次登录若都走到建号，输的那个会撞手机号唯一索引
+  // 变成 500，而不是干净的 CODE_INVALID
+  await claimSmsCodeOrThrow(deps, codeId)
+  let isNew = false
+  if (!member) {
+    try {
+      member = await createMemberFromVerifiedPhone(deps, {
+        phone: input.phone,
+        policyVersion: PRIVACY_POLICY_VERSION,
+        flow: 'sms',
+      })
+      isNew = true
+    } catch (error) {
+      // 抢到了消费权却仍撞唯一索引：说明对方用另一个码刚建了号，直接用它
+      if (!isUniqueViolation(error, { tableName: 'members', column: 'username' })) throw error
+      member = await findMemberByPhone(deps, input.phone)
+      if (!member) throw error
+      assertActive(member)
+    }
   }
   const { cookie } = await issueMemberSession(deps.payload, member, deps.now())
   return { member, isNew, cookie }
@@ -324,15 +356,16 @@ export async function setPasswordWithSms(
   const member = await findMemberByPhone(deps, input.phone)
   if (!member) throw new MemberHttpError('CODE_INVALID')
   assertActive(member)
-  if (codeId !== null) {
-    await markSmsCodeConsumed(deps, codeId)
-  }
+  await claimSmsCodeOrThrow(deps, codeId)
 
-  // D8 防御：核验当前 Cookie 中的会员 ID 是否与改密的目标会员一致
+  // 「已登录改密」的判据：cookie 里的会员就是目标会员，且那个 sid 此刻仍在会话表里。
+  // 只验签不验存活的话，一个已被别的设备踢下线但仍带着旧 cookie 的浏览器会被当成
+  // 已登录：改密后拿到一张指向已不存在 sid 的 cookie，跳转即未登录（Codex 评论 4）。
   const isSelfChange =
-    Boolean(input.currentSid) &&
+    typeof input.currentSid === 'string' &&
     typeof input.currentMemberId === 'number' &&
-    input.currentMemberId === member.id
+    input.currentMemberId === member.id &&
+    sessionIsLive(member.sessions, input.currentSid, deps.now())
 
   if (isSelfChange && input.currentSid) {
     // 已登录改密码：保留当前 sid、派生密钥重签 token，本设备不掉线，其它设备全部下线
