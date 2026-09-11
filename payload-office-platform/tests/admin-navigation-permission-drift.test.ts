@@ -325,6 +325,18 @@ const MASTER_LEAVES: readonly LeafFixture[] = [
 /** 裁定 2：领域事件退出导航，其余 39 片必须一片不少。 */
 const REMOVED_LEAF_IDS = new Set(['domain-events'])
 
+/** OPT-088 新增会员入口，其权限判据单独评审并在此固化 */
+const OPT_088_NEW_LEAVES: readonly LeafFixture[] = [
+  {
+    id: 'members',
+    label: '会员',
+    href: '/admin/collections/members',
+    menuCodes: ['members'],
+    collectionSlug: 'members',
+    requiredOperationCode: 'member:manage',
+  },
+]
+
 /** 允许新增 badgeKey 的两片叶子（Task 3 会补上对应的角标查询）。 */
 const ALLOWED_NEW_BADGE_KEYS: Readonly<Record<string, string>> = {
   'information-corrections': 'informationCorrections',
@@ -347,14 +359,20 @@ function comparable(leaf: LeafFixture | AdminNavLeaf) {
 }
 
 describe('导航重组不得改动叶子的权限判据（G1）', () => {
-  it('叶子集合 = master 的集合减去退出导航的那片', () => {
-    const expected = MASTER_LEAVES.map((leaf) => leaf.id).filter((id) => !REMOVED_LEAF_IDS.has(id))
+  it('叶子集合 = master 的集合减去退出导航的那片 + OPT-088 新增的那片', () => {
+    const expected = [
+      ...MASTER_LEAVES.map((leaf) => leaf.id).filter((id) => !REMOVED_LEAF_IDS.has(id)),
+      ...OPT_088_NEW_LEAVES.map((leaf) => leaf.id),
+    ]
 
     expect([...currentLeaves().map((leaf) => leaf.id)].sort()).toEqual([...expected].sort())
   })
 
   it('每片叶子的 label / href / menuCodes / collectionSlug / requiredOperationCode 与 master 逐字相同', () => {
-    const master = new Map(MASTER_LEAVES.map((leaf) => [leaf.id, leaf]))
+    const master = new Map([
+      ...MASTER_LEAVES.map((leaf) => [leaf.id, leaf] as const),
+      ...OPT_088_NEW_LEAVES.map((leaf) => [leaf.id, leaf] as const),
+    ])
 
     for (const leaf of currentLeaves()) {
       const baseline = master.get(leaf.id)

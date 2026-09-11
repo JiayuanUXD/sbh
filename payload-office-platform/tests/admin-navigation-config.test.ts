@@ -133,6 +133,7 @@ describe('admin navigation config', () => {
           'my-customers',
         ]),
         expectedLeaf('follow-ups', '跟进记录', '/admin/collections/follow-ups', ['follow-ups']),
+        expectedLeaf('members', '会员', '/admin/collections/members', ['members']),
       ]),
       expectedGroup('content', '站点与内容', [
         // OPT-053：站点设置是 Global，不收编进自定义导航就彻底不可发现
@@ -208,6 +209,7 @@ describe('admin navigation config', () => {
 
   it('只指向 Payload 配置或插件集合清单中的集合', () => {
     const configuredCollectionSlugs = new Set([
+      'members',
       'users',
       'roles',
       'media',

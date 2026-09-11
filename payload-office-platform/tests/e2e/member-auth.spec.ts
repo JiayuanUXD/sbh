@@ -105,7 +105,6 @@ test.describe('密码登录与会话', () => {
     await page.goto('/account/favorites')
     // id=1 的楼盘在 seed 库里存在则出现一条；不存在会被合并跳过 → 空态。两种都断言 localStorage 已清空。
     await expect(page.getByRole('heading', { name: '我的收藏' })).toBeVisible()
-    const local = await page.evaluate(() => window.localStorage.getItem('sbh:saved-details:v1'))
-    expect(local).toBeNull()
+    await expect.poll(async () => page.evaluate(() => window.localStorage.getItem('sbh:saved-details:v1'))).toBeNull()
   })
 })

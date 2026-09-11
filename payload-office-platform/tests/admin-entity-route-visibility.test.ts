@@ -28,6 +28,8 @@ const payloadConfig = await configPromise
  */
 const INTENTIONALLY_UNREACHABLE: Record<string, string> = {
   // 例：'some-slug': '理由（并确认已用 access control 真正兜住）',
+  'member-sms-codes': '纯服务端验证码暂存，access 全拒，仅 Local API 读写（OPT-088 §4.2）',
+  'member-favorites': '纯服务端会员收藏，access 全拒，经 /api/member/favorites/* 读写（OPT-088 §4.3）',
 }
 
 /**
