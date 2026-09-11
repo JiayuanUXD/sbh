@@ -4,7 +4,7 @@
 #
 # 单测为什么不跑全量：4800 个用例约 70s，其中 88% 是 58 个文件各自冷加载一遍
 # payload.config（每次 6~8s）。scripts/test-changed.mjs 按 import 图只挑受影响的文件，
-# 再常驻跑那些用 readFileSync 读源码、按图选不中的契约测试。改两个文件 ≈ 15s，
+# 再常驻跑那些用 readFileSync 读源码、按图选不中的契约测试。改一个叶子组件 ≈ 20s（含启动），
 # 动到 collection 的 PR ≈ 50s。选取规则与退回全量的条件见该脚本头注释。
 #
 # 本地跑全量：FULL_PREPUSH=1 git push

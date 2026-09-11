@@ -3,7 +3,7 @@
  *
  * 为什么不跑全量：全量 `pnpm test` 约 70s，其中用例本身只占 50s（各文件之和），
  * 大头是 58 个文件各自冷加载一遍 `payload.config`（每次 6~8s，互不共享）。
- * 按 import 图只挑受影响的文件后：改两个文件 ≈ 15s，动到 collection 的 PR ≈ 50s。
+ * 按 import 图只挑受影响的文件后：改一个叶子组件 ≈ 20s（含启动），动到 collection 的 PR ≈ 50s。
  * 全量单测 / build / 迁移 / E2E 留给 CI（quality.yml 在 PR 与 master 上都跑全量）。
  *
  * 选取规则（取并集，一次 vitest 调用）：

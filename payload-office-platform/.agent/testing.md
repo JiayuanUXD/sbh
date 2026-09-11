@@ -19,7 +19,7 @@ pnpm build
 - 未改后台组件注册可省略 import map；改了没重生成 → `/admin` 整站 hydration 白屏（资源全 200）。
 - 未改 `src/migrations/` 可省略 `migrate:dry-run`。
 - 开发中的快速回路用 `pnpm test:changed`（pre-push 跑的就是它）：按 import 图只跑受改动影响的文件，
-  外加常驻的 fs 读源码型契约测试；改两个文件约 15s，全量约 70s。**声明完成前仍要跑一次全量 `pnpm test`**——
+  外加常驻的 fs 读源码型契约测试；改一个叶子组件约 20s（含启动），动到 collection 约 50s，全量约 70s。**声明完成前仍要跑一次全量 `pnpm test`**——
   按图选不中的契约测试只有全量和 CI 才覆盖。
 - 没有 `DATABASE_URL` 时 `pnpm test` 会直接不收集 `tests/*-postgres.test.ts`（它们本来也会整文件跳过，
   但顶层 import `payload.config` 白付 6~8s）；要跑它们就带上库：CI 的 `postgres-migrations` 作业负责。
