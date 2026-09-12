@@ -6,8 +6,8 @@ import type { ServicePhone } from '@/lib/frontend/service-phone'
  * 顶栏客服电话入口（OPT-094）。
  *
  * 两种形态：
- *   - `header`：放在页头右侧动作区。≥1024 显示「图标 + 号码」，之下只留图标
- *     （号码文本由 CSS 收起，DOM 仍在——读屏与 aria-label 都拿得到号码）；
+ *   - `header`：放在页头右侧动作区。≥1024 显示「图标 + 客服 + 号码」，之下只留图标
+ *     （「客服」前缀与号码文本由 CSS 一起收起，DOM 仍在——读屏与 aria-label 都拿得到号码）；
  *   - `drawer`：移动抽屉里的平铺一行「客服电话 400-…」。
  *
  * 号码取值（城市覆盖 → 全站默认）不在这里做，见 `header-features.ts#pickServicePhone`；
@@ -33,6 +33,9 @@ export default function ServicePhoneLink({
   return (
     <a href={phone.href} className="service-phone" aria-label={`拨打客服电话 ${phone.display}`}>
       <PhoneIcon size={20} className="service-phone__icon" />
+      {/* OPT-095：号码前加「客服」，让入口不靠图标也能被认出来；与号码同受 ≥1024
+          显隐控制（见 member.css），窄屏只剩图标 + aria-label。 */}
+      <span className="service-phone__prefix">客服</span>
       <span className="service-phone__number">{phone.display}</span>
     </a>
   )

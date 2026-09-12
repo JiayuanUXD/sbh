@@ -1053,6 +1053,13 @@ export function mapListingDetail(raw: unknown): ListingDetailViewModel | null {
 
   return {
     ...card,
+    // OPT-095：详情不进全量卡片数组缓存（OPT-047 的 2MB 红线只约束列表链路），
+    // 楼盘摘要用未收窄的完整版——「所在楼盘」卡片要封面与摘要，「房源概况」参数表
+    // 要空调 / 网络 / 停车费（detail-spec/listing-rows.ts 读 ctx.building.*）。
+    // 此前 `...card` 把卡片链路剔过字段的 building 一并带进了详情：线上所在楼盘
+    // 恒占位图、三行楼宇服务恒空（2026-09-12 抽查楼盘 164，coverImage 明明非空）。
+    // `?? card.building` 只为类型收口：mapListingCard 已保证 building 可映射，恒不命中。
+    building: mapBuildingSummary(listing.building) ?? card.building,
     seats: listing.seats ?? null,
     gallery,
     mediaItems: mapDetailMedia(listing.mediaItems, listing.title, LISTING_DETAIL_MEDIA_CATEGORIES),

@@ -74,10 +74,14 @@
 }
 .service-phone:hover { background: var(--bg-subtle); }
 .service-phone:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.service-phone__prefix,
 .service-phone__number { display: none; }
 @media (min-width: 1024px) {
   .service-phone { padding: 0 var(--sp-3); }
+  .service-phone__prefix,
   .service-phone__number { display: inline; }
+  /* 「客服」与号码是同一个短语，间距收成 4px；图标与文字之间仍是 .service-phone 的 gap（8px） */
+  .service-phone__prefix { margin-right: calc(var(--sp-1) - var(--sp-2)); }
 }
 @media (max-width: 1023px) {
   .service-phone { width: var(--touch-target); height: var(--touch-target); justify-content: center; padding: 0; }

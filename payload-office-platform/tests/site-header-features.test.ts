@@ -15,6 +15,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 import SiteHeader from '@/components/frontend/SiteHeader'
+import ServicePhoneLink from '@/components/frontend/ServicePhoneLink'
 import { resolveHeaderFeatures } from '@/lib/frontend/header-features'
 import { SITE_SETTINGS_FALLBACK } from '@/lib/frontend/site-settings-view'
 
@@ -90,5 +91,26 @@ describe('SiteHeader 顶栏功能（OPT-094）', () => {
     const html = render({ servicePhone: '400-820-1234' })
     expect(html).toContain('aria-label="拨打客服电话 0571 8888 6666"')
     expect(html).toContain('class="service-phone__number"')
+  })
+
+  it('桌面顶栏号码前带「客服」前缀，与号码同一显隐（OPT-095）', () => {
+    const html = render({ servicePhone: '400-820-1234' })
+    expect(html).toContain('<span class="service-phone__prefix">客服</span>')
+    // 前缀紧挨号码，中间不能夹别的节点——CSS 靠相邻关系在 ≥1024 一起显示
+    expect(html).toMatch(/service-phone__prefix">客服<\/span><span class="service-phone__number">0571 8888 6666</)
+    // aria-label 不因前缀而变（读屏听到的仍是「拨打客服电话 + 号码」）
+    expect(html).toContain('aria-label="拨打客服电话 0571 8888 6666"')
+  })
+
+  it('抽屉行文案仍是「客服电话 + 号码」，不受桌面前缀影响', () => {
+    // 抽屉只在打开后经 portal 渲染，静态标记里没有；直接渲染组件的 drawer 形态
+    const html = renderToStaticMarkup(
+      React.createElement(ServicePhoneLink, {
+        phone: { display: '0571 8888 6666', href: 'tel:057188886666' },
+        variant: 'drawer',
+      }),
+    )
+    expect(html).toContain('客服电话 0571 8888 6666')
+    expect(html).not.toContain('service-phone__prefix')
   })
 })

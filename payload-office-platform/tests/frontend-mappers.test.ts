@@ -908,6 +908,26 @@ describe('mapListingDetail', () => {
     expect(mapListingDetail({})).toBeNull()
     expect(mapListingDetail('string')).toBeNull()
   })
+
+  it('详情的 building 是未收窄的楼盘摘要：封面、摘要与楼宇服务字段必须在（OPT-095）', () => {
+    // OPT-047 在 mapListingCard 里为 2MB 缓存红线剔掉了 building.coverImage 等字段，
+    // 而 mapListingDetail 曾以 `...card` 原样继承——线上表现为「所在楼盘」恒占位图、
+    // 「房源概况」的空调 / 网络 / 停车费三行恒空。详情不进全量卡片缓存，不该被收窄。
+    const detail = mapListingDetail({
+      ...LISTING_MONTHLY_STANDARD,
+      building: {
+        ...BUILDING_JINGAN_CENTER,
+        buildingServices: { airConditioning: '中央空调', network: '光纤入户', parkingFee: '800 元/月' },
+      },
+    })
+    expect(detail?.building?.coverImage?.src).toBe('/media/cover-jingan-center.jpg')
+    expect(detail?.building?.summary).toBe('南京西路核心地段甲级写字楼')
+    expect(detail?.building).toMatchObject({
+      airConditioning: '中央空调',
+      network: '光纤入户',
+      parkingFee: '800 元/月',
+    })
+  })
 })
 
 // ---------------------------------------------------------------------------
