@@ -1,4 +1,4 @@
-# Task Packet：OPT-093 首页热门商圈候选池换源、去上限
+# Task Packet：OPT-093 首页热门商圈候选池换源、去上限 + 精选区域保存失败无感
 
 > 状态：**已实施，待合并**
 > 创建日期：2026-09-12
@@ -60,6 +60,39 @@ DTO 代价：上海当前 32 个有在营楼盘的商圈 × 约 600B ≈ 20KB，
 线上有两个同名商圈「虹桥」（长宁区 `hongqiao` = 虹桥开发区；闵行区 `minhang-hongqiao` =
 虹桥商务区），建议在「城市与区域」里把名字改成「虹桥开发区」「虹桥商务区」消歧（只改名，不动 slug）。
 
-## 6. 不在本项内
+## 6. 追加：精选区域「保存后再进来是空的」（2026-09-12 用户反馈）
+
+### 根因（本地复现）
+
+两层叠加：
+
+1. 级联框刻意**不按「前台可见」过滤**（`LocationCascadeField` 硬约束 3，为楼盘归属场景设），
+   但 `protectCitySiteProfile` 要求精选区域必须 `frontendVisible = true`。选到不可见商圈 → 保存 422。
+2. 422 只有一条几秒消失的 toast（不说是哪个商圈）；自定义 Field 组件没渲染字段级错误，也没渲染标签；
+   失败后「保存」按钮变灰——看起来像保存成功。运营退出再进，看到的是库里的旧值，即「消失」。
+
+线上两个同名「虹桥」里闵行那个（`minhang-hongqiao`）正是 `frontend_visible = false`，选错一个整条保存作废。
+
+### 做法
+
+| 层 | 改动 |
+|---|---|
+| `src/domain/geography/location-cascade-eligibility.ts`（新） | 纯函数：`cascadeNodeEligibility`（停用 / `frontendVisibleOnly` 下不可见 → 不可选，理由可区分）、`eligibleCascadeKeys`（onChange 兜底过滤） |
+| `src/components/admin/LocationCascadeField.tsx` | 新 prop `frontendVisibleOnly`：不可见节点标「（前台不可见）」，多选用 `disableCheckbox`（不像 `disabled` 那样向下继承，不可见行政区底下的可见商圈仍可勾）；已选标签经 `renderFormat` 只显示名称；补渲染 `FieldLabel` / `FieldError` / `FieldDescription`（自定义 Field 组件会整个替换 Payload 的字段 UI，此前三者都没人画） |
+| `src/collections/CitySiteProfiles.ts` | `featuredRegions` 传 `frontendVisibleOnly: true`，补 description 说明规则与修法 |
+| `src/domain/city-site-profile/profile-protect.ts` | 精选区域校验失败改抛**字段级** `ValidationError`（`path: featuredRegions`、`label: 精选区域`、传 `req.t` 让 toast 是中文），文案点名节点且够短（Payload 字段错误是单行 tooltip，长了截省略号） |
+
+不动 `location-field-guard`：它的两种失败（停用 / 类型不符）级联框本来就挡住了。
+
+### 验收
+
+- [x] 单测：可选性判定（默认不看可见性；`frontendVisibleOnly` 下不可见不可选；停用优先）；onChange 兜底过滤
+- [x] 单测：三种校验失败都是 `ValidationError`，`path/label` 正确，文案含节点名
+- [x] 本地浏览器：下拉里不可见节点带标注且勾不上；不可见行政区仍可展开、其下可见商圈可勾；选「上海 / 浦东新区 / 陆家嘴」保存 200，退出再进三个值都在
+- [x] 本地浏览器：值里的商圈事后被隐藏 → 保存后字段上方红字「「陆家嘴」前台不可见，不能作为精选区域」常驻、toast「下面的字段是无效的： 精选区域」
+- [x] 回归：楼盘编辑页的级联框正常，一个标签一个值
+- [x] `typecheck` / `lint` 0 error / `test` 5023 passed
+
+## 7. 不在本项内
 
 - 后台「该商圈暂无在营楼盘，首页不会展示」提示：需给级联组件新开一个查询接口，另立工作项。

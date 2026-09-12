@@ -121,19 +121,46 @@ describe('city-site-profile contract', () => {
     ).rejects.toThrow('seo_description_city_required')
   })
 
-  it('rejects a featured region from another city', async () => {
-    await expect(
-      protectCitySiteProfile(makeHookArgs({ ...validInput('杭州'), featuredRegions: [2, 6] })),
-    ).rejects.toThrow('featured_region_city_mismatch')
+  /**
+   * 精选区域的校验失败必须是**字段级** ValidationError 并点名是哪个节点：
+   * 此前抛的是 InvalidOperationError，后台只有一条几秒消失的 toast、字段无红字、
+   * 保存按钮还变灰，运营以为存上了，退出再进值就「消失」。线上两个同名「虹桥」
+   * 里闵行那个正是前台不可见的，选错一个整条保存作废。
+   */
+  async function featuredRegionError(featuredRegions: number[]) {
+    try {
+      await protectCitySiteProfile(makeHookArgs({ ...validInput('杭州'), featuredRegions }))
+    } catch (error) {
+      return error as { name: string; data?: { errors?: Array<{ path: string; label?: string; message: string }> } }
+    }
+    throw new Error('expected rejection')
+  }
+
+  it('rejects a featured region from another city with a field-level error naming it', async () => {
+    const error = await featuredRegionError([2, 6])
+    expect(error.name).toBe('ValidationError')
+    expect(error.data?.errors).toEqual([
+      { path: 'featuredRegions', label: '精选区域', message: expect.stringContaining('朝阳区') },
+    ])
+    expect(error.data?.errors?.[0].message).toContain('不属于当前城市')
   })
 
-  it('rejects featured regions that are hidden or not district or business area', async () => {
-    await expect(
-      protectCitySiteProfile(makeHookArgs({ ...validInput('杭州'), featuredRegions: [2, 4] })),
-    ).rejects.toThrow('featured_region_invalid')
-    await expect(
-      protectCitySiteProfile(makeHookArgs({ ...validInput('杭州'), featuredRegions: [2, 7] })),
-    ).rejects.toThrow('featured_region_invalid')
+  it('rejects hidden featured regions and names the hidden node', async () => {
+    const error = await featuredRegionError([2, 4])
+    expect(error.name).toBe('ValidationError')
+    expect(error.data?.errors).toEqual([
+      { path: 'featuredRegions', label: '精选区域', message: expect.stringContaining('上城区') },
+    ])
+    expect(error.data?.errors?.[0].message).toContain('前台不可见')
+  })
+
+  it('rejects featured regions that are not district or business area', async () => {
+    const error = await featuredRegionError([2, 7])
+    expect(error.data?.errors?.[0]).toEqual({
+      path: 'featuredRegions',
+      label: '精选区域',
+      message: expect.stringContaining('1号线'),
+    })
   })
 
 })
