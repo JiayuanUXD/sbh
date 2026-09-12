@@ -1,0 +1,13 @@
+HTTP/1.1 200 Connection established
+
+HTTP/1.1 100 Continue
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/xml
+Content-Length: 517
+Connection: keep-alive
+Date: Sat, 12 Sep 2026 16:08:23 GMT
+Server: tencent-cos
+x-cos-request-id: NmFhNTc3ZjZfOTQ0YTBmMWVfNjNlZF9mZjhkZWZl
+x-cos-trace-id: OGVmYzZiMmQzYjA2OWNhODk0NTRkMTBiOWVmMDAxODc0OWRkZjk0ZDM1NmI1M2E2MTRlY2MzZDhmNmI5MWI1OWRlZDk5YzgyOTg0ZTg2ODA1ODFjOGY0MWFhYWFhOTdmNzAxMmVkNTU0MzY5N2ZjNTlhZjVlMDg3N2I4ZjA5MDU=
+

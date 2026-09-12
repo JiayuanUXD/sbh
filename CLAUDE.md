@@ -112,11 +112,12 @@ gh workflow run deploy.yml -f promote=true --ref master
 
 - 生产 DB：TencentDB for PostgreSQL（共享库，**`push: false`，只走显式迁移**）。媒体：腾讯云 COS（S3 兼容）。
 
-- CI 三连坑（已在 `.github/workflows/deploy.yml` 修复，别再踩）：
+- CI 四连坑（已在 `.github/workflows/deploy.yml` 修复，别再踩）：
 
   1. `tcb login` 遥测提示 → job 级 `env: CLOUDBASE_CI=1` 让 `isYesMode()` 自动确认。
   2. 灰度部署 `list` 提示 → `printf '\n\n\n' | tcb ... cloudrun deploy` 喂回车选默认"否"。`--force` 压不住 list 型提示，CI 无 tty 会 exit 130。
   3. GitHub secrets 要用 `TCB_SECRET_ID` / `TCB_SECRET_KEY` / `TCB_ENV_ID` 三个名字，别把 SecretId 当成一个 secret 名。
+  4. 代码包上传 `400 UserNetworkTooSlow`：**COS 对单次 PUT 有 200s 时长上限**（2026-09-12 限速复现钉死，预签名 URL 本身 7 天有效、不是它）。2.6MB 要求跨境吞吐 ≥13KB/s，GitHub runner 到上海实测 10–720KB/s 乱漂、同机各连接只差 ±15%，所以落到慢机器上重试几次都一样——**rerun 整个 job 换机器**。上传 curl **不许带 `--fail`**（会吞掉 COS 的 XML 错误体，2026-09-12 前的两轮归因就是这么猜错的），`--max-time`/`--speed-limit` 都由这个上限推导，守卫在 `tests/production-deploy-config.test.ts`。
 
 - 容器与部署机制坑（改 Dockerfile / 部署链路前先看）：
 

@@ -93,9 +93,34 @@ gh workflow run deploy.yml -f promote=true --ref master
 > 现在的防线（2026-07-28）：
 > - `payload-office-platform/.gitattributes` 用 `export-ignore` 把 `tests/` 与 `src/migrations/*.json` 挡在包外（**`.dockerignore` 在这一步不生效**——平台是先收包、再在云端 build）。包回到 869 KB。历史视觉回归 `artifacts/` 目录已整体删除，不再需要排除。
 > - deploy 步骤有 3 MB 硬阈值，超了立刻失败并提示，而不是耗 15 分钟超时才暴露。
-> - `--max-time` 从 180s 提到 600s，给跨境传输留余量。
 >
 > 再遇到上传超时，**先看日志里打印的「代码包体积」**，别急着怀疑 Runner。自托管 Runner 仍是值得做的长期优化（跨境延迟客观存在），但不是这次的阻塞项。CI 不通时的正式发布路径见上面的[本地发布](#本地发布ci-上传通道不可用时的正式路径)。
+
+> ⚠️ **COS 对单次 PUT 有 200s 时长上限**（2026-09-12 钉死，证据在 `artifacts/verification/ci-upload/`）。
+> 超过就在**收完整个请求体后**回 `400 <Code>UserNetworkTooSlow</Code>`；判的是时长不是速率
+> （300KB 用 10KB/s 传 30s 照样 200），预签名 URL 本身 7 天有效、不是病根。推论：
+>
+> | 包体积 | 上传必须达到的平均吞吐 |
+> |---|---|
+> | 2.6 MB（2026-09 现状） | ≥ 13 KB/s |
+> | 3 MB（硬阈值） | ≥ 15.4 KB/s |
+>
+> 而 GitHub 托管 runner 到上海 COS 的实测吞吐在 **10–720 KB/s 之间漂**（同一天 3s 与 250s 都见过），
+> 同一台 runner 内各次连接只差 ±15%，所以一旦落到 <13KB/s 的机器上，原来的 4 次重试就是 4×3.5min 全挂
+> （run 34699498622 / 34702931927，各 16 分钟），rerun 换台机器才过。
+>
+> 上传步骤现在的做法（`deploy.yml`）：
+> - **不带 `--fail`**，非 200 时把 COS 的 XML 错误体（`<Code>/<Message>/<RequestId>`）原样打进日志——之前
+>   `--fail` 把它吞了，日志只剩 `curl: (22) 400`，连猜两轮病根都猜错（先怪 URL 过期、再怪连接重置）。
+> - `--max-time` = 上限 + 10s：上限内传不完的由 COS 回 400（留证据），curl 只兜底不让 8KB/s 的连接拖到 5 分钟。
+> - `--speed-limit` = 包体积 ÷ 200s：明显达不到的连接 30s 内断掉换新 URL / 新连接，5 次机会。
+> - 日志每次打印「用时 / 已传 / 均速（需 X）」，看一眼就知道离线有多远。
+>
+> **日志里出现 `UserNetworkTooSlow` 时的处置**：不是代码问题，也不是包体积突然变大（先核对「代码包体积」那行），
+> 是这台 runner 的跨境路径太慢——直接 **rerun 整个 job** 换一台机器，通常一次就过。连续几天反复如此再考虑
+> 大陆自托管 runner。`tcb cloudrun deploy` 走的是同一个 UploadUrl（CLI 的 `uploadZip` 就是一次 fetch PUT，
+> 无重试无超时），换它没有收益；CloudBase 那个收包桶也没开全球加速（`cos.accelerate` 端点回
+> `BucketAccelerateNotEnabled`），客户端这边没有更快的入口可选。
 
 机制：GitHub Actions 用 CloudBase CLI（`tcb`）上传 `payload-office-platform/` 的 ZIP 到云端，平台在线 `docker build` 并发布新版本（与 MCP `manageCloudRun(deploy)` 同一底层）。CI 端不装依赖、不构建。服务级环境变量（`DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV`）在控制台/MCP 配好后由服务保留，代码部署不清空，无需每次重传。
 
