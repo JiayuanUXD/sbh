@@ -2,8 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Cascader, Spin, Typography } from '@arco-design/web-react'
-import { useField, useForm, useFormFields } from '@payloadcms/ui'
+import { FieldDescription, FieldError, FieldLabel, useField, useForm, useFormFields } from '@payloadcms/ui'
 
+import {
+  cascadeNodeEligibility,
+  eligibleCascadeKeys,
+} from '@/domain/geography/location-cascade-eligibility'
 import { buildChildrenIndex, type FlatLocationNode } from '@/domain/geography/location-tree'
 
 const { Text } = Typography
@@ -23,9 +27,18 @@ const { Text } = Typography
  *    这里置灰 + 打「已停用」标记，能看见但不能重选。
  * 3. **不按 frontendVisible 过滤**：生产商圈 279/294 都是 false，
  *    它是前台展示开关，不是后台可用性开关。
+ *    例外：`frontendVisibleOnly`（精选区域用）——那条字段的保存钩子要求前台可见，
+ *    组件不把这条规则提前到选择时，运营就会选到不可见商圈、保存 422、toast 几秒消失、
+ *    退出再进值「消失」（2026-09-12 线上两个同名「虹桥」踩到）。不可见节点仍**显示**
+ *    （规则 2 同理），只是勾不上并标「前台不可见」。
  *
  * 「不能选停用节点」的硬约束由 location-field-guard 在 beforeChange 兜底，
  * 本组件只负责别让运营手滑。
+ *
+ * ## 标签与错误由本组件自己渲染
+ *
+ * 自定义 Field 组件会整个替换 Payload 的字段 UI，标签、字段级红字都不再有人画。
+ * 此前这块只画了 Cascader：字段没标题，服务端字段级校验失败也看不到红字。
  */
 
 type AdministrativeType = 'city' | 'district' | 'business_area'
@@ -50,15 +63,26 @@ export type LocationCascadeClientProps = {
    * mappers、既有迁移统统不用动。
    */
   writeBackFields?: Array<{ type: AdministrativeType; field: string }>
+  /**
+   * 前台不可见的节点不可选（精选区域用）。默认 false：楼盘归属等场景刻意不看可见性，
+   * 见文件头硬约束 3。
+   */
+  frontendVisibleOnly?: boolean
   /** Payload 注入 */
   path?: string
+  /** Payload 注入的字段配置，只用标签、required 与说明 */
+  field?: { label?: unknown; required?: boolean; admin?: { description?: unknown } }
 }
 
 type CascaderOption = {
   label: React.ReactNode
   value: string
+  /** 纯名称：已选标签用它拼路径，不带下拉里的「（已停用）/（前台不可见）」标注 */
+  name: string
   children?: CascaderOption[]
   disabled?: boolean
+  /** 多选模式下只禁勾选、不禁展开（Arco 2.21+），不像 disabled 那样向下继承 */
+  disableCheckbox?: boolean
 }
 
 const ALL_TYPES: AdministrativeType[] = ['city', 'district', 'business_area']
@@ -126,11 +150,14 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
     scopeCitiesField,
     placeholder = '选择城市 / 行政区 / 商圈',
     writeBackFields,
+    frontendVisibleOnly = false,
     path,
+    field,
   } = props
 
   const fieldPath = path ?? ''
-  const { value, setValue } = useField<unknown>({ path: fieldPath })
+  const { value, setValue, showError, errorMessage } = useField<unknown>({ path: fieldPath })
+  const eligibility = useMemo(() => ({ frontendVisibleOnly }), [frontendVisibleOnly])
   const { dispatchFields, setModified } = useForm()
 
   /**
@@ -191,26 +218,36 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
          *
          * status 维度上的这种继承恰好是对的：停用行政区底下的商圈本来也不该选。
          */
-        const disabled = n.status === 'disabled'
+        const { selectable, reason } = cascadeNodeEligibility(n, eligibility)
+        const disabled = reason === 'disabled'
+        /**
+         * 「前台不可见」不能用 disabled 表达（同样会向下继承，把不可见行政区底下
+         * 可见的商圈一起禁掉）：多选用 disableCheckbox 只禁勾选；叶子节点没有下级，
+         * 单选下直接 disabled 也不会连累谁。非叶子在单选 changeOnSelect 下仍点得到，
+         * 由 handleChange 里的 eligibleCascadeKeys 兜底丢弃。
+         */
+        const isLeaf = children.length === 0
         return {
           value: String(n.id),
-          label:
-            n.status === 'disabled' ? (
-              <span>
-                {n.name} <Text type="secondary">（已停用）</Text>
-              </span>
-            ) : (
-              n.name
-            ),
-          children: children.length > 0 ? children : undefined,
-          disabled,
+          name: n.name,
+          label: selectable ? (
+            n.name
+          ) : (
+            <span>
+              {n.name}{' '}
+              <Text type="secondary">{reason === 'disabled' ? '（已停用）' : '（前台不可见）'}</Text>
+            </span>
+          ),
+          children: isLeaf ? undefined : children,
+          disabled: disabled || (reason === 'hidden' && isLeaf && !many),
+          disableCheckbox: reason === 'hidden' ? true : undefined,
         }
       })
 
     const roots = build(null)
     if (!scopeCityKeys || scopeCityKeys.size === 0) return roots
     return roots.filter((o) => scopeCityKeys.has(o.value))
-  }, [nodes, selectableTypes, scopeCityKeys])
+  }, [nodes, selectableTypes, scopeCityKeys, eligibility, many])
 
   /**
    * 层级策略全靠这一个开关（不能用 disabled，理由见 options 里的注释）：
@@ -289,14 +326,24 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
         return
       }
       const paths = (many ? next : [next]) as string[][]
-      const ids = paths
+      const keys = paths
         .map((p) => (Array.isArray(p) ? p[p.length - 1] : undefined))
         .filter((v): v is string => typeof v === 'string')
-        .map(numericId)
+      // 兜底：不可选节点（停用 / frontendVisibleOnly 下不可见）就算从 UI 漏进来也不写入
+      const ids = eligibleCascadeKeys(keys, byId, eligibility).map(numericId)
       setValue(many ? ids : (ids[0] ?? null))
     },
-    [setValue, many, byId, writeBackFields, dispatchFields, setModified, numericId],
+    [setValue, many, byId, writeBackFields, dispatchFields, setModified, numericId, eligibility],
   )
+
+  const label = typeof field?.label === 'string' ? field.label : undefined
+  const description = typeof field?.admin?.description === 'string' ? field.admin.description : undefined
+
+  /** 已选标签只显示路径名称。标注只在下拉里出现，选中后再挂着会把标签撑得很长。 */
+  const renderFormat = useCallback((valueShow: unknown[], selected?: Array<{ name?: unknown }>) => {
+    if (selected?.length) return selected.map((o) => (typeof o.name === 'string' ? o.name : '')).join(' / ')
+    return valueShow.map(String).join(' / ')
+  }, [])
 
   if (!nodes) {
     return (
@@ -307,17 +354,24 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
   }
 
   return (
-    <Cascader
-      style={{ width: '100%' }}
-      options={options}
-      value={cascaderValue as never}
-      onChange={handleChange as never}
-      mode={many ? 'multiple' : undefined}
-      changeOnSelect={changeOnSelect}
-      expandTrigger="hover"
-      allowClear
-      showSearch
-      placeholder={placeholder}
-    />
+    <div className="field-type location-cascade-field">
+      {label ? <FieldLabel label={label} path={fieldPath} required={field?.required} /> : null}
+      <Cascader
+        style={{ width: '100%' }}
+        options={options}
+        value={cascaderValue as never}
+        onChange={handleChange as never}
+        mode={many ? 'multiple' : undefined}
+        changeOnSelect={changeOnSelect}
+        expandTrigger="hover"
+        allowClear
+        showSearch
+        placeholder={placeholder}
+        renderFormat={renderFormat as never}
+        status={showError ? 'error' : undefined}
+      />
+      <FieldError path={fieldPath} showError={showError} message={errorMessage} />
+      {description ? <FieldDescription path={fieldPath} description={description} /> : null}
+    </div>
   )
 }

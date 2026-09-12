@@ -321,6 +321,8 @@ export const CitySiteProfiles: CollectionConfig = {
               filterOptions: () => locationTypeFilter(['district', 'business_area']),
               // OPT-074：级联多选，候选按本 profile 的城市裁剪
               admin: {
+                description:
+                  '只能选启用且前台可见的行政区 / 商圈（不可见的在下拉里有标注、勾不上）。要用某个不可见商圈，先到「城市与区域」里打开它的前台可见性。',
                 components: {
                   Field: {
                     path: '/components/admin/LocationCascadeField',
@@ -328,6 +330,9 @@ export const CitySiteProfiles: CollectionConfig = {
                       selectableTypes: ['district', 'business_area'],
                       many: true,
                       scopeCityField: 'city',
+                      // protectCitySiteProfile 要求前台可见；不在选择时挡住，运营会选到
+                      // 不可见商圈、保存被拒而无感（线上两个同名「虹桥」踩过）
+                      frontendVisibleOnly: true,
                       placeholder: '选择精选的行政区 / 商圈',
                     },
                   },

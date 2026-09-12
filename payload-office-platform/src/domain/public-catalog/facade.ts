@@ -287,20 +287,22 @@ async function attachSupplyAggregates(
 }
 
 /**
- * 商圈卡**候选池**上限（OPT-060）。
+ * 商圈卡候选池的楼盘排序（OPT-093）。
  *
- * 这里返回的不是最终展示的张数：视图层（`CityHomeView`）会先按运营配置的
- * 「精选区域」重排，再截到 bento 的 5 个坑位。池子必须明显大于 5，否则精选
- * 区域只能调这 5 张的内部顺序、拉不进第 6 名的商圈——那正是 OPT-060 要修的缺陷。
- *
- * 上限 20 是权衡：库里前台可见商圈约两百个，全量返回会让首页 DTO 白白变大；
- * 而运营的精选区域上限是 12（`CitySiteProfiles.featuredRegions` 的 maxRows），
- * 20 足够覆盖。
- *
- * **质量门槛不在这里放宽**：无在营楼盘的商圈仍然不进池（见下面组装处），
- * 否则卡片点进去是空结果页。
+ * 候选池的源是该城**全部在营楼盘**（`findEffectiveBuildings`，与列表页同口径），
+ * 而那条查询按更新时间倒序返回；每张卡的封面与代表楼盘名要取「最推荐的那栋」，
+ * 所以这里按 `recommendedOrder ↑, updatedAt ↓` 排一次——与 `findFeaturedBuildings`
+ * 的库内排序同口径。不用 Array.sort 的稳定性兜底：显式比到 updatedAt 再到 id。
  */
-const DEFAULT_DISTRICT_CARD_POOL_LIMIT = 20
+function sortForDistrictCards(buildings: readonly Building[]): Building[] {
+  return [...buildings].sort((a, b) => {
+    const orderDiff = (a.recommendedOrder ?? 0) - (b.recommendedOrder ?? 0)
+    if (orderDiff !== 0) return orderDiff
+    const updatedDiff = String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? ''))
+    if (updatedDiff !== 0) return updatedDiff
+    return Number(a.id) - Number(b.id)
+  })
+}
 
 /** 每张商圈卡最多列出的代表楼盘名数量 */
 const AREA_CARD_BUILDINGS_MAX = 4
@@ -837,20 +839,14 @@ export async function getHomepage(
   ctx: SearchContext,
   options: Readonly<{
     featuredLimit?: number
-    featuredBuildingsLimit?: number
     latestArticlesLimit?: number
-    districtCardPoolLimit?: number
   }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<HomepageData> {
   const featuredLimit = options.featuredLimit ?? 8
-  // 楼盘过取（默认 30）以获得足够商圈代表封面，首页精选展示再截 8 张
-  const buildingsFetchLimit = Math.max(options.featuredBuildingsLimit ?? 30, featuredLimit)
+  // 精选楼盘只取展示张数。此前过取 30 栋是给商圈卡挑封面用的，OPT-093 后商圈卡
+  // 改从 allEffectiveBuildings 聚合，这里不必再多取。
   const articlesLimit = options.latestArticlesLimit ?? 5
-  // 商圈卡候选池（OPT-060）：视图层会先按精选区域重排、再截到 bento 的 5 个坑位，
-  // 这里只限制池子上限，不是最终展示张数。不设上限时商圈一多首页 DTO 会被撑爆。
-  // 只截卡片区，不影响 districts（首页搜索框的区域下拉仍列出全部前台可见商圈）。
-  const districtCardPoolLimit = options.districtCardPoolLimit ?? DEFAULT_DISTRICT_CARD_POOL_LIMIT
 
   const [
     featuredListings,
@@ -865,7 +861,7 @@ export async function getHomepage(
     adapter.findFeaturedListings(ctx, featuredLimit),
     adapter.findEffectiveDistricts(ctx),
     adapter.findEffectiveBusinessAreas(ctx),
-    adapter.findFeaturedBuildings(ctx, buildingsFetchLimit),
+    adapter.findFeaturedBuildings(ctx, featuredLimit),
     adapter.findLatestArticles(articlesLimit),
     // 一次全集**扫描**喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
     // OPT-068：口径与列表页一致（同 scanListings），但只取行不取整棵关系树——
@@ -892,17 +888,21 @@ export async function getHomepage(
     const vm = mapBuildingSummary(b)
     if (vm) buildingVMs.push(vm)
   }
-  // 只对最终展示的切片聚合：楼盘是过取的（默认 30，供商圈封面挑选）
   const featuredBuildingSlice = await attachSupplyAggregates(
     buildingVMs.slice(0, featuredLimit),
     ctx,
     adapter,
   )
 
-  // 商圈卡：按商圈（而非行政区）聚合。楼盘已按 recommendedOrder 排序，故同一
-  // 商圈内首个命中的楼盘即代表封面，前几个名字即代表楼盘。
+  // 商圈卡：按商圈（而非行政区）聚合。
+  //
+  // OPT-093：源是该城全部在营楼盘（allEffectiveBuildings，≤200，本函数已在同一批
+  // 查询里取到），不再是精选楼盘的前 30 栋——那个 30 是为「精选楼盘」栏过取的，
+  // 商圈卡借用它会让商圈能否上首页取决于其楼盘的更新时间：线上漕河泾、虹桥的楼盘
+  // 排在第 36 / 75 / 76 名，运营在「精选区域」里选了也出不来。
+  // 排序后同一商圈内首个命中的楼盘即代表封面，前几个名字即代表楼盘。
   const byArea = new Map<string, { cover: NonNullable<MediaViewModel> | null; names: string[] }>()
-  for (const raw of featuredBuildings) {
+  for (const raw of sortForDistrictCards(allEffectiveBuildings)) {
     const ba = raw.businessDistrict
     if (typeof ba !== 'object' || ba === null) continue
     const slug = ba.slug
@@ -914,9 +914,12 @@ export async function getHomepage(
     byArea.set(slug, entry)
   }
 
+  // 候选池不设张数上限（OPT-093）：视图层（CityHomeView）先按运营配置的「精选区域」
+  // 重排、再截到 3 / 5 张，任何在此之前的截断都可能把精选商圈挤出去——OPT-060 修的
+  // 就是上限为 5 时的这个缺陷，20 只是把阈值挪远了。张数由下面的质量门槛自然封顶：
+  // 只有「有在营楼盘」的商圈才进池，上限即该城在营楼盘数。
   const districtCards: DistrictCardViewModel[] = []
   for (const area of businessAreas) {
-    if (districtCards.length >= districtCardPoolLimit) break
     const areaVM = mapDistrict(area)
     if (!areaVM) continue
     const agg = byArea.get(areaVM.slug)
@@ -942,7 +945,7 @@ export async function getHomepage(
     // 与楼盘列表页 searchBuildings 的 totalDocs = docs.length 同口径：mapBuildingSummary
     // 过滤后计数，不是原始 findEffectiveBuildings 返回长度。
     buildings: allEffectiveBuildings.filter((b) => mapBuildingSummary(b) !== null).length,
-    // 与「全部 N 个商圈」链接口径一致：前台可见商圈总数，不受 districtCardPoolLimit 截断影响。
+    // 与「全部 N 个商圈」链接口径一致：前台可见商圈总数，不受卡片区质量门槛影响。
     businessAreas: businessAreas.length,
   }
 
