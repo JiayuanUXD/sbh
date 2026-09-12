@@ -17,21 +17,31 @@ Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true)
  *
  * 这里真的把 Arco Cascader 渲染出来、打开下拉、输入关键词、点搜索行，
  * 断言不可见行不可勾且不触碰表单；可见行照常写入。纯函数单测覆盖不到这层集成。
+ *
+ * 组件静态导入（而不是每个用例 resetModules 后动态 import）：Arco Cascader 那串冷加载
+ * 在 `test:changed` 与 65 个文件并行时超过 5s，会把第一个用例整个吃掉、后面的连带失败。
+ * 代价是组件的模块级树缓存跨用例共享——夹具相同，无影响。
  */
 
-const setValue = vi.fn()
-const setModified = vi.fn()
-const dispatchFields = vi.fn()
-let fieldValue: unknown = []
+const spies = vi.hoisted(() => ({
+  setValue: vi.fn(),
+  setModified: vi.fn(),
+  dispatchFields: vi.fn(),
+  state: { value: [] as unknown },
+}))
 
 vi.mock('@payloadcms/ui', () => ({
-  useField: () => ({ value: fieldValue, setValue, showError: false, errorMessage: undefined }),
-  useForm: () => ({ dispatchFields, setModified }),
+  useField: () => ({ value: spies.state.value, setValue: spies.setValue, showError: false, errorMessage: undefined }),
+  useForm: () => ({ dispatchFields: spies.dispatchFields, setModified: spies.setModified }),
   useFormFields: (selector: (arg: [Record<string, { value: unknown }>]) => unknown) => selector([{}]),
   FieldLabel: ({ label }: { label?: string }) => React.createElement('label', null, label),
   FieldError: () => null,
   FieldDescription: () => null,
 }))
+
+import LocationCascadeField from '@/components/admin/LocationCascadeField'
+
+const { setValue, setModified, dispatchFields } = spies
 
 // 上海 → 徐汇（可见）→ 徐家汇（可见）/ 漕河泾开发区（不可见）；浦东新区（不可见）→ 陆家嘴（可见）
 const nodes: FlatLocationNode[] = [
@@ -47,7 +57,7 @@ let root: Root | null = null
 let container: HTMLElement | null = null
 
 beforeEach(() => {
-  fieldValue = []
+  spies.state.value = []
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => ({ ok: true, json: async () => ({ ok: true, nodes }) })),
@@ -64,14 +74,22 @@ afterEach(async () => {
   setModified.mockReset()
   dispatchFields.mockReset()
   vi.unstubAllGlobals()
-  vi.resetModules()
 })
 
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)) })
 
+/** 轮询等到选择器出现；并行跑时一次 flush 不一定够 */
+async function waitForSelector(scope: ParentNode, selector: string, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const el = scope.querySelector(selector)
+    if (el) return el
+    await flush()
+  }
+  throw new Error(`等不到 ${selector}`)
+}
+
 async function renderField(props: Record<string, unknown>) {
-  // 组件有模块级树缓存，每个用例要拿全新的模块实例
-  const { default: LocationCascadeField } = await import('@/components/admin/LocationCascadeField')
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -86,8 +104,7 @@ async function renderField(props: Record<string, unknown>) {
       }),
     )
   })
-  await flush()
-  expect(container.querySelector('.arco-cascader')).not.toBeNull()
+  await waitForSelector(container, '.arco-cascader')
   return container
 }
 
@@ -108,10 +125,8 @@ async function openAndSearch(container: HTMLElement, keyword: string) {
   await act(async () => {
     setNativeValue(input, keyword)
   })
-  await flush()
-  const rows = [...document.querySelectorAll('.arco-cascader-list-search-item')] as HTMLElement[]
-  expect(rows.length).toBeGreaterThan(0)
-  return rows
+  await waitForSelector(document, '.arco-cascader-list-search-item')
+  return [...document.querySelectorAll('.arco-cascader-list-search-item')] as HTMLElement[]
 }
 
 const rowByText = (rows: HTMLElement[], text: string) => {
