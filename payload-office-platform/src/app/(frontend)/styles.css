@@ -3430,13 +3430,6 @@ ol {
   justify-content: space-between;
 }
 
-/* OPT-096：抽屉里的二级项——缩进一档、字号小一档、次要墨色 */
-.mobile-drawer__link--sub {
-  padding-left: calc(var(--sp-4) + var(--sp-5));
-  font-size: var(--fs-14);
-  color: var(--ink-2);
-}
-
 .mobile-drawer__link {
   display: block;
   padding: var(--sp-3) var(--sp-4);
@@ -3461,6 +3454,14 @@ ol {
   background: var(--color-copper-soft);
   color: var(--color-copper-hover);
   font-weight: 600;
+}
+
+/* OPT-096：抽屉里的二级项——缩进一档、字号小一档、次要墨色。
+   必须排在上面的基础规则之后：同为单类选择器，靠源码顺序压掉 padding 简写。 */
+.mobile-drawer__link--sub {
+  padding-left: calc(var(--sp-4) + var(--sp-5));
+  font-size: var(--fs-14);
+  color: var(--ink-2);
 }
 
 /* 与 .city-switcher / .site-nav / .site-menu-toggle 同为桌面导航断点（OPT-075：1280 → 1024）。
