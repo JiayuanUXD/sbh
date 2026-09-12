@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { parseBuildingSearchInput, buildBuildingCanonicalParams } from '@/domain/public-catalog/building-search'
+import {
+  BUILDING_CLEARABLE_DIMENSIONS,
+  buildBuildingCanonicalParams,
+  omitBuildingSearchDimensions,
+  parseBuildingSearchInput,
+} from '@/domain/public-catalog/building-search'
 
 const parse = (qs: string) => parseBuildingSearchInput(new URLSearchParams(qs))
 
@@ -80,5 +85,17 @@ describe('buildBuildingCanonicalParams', () => {
     expect(buildBuildingCanonicalParams(parse('district=jingan&view=row')).toString()).toBe(
       buildBuildingCanonicalParams(parse('district=jingan')).toString(),
     )
+  })
+})
+
+describe('OPT-096 楼盘出售口径参数', () => {
+  it('business 只认 sale，canonical 原样输出，不是可清除维度', () => {
+    expect(parse('business=sale').business).toBe('sale')
+    expect(parse('business=lease').business).toBeUndefined()
+    expect(parse('business=x').business).toBeUndefined()
+    const input = parse('business=sale&grade=grade-a')
+    expect(buildBuildingCanonicalParams(input).toString()).toBe('grade=grade-a&business=sale')
+    expect(BUILDING_CLEARABLE_DIMENSIONS).not.toContain('business')
+    expect(omitBuildingSearchDimensions(input, BUILDING_CLEARABLE_DIMENSIONS).business).toBe('sale')
   })
 })

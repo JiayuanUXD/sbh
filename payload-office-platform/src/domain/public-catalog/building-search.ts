@@ -55,6 +55,11 @@ export type BuildingSearchInput = Readonly<{
   completedAfter?: number
   /** true 时只保留 leasableArea > 0 的楼盘 */
   onlyWithStock?: boolean
+  /**
+   * 出售口径（OPT-096）：只认 `'sale'`；缺省即租赁。**不是筛选维度**——它决定的是
+   * 「在租 / 在售」这套口径本身（聚合、量词、分组），不进「清除全部」。
+   */
+  business?: 'sale'
   sort: BuildingSort
   page: number
   pageSize: 24
@@ -162,6 +167,7 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
 
   const completedAfter = parseCompletedAfter(sp)
   const onlyWithStock = sp.get('onlyWithStock') === '1' ? true : undefined
+  const business = sp.get('business') === 'sale' ? ('sale' as const) : undefined
   const sort = parseSort(sp)
   const page = parsePage(sp)
 
@@ -174,6 +180,7 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
     ...(leasableAreaMax != null ? { leasableAreaMax } : {}),
     ...(completedAfter != null ? { completedAfter } : {}),
     ...(onlyWithStock != null ? { onlyWithStock } : {}),
+    ...(business ? { business } : {}),
     sort,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -196,6 +203,7 @@ export function buildBuildingCanonicalParams(input: BuildingSearchInput): URLSea
   if (input.leasableAreaMax != null) sp.set('leasableAreaMax', String(input.leasableAreaMax))
   if (input.completedAfter != null) sp.set('completedAfter', String(input.completedAfter))
   if (input.onlyWithStock) sp.set('onlyWithStock', '1')
+  if (input.business) sp.set('business', input.business)
   if (input.sort !== DEFAULT_SORT) sp.set('sort', input.sort)
   if (input.page > 1) sp.set('page', String(input.page))
   return sp

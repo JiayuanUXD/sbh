@@ -33,15 +33,17 @@ import {
   getSearchFacetsIgnoring,
   omitListingSearchDimensions,
   parseSearchInput,
+  searchBuildings,
   searchListings,
   type SupplyAdapter,
 } from '@/domain/public-catalog'
-import { createSearchContext, type ListingSearchInput } from '@/domain/public-catalog'
+import { createSearchContext, type ListingSearchInput, type SearchContext } from '@/domain/public-catalog'
 import { matchesPriceInput } from './helpers/fake-price-match'
 import {
   BUILDING_DISABLED,
   BUILDING_JINGAN_CENTER,
   BUILDING_PUDONG_FLAT,
+  BUILDING_PUDONG_WITH_CITY,
   LISTING_DAILY_PER_SQM,
   LISTING_DELETED,
   LISTING_DRAFT,
@@ -966,5 +968,30 @@ describe('buildCanonical', () => {
     // canonical 只输出新名：旧值在解析层归一，索引据此收敛到一套 URL
     expect(canonical).toContain('sort=price-asc')
     expect(canonical).toContain('priceUnit=rmb-month')
+  })
+})
+
+describe('searchBuildings 出售口径（OPT-096）', () => {
+  it('business=sale 按 sale 聚合并只列有在售房源的楼盘；租赁口径不受影响', async () => {
+    const calls: Array<string | undefined> = []
+    const base = createFakeAdapter({ listings: [], buildings: [BUILDING_JINGAN_CENTER, BUILDING_PUDONG_WITH_CITY] })
+    const adapter: SupplyAdapter = {
+      ...base,
+      async aggregateEffectiveSupplyByBuildings(_ids: readonly (number | string)[], aggCtx: SearchContext) {
+        calls.push(aggCtx.businessType)
+        return aggCtx.businessType === 'sale'
+          ? new Map([[String(BUILDING_JINGAN_CENTER.id), { area: 800, count: 2 }]])
+          : new Map([
+              [String(BUILDING_JINGAN_CENTER.id), { area: 100, count: 1 }],
+              [String(BUILDING_PUDONG_WITH_CITY.id), { area: 200, count: 3 }],
+            ])
+      },
+    }
+    const sale = await searchBuildings(ctx, adapter, 'sale')
+    expect(sale.docs.map((d) => [d.id, d.listingCount, d.leasableArea])).toEqual([[BUILDING_JINGAN_CENTER.id, 2, 800]])
+    expect(sale.totalDocs).toBe(1)
+    const lease = await searchBuildings(ctx, adapter)
+    expect(lease.docs).toHaveLength(2)
+    expect(calls).toEqual(['sale', 'lease'])
   })
 })
