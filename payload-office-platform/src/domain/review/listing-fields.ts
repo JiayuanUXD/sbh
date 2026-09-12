@@ -57,6 +57,24 @@ export function isListingType(value: unknown): value is ListingType {
   return typeof value === 'string' && (LISTING_TYPES as readonly string[]).includes(value)
 }
 
+/**
+ * 建筑形态（OPT-096）。**独立于 `listingType`**：一套房源可同时是「独栋 + 联排」，
+ * 所以是多选；与 `serviced-office` 在 C 端显示为「独栋办公」互不干扰——那是业态，
+ * 这是建筑物理形态。取值集合与 DB ENUM `enum_listings_building_form` 一致。
+ */
+export const BUILDING_FORMS = ['detached', 'double-row', 'townhouse'] as const
+export type BuildingForm = (typeof BUILDING_FORMS)[number]
+
+export const BUILDING_FORM_LABELS: Record<BuildingForm, string> = {
+  detached: '独栋',
+  'double-row': '双排',
+  townhouse: '联排',
+}
+
+export function isBuildingForm(value: unknown): value is BuildingForm {
+  return typeof value === 'string' && (BUILDING_FORMS as readonly string[]).includes(value)
+}
+
 /** 工商注册状态（详情页字段）。 */
 export const REGISTRATION_STATUSES = ['available', 'conditional', 'unavailable', 'confirm'] as const
 export type RegistrationStatus = (typeof REGISTRATION_STATUSES)[number]

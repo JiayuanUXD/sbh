@@ -55,6 +55,7 @@ import {
   DECORATION_STATUS_LABELS,
   FURNITURE_STATUS_LABELS,
   INVOICE_STATUS_LABELS,
+  isBuildingForm,
 } from '@/domain/review/listing-fields'
 import { formatAvailableDate } from '@/lib/frontend/format'
 
@@ -1061,6 +1062,10 @@ export function mapListingDetail(raw: unknown): ListingDetailViewModel | null {
     // `?? card.building` 只为类型收口：mapListingCard 已保证 building 可映射，恒不命中。
     building: mapBuildingSummary(listing.building) ?? card.building,
     seats: listing.seats ?? null,
+    // OPT-096：hasMany select 落库即数组；非法值过滤 + 去重，缺省空数组（行不渲染）。
+    buildingForm: Array.from(
+      new Set((Array.isArray(listing.buildingForm) ? listing.buildingForm : []).filter(isBuildingForm)),
+    ),
     gallery,
     mediaItems: mapDetailMedia(listing.mediaItems, listing.title, LISTING_DETAIL_MEDIA_CATEGORIES),
     factGroups: mapListingFactGroups(listing),

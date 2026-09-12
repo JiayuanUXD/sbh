@@ -16,6 +16,8 @@ import {
   SUPPLY_VISIBILITY_HOLD_LABELS,
 } from '@/domain/review/publication-status'
 import {
+  BUILDING_FORMS,
+  BUILDING_FORM_LABELS,
   BUSINESS_TYPES,
   BUSINESS_TYPE_LABELS,
   COST_INCLUSION_STATUSES,
@@ -442,6 +444,27 @@ export const Listings: CollectionConfig = {
                   admin: { width: COL_3 },
                   options: REGISTRATION_STATUSES.map((value) => ({
                     label: REGISTRATION_STATUS_LABELS[value],
+                    value,
+                  })),
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  // OPT-096：建筑物理形态，独立于「类型」（业态）——一套房源可同时是
+                  // 独栋 + 联排，故多选；不参与完整度门与有效供给谓词。
+                  name: 'buildingForm',
+                  label: '建筑形态',
+                  type: 'select',
+                  hasMany: true,
+                  admin: {
+                    width: COL_3,
+                    description: '可多选。独栋 / 双排 / 联排；与「类型」互不干扰，不填不影响发布。',
+                  },
+                  options: BUILDING_FORMS.map((value) => ({
+                    label: BUILDING_FORM_LABELS[value],
                     value,
                   })),
                 },

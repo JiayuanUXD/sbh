@@ -106,6 +106,8 @@ export const LISTING_SPEC_FIELDS: readonly SpecFieldMeta<ListingSpecGroupId>[] =
   { key: 'floor', label: '房源楼层', group: 'space', defaultVisible: true },
   { key: 'orientation', label: '朝向', group: 'space', defaultVisible: true },
   { key: 'divisible', label: '可分割', group: 'space', defaultVisible: true },
+  // OPT-096：多选字段，值由 listing-rows.ts 的 resolver 拼「、」
+  { key: 'buildingForm', label: '建筑形态', group: 'space', defaultVisible: true },
   { key: 'price', label: '合同单价', group: 'terms', defaultVisible: true },
   { key: 'minimumLease', label: '起租期', group: 'terms', defaultVisible: true },
   { key: 'deposit', label: '押金', group: 'terms', defaultVisible: true },

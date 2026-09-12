@@ -226,7 +226,7 @@ describe('city route boundaries', () => {
       price: null, area: 100, floor: null, businessType: 'lease' as const, decorationStatus: null,
       listingType: 'traditional-office' as const, availableFrom: null, isFeatured: false,
       building: { id: 9, slug: 'tower', name: 'Tower', citySlug: 'shanghai', cityName: 'Shanghai', address: 'Road' },
-      coverImage: null, highlights: [], stableSortKey: '101', seats: null, gallery: [], mediaItems: [],
+      coverImage: null, highlights: [], stableSortKey: '101', seats: null, buildingForm: [], gallery: [], mediaItems: [],
       factGroups: [], amenityGroups: [], verification: { verifiedAt: null, priceVerifiedAt: null }, description: null,
     }
     io.resolveListingRouteIdentity.mockResolvedValue({ slug: listing.slug, citySlug: 'shanghai' })

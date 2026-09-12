@@ -952,19 +952,19 @@ export default async function Opt037PreviewPage({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>字段齐全</span>
               <ListingOverviewPanel
-                groups={buildListingOverviewGroups({ factGroups: OVERVIEW_FULL_GROUPS, price: OVERVIEW_PRICE_FULL, availableFrom: '2026-09-01T00:00:00.000Z', building: OVERVIEW_BUILDING_FULL })}
+                groups={buildListingOverviewGroups({ buildingForm: [], factGroups: OVERVIEW_FULL_GROUPS, price: OVERVIEW_PRICE_FULL, availableFrom: '2026-09-01T00:00:00.000Z', building: OVERVIEW_BUILDING_FULL })}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>部分缺失（组内夹杂 null）</span>
               <ListingOverviewPanel
-                groups={buildListingOverviewGroups({ factGroups: OVERVIEW_PARTIAL_GROUPS, price: null, availableFrom: null, building: OVERVIEW_BUILDING_PARTIAL })}
+                groups={buildListingOverviewGroups({ buildingForm: [], factGroups: OVERVIEW_PARTIAL_GROUPS, price: null, availableFrom: null, building: OVERVIEW_BUILDING_PARTIAL })}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>整组缺失（费用明细）</span>
               <ListingOverviewPanel
-                groups={buildListingOverviewGroups({
+                groups={buildListingOverviewGroups({ buildingForm: [],
                   factGroups: OVERVIEW_GROUP_MISSING_GROUPS,
                   price: OVERVIEW_PRICE_GROUP_MISSING,
                   availableFrom: '2026-10-15T00:00:00.000Z',
@@ -1047,7 +1047,7 @@ export default async function Opt037PreviewPage({
               />
 
               <ListingOverviewPanel
-                groups={buildListingOverviewGroups({
+                groups={buildListingOverviewGroups({ buildingForm: [],
                   factGroups: OVERVIEW_FULL_GROUPS,
                   price: OVERVIEW_PRICE_FULL,
                   availableFrom: '2026-09-01T00:00:00.000Z',

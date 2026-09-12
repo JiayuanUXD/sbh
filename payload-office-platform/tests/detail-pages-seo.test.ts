@@ -50,6 +50,7 @@ function makeListing(overrides: Partial<ListingDetailViewModel> = {}): ListingDe
     highlights: [],
     stableSortKey: '101',
     seats: null,
+    buildingForm: [],
     gallery: [],
     mediaItems: [],
     factGroups: [],

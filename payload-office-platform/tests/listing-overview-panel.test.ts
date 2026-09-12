@@ -30,7 +30,7 @@ const BASE_FACT_GROUPS: readonly FactGroupViewModel[] = [
 
 describe('buildListingOverviewGroups', () => {
   it('值存在时原样传给对应行', () => {
-    const groups = buildListingOverviewGroups({
+    const groups = buildListingOverviewGroups({ buildingForm: [],
       factGroups: BASE_FACT_GROUPS,
       price: null,
       availableFrom: null,
@@ -44,7 +44,7 @@ describe('buildListingOverviewGroups', () => {
   // OPT-083 起规则反转：缺值的行不再渲染 — 而是整行不出现。
   // 裁定与已知代价见 specs/work-items/OPT-083-detail-spec-field-visibility.md §2 / §11。
   it('listing.factGroups 里查不到值时，该行不出现（同组内有值的行照常在）', () => {
-    const groups = buildListingOverviewGroups({
+    const groups = buildListingOverviewGroups({ buildingForm: [],
       factGroups: BASE_FACT_GROUPS,
       price: null,
       availableFrom: null,
@@ -66,7 +66,7 @@ describe('buildListingOverviewGroups', () => {
         facts: [fact('物业费金额', null), fact('物业费', '包含')],
       },
     ]
-    const groups = buildListingOverviewGroups({
+    const groups = buildListingOverviewGroups({ buildingForm: [],
       factGroups: factGroupsWithoutAmount,
       price: null,
       availableFrom: null,
@@ -86,7 +86,7 @@ describe('buildListingOverviewGroups', () => {
         facts: [fact('物业费金额', '28.00 元/㎡/月'), fact('物业费', '包含')],
       },
     ]
-    const groups = buildListingOverviewGroups({
+    const groups = buildListingOverviewGroups({ buildingForm: [],
       factGroups: factGroupsWithAmount,
       price: null,
       availableFrom: null,
@@ -118,7 +118,7 @@ describe('buildListingOverviewGroups', () => {
       { id: 'delivery', title: '装修与交付', facts: [fact('家具', '带家具')] },
       { id: 'cost', title: '费用条款', facts: [fact('其他固定费用', '公共能耗费 3 元/㎡/月')] },
     ]
-    const rows = buildListingOverviewGroups({
+    const rows = buildListingOverviewGroups({ buildingForm: [],
       factGroups,
       price: null,
       availableFrom: null,
@@ -142,7 +142,7 @@ describe('buildListingOverviewGroups', () => {
    * 不要因为断言变成 toBeUndefined 就把整条用例删掉，那样这 5 条就再没有守卫了。
    */
   it('这 5 条同样遵守 OPT-083 的新规则：值为 null 时该行不出现', () => {
-    const rows = buildListingOverviewGroups({
+    const rows = buildListingOverviewGroups({ buildingForm: [],
       factGroups: BASE_FACT_GROUPS,
       price: null,
       availableFrom: null,
