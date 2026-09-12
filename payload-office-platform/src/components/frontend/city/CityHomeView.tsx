@@ -54,8 +54,9 @@ export default function CityHomeView({ city, homepage, routeMode, bandStats, sit
   // 只重排不过滤——过滤等于把没选中的商圈从首页藏起来，是悄悄减少库存曝光。
   // 精选区域为空（当前七城 profile 全空）时原样返回，不改变任何现状。
   const featured = city.profile.featuredRegions
-  // OPT-060：facade 返回的是候选池（最多 20 张），这里先按精选区域重排、再截到配置的张数。
-  // 顺序不能反——先截再排就只能调这几张的内部顺序，拉不进第 6 名的商圈，那正是修复前的缺陷。
+  // OPT-060 / OPT-093：facade 返回的是候选池（该城所有有在营楼盘的商圈，不设上限），
+  // 这里先按精选区域重排、再截到配置的张数。顺序不能反——先截再排就只能调这几张的
+  // 内部顺序，拉不进后面的商圈，那正是修复前的缺陷；候选池不设上限也是同一个道理。
   // OPT-073：张数由运营在城市站点配置里选（3 或 5），默认 5 等于本特性上线前的写死值。
   const districtCards = orderByFeaturedRegions(homepage.districtCards, featured).slice(
     0,

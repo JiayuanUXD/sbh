@@ -265,10 +265,9 @@ function fullFixture(overrides: { districts?: readonly Location[]; businessAreas
  * OPT-060 候选池 fixture：`count` 个商圈，每个都配一栋在营（active）楼盘，
  * 质量门槛（无在营楼盘不进卡片区）照样满足，不是绕开它。
  *
- * `fullFixture()` 只派生 ≤2 个商圈，永远测不出候选池 > 5 的场景——池子上限
- * 是 5 还是 20，`fullFixture()` 跑出来的结果都一样，等于没测。本 fixture
- * 就是为了填这个缺口：`count` 传 > 5，才能验证 facade 真的把池子放宽到了 20，
- * 而不是仍在组装时截到 5。
+ * `fullFixture()` 只派生 ≤2 个商圈，永远测不出候选池被截断的场景。本 fixture
+ * 就是为了填这个缺口：`count` 传大于任何历史上限（5 / 20 / 精选楼盘的 30）的值，
+ * 才能验证 facade 真的把所有有在营楼盘的商圈都装进了池子（OPT-093 起不设上限）。
  */
 function poolFixture(count: number) {
   const areas: Location[] = Array.from({ length: count }, (_, i) => ({
@@ -648,34 +647,55 @@ describe('getHomepage', () => {
   })
 
   /**
-   * districtCards 是候选池（OPT-060），不是最终展示张数：视图层
-   * （CityHomeView）会先按精选区域重排、再截到 bento 的 5 个坑位。
-   * 这里只锁池子的上限约束，不设上限时首页 DTO 会被撑爆。
+   * OPT-093：候选池的源是该城**全部在营楼盘**（`findEffectiveBuildings`），不再是
+   * 「精选楼盘前 30 栋」。此前商圈能否进池取决于其楼盘是否排进精选楼盘的前 30——
+   * 线上漕河泾、虹桥的楼盘排在第 36 / 75 / 76 名，运营在「精选区域」里选了也出不来。
+   *
+   * 35 个商圈各一栋在营楼盘：老实现只看前 30 栋、再被 20 张上限截断，这条会红；
+   * 新实现全部进池。质量门槛（无在营楼盘不进池）由上面那条用例继续锁住。
    */
-  it('商圈卡候选池张数受 districtCardPoolLimit 约束', async () => {
-    const unlimited = await getHomepage(ctx, {}, poolFixture(8))
-    const capped = await getHomepage(ctx, { districtCardPoolLimit: 3 }, poolFixture(8))
-    // 8 个商圈全部满足质量门槛（都有在营楼盘），默认池子上限 20 装得下，不截断
-    expect(unlimited.districtCards.length).toBe(8)
-    // 显式传更小的上限，验证截断真的生效
-    expect(capped.districtCards.length).toBe(3)
+  it('候选池装下所有有在营楼盘的商圈，不受精选楼盘前 30 与张数上限约束', async () => {
+    const h = await getHomepage(ctx, {}, poolFixture(35))
+    expect(h.districtCards.length).toBe(35)
+    expect(h.districtCards.map((c) => c.slug)).toContain('pool-area-35')
   })
 
   /**
-   * 锁住本次修复放宽的那一半：facade 的候选池上限必须明显大于 bento 的 5 个坑位。
-   *
-   * 回归动机（OPT-060 复审发现的缺口）：`fullFixture()` 只派生 ≤2 个商圈，
-   * 池子上限是 5 还是 20，用它跑出来的结果都一样——之前那条
-   * 「候选池张数受 districtCardPoolLimit 约束」用例因此从未真正测过池子 > 5
-   * 的场景，`DEFAULT_DISTRICT_CARD_POOL_LIMIT` 被误改回 5 也不会有任何测试变红。
-   * 这里用 `poolFixture(8)` 造 8 个「都有在营楼盘」的商圈（质量门槛不绕过），
-   * 断言候选池能完整装下全部 8 个——如果上限被悄悄改回 5，这条会先红。
+   * 换源后代表楼盘 / 封面仍要取「最推荐的那栋」：`findEffectiveBuildings` 按更新时间
+   * 倒序返回，facade 必须自己按 `recommendedOrder ↑, updatedAt ↓` 排一次再聚合。
+   * 这里故意把推荐值大的楼盘排在适配器返回的前面。
    */
-  it('候选池能装下 5 个以上有效商圈（默认上限不应被悄悄改回 5）', async () => {
-    const h = await getHomepage(ctx, {}, poolFixture(8))
-    expect(h.districtCards.length).toBeGreaterThan(5)
-    expect(h.districtCards.length).toBe(8)
-    expect(h.districtCards.length).toBeLessThanOrEqual(20)
+  it('商圈卡代表楼盘按 recommendedOrder 取，不受适配器返回顺序影响', async () => {
+    const area: Location = {
+      ...(BUILDING_JINGAN_CENTER.businessDistrict as Location),
+      id: 9950,
+      name: '排序商圈',
+      slug: 'ordered-area',
+      immutableCode: 'TEST-ORDERED',
+      coverImage: null,
+    }
+    const later: Building = {
+      ...BUILDING_JINGAN_CENTER,
+      id: 9751,
+      name: '推荐值大的楼盘',
+      slug: 'ordered-building-later',
+      operationalStatus: 'active',
+      businessDistrict: area,
+      recommendedOrder: 5,
+      updatedAt: '2026-09-12T00:00:00.000Z',
+    }
+    const first: Building = {
+      ...later,
+      id: 9752,
+      name: '推荐值小的楼盘',
+      slug: 'ordered-building-first',
+      recommendedOrder: 1,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const adapter = createFakeAdapter({ businessAreas: [area], buildings: [later, first], listings: [] })
+    const h = await getHomepage(ctx, {}, adapter)
+    expect(h.districtCards).toHaveLength(1)
+    expect(h.districtCards[0].buildings).toEqual(['推荐值小的楼盘', '推荐值大的楼盘'])
   })
 })
 
