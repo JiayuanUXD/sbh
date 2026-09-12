@@ -22,6 +22,13 @@ export const LISTING_TYPE_LABEL: Record<ListingCardViewModel['listingType'], str
   'serviced-office': '独栋办公',
 }
 
+/** 建筑形态中文名（OPT-096），与域层 `BUILDING_FORM_LABELS` 同值；C 端不另起文案。 */
+export const BUILDING_FORM_LABEL: Readonly<Record<string, string>> = {
+  detached: '独栋',
+  'double-row': '双排',
+  townhouse: '联排',
+}
+
 /**
  * 把 PriceViewModel.text（如「8.5 元/㎡/天」「18000 元/月」）拆成数值段和单位段，
  * 供 HomeSupplyCard 的大字号数值 + 小字号单位两段式展示。

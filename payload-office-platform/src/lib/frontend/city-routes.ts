@@ -54,6 +54,7 @@ const PRICE_BASIS_VALUES = new Set(['sqm', 'seat', 'total'])
 
 const LISTING_QUERY_KEYS = [
   'type',
+  'form',
   'areaMin',
   'areaMax',
   // 新旧两套名字都要进白名单：新名是 canonical 输出的形态，旧名是已收录 URL 的
@@ -321,6 +322,9 @@ function appendCanonicalListingQuery(
 ): void {
   const listingType = input.listingType?.[0]
   if (listingType) selected.set('type', listingType)
+  // OPT-096：建筑形态与类型同一处置——canonical 只带首值
+  const buildingForm = input.buildingForm?.[0]
+  if (buildingForm) selected.set('form', buildingForm)
   if (input.areaMin !== undefined) selected.set('areaMin', String(input.areaMin))
   if (input.areaMax !== undefined) selected.set('areaMax', String(input.areaMax))
   if (input.priceMin !== undefined) selected.set('priceMin', String(input.priceMin))

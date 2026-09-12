@@ -7,6 +7,9 @@ import { publishRequiredFieldNames } from '@/collections/listing-publish-marks'
 import { BUILDING_FORMS, BUILDING_FORM_LABELS, isBuildingForm } from '@/domain/review/listing-fields'
 import { LISTING_SPEC_FIELDS } from '@/lib/frontend/detail-spec/fields'
 import { buildListingOverviewGroupsFromRegistry, type ListingSpecContext } from '@/lib/frontend/detail-spec/listing-rows'
+import { buildListingFilterRows, LISTING_CLEARABLE_DIMENSIONS } from '@/lib/frontend/listing-filter-rows'
+import { parseListingSearchInput } from '@/domain/public-catalog'
+import { switchCityUrl } from '@/lib/frontend/city-routes'
 
 /** 从 collection 配置里按 name 深度查找字段（跨 tabs / row / group）。 */
 function findField(fields: unknown, name: string): Record<string, unknown> | null {
@@ -77,5 +80,41 @@ describe('OPT-096 建筑形态：详情参数表行', () => {
   it('站点设置关掉后不渲染', () => {
     const groups = buildListingOverviewGroupsFromRegistry({ ...base, buildingForm: ['detached'] }, { buildingForm: false })
     expect(groups.flatMap((g) => g.rows).some((r) => r.label === '建筑形态')).toBe(false)
+  })
+})
+
+describe('OPT-096 建筑形态：筛选行', () => {
+  const parse = (q: string) => parseListingSearchInput(new URLSearchParams(q))
+  const build = (q: string, counts: Array<[string, number]>) =>
+    buildListingFilterRows({
+      input: parse(q),
+      districts: [],
+      districtCounts: new Map(),
+      typeCounts: new Map(),
+      buildingFormCounts: new Map(counts),
+      priceRowLabel: '租金上限',
+      priceDimensionLabel: '租金',
+    })
+
+  it('行 key=form，0 计数的候选不渲染，已选项保留', () => {
+    const { rows } = build('form=townhouse', [['detached', 3]])
+    const formRow = rows.find((r) => r.key === 'form')
+    expect(formRow?.label).toBe('建筑形态')
+    expect(formRow?.activeValue).toBe('townhouse')
+    expect(formRow?.options.map((o) => [o.value, o.label, o.count])).toEqual([
+      ['detached', '独栋', 3],
+      ['townhouse', '联排', undefined],
+    ])
+  })
+
+  it('维度清单含 buildingForm，回显中文，且可被「清除全部」清掉', () => {
+    const { dimensions } = build('form=double-row', [])
+    const dim = dimensions.find((d) => d.dimension === 'buildingForm')
+    expect(dim).toMatchObject({ label: '建筑形态', paramKeys: ['form'], active: true, activeText: '双排' })
+    expect(LISTING_CLEARABLE_DIMENSIONS).toContain('buildingForm')
+  })
+
+  it('城市切换保留 form', () => {
+    expect(switchCityUrl('/shanghai/listings?form=detached&page=3', 'hangzhou')).toBe('/hangzhou/listings?form=detached')
   })
 })

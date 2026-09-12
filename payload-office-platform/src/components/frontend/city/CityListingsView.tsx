@@ -273,11 +273,12 @@ export default async function CityListingsView({
   const facetsOmitting = (omit: readonly ListingSearchDimension[]) =>
     getCachedSearchFacetsIgnoring(city.slug, input, omit, businessType)
 
-  const [unitFacets, districtFacets, typeFacets, relaxationFacets, clearAllFacets, noStockFacets] =
+  const [unitFacets, districtFacets, typeFacets, formFacets, relaxationFacets, clearAllFacets, noStockFacets] =
     await Promise.all([
       facetsOmitting(['priceUnit']),
       facetsOmitting(['district']),
       facetsOmitting(['listingType']),
+      facetsOmitting(['buildingForm']),
       showEmptyFiltered
         ? Promise.all(activeDimensions.map((d) => facetsOmitting([d.dimension])))
         : Promise.resolve([]),
@@ -304,6 +305,7 @@ export default async function CityListingsView({
     districts,
     districtCounts: toCountMap(districtFacets.districts),
     typeCounts: toCountMap(typeFacets.listingTypes),
+    buildingFormCounts: toCountMap(formFacets.buildingForms),
     priceRowLabel: copy.priceRowLabel,
     priceDimensionLabel: copy.priceDimensionLabel,
   })
