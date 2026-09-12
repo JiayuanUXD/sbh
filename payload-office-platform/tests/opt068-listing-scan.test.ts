@@ -18,7 +18,7 @@ import {
   toScanInput,
   type ListingScanRow,
 } from '@/domain/public-catalog/listing-scan'
-import { parseListingSearchInput, type PriceViewModel } from '@/domain/public-catalog'
+import { buildCanonicalSearchParams, parseListingSearchInput, type PriceViewModel } from '@/domain/public-catalog'
 
 const SQM_DAY: PriceViewModel = {
   amount: 5,
@@ -44,6 +44,7 @@ function row(over: Partial<ListingScanRow> & { id: number }): ListingScanRow {
   return {
     slug: `l-${over.id}`,
     listingType: 'traditional-office',
+    buildingForm: [],
     businessType: 'lease',
     area: 100,
     price: SQM_DAY,
@@ -60,8 +61,8 @@ function row(over: Partial<ListingScanRow> & { id: number }): ListingScanRow {
 const parse = (q: string) => parseListingSearchInput(new URLSearchParams(q))
 
 describe('OPT-068 listing scan：扫描输入与缓存键', () => {
-  it('内存维度固定为区域 / 类型 / 价格单位 / 价格区间', () => {
-    expect([...SCAN_MEMORY_DIMENSIONS].sort()).toEqual(['district', 'listingType', 'price', 'priceUnit'])
+  it('内存维度固定为区域 / 类型 / 建筑形态 / 价格单位 / 价格区间', () => {
+    expect([...SCAN_MEMORY_DIMENSIONS].sort()).toEqual(['buildingForm', 'district', 'listingType', 'price', 'priceUnit'])
   })
 
   it('toScanInput 剥掉区域/类型/价格并归零页码与排序，其余条件原样保留', () => {
@@ -111,6 +112,37 @@ describe('OPT-068 listing scan：内存过滤与 facet', () => {
 
   it('给区间：面议不入选、超区间不入选', () => {
     expect(ids(applyMemoryFilters(rows, parse('priceUnit=rmb-sqm-day&priceMax=6')))).toEqual([1, 2, 3])
+  })
+
+  it('OPT-096：按建筑形态过滤——行与输入有交集即命中，多值 form 是并集', () => {
+    const formed = [
+      row({ id: 11, buildingForm: ['detached'] }),
+      row({ id: 12, buildingForm: ['townhouse', 'double-row'] }),
+      row({ id: 13 }),
+    ]
+    expect(ids(applyMemoryFilters(formed, parse('form=detached')))).toEqual([11])
+    expect(ids(applyMemoryFilters(formed, parse('form=detached&form=double-row')))).toEqual([11, 12])
+    expect(ids(applyMemoryFilters(formed, parse('form=nope')))).toEqual([11, 12, 13])
+  })
+
+  it('OPT-096：facet 统计每个形态出现的行数（一行多形态各计一次）', () => {
+    const formed = [
+      row({ id: 11, buildingForm: ['detached'] }),
+      row({ id: 12, buildingForm: ['townhouse', 'detached'] }),
+      row({ id: 13 }),
+    ]
+    expect(computeFacets(formed).buildingForms).toEqual([
+      { value: 'detached', count: 2 },
+      { value: 'townhouse', count: 1 },
+    ])
+  })
+
+  it('OPT-096：form 是内存维度——扫描输入剥掉它、canonical 原样输出', () => {
+    const input = parse('form=detached&form=townhouse&district=jingan')
+    expect(input.buildingForm).toEqual(['detached', 'townhouse'])
+    expect(toScanInput(input).buildingForm).toBeUndefined()
+    expect(buildCanonicalSearchParams(input).getAll('form')).toEqual(['detached', 'townhouse'])
+    expect(SCAN_MEMORY_DIMENSIONS).toContain('buildingForm')
   })
 
   it('matchesPriceFilter 与旧 filterByPrice 同一裁定', () => {
@@ -216,6 +248,12 @@ describe('OPT-068 listing scan：从 depth 2 文档投影行', () => {
     expect(r!.isFeatured).toBe(true)
     expect(r!.lastEffAt).toBe(Date.parse('2026-09-01T00:00:00.000Z'))
     expect(r!.coordinates).toEqual({ latitude: 31.2, longitude: 121.4 })
+  })
+
+  it('OPT-096：buildingForm 数组原样投影，非数组 → []', () => {
+    expect(rowFromListing({ ...raw, buildingForm: ['detached', 'townhouse'] })?.buildingForm).toEqual(['detached', 'townhouse'])
+    expect(rowFromListing({ ...raw, buildingForm: null })?.buildingForm).toEqual([])
+    expect(rowFromListing(raw)?.buildingForm).toEqual([])
   })
 
   it('缺楼盘返回 null；updatedAt 不可解析时 lastEffAt 为有限数（JSON 可序列化）', () => {

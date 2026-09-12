@@ -10,6 +10,7 @@ import type { Media, SiteSetting } from '@/payload-types'
 import { mapMedia } from '@/domain/public-catalog/mappers'
 import { resolveHeaderFeatures } from '@/lib/frontend/header-features'
 import { resolveNavRow } from './nav-targets'
+import { attachMainNavSubmenu } from './nav-submenu'
 import {
   BUILDING_SPEC_FIELDS,
   LISTING_SPEC_FIELDS,
@@ -119,7 +120,8 @@ function mapNavLinks(
 function mapMainNav(rows: unknown): SiteSettingsView['mainNav'] {
   const links = mapNavLinks(rows)
   // 全空回落到兜底：导航整条消失比显示旧配置糟得多——用户会以为站点坏了
-  return links.length > 0 ? links : SITE_SETTINGS_FALLBACK.mainNav
+  // OPT-096：子项在这里挂（按目标 href），页脚不挂——`mapNavLinks` 两边共用，不能在那里做。
+  return links.length > 0 ? attachMainNavSubmenu(links) : SITE_SETTINGS_FALLBACK.mainNav
 }
 
 function mapFooterColumns(rows: unknown): SiteSettingsView['footerColumns'] {

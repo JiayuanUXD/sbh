@@ -11,7 +11,10 @@
  *     （房源类型仍存在，筛选器里仍可选）。
  */
 
-export type PublicNavItem = Readonly<{ href: string; label: string }>
+import { attachMainNavSubmenu, type NavSubItem } from '@/lib/frontend/nav-submenu'
+
+/** 主导航项；`children` 是 OPT-096 的固定二级菜单（只有找办公室 / 找楼盘两项有）。 */
+export type PublicNavItem = Readonly<{ href: string; label: string; children?: readonly NavSubItem[] }>
 
 export type PublicNavColumn = Readonly<{
   title: string
@@ -25,7 +28,7 @@ export type PublicNavColumn = Readonly<{
  * 代码决定——目标池里有 `home`，放不放进主导航是后台配置。这里保留一份含首页的
  * 默认值，与 `SiteSettings.mainNav` 的 defaultValue 逐条对应。
  */
-export const MAIN_NAV_ITEMS: readonly PublicNavItem[] = [
+export const MAIN_NAV_ITEMS: readonly PublicNavItem[] = attachMainNavSubmenu([
   { href: '/', label: '首页' },
   { href: '/listings', label: '找办公室' },
   { href: '/buildings', label: '找楼盘' },
@@ -33,7 +36,7 @@ export const MAIN_NAV_ITEMS: readonly PublicNavItem[] = [
   { href: '/entrust', label: '委托找房' },
   { href: '/publish', label: '投放房源' },
   { href: '/news', label: '资讯' },
-] as const
+] as const)
 
 /** 页脚导航分组。 */
 export const FOOTER_COLUMNS: readonly PublicNavColumn[] = [

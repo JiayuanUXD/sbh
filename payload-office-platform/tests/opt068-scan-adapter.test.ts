@@ -65,6 +65,7 @@ const EXPECTED_SELECT = {
   slug: true,
   title: true,
   listingType: true,
+  buildingForm: true,
   businessType: true,
   area: true,
   price: true,

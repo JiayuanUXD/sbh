@@ -2,6 +2,7 @@ import { factValue, findFact } from '@/components/frontend/detail/fact-lookup'
 import type { SpecRow } from '@/components/frontend/detail/SpecTable'
 import type { ListingDetailViewModel } from '@/domain/public-catalog'
 import { formatAvailableDate } from '@/lib/frontend/format'
+import { BUILDING_FORM_LABELS } from '@/domain/review/listing-fields'
 import {
   LISTING_SPEC_FIELDS,
   LISTING_SPEC_GROUP_TITLES,
@@ -27,7 +28,7 @@ import {
 
 export type ListingSpecContext = Pick<
   ListingDetailViewModel,
-  'factGroups' | 'price' | 'availableFrom' | 'building'
+  'factGroups' | 'price' | 'availableFrom' | 'building' | 'buildingForm'
 >
 
 export type ListingSpecGroup = Readonly<{
@@ -68,6 +69,9 @@ export const LISTING_SPEC_RESOLVERS: Readonly<Record<string, ListingResolver>> =
   floor: (ctx) => fact(ctx, '房源楼层'),
   orientation: (ctx) => fact(ctx, '朝向'),
   divisible: (ctx) => fact(ctx, '可分割'),
+  // OPT-096：多选拼「、」；空数组 → null（行不渲染），与「没值就不显这行」同一规则。
+  buildingForm: (ctx) =>
+    ctx.buildingForm.length > 0 ? ctx.buildingForm.map((form) => BUILDING_FORM_LABELS[form]).join('、') : null,
   price: (ctx) => ctx.price?.text ?? null,
   // comp 用「年」，我们只有「月」精度——同一概念不同粒度，用可达的那个。
   minimumLease: (ctx) => fact(ctx, '最短租期'),

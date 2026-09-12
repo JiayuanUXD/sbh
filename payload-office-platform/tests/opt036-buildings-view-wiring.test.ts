@@ -52,6 +52,7 @@ vi.mock('next/navigation', () => ({
 import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import { countActivePicks, type FilterRow, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
+import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import ResultToolbar from '@/components/frontend/listing/ResultToolbar'
 import CityBuildingsPage from '@/app/(frontend)/[city]/buildings/page'
@@ -626,3 +627,31 @@ describe('OPT-081 楼盘列表卡片样式切换', () => {
     expect(pager.buildPageHref(2)).toBe('/shanghai/buildings?district=jingan&page=2')
   })
 })
+
+describe('OPT-096 楼盘列表出售口径', () => {
+  const stocked = buildResult({ withStock: [doc('a', 2)], unfilteredTotalDocs: 1 })
+
+  it('出售口径：卡片量词「套在售」、排序「在售最多」、标题带「出售」，不渲染「仅看有在租」开关', () => {
+    const tree = renderView('business=sale', stocked)
+    const card = findByDisplayName(tree, 'BuildingResultCard')!
+    expect((card.node.props as { stockUnitLabel?: string }).stockUnitLabel).toBe('套在售')
+    const toolbar = findByDisplayName(tree, 'ResultToolbar')!
+    const sorts = (toolbar.node.props as Parameters<typeof ResultToolbar>[0]).sorts
+    expect(sorts.map((s) => s.label)).toEqual(['在售最多', '在售面积', '等级', '竣工最新'])
+    const shell = findByDisplayName(tree, 'MobileFilterShell')!
+    expect(shellRows(shell).switchRow).toBeUndefined()
+    const html = renderToStaticMarkup(createElement(BuildingResultCard, card.node.props as Parameters<typeof BuildingResultCard>[0]))
+    expect(html).toContain('套在售')
+    expect(html).not.toContain('套在租')
+    expect(html).toContain('2 套在售')
+  })
+
+  it('租赁口径原样：「套在租」与「仅看有在租」都在', () => {
+    const tree = renderView('', stocked)
+    const card = findByDisplayName(tree, 'BuildingResultCard')!
+    expect((card.node.props as { stockUnitLabel?: string }).stockUnitLabel).toBe('套在租')
+    const shell = findByDisplayName(tree, 'MobileFilterShell')!
+    expect(shellRows(shell).switchRow?.optionLabel).toBe('仅看有在租')
+  })
+})
+

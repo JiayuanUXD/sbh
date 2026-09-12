@@ -52,7 +52,7 @@ const CITY = {
 } as unknown as Parameters<typeof CityListingsView>[0]['city']
 
 function emptyFacets(totalDocs = 0) {
-  return { districts: [], listingTypes: [], rentUnits: [], totalDocs }
+  return { districts: [], listingTypes: [], buildingForms: [], rentUnits: [], totalDocs }
 }
 
 function buildResult(totalDocs: number) {
@@ -353,6 +353,7 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     getCachedSearchFacetsIgnoring.mockResolvedValue({
       districts: [],
       listingTypes: [],
+      buildingForms: [],
       rentUnits: [
         { value: 'rmb-sqm-day', count: 3 },
         { value: 'rmb-month', count: 536 },

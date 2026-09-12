@@ -22,6 +22,7 @@ import type {
   Page,
   Article,
 } from '@/payload-types'
+import type { BuildingForm } from '@/domain/review/listing-fields'
 
 // ---------------------------------------------------------------------------
 // 基础值对象
@@ -376,6 +377,8 @@ export type BuildingSupplySnapshot = Readonly<{
 /** 房源详情视图模型：完整卡片字段 + 详情专属公开数据。 */
 export type ListingDetailViewModel = Readonly<ListingCardViewModel & {
   seats: number | null
+  /** 建筑形态（OPT-096）：多选、可空；只进详情 DTO，不进卡片（OPT-047 体积红线）。 */
+  buildingForm: readonly BuildingForm[]
   gallery: readonly MediaViewModel[]
   mediaItems: readonly DetailMediaViewModel[]
   factGroups: readonly FactGroupViewModel[]

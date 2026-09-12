@@ -25,6 +25,7 @@ import type {
   RentUnit,
 } from './types'
 import type { BuildingSupplyInput } from './building-supply'
+import { BUILDING_FORMS } from '@/domain/review/listing-fields'
 
 const DEFAULT_PAGE_SIZE = 24 as const
 const MAX_ARRAY_LEN = 20
@@ -36,6 +37,9 @@ const LISTING_TYPE_WHITELIST = new Set<string>([
   'coworking',
   'full-floor',
 ])
+
+/** 建筑形态白名单（OPT-096），取值集合直接来自域层枚举，不手抄第二份。 */
+const BUILDING_FORM_WHITELIST = new Set<string>(BUILDING_FORMS)
 
 /**
  * 旧 URL 的 rentUnit 白名单（3 个租赁单位）。
@@ -404,6 +408,7 @@ export function buildBuildingSupplyCanonicalSearchParams(input: BuildingSupplyIn
  */
 export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput {
   const listingType = parseWhitelistedArray(sp, 'type', LISTING_TYPE_WHITELIST)
+  const buildingForm = parseWhitelistedArray(sp, 'form', BUILDING_FORM_WHITELIST)
   const district = parseStringArray(sp, 'district')
   const businessArea = parseStringArray(sp, 'businessArea')
   const metro = parseStringArray(sp, 'metro')
@@ -454,6 +459,7 @@ export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput
     businessArea,
     metro,
     listingType,
+    buildingForm,
     areaMin,
     areaMax,
     priceMin,
@@ -486,6 +492,7 @@ export function buildCanonicalSearchParams(input: ListingSearchInput): URLSearch
   if (input.businessArea) for (const v of input.businessArea) sp.append('businessArea', v)
   if (input.metro) for (const v of input.metro) sp.append('metro', v)
   if (input.listingType) for (const v of input.listingType) sp.append('type', v)
+  if (input.buildingForm) for (const v of input.buildingForm) sp.append('form', v)
   if (input.areaMin != null) sp.set('areaMin', String(input.areaMin))
   if (input.areaMax != null) sp.set('areaMax', String(input.areaMax))
   // 只输出新名：旧参数仅在解析层被接受，canonical 负责把索引收敛到一套 URL。

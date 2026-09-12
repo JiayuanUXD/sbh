@@ -6,7 +6,7 @@ import type {
   PriceDisplayUnit,
 } from '@/domain/public-catalog'
 import { enumLabel, vocabularyName } from './filter-dimension'
-import { LISTING_TYPE_LABEL } from './listing-display'
+import { BUILDING_FORM_LABEL, LISTING_TYPE_LABEL } from './listing-display'
 import { priceUnitLabel } from './format'
 
 /**
@@ -138,6 +138,7 @@ export function buildListingFilterDimensions(params: Readonly<{
   const { input, districts, priceDimensionLabel } = params
   const activeDistrict = firstOrUndefined(input.district)
   const activeType = firstOrUndefined(input.listingType)
+  const activeForm = firstOrUndefined(input.buildingForm)
   const unitText = input.priceUnit ? priceUnitLabel(input.priceUnit) : ''
   const activeBusinessArea = firstOrUndefined(input.businessArea)
   const activeMetro = firstOrUndefined(input.metro)
@@ -163,6 +164,14 @@ export function buildListingFilterDimensions(params: Readonly<{
       // 链路下不可达；照样不写 `?? activeType`——一个不可达的回显兜底一旦被
       // 白名单的变动激活，就是同一个缺陷原地复活。
       activeText: enumLabel(activeType, LISTING_TYPE_LABEL),
+    },
+    {
+      // OPT-096：建筑形态。与类型行同款单选 pill；URL 层 `form` 接受多值，回显取首个。
+      dimension: 'buildingForm',
+      label: '建筑形态',
+      paramKeys: ['form'],
+      active: activeForm != null,
+      activeText: enumLabel(activeForm, BUILDING_FORM_LABEL),
     },
     {
       dimension: 'price',
@@ -279,6 +288,8 @@ export function buildListingFilterRows(params: Readonly<{
   districts: readonly DistrictViewModel[]
   districtCounts: ReadonlyMap<string, number>
   typeCounts: ReadonlyMap<string, number>
+  /** 建筑形态计数（OPT-096）；缺省视为全 0（只剩已选项会渲染）。 */
+  buildingFormCounts?: ReadonlyMap<string, number>
   /** 价格行标签，租售语境不同（「租金上限」/「总价上限」），从 CHANNEL_COPY 取。 */
   priceRowLabel: string
   /**
@@ -290,9 +301,11 @@ export function buildListingFilterRows(params: Readonly<{
   priceDimensionLabel: string
 }>): ListingFilterRowsResult {
   const { input, districts, districtCounts, typeCounts, priceRowLabel, priceDimensionLabel } = params
+  const buildingFormCounts = params.buildingFormCounts ?? new Map<string, number>()
 
   const activeDistrict = firstOrUndefined(input.district)
   const activeType = firstOrUndefined(input.listingType)
+  const activeForm = firstOrUndefined(input.buildingForm)
   const activePriceMax = input.priceMax != null ? String(input.priceMax) : undefined
   const activeAreaMin = input.areaMin != null ? String(input.areaMin) : undefined
 
@@ -318,6 +331,16 @@ export function buildListingFilterRows(params: Readonly<{
         : {}),
     }))
 
+  const formOptions = Object.keys(BUILDING_FORM_LABEL)
+    .filter((value) => value === activeForm || (buildingFormCounts.get(value) ?? 0) > 0)
+    .map((value) => ({
+      value,
+      label: BUILDING_FORM_LABEL[value],
+      ...(buildingFormCounts.get(value) != null && buildingFormCounts.get(value)! > 0
+        ? { count: buildingFormCounts.get(value)! }
+        : {}),
+    }))
+
   const priceBuckets = input.priceUnit ? PRICE_MAX_BUCKETS[input.priceUnit] : []
   const unitText = input.priceUnit ? priceUnitLabel(input.priceUnit) : ''
   const priceOptions = priceBuckets.map((threshold) => ({
@@ -333,6 +356,7 @@ export function buildListingFilterRows(params: Readonly<{
   const rows: FilterRow[] = [
     { key: 'district', label: '位置', options: districtOptions, ...(activeDistrict ? { activeValue: activeDistrict } : {}) },
     { key: 'type', label: '类型', options: typeOptions, ...(activeType ? { activeValue: activeType } : {}) },
+    { key: 'form', label: '建筑形态', options: formOptions, ...(activeForm ? { activeValue: activeForm } : {}) },
     { key: 'priceMax', label: priceRowLabel, options: priceOptions, ...(activePriceMax ? { activeValue: activePriceMax } : {}) },
     { key: 'areaMin', label: '面积下限', options: areaOptions, ...(activeAreaMin ? { activeValue: activeAreaMin } : {}) },
   ]
@@ -346,6 +370,7 @@ export function buildListingFilterRows(params: Readonly<{
 export const LISTING_CLEARABLE_DIMENSIONS: readonly ListingSearchDimension[] = [
   'district',
   'listingType',
+  'buildingForm',
   'price',
   'area',
   'businessArea',

@@ -55,7 +55,7 @@ describe('BUILDING_SPEC_FIELDS 零变化守卫', () => {
 })
 
 const LISTING_EXPECTED: ReadonlyArray<readonly [string, readonly string[]]> = [
-  ['space', ['建筑面积', '套内参考面积', '得房率', '净层高', '工位估算', '房源楼层', '朝向', '可分割']],
+  ['space', ['建筑面积', '套内参考面积', '得房率', '净层高', '工位估算', '房源楼层', '朝向', '可分割', '建筑形态']],
   ['terms', ['合同单价', '起租期', '押金', '付款方式']],
   ['delivery', ['装修状态', '家具', '交付时间', '可注册', '空调', '网络']],
   ['cost', ['物业费', '停车费', '发票', '其他固定费用']],
@@ -71,16 +71,16 @@ describe('LISTING_SPEC_FIELDS 零变化守卫', () => {
     expect(actual).toEqual(LISTING_EXPECTED.map(([groupId, labels]) => [groupId, [...labels]]))
   })
 
-  it('共 24 项：22 项默认可见 + 「信息时效」2 项默认关闭', () => {
-    expect(LISTING_SPEC_FIELDS).toHaveLength(24)
-    expect(LISTING_SPEC_FIELDS.filter((field) => field.defaultVisible)).toHaveLength(22)
+  it('共 25 项：23 项默认可见 + 「信息时效」2 项默认关闭（OPT-096 加「建筑形态」）', () => {
+    expect(LISTING_SPEC_FIELDS).toHaveLength(25)
+    expect(LISTING_SPEC_FIELDS.filter((field) => field.defaultVisible)).toHaveLength(23)
     const verification = LISTING_SPEC_FIELDS.filter((field) => field.group === 'verification')
     expect(verification.map((field) => field.label)).toEqual(['信息核验时间', '价格核验时间'])
     expect(verification.every((field) => field.defaultVisible)).toBe(false)
   })
 
   it('key 唯一', () => {
-    expect(new Set(LISTING_SPEC_FIELDS.map((field) => field.key)).size).toBe(24)
+    expect(new Set(LISTING_SPEC_FIELDS.map((field) => field.key)).size).toBe(25)
   })
 })
 

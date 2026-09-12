@@ -44,6 +44,8 @@ export type ListingScanRow = Readonly<{
   id: number
   slug: string
   listingType: string | null
+  /** 建筑形态（OPT-096），hasMany select；无值为空数组 */
+  buildingForm: readonly string[]
   businessType: 'lease' | 'sale'
   area: number | null
   price: PriceViewModel | null
@@ -63,10 +65,11 @@ export type ListingScanRow = Readonly<{
  * 坍缩：`district × listingType × priceUnit × 区间 × page × sort` 的全部组合共用
  * 同一份扫描。
  */
-export type ScanMemoryDimension = 'district' | 'listingType' | 'priceUnit' | 'price'
+export type ScanMemoryDimension = 'district' | 'listingType' | 'buildingForm' | 'priceUnit' | 'price'
 export const SCAN_MEMORY_DIMENSIONS: readonly ScanMemoryDimension[] = [
   'district',
   'listingType',
+  'buildingForm',
   'priceUnit',
   'price',
 ]
@@ -75,6 +78,7 @@ export const SCAN_MEMORY_DIMENSIONS: readonly ScanMemoryDimension[] = [
 export type ScanFacets = Readonly<{
   districts: ReadonlyArray<DistrictViewModel & { count: number }>
   listingTypes: ReadonlyArray<{ value: string; count: number }>
+  buildingForms: ReadonlyArray<{ value: string; count: number }>
   rentUnits: ReadonlyArray<{ value: string; count: number }>
   totalDocs: number
 }>
@@ -118,6 +122,9 @@ export function rowFromListing(raw: unknown): ListingScanRow | null {
     id,
     slug: raw.slug,
     listingType: typeof raw.listingType === 'string' ? raw.listingType : null,
+    buildingForm: Array.isArray(raw.buildingForm)
+      ? raw.buildingForm.filter((v): v is string => typeof v === 'string')
+      : [],
     businessType,
     area: typeof raw.area === 'number' && Number.isFinite(raw.area) ? raw.area : null,
     price: resolveListingPrice(raw),
@@ -150,6 +157,7 @@ export function toScanInput(input: ListingSearchInput): ListingSearchInput {
   const next: Record<string, unknown> = { ...input }
   delete next.district
   delete next.listingType
+  delete next.buildingForm
   delete next.priceUnit
   delete next.pricePeriod
   delete next.priceBasis
@@ -187,16 +195,28 @@ export function matchesPriceFilter(price: PriceViewModel | null, input: ListingS
   return true
 }
 
-/** 在扫描行上应用内存维度（区域 / 类型 / 价格）。 */
+/**
+ * 行上的建筑形态；**缺字段按空数组**。扫描行经 `unstable_cache` 落盘，发布后的
+ * 前 5 分钟（revalidate 窗口）读到的仍是上一版写入的行，没有 `buildingForm`——
+ * 这里不防御的话，新版一上线列表页就 500 到缓存过期为止。
+ */
+function rowForms(row: ListingScanRow): readonly string[] {
+  return Array.isArray(row.buildingForm) ? row.buildingForm : []
+}
+
+/** 在扫描行上应用内存维度（区域 / 类型 / 建筑形态 / 价格）。 */
 export function applyMemoryFilters(
   rows: readonly ListingScanRow[],
   input: ListingSearchInput,
 ): ListingScanRow[] {
   const districts = input.district && input.district.length > 0 ? new Set(input.district) : null
   const types = input.listingType && input.listingType.length > 0 ? new Set(input.listingType) : null
+  // OPT-096：建筑形态是多选字段，行与输入有交集即命中（多值 form 取并集）
+  const forms = input.buildingForm && input.buildingForm.length > 0 ? new Set(input.buildingForm) : null
   return rows.filter((row) => {
     if (districts && (!row.district || !districts.has(row.district.slug))) return false
     if (types && (!row.listingType || !types.has(row.listingType))) return false
+    if (forms && !rowForms(row).some((form) => forms.has(form))) return false
     return matchesPriceFilter(row.price, input)
   })
 }
@@ -210,6 +230,7 @@ export function applyMemoryFilters(
 export function computeFacets(rows: readonly ListingScanRow[]): ScanFacets {
   const districtCounts = new Map<string, { vm: DistrictViewModel; count: number }>()
   const listingTypeCounts = new Map<string, number>()
+  const buildingFormCounts = new Map<string, number>()
   const rentUnitCounts = new Map<string, number>()
 
   for (const row of rows) {
@@ -224,6 +245,9 @@ export function computeFacets(rows: readonly ListingScanRow[]): ScanFacets {
     if (row.listingType) {
       listingTypeCounts.set(row.listingType, (listingTypeCounts.get(row.listingType) ?? 0) + 1)
     }
+    for (const form of rowForms(row)) {
+      buildingFormCounts.set(form, (buildingFormCounts.get(form) ?? 0) + 1)
+    }
     if (row.price) {
       rentUnitCounts.set(row.price.displayUnit, (rentUnitCounts.get(row.price.displayUnit) ?? 0) + 1)
     }
@@ -232,6 +256,7 @@ export function computeFacets(rows: readonly ListingScanRow[]): ScanFacets {
   return {
     districts: Array.from(districtCounts.values()).map(({ vm, count }) => ({ ...vm, count })),
     listingTypes: Array.from(listingTypeCounts.entries()).map(([value, count]) => ({ value, count })),
+    buildingForms: Array.from(buildingFormCounts.entries()).map(([value, count]) => ({ value, count })),
     rentUnits: Array.from(rentUnitCounts.entries()).map(([value, count]) => ({ value, count })),
     totalDocs: rows.length,
   }

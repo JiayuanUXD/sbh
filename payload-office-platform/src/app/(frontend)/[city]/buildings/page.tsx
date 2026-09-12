@@ -52,12 +52,16 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     ? parseBuildingSearchInput(toUrlSearchParams(raw))
     : await resolveBuildingSearchInput(city.slug, toUrlSearchParams(raw))
   const query = buildBuildingCanonicalParams(input).toString()
-  return buildCityPageMetadata({
+  const base = buildCityPageMetadata({
     city,
     pageType: 'buildings',
     canonicalQuery: query || undefined,
     multiCityRoutingEnabled: getMultiCityRoutingEnabled(),
   })
+  // OPT-096：出售口径不进索引（与 /sale 频道同一取舍：起步期数量少，别拖站点评分），
+  // 标题换成在售语境。canonical 仍带 business=sale，不与租赁口径合并。
+  if (input.business !== 'sale') return base
+  return { ...base, title: `${city.name}在售写字楼楼盘 · 商办买卖`, robots: { index: false, follow: true } }
 }
 
 export default async function CityBuildingsPage({ params, searchParams }: Props) {

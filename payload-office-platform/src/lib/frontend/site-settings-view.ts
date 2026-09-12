@@ -23,6 +23,8 @@ import {
   type DetailSpecVisibility,
 } from '@/lib/frontend/detail-spec/fields'
 import { HEADER_FEATURES_FALLBACK, type HeaderFeatures } from '@/lib/frontend/header-features'
+import { attachMainNavSubmenu } from '@/lib/frontend/nav-submenu'
+import type { PublicNavItem } from '@/lib/frontend/public-nav'
 
 export type SiteSettingsView = Readonly<{
   siteName: string
@@ -58,7 +60,7 @@ export type SiteSettingsView = Readonly<{
    * 由服务端查 NAV_TARGETS 解析；查不到的项在这里就已经被剔除，
    * 渲染层拿到的每一条都指向真实路由。
    */
-  mainNav: ReadonlyArray<Readonly<{ href: string; label: string }>>
+  mainNav: readonly PublicNavItem[]
   /**
    * 顶栏功能开关（OPT-094）：登录 / 会员入口是否显示、客服电话入口与全站默认号。
    * 空值语义见 `header-features.ts`。城市覆盖号在 `PublicCityOption.servicePhone`，顶栏按当前城市取。
@@ -105,7 +107,7 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
   ],
   // 与 public-nav.ts 的 MAIN_NAV_ITEMS / FOOTER_COLUMNS 逐条对应。
   // 那两个常量**保留不删**：它们既是这里的默认值来源，也是迁移执行前的兜底。
-  mainNav: [
+  mainNav: attachMainNavSubmenu([
     { href: '/', label: '首页' },
     { href: '/listings', label: '找办公室' },
     { href: '/buildings', label: '找楼盘' },
@@ -113,7 +115,7 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
     { href: '/entrust', label: '委托找房' },
     { href: '/publish', label: '投放房源' },
     { href: '/news', label: '资讯' },
-  ],
+  ]),
   headerFeatures: HEADER_FEATURES_FALLBACK,
   footerColumns: [
     {

@@ -85,6 +85,7 @@ describe('房源概况：逐级收起', () => {
       price: null,
       availableFrom: null,
       building: null,
+      buildingForm: [],
     } as never)
     expect(groups.find((group) => group.id === 'space')?.rows.map((row) => row.label)).toEqual([
       '建筑面积',
@@ -100,6 +101,7 @@ describe('房源概况：逐级收起', () => {
       price: null,
       availableFrom: null,
       building: null,
+      buildingForm: [],
     } as never)
     expect(groups.find((group) => group.id === 'delivery')?.rows.map((row) => row.label)).toEqual([
       '交付时间',
@@ -108,7 +110,7 @@ describe('房源概况：逐级收起', () => {
 
   it('未勾选的字段即使有值也不出现', () => {
     const groups = buildListingOverviewGroups(
-      { factGroups: ONLY_AREA, price: null, availableFrom: null, building: null } as never,
+      { factGroups: ONLY_AREA, price: null, availableFrom: null, building: null, buildingForm: [] } as never,
       { area: false },
     )
     expect(groups.find((group) => group.id === 'space')).toBeUndefined()
@@ -123,7 +125,7 @@ describe('房源概况：逐级收起', () => {
         facts: [fact('信息核验时间', '2026-03-14T00:00:00.000Z'), fact('价格核验时间', null)],
       },
     ]
-    const base = { factGroups, price: null, availableFrom: null, building: null } as never
+    const base = { factGroups, price: null, availableFrom: null, building: null, buildingForm: [] } as never
 
     expect(buildListingOverviewGroups(base).find((g) => g.id === 'verification')).toBeUndefined()
 

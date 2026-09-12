@@ -131,6 +131,8 @@ export type HomepageData = Readonly<{
 export type SearchFacets = Readonly<{
   districts: ReadonlyArray<DistrictViewModel & { count: number }>
   listingTypes: ReadonlyArray<{ value: string; count: number }>
+  /** 建筑形态计数（OPT-096）：一行多形态各计一次 */
+  buildingForms: ReadonlyArray<{ value: string; count: number }>
   rentUnits: ReadonlyArray<{ value: string; count: number }>
   totalDocs: number
 }>
@@ -265,14 +267,17 @@ async function attachSupplyAggregates(
   summaries: readonly BuildingSummaryViewModel[],
   ctx: SearchContext,
   adapter: SupplyAdapter,
+  business: 'lease' | 'sale' = 'lease',
 ): Promise<BuildingSummaryViewModel[]> {
   if (summaries.length === 0) return []
-  // 强制 lease 而非跟随 ctx：这两个字段叫「在租面积」「在租套数」，语义上只算租赁
+  // 默认 lease 而非跟随 ctx：这两个字段叫「在租面积」「在租套数」，语义上只算租赁
   // 供给，与调用方当前在哪个频道无关。出售频道页上的楼盘卡片同样应该显示租赁口径
   // 的在租数据，一套 3800 万的待售整层不能被算进去。
+  // OPT-096：楼盘列表的出售口径由调用方**显式**传 `'sale'`，仍然不跟随 ctx——
+  // 此时两个字段的语义变成「在售面积」「在售套数」，由页面 scope 决定量词。
   const aggregateByBuilding = await adapter.aggregateEffectiveSupplyByBuildings(
     summaries.map((s) => s.id),
-    { ...ctx, businessType: 'lease' },
+    { ...ctx, businessType: business },
   )
   return summaries.map((s) => {
     const agg = aggregateByBuilding.get(String(s.id))
@@ -428,6 +433,7 @@ export async function searchListings(
 export async function searchBuildings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+  business: 'lease' | 'sale' = 'lease',
 ): Promise<BuildingSearchResult> {
   const rawBuildings = await adapter.findEffectiveBuildings(ctx)
   const summaries: BuildingSummaryViewModel[] = []
@@ -435,8 +441,11 @@ export async function searchBuildings(
     const summary = mapBuildingSummary(raw)
     if (summary) summaries.push(summary)
   }
-  const docs = await attachSupplyAggregates(summaries, ctx, adapter)
-  return { docs, totalDocs: docs.length }
+  const docs = await attachSupplyAggregates(summaries, ctx, adapter, business)
+  // OPT-096 出售口径：只列有在售供给的楼盘。「暂无在售」不是一个有意义的目录分组
+  // （出售起步期绝大多数楼盘都没有），列出来只会把一屏刷成紧凑行。
+  const scoped = business === 'sale' ? docs.filter((doc) => (doc.listingCount ?? 0) > 0) : docs
+  return { docs: scoped, totalDocs: scoped.length }
 }
 
 /**
@@ -496,7 +505,7 @@ export async function searchBuildingsFiltered(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<BuildingFilteredResult> {
-  const { docs: allDocs } = await searchBuildings(ctx, adapter)
+  const { docs: allDocs } = await searchBuildings(ctx, adapter, input.business ?? 'lease')
 
   // 逐维度剥离：每个维度算一次「不含这一条时还剩什么」。同一次结果同时供给
   // 两处用途——筛选候选的计数（districts/grades/metros）与空态②的退路命中数——
@@ -1075,6 +1084,7 @@ export type ListingSearchDimension =
   | 'businessArea'
   | 'metro'
   | 'listingType'
+  | 'buildingForm'
   | 'price'
   | 'area'
   | 'availableBefore'
@@ -1130,6 +1140,7 @@ export function omitListingSearchDimensions(
   if (drop.has('businessArea')) delete next.businessArea
   if (drop.has('metro')) delete next.metro
   if (drop.has('listingType')) delete next.listingType
+  if (drop.has('buildingForm')) delete next.buildingForm
   if (drop.has('price')) {
     delete next.priceMin
     delete next.priceMax

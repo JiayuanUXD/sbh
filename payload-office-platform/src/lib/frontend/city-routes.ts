@@ -54,6 +54,7 @@ const PRICE_BASIS_VALUES = new Set(['sqm', 'seat', 'total'])
 
 const LISTING_QUERY_KEYS = [
   'type',
+  'form',
   'areaMin',
   'areaMax',
   // 新旧两套名字都要进白名单：新名是 canonical 输出的形态，旧名是已收录 URL 的
@@ -72,7 +73,7 @@ const LISTING_QUERY_KEYS = [
   'sort',
 ] as const
 
-const BUILDING_QUERY_KEYS = ['grade'] as const
+const BUILDING_QUERY_KEYS = ['grade', 'business'] as const
 
 type Route = Readonly<{
   citySlug: string | null
@@ -321,6 +322,9 @@ function appendCanonicalListingQuery(
 ): void {
   const listingType = input.listingType?.[0]
   if (listingType) selected.set('type', listingType)
+  // OPT-096：建筑形态与类型同一处置——canonical 只带首值
+  const buildingForm = input.buildingForm?.[0]
+  if (buildingForm) selected.set('form', buildingForm)
   if (input.areaMin !== undefined) selected.set('areaMin', String(input.areaMin))
   if (input.areaMax !== undefined) selected.set('areaMax', String(input.areaMax))
   if (input.priceMin !== undefined) selected.set('priceMin', String(input.priceMin))
@@ -363,10 +367,12 @@ function selectListingQuery(params: URLSearchParams): URLSearchParams {
 }
 
 function selectBuildingQuery(params: URLSearchParams): URLSearchParams {
-  const value = readSingle(params, 'grade')
-  return value !== null && BUILDING_GRADE_VALUES.has(value)
-    ? new URLSearchParams([['grade', value]])
-    : new URLSearchParams()
+  const selected = new URLSearchParams()
+  const grade = readSingle(params, 'grade')
+  if (grade !== null && BUILDING_GRADE_VALUES.has(grade)) selected.set('grade', grade)
+  // OPT-096：出售口径跟着城市走——换城市看的还是「在售楼盘」；导航子项也经此加前缀
+  if (readSingle(params, 'business') === 'sale') selected.set('business', 'sale')
+  return selected
 }
 
 function withQuery(pathname: string, params: URLSearchParams): string {
@@ -555,7 +561,8 @@ export function cityAwareHref(href: string, citySlug: string, multiCityRoutingEn
   const pageType = getCityPageType(href)
   let cityHref = href
   if (pageType === 'home') cityHref = buildCityPath(citySlug, 'home') ?? href
-  if (pageType === 'listings' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
+  // OPT-096：出售频道 `/sale` 也是城市页（switchCityUrl 早就认识它），导航子项经此加前缀
+  if (pageType === 'listings' || pageType === 'sale' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
   if (pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner') {
     cityHref = buildCityPath(citySlug, pageType) ?? href
   }

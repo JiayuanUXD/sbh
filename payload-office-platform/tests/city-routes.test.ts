@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildCityPath,
+  cityAwareHref,
   citySwitchPreservedFilters,
   getCityPageType,
   legacyCanonicalPath,
@@ -132,6 +133,12 @@ describe('city route URL contract', () => {
       '/hangzhou/buildings',
     )
     expect(switchCityUrl('/shanghai/buildings?grade=unknown', 'hangzhou')).toBe('/hangzhou/buildings')
+  })
+
+  it('OPT-096：cityAwareHref 给出售频道与楼盘出售口径加城市前缀', () => {
+    expect(cityAwareHref('/sale', 'shanghai', true)).toBe('/shanghai/sale')
+    expect(cityAwareHref('/buildings?business=sale', 'shanghai', true)).toBe('/shanghai/buildings?business=sale')
+    expect(cityAwareHref('/buildings?business=sale', 'shanghai', false)).toBe('/buildings?business=sale')
   })
 
   it('switches a building list with only grade and clears geography and page', () => {

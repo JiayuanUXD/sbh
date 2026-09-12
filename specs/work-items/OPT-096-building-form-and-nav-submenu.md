@@ -1,6 +1,6 @@
 # Task Packet：OPT-096 房源「建筑形态」多选字段 + 主导航租赁 / 出售二级菜单
 
-> 状态：**设计已确认，待实施**（排在 OPT-095 之后，独立分支 / PR）
+> 状态：**已实施，待合并**（OPT-095 已于 2026-09-12 上线）
 > 创建日期：2026-09-12
 > 来源：用户 5 项需求中的第 1、5 项；其余三项见 OPT-095
 
@@ -79,16 +79,16 @@
 
 ## 4. 验收
 
-- [ ] 单测：`isBuildingForm`；`parseListingSearchInput` 的 `form` 白名单与 canonical 回写；扫描行过滤「交集命中」与 facet 计数；`mapListingDetail.buildingForm` 去重过滤
-- [ ] 单测：`resolveNavRow` 对 `listings` / `buildings` 产出子项，其余为空；`SiteNav` 渲染下拉结构（桌面 + 抽屉）
-- [ ] 单测：`parseBuildingSearchInput` 的 `business`；`searchBuildings` 出售口径只含有在售房源的楼盘且聚合为 sale
-- [ ] 迁移：`pnpm migrate:dry-run` 无禁用模式；`up` / `down` 齐全；本地 `payload migrate` 后 `/admin` 房源表单出现「建筑形态」多选
-- [ ] 后台浏览器：新建 / 编辑房源勾选独栋 + 联排 → 保存 → 回读两值；清空可保存
-- [ ] C 端浏览器：`/shanghai/listings?form=detached` 只出带独栋的房源、筛选行回显；详情参数表出现「建筑形态：独栋、联排」；站点设置关掉该项后不再显示
-- [ ] C 端浏览器：1440 顶栏 hover「找办公室」出现租赁 / 出售，键盘 Tab 到父项后子项可达；`/shanghai/sale` 页面「找办公室」父项高亮；375 抽屉里父项下缩进两行
-- [ ] C 端浏览器：`/shanghai/buildings?business=sale` 只列有在售房源的楼盘、卡片「N 套在售」；`/shanghai/buildings` 与改动前一致（对照截图）
-- [ ] E2E 自查：`tests/e2e/` 中 `site-nav` / `buildings` 列表 / 筛选行相关用例
-- [ ] `typecheck` / `lint` / `test:changed` / `generate:types` 后 `payload-types.ts` 未跟踪不入库
+- [x] 单测：`isBuildingForm`；`parseListingSearchInput` 的 `form` 白名单与 canonical 回写；扫描行过滤「交集命中」与 facet 计数；`mapListingDetail.buildingForm` 去重过滤
+- [x] 单测：`attachMainNavSubmenu`（代替 `resolveNavRow`——子项按目标 href 挂，不在行解析里做） 对 `listings` / `buildings` 产出子项，其余为空；`SiteNav` 渲染下拉结构（桌面 + 抽屉）
+- [x] 单测：`parseBuildingSearchInput` 的 `business`；`searchBuildings` 出售口径只含有在售房源的楼盘且聚合为 sale
+- [x] 迁移：`pnpm migrate:dry-run` 无禁用模式；`up` / `down` 齐全；本地 `payload migrate` 后 `/admin` 房源表单出现「建筑形态」多选
+- [x] 后台浏览器：新建 / 编辑房源勾选独栋 + 联排 → 保存 → 回读两值；清空可保存
+- [x] C 端浏览器：`/shanghai/listings?form=detached` 只出带独栋的房源、筛选行回显；详情参数表出现「建筑形态：独栋、联排」；站点设置关掉该项后不再显示
+- [x] C 端浏览器：1440 顶栏 hover「找办公室」出现租赁 / 出售，键盘 Tab 到父项后子项可达；`/shanghai/sale` 页面「找办公室」父项高亮；375 抽屉里父项下缩进两行
+- [x] C 端浏览器：`/shanghai/buildings?business=sale` 只列有在售房源的楼盘、卡片「N 套在售」；`/shanghai/buildings` 与改动前一致（对照截图）
+- [x] E2E 自查：`tests/e2e/` 中 `site-nav` / `buildings` 列表 / 筛选行相关用例
+- [x] `typecheck` / `lint` / `test:changed`（193 files / 2456）/ `payload-types.ts` 未入库
 
 证据：`artifacts/verification/OPT-096/`。
 

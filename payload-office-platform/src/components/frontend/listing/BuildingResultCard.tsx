@@ -49,11 +49,13 @@ function formatLeasableArea(area: number): string {
   return Math.round(area).toLocaleString('en-US')
 }
 
-export default function BuildingResultCard({ building, citySlug, analytics }: Readonly<{
+export default function BuildingResultCard({ building, citySlug, analytics, stockUnitLabel = '套在租' }: Readonly<{
   building: BuildingSummaryViewModel
   citySlug?: string
   /** 列表页埋点上下文；不传则不产生点击事件 */
   analytics?: ListResultAnalytics
+  /** 套数量词（OPT-096）：租赁口径「套在租」，出售口径「套在售」；由页面 scope 决定 */
+  stockUnitLabel?: string
 }>) {
   const { coverImage, grade, address, nearestMetro, leasableArea, listingCount, name, slug } = building
   const gradeLabel = getBuildingGradeLabel(grade)
@@ -63,7 +65,7 @@ export default function BuildingResultCard({ building, citySlug, analytics }: Re
   const areaText = leasableArea != null && leasableArea > 0 ? formatLeasableArea(leasableArea) : null
   // 与 ListingResultCard 的 aria-label（把价格带进可访问名）同一惯例：
   // 「这栋楼现在有几套在租」是用户最想知道的数，可访问名不能把它漏掉。
-  const ariaLabel = hasCount ? `${name}，${listingCount} 套在租` : name
+  const ariaLabel = hasCount ? `${name}，${listingCount} ${stockUnitLabel}` : name
 
   return (
     <NavLink
@@ -106,7 +108,7 @@ export default function BuildingResultCard({ building, citySlug, analytics }: Re
             {hasCount ? (
               <span className="bd-card__stock-group">
                 <span className="bd-card__stock sf-num">{listingCount}</span>
-                <span className="bd-card__stock-unit">套在租</span>
+                <span className="bd-card__stock-unit">{stockUnitLabel}</span>
               </span>
             ) : null}
             {areaText ? <span className="bd-card__area-total sf-num">合计 {areaText} ㎡</span> : null}

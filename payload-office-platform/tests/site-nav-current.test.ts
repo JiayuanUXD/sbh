@@ -76,4 +76,10 @@ describe('主导航激活态', () => {
     // 于是 /listings/some-slug 不再高亮「找办公室」。判据必须来自重写前的 item.href。
     expect(isCurrent('/listings/abc', NO_PARAMS, '/listings', false)).toBe(true)
   })
+
+  it('OPT-096：无 query 的 href 在当前 URL 带 business 时不高亮（租赁子项不与出售子项同亮）', () => {
+    expect(isCurrent('/shanghai/buildings', new URLSearchParams('business=sale'), '/shanghai/buildings')).toBe(false)
+    expect(isCurrent('/shanghai/buildings', new URLSearchParams('business=sale'), '/shanghai/buildings?business=sale')).toBe(true)
+    expect(isCurrent('/shanghai/buildings', new URLSearchParams(), '/shanghai/buildings')).toBe(true)
+  })
 })

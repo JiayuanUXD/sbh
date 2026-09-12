@@ -226,7 +226,7 @@ describe('city route boundaries', () => {
       price: null, area: 100, floor: null, businessType: 'lease' as const, decorationStatus: null,
       listingType: 'traditional-office' as const, availableFrom: null, isFeatured: false,
       building: { id: 9, slug: 'tower', name: 'Tower', citySlug: 'shanghai', cityName: 'Shanghai', address: 'Road' },
-      coverImage: null, highlights: [], stableSortKey: '101', seats: null, gallery: [], mediaItems: [],
+      coverImage: null, highlights: [], stableSortKey: '101', seats: null, buildingForm: [], gallery: [], mediaItems: [],
       factGroups: [], amenityGroups: [], verification: { verifiedAt: null, priceVerifiedAt: null }, description: null,
     }
     io.resolveListingRouteIdentity.mockResolvedValue({ slug: listing.slug, citySlug: 'shanghai' })
@@ -291,6 +291,8 @@ describe('city route boundaries', () => {
   })
 
   it('keeps coming-soon buildings dynamic and noindex without inventory queries', async () => {
+    // OPT-096 起 generateMetadata 会读 input.business 判出售口径，mock 得给个最小输入
+    io.parseBuildingSearchInput.mockReturnValue({ page: 1 })
     const props = { params: Promise.resolve({ city: 'hangzhou' }), searchParams: Promise.resolve({}) }
     await expect(generateBuildingsMetadata(props)).resolves.toMatchObject({ robots: { index: false, follow: true } })
     await CityBuildingsPage(props)

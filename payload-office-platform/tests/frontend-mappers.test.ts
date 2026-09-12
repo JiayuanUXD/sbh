@@ -928,6 +928,16 @@ describe('mapListingDetail', () => {
       parkingFee: '800 元/月',
     })
   })
+
+  it('buildingForm：过滤非法值、去重、缺省为空数组（OPT-096）', () => {
+    const withForms = mapListingDetail({
+      ...LISTING_MONTHLY_STANDARD,
+      buildingForm: ['townhouse', 'detached', 'townhouse', 'nope'],
+    } as unknown as typeof LISTING_MONTHLY_STANDARD)
+    expect(withForms?.buildingForm).toEqual(['townhouse', 'detached'])
+    expect(mapListingDetail({ ...LISTING_MONTHLY_STANDARD, buildingForm: null })?.buildingForm).toEqual([])
+    expect(mapListingDetail(LISTING_MONTHLY_STANDARD)?.buildingForm).toEqual([])
+  })
 })
 
 // ---------------------------------------------------------------------------
