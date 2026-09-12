@@ -86,3 +86,20 @@ CI 侧看得到的分界：**196s 过，205s 挂**。
 
 守卫：`payload-office-platform/tests/production-deploy-config.test.ts`「上传步骤 / COS 单次 PUT 200s 上限」
 （对旧 workflow 4 条红，对新 workflow 全绿）。
+
+## CI 实跑验证（workflow_dispatch，promote 不勾）
+
+分支 `ci/deploy-upload-cos-time-cap-73e8`，run 34705732117（`ci-run-34705732117-upload.log`）：
+
+| 尝试 | 结果 | 用时 | 已传 | 均速 |
+|---|---|---|---|---|
+| 1 | `curl exit=28 http=100`（--speed-limit 断掉） | 166s | 2031616 / 2639940 B | 12226 B/s（需 13200） |
+| 2 | **200** | 145s | 2639940 B | 18212 B/s |
+
+- 尝试 1 这条连接平均 12.2KB/s，按老逻辑会陪跑到 ~216s 然后收 400；现在被速率门断掉。
+  断在 166s 而不是 30s，因为 curl 的判定是「瞬时速率**连续** 30s 低于阈值」——这条链路在阈值附近抖动，
+  偶尔冒头就把计数清零。这是有意偏向「不误杀刚好过线的连接」，代价是抖动型慢链路要多陪一会。
+- 尝试 2 换新 URL / 新连接后 18.2KB/s，145s 传完——同一台 runner 相邻两次连接差 50%，
+  「多试几次能碰到过线的」这一假设成立。
+- 后续：GRAY 版本 `sbh-186` 构建到 `normal`，`FlowRatio 0`；切流 / 冒烟 / promote 全部 skipped，
+  线上仍是 `sbh-185`（100%）。
