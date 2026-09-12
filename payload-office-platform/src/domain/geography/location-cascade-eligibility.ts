@@ -42,3 +42,30 @@ export function eligibleCascadeKeys(
     return node !== undefined && cascadeNodeEligibility(node, options).selectable
   })
 }
+
+export type CascadeSelectionReconciliation = Readonly<{
+  /** 过滤掉不可选与未知 id 之后的选择，顺序同输入 */
+  keys: string[]
+  /** 与当前值（同样按顺序比）是否有实质差异；false 时调用方不该再写入 */
+  changed: boolean
+}>
+
+/**
+ * onChange 兜底的完整版：过滤之外还回答「和当前值比有没有实质变化」。
+ *
+ * 搜索模式下 Arco 的搜索面板只认 `disabled`、不认 `disableCheckbox`，不可见节点的点击会
+ * 原样进 onChange（2026-09-12 线上复现）。过滤掉之后若与当前值一样，就不该再 setValue——
+ * useField 的 setValue 会把表单置脏，「保存」亮起来却无事可存。
+ *
+ * 顺序也参与比较：多选标签是有序的，Arco 的 onSort 会以同一批 id 换序的形式进来。
+ */
+export function reconcileCascadeSelection(
+  nextKeys: readonly string[],
+  currentKeys: readonly string[],
+  byId: ReadonlyMap<string, FlatLocationNode>,
+  options: CascadeEligibilityOptions,
+): CascadeSelectionReconciliation {
+  const keys = eligibleCascadeKeys(nextKeys, byId, options)
+  const changed = keys.length !== currentKeys.length || keys.some((k, i) => k !== currentKeys[i])
+  return { keys, changed }
+}

@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Cascader, Spin, Typography } from '@arco-design/web-react'
+import { Cascader, Checkbox, Spin, Typography, type CascaderProps } from '@arco-design/web-react'
+import { IconCheck } from '@arco-design/web-react/icon'
 import { FieldDescription, FieldError, FieldLabel, useField, useForm, useFormFields } from '@payloadcms/ui'
 
 import {
   cascadeNodeEligibility,
-  eligibleCascadeKeys,
+  reconcileCascadeSelection,
 } from '@/domain/geography/location-cascade-eligibility'
 import { buildChildrenIndex, type FlatLocationNode } from '@/domain/geography/location-tree'
 
@@ -31,6 +32,13 @@ const { Text } = Typography
  *    组件不把这条规则提前到选择时，运营就会选到不可见商圈、保存 422、toast 几秒消失、
  *    退出再进值「消失」（2026-09-12 线上两个同名「虹桥」踩到）。不可见节点仍**显示**
  *    （规则 2 同理），只是勾不上并标「前台不可见」。
+ *    **搜索面板要单独处理**（2026-09-12 线上复现）：Arco 的搜索结果只认 `disabled`、
+ *    不认 `disableCheckbox`，输入关键词后的扁平列表里不可见节点照常可勾。
+ *    `filterOption` 也拦不住——它是「路径上任一节点命中即保留」，搜「徐汇」会把
+ *    徐汇底下的不可见商圈一起带出来。所以 `frontendVisibleOnly` 下搜索行由本组件
+ *    自己渲染（`showSearch.renderOption`），不可选行画成禁用复选框并吞掉点击；
+ *    穿透到 `li` 的点击（行内空白、键盘 Enter）仍进 onChange，由下面的
+ *    reconcile 兜底：过滤后与当前值相同就不写、不置脏。
  *
  * 「不能选停用节点」的硬约束由 location-field-guard 在 beforeChange 兜底，
  * 本组件只负责别让运营手滑。
@@ -84,6 +92,11 @@ type CascaderOption = {
   /** 多选模式下只禁勾选、不禁展开（Arco 2.21+），不像 disabled 那样向下继承 */
   disableCheckbox?: boolean
 }
+
+/** Arco 搜索行自定义渲染的签名；包根没导出 NodeProps，从 showSearch 上反推 */
+type SearchRenderOption = NonNullable<
+  Extract<CascaderProps<CascaderOption>['showSearch'], object>['renderOption']
+>
 
 const ALL_TYPES: AdministrativeType[] = ['city', 'district', 'business_area']
 
@@ -224,7 +237,7 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
          * 「前台不可见」不能用 disabled 表达（同样会向下继承，把不可见行政区底下
          * 可见的商圈一起禁掉）：多选用 disableCheckbox 只禁勾选；叶子节点没有下级，
          * 单选下直接 disabled 也不会连累谁。非叶子在单选 changeOnSelect 下仍点得到，
-         * 由 handleChange 里的 eligibleCascadeKeys 兜底丢弃。
+         * 由 handleChange 里的 reconcileCascadeSelection 兜底丢弃。
          */
         const isLeaf = children.length === 0
         return {
@@ -329,15 +342,73 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
       const keys = paths
         .map((p) => (Array.isArray(p) ? p[p.length - 1] : undefined))
         .filter((v): v is string => typeof v === 'string')
-      // 兜底：不可选节点（停用 / frontendVisibleOnly 下不可见）就算从 UI 漏进来也不写入
-      const ids = eligibleCascadeKeys(keys, byId, eligibility).map(numericId)
-      setValue(many ? ids : (ids[0] ?? null))
+      /**
+       * 兜底：不可选节点（停用 / frontendVisibleOnly 下不可见）就算从 UI 漏进来也不写入。
+       * 过滤后与当前值一样就直接返回——setValue 会把表单置脏，「保存」亮起却无事可存
+       * （搜索面板的不可见行就是这么漏进来的，见文件头硬约束 3）。
+       */
+      const { keys: ids, changed } = reconcileCascadeSelection(keys, toKeys(value), byId, eligibility)
+      if (!changed) return
+      const numeric = ids.map(numericId)
+      setValue(many ? numeric : (numeric[0] ?? null))
     },
-    [setValue, many, byId, writeBackFields, dispatchFields, setModified, numericId, eligibility],
+    [setValue, value, many, byId, writeBackFields, dispatchFields, setModified, numericId, eligibility],
   )
 
   const label = typeof field?.label === 'string' ? field.label : undefined
   const description = typeof field?.admin?.description === 'string' ? field.admin.description : undefined
+
+  /**
+   * frontendVisibleOnly 下的搜索行（理由见文件头硬约束 3）。
+   *
+   * Arco 给了 renderOption 就不再自己画复选框，所以可选行也得由这里画全：
+   * 多选 = 复选框 + 「上海 / 徐汇 / 徐家汇」路径；单选 = 路径 + 选中勾。
+   * 不可选行的复选框禁用，并把整块内容包在 aria-disabled 的壳里吞掉点击——
+   * 搜索面板的 li 只在 `disabled` 时才不响应点击，而这里刻意不用 disabled（会向下继承）。
+   */
+  const renderSearchOption = useCallback<SearchRenderOption>(
+    (_inputValue, option, extra) => {
+      const blocked = Boolean(option.disabled) || Boolean(option.disableCheckbox)
+      // pathLabel 类型写的是 string[]，实际装的是 options 里的 label（含带标注的 ReactNode）
+      const pathLabel = option.pathLabel as unknown as React.ReactNode[]
+      const text = pathLabel.map((label, i) => (
+        <React.Fragment key={i}>
+          {i > 0 ? ' / ' : null}
+          {label}
+        </React.Fragment>
+      ))
+      const body = many ? (
+        <Checkbox checked={extra.checked} disabled={blocked}>
+          {text}
+        </Checkbox>
+      ) : (
+        <>
+          {text}
+          {extra.checked ? <IconCheck style={{ marginLeft: 8 }} /> : null}
+        </>
+      )
+      if (!blocked) return body
+      return (
+        <span
+          aria-disabled="true"
+          className="location-cascade-field__search-blocked"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {body}
+        </span>
+      )
+    },
+    [many],
+  )
+
+  /**
+   * 对象形态的 showSearch 在多选下默认会在选中后清空输入框（`retainInputValueWhileSelect`），
+   * 布尔形态不会；显式保留，行为与其它 7 处字段一致——运营搜「虹桥」勾完一个还要勾第二个。
+   */
+  const showSearch = useMemo(
+    () => (frontendVisibleOnly ? { retainInputValueWhileSelect: true, renderOption: renderSearchOption } : true),
+    [frontendVisibleOnly, renderSearchOption],
+  )
 
   /** 已选标签只显示路径名称。标注只在下拉里出现，选中后再挂着会把标签撑得很长。 */
   const renderFormat = useCallback((valueShow: unknown[], selected?: Array<{ name?: unknown }>) => {
@@ -365,7 +436,7 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
         changeOnSelect={changeOnSelect}
         expandTrigger="hover"
         allowClear
-        showSearch
+        showSearch={showSearch}
         placeholder={placeholder}
         renderFormat={renderFormat as never}
         status={showError ? 'error' : undefined}
