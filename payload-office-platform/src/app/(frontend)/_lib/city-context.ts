@@ -27,6 +27,8 @@ export type PublicCityOption = Readonly<{
   name: string
   serviceStatus: 'live' | 'coming-soon'
   sortOrder: number
+  /** 本城客服电话原串（OPT-094）；缺省 / null = 用全站默认号。顶栏按当前城市从这里取。可选是为了不让既有夹具全部跟着改 */
+  servicePhone?: string | null
 }>
 
 type CachedResolver = () => Promise<CityContext | null>
@@ -250,6 +252,7 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
     switcherVisible: value.switcherVisible,
     sortOrder: value.sortOrder,
     avgResponseHours: normalizeAvgResponseHours(value.avgResponseHours),
+    servicePhone: typeof value.servicePhone === 'string' && value.servicePhone.trim() ? value.servicePhone.trim() : null,
     seoTitle: value.seoTitle,
     seoDescription: value.seoDescription,
     hero: {
@@ -373,6 +376,7 @@ export async function listPublicCityOptions(): Promise<readonly PublicCityOption
       name: profile.cityName,
       serviceStatus: profile.serviceStatus,
       sortOrder: profile.sortOrder,
+      servicePhone: profile.servicePhone,
     }))
     .sort((left, right) => left.sortOrder - right.sortOrder || left.slug.localeCompare(right.slug))
 }

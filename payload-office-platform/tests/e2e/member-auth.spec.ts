@@ -14,6 +14,23 @@ async function post(request: APIRequestContext, path: string, data: unknown) {
   return request.post(`${BASE}${path}`, { data, headers: ORIGIN_HEADERS, failOnStatusCode: false })
 }
 
+/**
+ * OPT-094：顶栏「登录 / 会员入口」改由站点设置开关控制，默认关。
+ * 验顶栏账号菜单前要先把开关打开；`request` 与 `page` 是两个上下文，
+ * 后台管理员的 cookie 不会串进会员会话。
+ */
+const ADMIN = { email: 'e2e-adm@example.com', password: 'Test1234!' }
+async function setMemberEntryVisible(request: APIRequestContext, visible: boolean) {
+  const login = await request.post(`${BASE}/api/users/login`, { data: ADMIN, failOnStatusCode: false })
+  expect(login.status(), 'E2E 管理员账号应成功登录').toBe(200)
+  const res = await request.post(`${BASE}/api/globals/site-settings`, {
+    data: { memberEntryVisible: visible },
+    headers: ORIGIN_HEADERS,
+    failOnStatusCode: false,
+  })
+  expect(res.status()).toBe(200)
+}
+
 test.describe('Payload 自带的会员 auth 端点已封', () => {
   for (const p of ['login', 'logout', 'refresh-token', 'me', 'first-register', 'forgot-password', 'reset-password', 'unlock']) {
     test(`POST /api/members/${p} → 404`, async ({ request }) => {
@@ -38,15 +55,34 @@ test.describe('验证码登录', () => {
       expect((await noConsent.json()).code).toBe('CONSENT_REQUIRED')
     }
 
-    await page.goto('/login?returnTo=%2Faccount')
-    await page.getByLabel('手机号').fill(NEW_PHONE)
-    await page.getByRole('button', { name: '获取验证码' }).click()
-    await page.getByLabel('验证码').fill(FIXTURE_CODE)
-    await page.getByRole('checkbox').check()
-    await page.getByRole('button', { name: '登录', exact: true }).click()
-    await page.waitForURL('**/account')
-    await expect(page.getByRole('heading', { name: '账号设置' })).toBeVisible()
-    await expect(page.getByRole('button', { name: '账号菜单' })).toBeVisible()
+    await setMemberEntryVisible(request, true)
+    try {
+      await page.goto('/login?returnTo=%2Faccount')
+      await page.getByLabel('手机号').fill(NEW_PHONE)
+      await page.getByRole('button', { name: '获取验证码' }).click()
+      await page.getByLabel('验证码').fill(FIXTURE_CODE)
+      await page.getByRole('checkbox').check()
+      await page.getByRole('button', { name: '登录', exact: true }).click()
+      await page.waitForURL('**/account')
+      await expect(page.getByRole('heading', { name: '账号设置' })).toBeVisible()
+      await expect(page.getByRole('button', { name: '账号菜单' })).toBeVisible()
+    } finally {
+      await setMemberEntryVisible(request, false)
+    }
+  })
+
+  test('顶栏登录入口默认关闭，开关打开后出现（OPT-094）', async ({ page, request }) => {
+    await page.goto('/')
+    await expect(page.locator('.member-login')).toHaveCount(0)
+    await setMemberEntryVisible(request, true)
+    try {
+      await page.goto('/')
+      await expect(page.locator('.member-login').first()).toHaveAttribute('href', /^\/login\?returnTo=/)
+    } finally {
+      await setMemberEntryVisible(request, false)
+    }
+    await page.goto('/')
+    await expect(page.locator('.member-login')).toHaveCount(0)
   })
 
   test('60 秒内重复发码 → 429', async ({ request }) => {

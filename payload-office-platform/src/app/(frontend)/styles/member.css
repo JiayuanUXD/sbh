@@ -58,3 +58,34 @@
 .mb-tag { display: inline-block; padding: 2px 8px; border-radius: var(--r-pill); background: var(--bg); font-size: var(--fs-12); color: var(--ink-2); }
 .mb-empty { text-align: center; color: var(--ink-2); padding: var(--pad) 0; }
 @media (max-width: 767px) { .mb-card { padding: 20px; } }
+
+/* ---------------------------------------------------------------------------
+ * OPT-094 顶栏客服电话入口。断点跟 .member-menu-slot / .site-menu-toggle 一致（1024）：
+ * ≥1024 图标 + 号码，之下只留图标（号码文本收起但保留在 DOM，aria-label 仍带号码）。
+ * 透明头（首页首屏压视频）下跟随 .site-menu-toggle 变白。
+ * ------------------------------------------------------------------------- */
+.service-phone {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  min-height: 36px; padding: 0 var(--sp-2);
+  border-radius: var(--r-pill); color: var(--ink); text-decoration: none;
+  font-size: var(--fs-14); font-weight: 600; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.service-phone:hover { background: var(--bg-subtle); }
+.service-phone:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.service-phone__number { display: none; }
+@media (min-width: 1024px) {
+  .service-phone { padding: 0 var(--sp-3); }
+  .service-phone__number { display: inline; }
+}
+@media (max-width: 1023px) {
+  .service-phone { width: var(--touch-target); height: var(--touch-target); justify-content: center; padding: 0; }
+}
+.site-header--transparent .service-phone { color: #fff; }
+.site-header--transparent .service-phone:hover { background: rgba(255, 255, 255, 0.16); }
+
+.service-phone-drawer { gap: var(--sp-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.service-phone-drawer__icon { flex-shrink: 0; }
+/* 抽屉里与主导航之间留一条分隔线，沿用 .member-drawer 的做法（登录区关掉后它就是抽屉顶部第一块） */
+.mobile-drawer__contact { display: flex; flex-direction: column; padding-bottom: var(--sp-3); border-bottom: 1px solid var(--line); margin-bottom: var(--sp-3); }

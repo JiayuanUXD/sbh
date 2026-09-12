@@ -8,6 +8,7 @@ import {
 } from '@/domain/public-catalog'
 import type { Media, SiteSetting } from '@/payload-types'
 import { mapMedia } from '@/domain/public-catalog/mappers'
+import { resolveHeaderFeatures } from '@/lib/frontend/header-features'
 import { resolveNavRow } from './nav-targets'
 import {
   BUILDING_SPEC_FIELDS,
@@ -150,6 +151,7 @@ function toView(doc: SiteSetting | null): SiteSettingsView {
     valueProps: mapValueProps(doc.valueProps),
     typeCards: mapTypeCards(doc.typeCards),
     mainNav: mapMainNav(doc.mainNav),
+    headerFeatures: resolveHeaderFeatures(doc),
     footerColumns: mapFooterColumns(doc.footerColumns),
     // 「缺键 / NULL 落回 registry 默认」这条判断收在 detail-spec/fields.ts 里，
     // 与 isFieldVisible 共用同一个实现——此前这里有一份重复实现（见该文件注释）。

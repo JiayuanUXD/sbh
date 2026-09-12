@@ -17,6 +17,7 @@ import { protectCitySiteProfile } from '@/domain/city-site-profile/profile-prote
 import { CITY_SERVICE_STATUSES } from '@/domain/city-site-profile/schema'
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
 import { invalidateCitySiteProfilePublicCache } from '@/lib/frontend/public-cache-revalidation'
+import { isValidServicePhone } from '@/lib/frontend/service-phone'
 
 type Identifier = number | string
 
@@ -213,6 +214,17 @@ export const CitySiteProfiles: CollectionConfig = {
                   min: 0,
                 },
               ],
+            },
+            {
+              name: 'servicePhone',
+              label: '本城客服电话',
+              type: 'text',
+              validate: (value: unknown) =>
+                isValidServicePhone(value) || '只能填数字、+、横线、空格、括号，且至少 7 位数字',
+              admin: {
+                description:
+                  '顶栏客服电话入口用。留空则用「站点设置 → 导航 → 顶栏功能」里的全站默认号；两处都空则该城不显示入口。',
+              },
             },
           ],
         },

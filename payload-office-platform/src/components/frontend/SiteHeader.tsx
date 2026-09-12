@@ -7,7 +7,9 @@ import SiteNav from '@/components/frontend/SiteNav'
 import HeaderSearch from '@/components/frontend/HeaderSearch'
 import CitySwitcher, { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import MemberMenu from '@/components/frontend/member/MemberMenu'
+import ServicePhoneLink from '@/components/frontend/ServicePhoneLink'
 import type { MemberDto } from '@/domain/member/member-dto'
+import { HEADER_FEATURES_FALLBACK, pickServicePhone, type HeaderFeatures } from '@/lib/frontend/header-features'
 import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import { isSvgLogo } from '@/lib/frontend/site-settings-view'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
@@ -25,6 +27,11 @@ export type SiteBrand = Readonly<{
   }> | null
   /** 主导航项（OPT-054），href 已在服务端解析完成。 */
   mainNav: readonly Readonly<{ href: string; label: string }>[]
+  /**
+   * 顶栏功能开关（OPT-094）：登录 / 会员入口是否显示、客服电话入口与全站默认号。
+   * 缺省按兜底（登录入口关、无号码）——与「Global 尚未创建」时的线上形态一致。
+   */
+  headerFeatures?: HeaderFeatures
 }>
 
 type HeaderShellProps = Readonly<{
@@ -53,6 +60,10 @@ function HeaderContents({
   showSearch: boolean
 }>) {
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
+  const headerFeatures = brand.headerFeatures ?? HEADER_FEATURES_FALLBACK
+  // 客服电话：当前城市覆盖 → 全站默认。平台入口 `/` 没有城市语境时 currentCity 也会
+  // 落到默认城市（resolveTrustedCity 的兜底），那正是「全站默认号」该出现的地方。
+  const servicePhone = pickServicePhone(currentCity?.servicePhone, headerFeatures)
   const isSvg = isSvgLogo(brand.logo)
   const logoAspectRatio =
     brand.logo?.width && brand.logo?.height
@@ -105,6 +116,8 @@ function HeaderContents({
         searchParams={searchParams}
         onRefreshSearchParams={onRefreshSearchParams}
         member={member ?? null}
+        memberEntryVisible={headerFeatures.memberEntryVisible}
+        servicePhone={servicePhone}
         actions={
           <>
             {showSearch ? (
@@ -113,9 +126,12 @@ function HeaderContents({
                 initialKeyword={searchParams.get('q') ?? undefined}
               />
             ) : null}
-            <span className="member-menu-slot">
-              <MemberMenu member={member ?? null} pathname={pathname} variant="desktop" />
-            </span>
+            {servicePhone ? <ServicePhoneLink phone={servicePhone} variant="header" /> : null}
+            {headerFeatures.memberEntryVisible ? (
+              <span className="member-menu-slot">
+                <MemberMenu member={member ?? null} pathname={pathname} variant="desktop" />
+              </span>
+            ) : null}
           </>
         }
       />

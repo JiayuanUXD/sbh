@@ -11,6 +11,11 @@ export type PublicCitySiteProfile = Readonly<{
   sortOrder: number
   /** 数据带「平均响应 N 小时」，运营承诺口径；null = 首页不展示该格 */
   avgResponseHours: number | null
+  /**
+   * 本城客服电话（OPT-094），运营填的原串（未归一化）；null = 用全站默认号。
+   * 归一化与「城市覆盖 → 全站默认」的取值顺序在 `lib/frontend/header-features.ts`。
+   */
+  servicePhone?: string | null
   seoTitle: string
   seoDescription: string
   hero: Readonly<{

@@ -91,7 +91,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
             cities={cities}
             defaultCity={siteConfig.defaultCity}
             multiCityRoutingEnabled={multiCityRoutingEnabled}
-            brand={{ siteName: siteSettings.siteName, logo: siteSettings.logo, mainNav: siteSettings.mainNav }}
+            brand={{ siteName: siteSettings.siteName, logo: siteSettings.logo, mainNav: siteSettings.mainNav, headerFeatures: siteSettings.headerFeatures }}
             member={member}
           />
           <main id="main-content" className="site-main">{children}</main>
