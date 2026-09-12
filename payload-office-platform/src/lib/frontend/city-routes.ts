@@ -73,7 +73,7 @@ const LISTING_QUERY_KEYS = [
   'sort',
 ] as const
 
-const BUILDING_QUERY_KEYS = ['grade'] as const
+const BUILDING_QUERY_KEYS = ['grade', 'business'] as const
 
 type Route = Readonly<{
   citySlug: string | null
@@ -367,10 +367,12 @@ function selectListingQuery(params: URLSearchParams): URLSearchParams {
 }
 
 function selectBuildingQuery(params: URLSearchParams): URLSearchParams {
-  const value = readSingle(params, 'grade')
-  return value !== null && BUILDING_GRADE_VALUES.has(value)
-    ? new URLSearchParams([['grade', value]])
-    : new URLSearchParams()
+  const selected = new URLSearchParams()
+  const grade = readSingle(params, 'grade')
+  if (grade !== null && BUILDING_GRADE_VALUES.has(grade)) selected.set('grade', grade)
+  // OPT-096：出售口径跟着城市走——换城市看的还是「在售楼盘」；导航子项也经此加前缀
+  if (readSingle(params, 'business') === 'sale') selected.set('business', 'sale')
+  return selected
 }
 
 function withQuery(pathname: string, params: URLSearchParams): string {
@@ -559,7 +561,8 @@ export function cityAwareHref(href: string, citySlug: string, multiCityRoutingEn
   const pageType = getCityPageType(href)
   let cityHref = href
   if (pageType === 'home') cityHref = buildCityPath(citySlug, 'home') ?? href
-  if (pageType === 'listings' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
+  // OPT-096：出售频道 `/sale` 也是城市页（switchCityUrl 早就认识它），导航子项经此加前缀
+  if (pageType === 'listings' || pageType === 'sale' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
   if (pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner') {
     cityHref = buildCityPath(citySlug, pageType) ?? href
   }

@@ -52,8 +52,9 @@ function isDesktopNavigationViewport(): boolean {
  * 判断当前路径是否匹配给定 href。
  * - href 含 query 时：pathname 与 query 参数须同时精确匹配
  *   （如 /listings?type=serviced-office 仅在 type=serviced-office 时高亮）
- * - href 无 query 时：pathname 匹配即可，但若当前 URL 含更具体的 type 筛选
- *   则不高亮"在租房源"总览，避免与子分类同时高亮
+ * - href 无 query 时：pathname 匹配即可，但若当前 URL 含更具体的 type / business
+ *   筛选则不高亮"在租房源"总览，避免与子分类同时高亮（OPT-096：「租赁」子项就是
+ *   无 query 的 /buildings，出售口径页上它不能跟「出售」同亮）
  * - `exact` 为真时只认全等，不做前缀匹配（首页专用，理由见下）
  *
  * 导出仅供单测：判错的表现是"两项同时高亮"，类型层与构建期都看不出来，
@@ -86,8 +87,8 @@ export function isCurrent(
     }
     return true
   }
-  // href 无 query（如 /listings 总览）：仅当当前无 type 筛选时高亮
-  return !searchParams.has('type')
+  // href 无 query（如 /listings 总览）：仅当当前无 type / business 筛选时高亮
+  return !searchParams.has('type') && !searchParams.has('business')
 }
 
 export default function SiteNav({
@@ -204,17 +205,45 @@ export default function SiteNav({
       <nav className="site-nav" aria-label="主导航">
         {items.map((item) => {
           const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href
-          const current = isCurrent(pathname, searchParams, href, item.href === '/')
-          return (
+          const children = (item.children ?? []).map((child) => {
+            const childHref = citySlug ? cityAwareHref(child.href, citySlug, multiCityRoutingEnabled) : child.href
+            return { ...child, resolvedHref: childHref, current: isCurrent(pathname, searchParams, childHref) }
+          })
+          // OPT-096：任一子项命中时父项也高亮（/shanghai/sale 上「找办公室」要亮）
+          const current =
+            isCurrent(pathname, searchParams, href, item.href === '/') || children.some((child) => child.current)
+          const link = (
             <Link
-              key={item.href}
               href={href}
               prefetch={item.href.startsWith('/listings') ? false : undefined}
               className="site-nav__link"
               aria-current={current ? 'page' : undefined}
+              aria-haspopup={children.length > 0 ? 'true' : undefined}
             >
               {item.label}
             </Link>
+          )
+          if (children.length === 0) return <React.Fragment key={item.href}>{link}</React.Fragment>
+          // 下拉靠 CSS :hover / :focus-within 展开（styles.css .site-nav__group），
+          // 不引入 state：父项本身仍是可点的链接，键盘 Tab 到父项即展开、继续 Tab 进子项。
+          return (
+            <div key={item.href} className="site-nav__group">
+              {link}
+              <ul className="site-nav__menu" aria-label={`${item.label}分类`}>
+                {children.map((child) => (
+                  <li key={child.href}>
+                    <Link
+                      href={child.resolvedHref}
+                      prefetch={false}
+                      className="site-nav__sub"
+                      aria-current={child.current ? 'page' : undefined}
+                    >
+                      {child.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )
         })}
       </nav>
@@ -301,20 +330,38 @@ export default function SiteNav({
               {items.map((item) => {
                 const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href
                 const current = isCurrent(pathname, searchParams, href, item.href === '/')
+                const close = () => {
+                  setOpen(false)
+                  toggleRef.current?.focus()
+                }
                 return (
-                  <Link
-                    key={item.href}
-                    href={href}
-                    prefetch={item.href.startsWith('/listings') ? false : undefined}
-                    className="mobile-drawer__link"
-                    aria-current={current ? 'page' : undefined}
-                    onClick={() => {
-                      setOpen(false)
-                      toggleRef.current?.focus()
-                    }}
-                  >
-                    {item.label}
-                  </Link>
+                  <React.Fragment key={item.href}>
+                    <Link
+                      href={href}
+                      prefetch={item.href.startsWith('/listings') ? false : undefined}
+                      className="mobile-drawer__link"
+                      aria-current={current ? 'page' : undefined}
+                      onClick={close}
+                    >
+                      {item.label}
+                    </Link>
+                    {/* OPT-096：子项紧跟父项、缩进一档；抽屉没有 hover，直接平铺 */}
+                    {(item.children ?? []).map((child) => {
+                      const childHref = citySlug ? cityAwareHref(child.href, citySlug, multiCityRoutingEnabled) : child.href
+                      return (
+                        <Link
+                          key={child.href}
+                          href={childHref}
+                          prefetch={false}
+                          className="mobile-drawer__link mobile-drawer__link--sub"
+                          aria-current={isCurrent(pathname, searchParams, childHref) ? 'page' : undefined}
+                          onClick={close}
+                        >
+                          {child.label}
+                        </Link>
+                      )
+                    })}
+                  </React.Fragment>
                 )
               })}
             </nav>

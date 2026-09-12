@@ -1002,6 +1002,73 @@ ol {
   text-decoration: none;
 }
 
+/* OPT-096：主导航二级菜单。分组撑满顶栏高度（与 .site-nav__link 同 align-self:stretch），
+   菜单贴分组底边（top:100%）——中间不留空隙，鼠标从父项滑到菜单不会掉出 :hover。
+   键盘：父项是普通链接，Tab 到它即 :focus-within 展开，继续 Tab 进子项；焦点离开
+   分组即收起，不需要 Esc。 */
+.site-nav__group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+}
+
+.site-nav__menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  min-width: 128px;
+  margin: 0;
+  padding: var(--sp-2);
+  list-style: none;
+  background: var(--bg-subtle);
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctrl);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-fast) var(--ease-standard), visibility 0s linear var(--duration-fast);
+}
+
+.site-nav__group:hover .site-nav__menu,
+.site-nav__group:focus-within .site-nav__menu {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.site-nav__sub {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-input);
+  color: var(--ink);
+  font-size: var(--fs-14);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.site-nav__sub:hover {
+  background: var(--bg);
+  text-decoration: none;
+}
+
+.site-nav__sub[aria-current="page"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 透明头（首页 hero）下：父项是白字，但下拉仍是白底深字 */
+.site-header--transparent .site-nav__sub {
+  color: var(--ink);
+}
+.site-header--transparent .site-nav__sub[aria-current="page"] {
+  color: var(--accent);
+}
+
 /* 选中/hover 下划线**贴顶栏底边**（2026-09-09 用户走查）。
  *
  * 改前：链接盒是 44 高、在 64 的顶栏里居中（上下各余 10），`bottom: -4px` 把
@@ -3361,6 +3428,13 @@ ol {
 
 .mobile-drawer__cities .mobile-drawer__link {
   justify-content: space-between;
+}
+
+/* OPT-096：抽屉里的二级项——缩进一档、字号小一档、次要墨色 */
+.mobile-drawer__link--sub {
+  padding-left: calc(var(--sp-4) + var(--sp-5));
+  font-size: var(--fs-14);
+  color: var(--ink-2);
 }
 
 .mobile-drawer__link {
