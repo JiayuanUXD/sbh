@@ -25,6 +25,11 @@ SERVICE="${TCB_SERVICE:-sbh}"
 APP_DIR="${TCB_APP_DIR:-payload-office-platform}"
 SITE_URL="${TCB_SERVICE_URL:-https://sbh-286300-10-1253925058.sh.run.tcloudbase.com}"
 
+# COS 对单次 PUT 的时长上限（秒）：实测 200.1s 的传输 200，202.1s 起一律
+# 400 UserNetworkTooSlow，与体积、速率本身无关（300KB 用 10KB/s 传 30s 照样 200）。
+# 与 .github/workflows/deploy.yml 同值，证据见 artifacts/verification/ci-upload/README.md。
+COS_PUT_CAP=200
+
 # 非交互模式：让 CLI 的确认提示自动走默认值，否则无 tty 时会以 exit 130 中断
 export CLOUDBASE_CI=1
 
@@ -80,29 +85,78 @@ build_package() {
 }
 
 # ---------- 上传 ----------
+# 与 .github/workflows/deploy.yml「上传代码包并提交灰度版本」同一套逻辑，改一处要同步另一处。
+# COS 对**单次 PUT 的总时长有 200s 上限**（COS_PUT_CAP），超过就在收完整个请求体后回
+# `400 <Code>UserNetworkTooSlow</Code>`；预签名 URL 本身 7 天有效，不是病根。
+# 本地网络通常几秒传完，但一旦慢下来：
+# - 不带 --fail：它会把 COS 的 XML 错误体整个丢掉，只剩 `curl: (22) 400`，病根没法猜
+#   （CI 就这么猜错过两轮）。状态码走 --write-out 自判，响应体落盘，失败时原样打出来。
+# - 不用 curl --retry：不带 --fail 时 400 是 exit 0，--retry 根本不会重试，且它复用
+#   同一条连接。改成循环，每次重新拉预签名 URL（换新连接）。
+# - --max-time 钉在上限 +10s，传不完就别陪它耗到 400；--speed-limit 钉在「按上限算出的
+#   必要速率」，明显达不到的连接 30s 内断掉换 URL。
 upload_package() {
-  local archive="$1" info="$WORK_DIR/upload.json" upload_url
+  local archive="$1" info="$WORK_DIR/upload.json" upload_resp="$WORK_DIR/upload-resp.xml"
+  local archive_bytes need_bps attempt upload_url header_args key value
+  local curl_exit stats http_code time_total size_upload speed_upload uploaded=0
 
-  tcb_api tcb DescribeCloudBaseBuildService 2018-06-08 \
-    "$(jq -cn --arg envId "$ENV_ID" --arg svc "$SERVICE" '{EnvId:$envId,ServiceName:$svc}')" > "$info"
+  # 在上限内传完本包所需的最低平均速率。低于它持续 30s 的连接注定过不了线，
+  # 提前断掉换 URL，而不是陪它传满上限再收 400。
+  # curl 的判定是「最近 ~5s 的瞬时速率连续 30s 低于阈值」，偶尔抖一下不会误杀。
+  archive_bytes="$(wc -c < "$archive" | tr -d ' ')"
+  need_bps=$(( archive_bytes / COS_PUT_CAP + 1 ))
+  log "COS 单次 PUT 上限 ${COS_PUT_CAP}s → 本包至少需要 ${need_bps} B/s（约 $(( need_bps / 1024 )) KB/s）" >&2
 
-  upload_url="$(jq -r '.data.UploadUrl' "$info")"
-  [ -n "$upload_url" ] && [ "$upload_url" != "null" ] || die "没拿到上传地址"
+  for attempt in 1 2 3 4 5; do
+    # 每次调用都会分配新的 PackageName/PackageVersion 与配套预签名 URL；上传成功后
+    # 必须用**同一次**调用返回的包名/版本提交部署（$info 即当前成功那次）。
+    log "上传尝试 $attempt/5：拉取新预签名 URL" >&2
+    tcb_api tcb DescribeCloudBaseBuildService 2018-06-08 \
+      "$(jq -cn --arg envId "$ENV_ID" --arg svc "$SERVICE" '{EnvId:$envId,ServiceName:$svc}')" > "$info"
+    upload_url="$(jq -r '.data.UploadUrl' "$info")"
+    [ -n "$upload_url" ] && [ "$upload_url" != "null" ] || die "没拿到上传地址"
 
-  # UploadHeaders 目前为空数组；留着按需拼接，注意 bash 3.2 下不要展开空数组
-  local header_args=""
-  while IFS=$'\t' read -r key value; do
-    [ -n "$key" ] && header_args="$header_args --header '$key: $value'"
-  done < <(jq -r '.data.UploadHeaders[]? | [.Key,.Value] | @tsv' "$info")
+    # UploadHeaders 目前为空数组；留着按需拼接，注意 bash 3.2 下不要展开空数组
+    header_args=""
+    while IFS=$'\t' read -r key value; do
+      [ -n "$key" ] && header_args="$header_args --header '$key: $value'"
+    done < <(jq -r '.data.UploadHeaders[]? | [.Key,.Value] | @tsv' "$info")
 
-  log "上传代码包…" >&2
-  eval curl --http1.1 --fail --silent --show-error \
-    --retry 4 --retry-all-errors --retry-delay 5 \
-    --connect-timeout 20 --max-time 300 \
-    $header_args \
-    --upload-file "'$archive'" "'$upload_url'"
+    # --max-time 比上限多留 10s：上限内传不完的由 COS 回 400（错误体是证据），
+    # 这里只兜底，别让一条 8KB/s 的连接拖到 5 分钟。
+    : > "$upload_resp"
+    curl_exit=0
+    stats="$(eval curl --http1.1 --silent --show-error \
+      --connect-timeout 20 \
+      --max-time $(( COS_PUT_CAP + 10 )) \
+      --speed-limit "$need_bps" --speed-time 30 \
+      $header_args \
+      --upload-file "'$archive'" \
+      --output "'$upload_resp'" \
+      --write-out "'%{http_code} %{time_total} %{size_upload} %{speed_upload}'" \
+      "'$upload_url'")" || curl_exit=$?
+    read -r http_code time_total size_upload speed_upload <<< "${stats:-000 0 0 0}"
+    # http=100 = 只收到 100 Continue 就被 --speed-limit/--max-time 断了（还没等到终态）；
+    # http=000 = 连接都没建起来。
+    printf '   curl exit=%s http=%s 用时=%ss 已传=%sB 均速=%sB/s（需 %sB/s）\n' \
+      "$curl_exit" "$http_code" "$time_total" "$size_upload" "$speed_upload" "$need_bps" >&2
+    if [ "$curl_exit" -eq 0 ] && [ "$http_code" = "200" ]; then
+      uploaded=1
+      break
+    fi
+    if [ -s "$upload_resp" ]; then
+      # COS 错误体是 XML：<Code>/<Message>/<RequestId>，拿 RequestId 可以找腾讯云工单。
+      warn "COS 响应体：" >&2
+      cat "$upload_resp" >&2
+      echo >&2
+    fi
+    warn "上传尝试 $attempt 失败（curl exit=$curl_exit http=$http_code），3s 后换新 URL 重试" >&2
+    sleep 3
+  done
+  [ "$uploaded" = "1" ] ||
+    die "5 次上传全部失败。若响应体里是 UserNetworkTooSlow：本机到腾讯云的吞吐低于 ${need_bps}B/s，换个网络再试。"
 
-  ok "上传完成" >&2
+  ok "上传完成（尝试 $attempt）" >&2
   echo "$info"
 }
 

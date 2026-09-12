@@ -1,0 +1,13 @@
+fake COS on 127.0.0.1:11751  modes=ok
+>> COS 单次 PUT 上限 2s → 本包至少需要 1500001 B/s（约 1464 KB/s）
+>> 上传尝试 1/5：拉取新预签名 URL
+   curl exit=0 http=200 用时=0.012247s 已传=3000000B 均速=244957948B/s（需 1500001B/s）
+✓ 上传完成（尝试 1）
+---- upload_package exit=0 ----
+stdout(info path)=/tmp/tmp.LCEkjZPdww/upload.json
+info 内容：{"data":{"UploadUrl":"http://127.0.0.1:11751/put?sign=a%26b=c%3D1","PackageName":"pkg","PackageVersion":"v1","UploadHeaders":[{"Key":"x-test","Value":"harness 1"}]}}
+---- fetches: 1 次 ----
+---- server.log ----
+PORT=11751
+[server] PUT #1 mode=ok url=/put?sign=a%26b=c%3D1 x-test="harness 1" content-length=3000000
+[server] #1 received 3000000 bytes → ok
