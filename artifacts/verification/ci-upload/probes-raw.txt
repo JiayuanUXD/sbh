@@ -1,0 +1,46 @@
+start 2026-09-12T16:04:05Z
+http=400 time_total=257.159793 time_starttransfer=0.141587 size_upload=2633089 speed_upload=10239 exit=0
+curl exit=0
+end 2026-09-12T16:08:23Z elapsed=258s
+--- headers
+HTTP/1.1 200 Connection established
+
+HTTP/1.1 100 Continue
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/xml
+Content-Length: 517
+Connection: keep-alive
+Date: Sat, 12 Sep 2026 16:08:23 GMT
+Server: tencent-cos
+x-cos-request-id: NmFhNTc3ZjZfOTQ0YTBmMWVfNjNlZF9mZjhkZWZl
+x-cos-trace-id: OGVmYzZiMmQzYjA2OWNhODk0NTRkMTBiOWVmMDAxODc0OWRkZjk0ZDM1NmI1M2E2MTRlY2MzZDhmNmI5MWI1OWRlZDk5YzgyOTg0ZTg2ODA1ODFjOGY0MWFhYWFhOTdmNzAxMmVkNTU0MzY5N2ZjNTlhZjVlMDg3N2I4ZjA5MDU=
+
+--- body
+<?xml version='1.0' encoding='utf-8' ?>
+<Error>
+	<Code>UserNetworkTooSlow</Code>
+	<Message>User network is too slow.</Message>
+	<Resource>/home/2cd466e1f3bf4a13bb5071eabc2beffd/sbh-d9gnr8h5ef7e22e30-1789229005-sbh_1789229005_lV45qi0r.zip</Resource>
+	<RequestId>NmFhNTc3ZjZfOTQ0YTBmMWVfNjNlZF9mZjhkZWZl</RequestId>
+	<TraceId>OGVmYzZiMmQzYjA2OWNhODk0NTRkMTBiOWVmMDAxODc0OWRkZjk0ZDM1NmI1M2E2MTRlY2MzZDhmNmI5MWI1OWRlZDk5YzgyOTg0ZTg2ODA1ODFjOGY0MWFhYWFhOTdmNzAxMmVkNTU0MzY5N2ZjNTlhZjVlMDg3N2I4ZjA5MDU=</TraceId>
+</Error>
+
+
+start 2026-09-12T16:09:15Z
+A-300k-10k rate=10k http/time/size/speed/exit=[200 30.069375 307200 10216 0] cos_code=none err=
+C-2.6m-14k rate=14k http/time/size/speed/exit=[200 183.165309 2633089 14375 0] cos_code=none err=
+B-2.6m-13k rate=13k http/time/size/speed/exit=[200 197.123765 2633089 13357 0] cos_code=none err=
+D-2.6m-12k rate=12k http/time/size/speed/exit=[400 214.101801 2633089 12298 0] cos_code=UserNetworkTooSlow err=
+end 2026-09-12T16:12:50Z
+
+start 2026-09-12T16:18:30Z
+E-2.6m-199s rate=13232 http/time/size/speed/exit=[200 198.178935 2633089 13286 0] cos_code=none err=
+F-2.6m-201s rate=13100 http/time/size/speed/exit=[200 200.133514 2633089 13156 0] cos_code=none err=
+end 2026-09-12T16:21:50Z
+
+start 2026-09-12T16:22:35Z
+G-2.6m-203s rate=12971 http/time/size/speed/exit=[400 202.098299 2633089 13028 0] cos_code=UserNetworkTooSlow err=
+H-2.6m-207s rate=12720 http/time/size/speed/exit=[400 207.157747 2633089 12710 0] cos_code=UserNetworkTooSlow err=
+end 2026-09-12T16:26:02Z
+

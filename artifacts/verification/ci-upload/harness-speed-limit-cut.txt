@@ -1,0 +1,14 @@
+start 2026-09-12T16:25:08Z
+COS 单次 PUT 上限 200s → 本包至少需要 13199 B/s（约 12 KB/s）
+== 上传尝试 1/5：拉取新预签名 URL ==
+curl: (28) Operation too slow. Less than 13199 bytes/sec transferred the last 30 seconds
+curl exit=28 http=100 用时=30.092011s 已传=368640B 均速=12250B/s（需 13199B/s）
+::warning::上传尝试 1 失败（curl exit=28 http=100），3s 后换新 URL 重试
+== 上传尝试 2/5：拉取新预签名 URL ==
+curl: (28) Operation too slow. Less than 13199 bytes/sec transferred the last 30 seconds
+curl exit=28 http=100 用时=30.063411s 已传=368640B 均速=12262B/s（需 13199B/s）
+::warning::上传尝试 2 失败（curl exit=28 http=100），3s 后换新 URL 重试
+::error::5 次上传全部失败。若日志里是 UserNetworkTooSlow：本次 runner 到腾讯云的跨境吞吐低于 13199B/s，rerun 换一台机器通常就过；反复如此才考虑自托管 runner。
+exit=1
+end 2026-09-12T16:26:15Z
+

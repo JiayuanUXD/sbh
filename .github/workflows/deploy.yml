@@ -25,7 +25,11 @@
 #              失败则 traffic rollback。
 #
 # 机制：用 CloudBase 官方 API 分配上传地址，带重试上传 ZIP，再显式提交 GRAY 版本。
-#       避免 CloudBase CLI 单次上传遇到 ECONNRESET 后直接失败。
+#       避免 CloudBase CLI 单次上传遇到 ECONNRESET 后直接失败（CLI 的 uploadZip 就是
+#       对同一个 UploadUrl 做一次 fetch PUT，无重试无超时，换它没有收益）。
+#       上传的硬约束：COS 对单次 PUT 有 200s 时长上限，超过回 400 UserNetworkTooSlow
+#       （2026-09-12 限速复现钉死；预签名 URL 本身 7 天有效，不是它）。跨境吞吐
+#       <13KB/s 时 2.6MB 必挂，只能换连接/换机器再试，上传步骤里有详细说明。
 #       平台在线 docker build 并发布新版本。
 #       CI 端不装项目依赖、不构建--构建在平台发生（quality job 的 build 仅作质量门，
 #       产物留在 quality runner，不进 ZIP）。
@@ -127,12 +131,18 @@ jobs:
         run: tcb login --apiKeyId "${{ secrets.TCB_SECRET_ID }}" --apiKey "${{ secrets.TCB_SECRET_KEY }}"
 
       - name: 上传代码包并提交灰度版本（初始 0% 流量）
-        # 病根（run 31098998980）：跨境到腾讯云 COS 的预签名 URL 有效窗口短，2.6MB 在
-        # ~10KB/s 下要传 ~270s，常在收尾时被 COS 以 400 拒（连接被重置/签名失效）。原实现
-        # `curl --retry 4` 复用**同一个**预签名 URL，一旦它失效，4 次重试注定全部 400，日志里
-        # 连续两条 curl (22) 400 后被取消。
-        # 修复：每次尝试**重新拉取**预签名 URL 再上传（失效 URL 不再连累后续重试），并加停滞
-        # 检测（<1KB/s 持续 30s 视为死连接，立即放弃并换新 URL 重试，而不是骑满整个窗口）。
+        # 病根（2026-09-12 本地对同一预签名 URL 限速复现，见 artifacts/verification/ci-upload/）：
+        # COS 对**单次 PUT 的总时长有 200s 上限**，超过就在收完整个请求体后回
+        # `400 <Code>UserNetworkTooSlow</Code>`。跨境链路慢到 <13KB/s 时，2.6MB 传不进
+        # 200s，必然被拒；同一 runner 的 4 次重试速度相近，于是 4×~3.5min 全挂，rerun 换到
+        # 一台路径更好的机器才过（run 34699498622 / 34702931927）。
+        # 曾经的归因「预签名 URL 有效窗口短」不成立：q-key-time 窗口是 7 天。
+        # 原实现 `--fail` 把 COS 的 XML 错误体丢掉了，日志里只剩 `curl: (22) 400`，因此猜了
+        # 两轮病根都没猜对——现在不带 --fail，非 200 一律把 <Code>/<Message>/<RequestId>
+        # 打进日志。
+        # 做法：每次尝试**重新拉取**预签名 URL（换新连接，跨境吞吐逐连接有 ±15% 波动，
+        # 多试几次真的能碰到过线的）；--max-time 钉在 COS 上限，传不完就别陪它耗到 400；
+        # --speed-limit 钉在「按上限算出的必要速率」，明显达不到的连接 30s 内就断掉换 URL。
         # 失败保护：新版本创建/构建/启动失败时不会进入灰度流程，旧版本继续承接。
         env:
           TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
@@ -142,7 +152,8 @@ jobs:
           upload_info="$RUNNER_TEMP/sbh-upload.json"
           deploy_info="$RUNNER_TEMP/sbh-deploy.json"
 
-          # 包体积是这条通道的命门：跨境传到腾讯云 COS，包越大越容易在签名窗口内传不完。
+          # 包体积是这条通道的命门：跨境传到腾讯云 COS，单次 PUT 有 200s 上限（见下），
+          # 包越大、要求的最低吞吐越高。2.6MB 要 13KB/s，3MB 就要 15.4KB/s。
           # payload-office-platform/.gitattributes 用 export-ignore 把 tests/
           # 与 src/migrations/*.json 快照（仅 migrate:create 用，运行时不读）挡在包外。
           # 这里加硬阈值：再有大文件混进来立刻失败，而不是耗十几分钟超时后才暴露。
@@ -159,7 +170,7 @@ jobs:
           archive_bytes=$(wc -c < "$archive")
           echo "代码包体积：$archive_bytes bytes"
           if [ "$archive_bytes" -gt 3145728 ]; then
-            echo "::error::代码包 $archive_bytes bytes 超过 3MB 阈值，跨境上传大概率超时。"
+            echo "::error::代码包 $archive_bytes bytes 超过 3MB 阈值，跨境链路很难在 COS 的 200s 单次 PUT 上限内传完。"
             echo "::error::检查是否有构建产物/截图/大文件进了仓库，按需加进 .gitattributes 的 export-ignore。"
             exit 1
           fi
@@ -178,9 +189,19 @@ jobs:
             jq -e '.data.UploadUrl and .data.PackageName and .data.PackageVersion' "$upload_info" >/dev/null
           }
 
+          # COS 单次 PUT 时长上限（实测：200.1s 的传输 200，202.1s 起一律 400 UserNetworkTooSlow；
+          # 与体积、速率本身无关——300KB 用 10KB/s 传 30s 照样 200）。
+          COS_PUT_CAP=200
+          # 在上限内传完本包所需的最低平均速率。低于它持续 30s 的连接注定过不了线，
+          # 提前断掉换 URL，而不是陪它传满上限再收 400。
+          # curl 的判定是「最近 ~5s 的瞬时速率连续 30s 低于阈值」，偶尔抖一下不会误杀。
+          need_bps=$(( archive_bytes / COS_PUT_CAP + 1 ))
+          echo "COS 单次 PUT 上限 ${COS_PUT_CAP}s → 本包至少需要 ${need_bps} B/s（约 $(( need_bps / 1024 )) KB/s）"
+
+          upload_resp="$RUNNER_TEMP/sbh-upload-resp.xml"
           uploaded=0
-          for attempt in 1 2 3 4; do
-            echo "== 上传尝试 $attempt/4：拉取新预签名 URL =="
+          for attempt in 1 2 3 4 5; do
+            echo "== 上传尝试 $attempt/5：拉取新预签名 URL =="
             fetch_upload_info
             upload_url=$(jq -r '.data.UploadUrl' "$upload_info")
             curl_headers=()
@@ -189,29 +210,45 @@ jobs:
                 curl_headers+=(--header "$key: $value")
               fi
             done < <(jq -r '.data.UploadHeaders[]? | [.Key,.Value] | @tsv' "$upload_info")
-            # --max-time 300：给进行中的慢传留够收尾时间；--speed-limit/--speed-time：
-            # 只杀真正停滞的死连接，不误伤稳定慢传。
-            if curl \
+            # 不用 --fail：它会把 COS 的 XML 错误体整个丢掉，只剩 `curl: (22) 400`。
+            # 状态码走 --write-out 自己判，响应体落盘，失败时原样打进日志。
+            # --max-time 比上限多留 10s：上限内传不完的由 COS 回 400（错误体是证据），
+            # 这里只兜底，别让一条 8KB/s 的连接拖到 5 分钟。
+            : > "$upload_resp"
+            curl_exit=0
+            stats=$(curl \
               --http1.1 \
-              --fail \
               --silent \
               --show-error \
               --connect-timeout 20 \
-              --max-time 300 \
-              --speed-limit 1024 \
+              --max-time $(( COS_PUT_CAP + 10 )) \
+              --speed-limit "$need_bps" \
               --speed-time 30 \
               --upload-file "$archive" \
               "${curl_headers[@]}" \
-              "$upload_url"; then
+              --output "$upload_resp" \
+              --write-out '%{http_code} %{time_total} %{size_upload} %{speed_upload}' \
+              "$upload_url") || curl_exit=$?
+            read -r http_code time_total size_upload speed_upload <<< "${stats:-000 0 0 0}"
+            # http=100 = 只收到 100 Continue 就被 --speed-limit/--max-time 断了（还没等到终态）；
+            # http=000 = 连接都没建起来。
+            echo "curl exit=$curl_exit http=$http_code 用时=${time_total}s 已传=${size_upload}B 均速=${speed_upload}B/s（需 ${need_bps}B/s）"
+            if [ "$curl_exit" -eq 0 ] && [ "$http_code" = "200" ]; then
               uploaded=1
               echo "== 上传成功（尝试 $attempt）=="
               break
             fi
-            echo "::warning::上传尝试 $attempt 失败，3s 后换新 URL 重试"
+            if [ -s "$upload_resp" ]; then
+              # COS 错误体是 XML：<Code>/<Message>/<RequestId>，拿 RequestId 可以找腾讯云工单。
+              echo "COS 响应体："
+              cat "$upload_resp"
+              echo
+            fi
+            echo "::warning::上传尝试 $attempt 失败（curl exit=$curl_exit http=$http_code），3s 后换新 URL 重试"
             sleep 3
           done
           if [ "$uploaded" != "1" ]; then
-            echo "::error::4 次上传全部失败"
+            echo "::error::5 次上传全部失败。若日志里是 UserNetworkTooSlow：本次 runner 到腾讯云的跨境吞吐低于 ${need_bps}B/s，rerun 换一台机器通常就过；反复如此才考虑自托管 runner。"
             exit 1
           fi
 

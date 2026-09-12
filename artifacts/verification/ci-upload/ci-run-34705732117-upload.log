@@ -1,0 +1,11 @@
+2026-09-12T16:36:19.1963456Z 代码包体积：2639940 bytes
+2026-09-12T16:36:19.1964443Z COS 单次 PUT 上限 200s → 本包至少需要 13200 B/s（约 12 KB/s）
+2026-09-12T16:36:19.1965736Z == 上传尝试 1/5：拉取新预签名 URL ==
+2026-09-12T16:39:08.7831127Z curl exit=28 http=100 用时=166.162870s 已传=2031616B 均速=12226B/s（需 13200B/s）
+2026-09-12T16:39:08.7853869Z ##[warning]上传尝试 1 失败（curl exit=28 http=100），3s 后换新 URL 重试
+2026-09-12T16:39:11.7862200Z == 上传尝试 2/5：拉取新预签名 URL ==
+2026-09-12T16:41:40.6266798Z curl exit=0 http=200 用时=144.953694s 已传=2639940B 均速=18212B/s（需 13200B/s）
+2026-09-12T16:41:40.6269554Z == 上传成功（尝试 2）==
+2026-09-12T16:49:31.0868830Z [21/80] sbh-186 -> creating
+2026-09-12T16:49:53.9431461Z [22/80] sbh-186 -> normal
+2026-09-12T16:49:54.3551060Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
