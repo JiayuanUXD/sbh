@@ -500,4 +500,18 @@ describe('上传步骤 / COS 单次 PUT 200s 上限', () => {
     expect(b.slice(loopStart)).toMatch(/^\s*fetch_upload_info\s*$/m)
     expect(b).toContain('UserNetworkTooSlow')
   })
+
+  it('UpdateCloudRunServer 没返回 TaskId 时把响应打进日志，而不是 jq -e 静默退出', () => {
+    // run 34707113809：上传 125s 一次过，提交 GRAY 版本被拒，日志里只有
+    // `Process completed with exit code 1`——同一类「吞错」，只能盲目 rerun。
+    const b = block()
+    const submitAt = b.indexOf('UpdateCloudRunServer')
+    expect(submitAt).toBeGreaterThan(-1)
+    const tail = b.slice(submitAt)
+    expect(tail).toContain(`if ! jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null; then`)
+    expect(tail).toContain('cat "$deploy_info"')
+    expect(tail).toContain('exit 1')
+    // 裸的 jq -e（不在 if 里）不许回来
+    expect(tail).not.toMatch(/^\s*jq -e '\.data\.TaskId \| numbers' "\$deploy_info" >\/dev\/null\s*$/m)
+  })
 })

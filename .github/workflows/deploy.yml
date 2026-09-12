@@ -277,7 +277,16 @@ jobs:
             --json \
             --body "$deploy_body" |
             sed -n '/^{/,$p' > "$deploy_info"
-          jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null
+          # 没拿到 TaskId 就是被拒了，把响应原样打出来。run 34707113809（2026-09-12）：
+          # 上传 125s 一次过，这里 `jq -e` 静默 exit 1，日志一行错误都没有，只能盲目 rerun。
+          # 常见原因：上一个版本仍在发布中（IsReleasing）、参数被拒、包名/版本对不上。
+          if ! jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null; then
+            echo "::error::UpdateCloudRunServer 未返回 TaskId（包 $package_name/$package_version），响应："
+            cat "$deploy_info"
+            echo
+            exit 1
+          fi
+          echo "GRAY 版本已受理：TaskId=$(jq -r '.data.TaskId' "$deploy_info")（包 $package_name/$package_version）"
 
       - name: 等待新版本构建就绪（始终执行，不切流量）
         # 刻意**没有** SHOULD_PROMOTE 门：不切流量的部署同样要知道构建成没成。
