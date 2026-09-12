@@ -102,7 +102,10 @@ test.describe('主导航入口调整', () => {
     // 单测在 tests/site-nav-current.test.ts，这里从真实 DOM 再兜一层。
     await page.goto('/buildings')
     const nav = page.getByRole('navigation', { name: '主导航' })
-    await expect(nav.locator('[aria-current="page"]')).toHaveCount(1)
+    // OPT-096 起「找楼盘」带「租赁 / 出售」子项：子项「租赁」在本页同样 aria-current，
+    // 所以只数**顶层**链接；子项的高亮另断言一条，别让两者互相掩盖。
+    await expect(nav.locator('.site-nav__link[aria-current="page"]')).toHaveCount(1)
+    await expect(nav.locator('.site-nav__sub[aria-current="page"]')).toHaveText('租赁')
   })
 })
 
