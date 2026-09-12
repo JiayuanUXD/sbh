@@ -4,6 +4,7 @@ import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import { invalidateSiteSettingsPublicCache } from '@/lib/frontend/public-cache-revalidation'
 import { NAV_TARGET_OPTIONS, PAGE_TARGET_ID } from '@/lib/frontend/nav-targets'
+import { isValidServicePhone } from '@/lib/frontend/service-phone'
 import { DEFAULT_WATERMARK_CONFIG } from '@/domain/media/watermark'
 import { detailSpecFieldsTab } from './site-settings-spec-fields'
 
@@ -295,6 +296,50 @@ export const SiteSettings: GlobalConfig = {
                 navPageField,
                 { name: 'label', label: '显示文字', type: 'text', required: true },
                 { name: 'visible', label: '显示', type: 'checkbox', defaultValue: true },
+              ],
+            },
+            {
+              type: 'collapsible',
+              label: '顶栏功能',
+              admin: {
+                description:
+                  '页头右侧动作区里除搜索外的入口。登录 / 会员入口本次默认关（OPT-094）；客服电话按城市可覆盖（城市站点配置 → 基础与状态），这里是全站默认号。',
+                initCollapsed: false,
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'memberEntryVisible',
+                      label: '显示登录 / 会员入口',
+                      type: 'checkbox',
+                      defaultValue: false,
+                      admin: {
+                        description:
+                          '关掉后桌面「登录」按钮、已登录头像菜单、移动抽屉里的「登录 / 注册」都不渲染；/login、/account 页面照常可用。',
+                      },
+                    },
+                    {
+                      name: 'servicePhoneVisible',
+                      label: '显示客服电话',
+                      type: 'checkbox',
+                      defaultValue: true,
+                      admin: { description: '关掉后顶栏不再显示客服电话，号码保留。' },
+                    },
+                  ],
+                },
+                {
+                  name: 'servicePhone',
+                  label: '全站客服电话',
+                  type: 'text',
+                  validate: (value: unknown) =>
+                    isValidServicePhone(value) || '只能填数字、+、横线、空格、括号，且至少 7 位数字',
+                  admin: {
+                    description:
+                      '按你希望展示的写法填（如 400-820-1234），拨号链接自动生成。某城在「城市站点配置」里配了本城号码时优先用本城的；两处都空则不显示入口。',
+                  },
+                },
               ],
             },
             {

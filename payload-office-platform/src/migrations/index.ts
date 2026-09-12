@@ -85,6 +85,7 @@ import * as migration_20260910_233152_opt_088_members from './20260910_233152_op
 import * as migration_20260910_233153_opt_088_grant_ops_member_codes from './20260910_233153_opt_088_grant_ops_member_codes';
 import * as migration_20260911_031639_nav_page_target from './20260911_031639_nav_page_target';
 import * as migration_20260911_072752_opt_088_snapshot_chain_repair from './20260911_072752_opt_088_snapshot_chain_repair';
+import * as migration_20260912_083722_opt_094_header_service_phone from './20260912_083722_opt_094_header_service_phone';
 
 export const migrations = [
   {
@@ -520,6 +521,11 @@ export const migrations = [
   {
     up: migration_20260911_072752_opt_088_snapshot_chain_repair.up,
     down: migration_20260911_072752_opt_088_snapshot_chain_repair.down,
-    name: '20260911_072752_opt_088_snapshot_chain_repair'
+    name: '20260911_072752_opt_088_snapshot_chain_repair',
+  },
+  {
+    up: migration_20260912_083722_opt_094_header_service_phone.up,
+    down: migration_20260912_083722_opt_094_header_service_phone.down,
+    name: '20260912_083722_opt_094_header_service_phone'
   },
 ];

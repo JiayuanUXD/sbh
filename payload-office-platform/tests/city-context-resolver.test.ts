@@ -185,8 +185,8 @@ describe('city context resolver', () => {
     })
 
     await expect(listPublicCityOptions()).resolves.toEqual([
-      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
-      { slug: 'hangzhou', name: 'Hangzhou', serviceStatus: 'coming-soon', sortOrder: 20 },
+      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10, servicePhone: null },
+      { slug: 'hangzhou', name: 'Hangzhou', serviceStatus: 'coming-soon', sortOrder: 20, servicePhone: null },
     ])
   })
 
@@ -204,7 +204,7 @@ describe('city context resolver', () => {
     })
 
     await expect(listPublicCityOptions()).resolves.toEqual([
-      { slug: 'hangzhou', name: '杭州', serviceStatus: 'coming-soon', sortOrder: 20 },
+      { slug: 'hangzhou', name: '杭州', serviceStatus: 'coming-soon', sortOrder: 20, servicePhone: null },
     ])
   })
 
@@ -240,7 +240,7 @@ describe('city context resolver', () => {
     })
 
     await expect(listPublicCityOptions()).resolves.toEqual([
-      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
+      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10, servicePhone: null },
     ])
   })
 
@@ -527,7 +527,7 @@ describe('city context resolver', () => {
     })
 
     await expect(listPublicCityOptions()).resolves.toEqual([
-      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
+      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10, servicePhone: null },
     ])
   })
 
@@ -545,7 +545,7 @@ describe('city context resolver', () => {
     })
 
     await expect(listPublicCityOptions()).resolves.toEqual([
-      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
+      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10, servicePhone: null },
     ])
   })
 
@@ -566,7 +566,7 @@ describe('city context resolver', () => {
     })
 
     await expect(listPublicCityOptions()).resolves.toEqual([
-      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
+      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10, servicePhone: null },
     ])
   })
 

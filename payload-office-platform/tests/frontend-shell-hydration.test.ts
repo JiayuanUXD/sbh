@@ -135,7 +135,9 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
     // 导航与菜单按钮必须在 shell 里直接出现，而不是滞留在边界内容中
     expect(html).toContain('class="site-nav"')
     expect(html).toContain('class="site-menu-toggle"')
-    expect(html).toContain('member-login')
+    // OPT-094：登录入口改由站点设置开关控制，兜底是关——这里验的是外壳水合，登录入口
+    // 的开关判据在 site-header-features.test.ts。
+    expect(html).not.toContain('member-login')
   })
 
   it('SiteFooter 的外壳内容紧跟容器，未被边界标记顶掉', async () => {
@@ -183,7 +185,7 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
     expect(html).toMatch(/<div class="site-header__inner"><a class="site-logo"/)
     expect(html).toMatch(/<footer class="site-footer"><div class="site-footer__inner"[^>]*>/)
     expect(html).toContain('class="site-menu-toggle"')
-    expect(html).toContain('member-login')
+    expect(html).not.toContain('member-login')
     expect(html).toContain('员工入口')
   })
 

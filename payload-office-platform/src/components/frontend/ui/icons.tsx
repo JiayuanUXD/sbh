@@ -67,6 +67,15 @@ export function XMarkIcon({ size = 20, className }: IconProps) {
   )
 }
 
+/** SF Symbols `phone` 的描边画法：顶栏客服电话入口（OPT-094）用。 */
+export function PhoneIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg {...base(size, className)}>
+      <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+    </svg>
+  )
+}
+
 /**
  * 缺省图占位用的「照片」图标（SF Symbols `photo` 的描边画法）。
  * 与 `ui/Media.tsx`、`DetailGallery` 的空态共用同一张，避免两处各画一份。

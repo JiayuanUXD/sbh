@@ -22,6 +22,7 @@ import {
   DETAIL_SPEC_VISIBILITY_DEFAULTS,
   type DetailSpecVisibility,
 } from '@/lib/frontend/detail-spec/fields'
+import { HEADER_FEATURES_FALLBACK, type HeaderFeatures } from '@/lib/frontend/header-features'
 
 export type SiteSettingsView = Readonly<{
   siteName: string
@@ -58,6 +59,11 @@ export type SiteSettingsView = Readonly<{
    * 渲染层拿到的每一条都指向真实路由。
    */
   mainNav: ReadonlyArray<Readonly<{ href: string; label: string }>>
+  /**
+   * 顶栏功能开关（OPT-094）：登录 / 会员入口是否显示、客服电话入口与全站默认号。
+   * 空值语义见 `header-features.ts`。城市覆盖号在 `PublicCityOption.servicePhone`，顶栏按当前城市取。
+   */
+  headerFeatures: HeaderFeatures
   /** 页脚分组（OPT-054）。同上，href 已解析。空分组不会出现在这里。 */
   footerColumns: ReadonlyArray<Readonly<{ title: string; links: ReadonlyArray<Readonly<{ href: string; label: string }>> }>>
   /**
@@ -108,6 +114,7 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
     { href: '/publish', label: '投放房源' },
     { href: '/news', label: '资讯' },
   ],
+  headerFeatures: HEADER_FEATURES_FALLBACK,
   footerColumns: [
     {
       title: '浏览',
