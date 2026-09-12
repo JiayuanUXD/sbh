@@ -1,0 +1,43 @@
+fake COS on 127.0.0.1:3037  modes=slow,hang,bad,ok
+>> COS 单次 PUT 上限 40s → 本包至少需要 1600001 B/s（约 1562 KB/s）
+>> 上传尝试 1/5：拉取新预签名 URL
+curl: (28) Operation too slow. Less than 1600001 bytes/sec transferred the last 30 seconds
+   curl exit=28 http=100 用时=32.114404s 已传=4915200B 均速=153052B/s（需 1600001B/s）
+! 上传尝试 1 失败（curl exit=28 http=100），3s 后换新 URL 重试
+>> 上传尝试 2/5：拉取新预签名 URL
+curl: (28) Operation too slow. Less than 1600001 bytes/sec transferred the last 30 seconds
+   curl exit=28 http=100 用时=36.112581s 已传=64000000B 均速=1772235B/s（需 1600001B/s）
+! 上传尝试 2 失败（curl exit=28 http=100），3s 后换新 URL 重试
+>> 上传尝试 3/5：拉取新预签名 URL
+   curl exit=0 http=400 用时=0.065099s 已传=64000000B 均速=983118020B/s（需 1600001B/s）
+! COS 响应体：
+<?xml version="1.0" encoding="utf-8"?>
+<Error><Code>UserNetworkTooSlow</Code><Message>harness fake: upload too slow</Message><RequestId>harness-req-3</RequestId></Error>
+! 上传尝试 3 失败（curl exit=0 http=400），3s 后换新 URL 重试
+>> 上传尝试 4/5：拉取新预签名 URL
+   curl exit=0 http=200 用时=0.060297s 已传=64000000B 均速=1061412673B/s（需 1600001B/s）
+✓ 上传完成（尝试 4）
+---- upload_package exit=0 ----
+stdout(info path)=/tmp/tmp.PPcWVYhZqJ/upload.json
+info 内容：{"data":{"UploadUrl":"http://127.0.0.1:3037/put?sign=a%26b=c%3D1","PackageName":"pkg","PackageVersion":"v4","UploadHeaders":[{"Key":"x-test","Value":"harness 1"}]}}
+---- fetches: 4 次 ----
+---- server.log ----
+PORT=3037
+[server] PUT #1 mode=slow url=/put?sign=a%26b=c%3D1 x-test="harness 1" content-length=64000000
+[server] #1 slow: consumed 94208 bytes in 10s
+[server] #1 slow: consumed 189440 bytes in 20s
+[server] #1 slow: consumed 283648 bytes in 30s
+[server] PUT #2 mode=hang url=/put?sign=a%26b=c%3D1 x-test="harness 1" content-length=64000000
+[server] #2 received 64000000 bytes → hang (never responds)
+[server] #2 closed by peer (hang)
+[server] #1 slow: consumed 378880 bytes in 40s
+[server] #1 slow: consumed 474112 bytes in 50s
+[server] #1 slow: consumed 569344 bytes in 60s
+[server] #1 slow: consumed 663552 bytes in 70s
+[server] PUT #3 mode=bad url=/put?sign=a%26b=c%3D1 x-test="harness 1" content-length=64000000
+[server] #3 received 64000000 bytes → bad
+[server] #1 slow: consumed 758784 bytes in 80s
+[server] PUT #4 mode=ok url=/put?sign=a%26b=c%3D1 x-test="harness 1" content-length=64000000
+[server] #4 received 64000000 bytes → ok
+---- 断言 slow：err=「curl: (28) Operation too slow. Less than 1600001 bytes/sec transferred the last 30 seconds」 已传=4915200 / 64000000 ----
+✓ slow：--speed-limit 断开且只传了 7%

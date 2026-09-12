@@ -56,6 +56,45 @@ describe('生产部署配置', () => {
     expect(script).toContain('流量在 60 秒内未收敛')
   })
 
+  it('本地发布脚本的上传与 deploy.yml 同一套：不带 --fail，时长上限由 COS_PUT_CAP 推出', () => {
+    // 与 deploy.yml「上传代码包并提交灰度版本」步骤同源：COS 对单次 PUT 有 200s 时长上限，
+    // 超过回 400 UserNetworkTooSlow（2026-09-12 限速复现，证据在 artifacts/verification/ci-upload/）。
+    // 本地网络通常几秒传完，但一旦慢下来，`--fail` 同样会把 COS 的 XML 错误体吞成
+    // `curl: (22) 400`，又得从头猜病根。
+    const script = readFileSync(resolve(repositoryRoot, 'scripts/cloudrun-release.sh'), 'utf8')
+    const fnStart = script.indexOf('upload_package() {')
+    expect(fnStart, '找不到 upload_package()').toBeGreaterThan(-1)
+    const fn = script.slice(fnStart, script.indexOf('\n}', fnStart))
+    // 只看 curl 调用本身（从 `curl --http1.1` 到 `'$upload_url'`），注释里的提及不算
+    const callStart = fn.indexOf('curl --http1.1')
+    expect(callStart, 'upload_package 里找不到 curl --http1.1 调用').toBeGreaterThan(-1)
+    const callEnd = fn.indexOf("'$upload_url'", callStart)
+    expect(callEnd, "curl 调用没有以 '$upload_url' 收尾").toBeGreaterThan(callStart)
+    const call = fn.slice(callStart, callEnd)
+
+    // 1. 不吞错误体：不带 --fail，响应体落盘、状态码走 --write-out 自判、失败时 cat 出来
+    expect(call).not.toContain('--fail')
+    expect(call).toMatch(/--output\s+\S*\$upload_resp/)
+    expect(call).toMatch(/--write-out\s+\S*%\{http_code\}/)
+    expect(fn).toContain('[ "$http_code" = "200" ]')
+    expect(fn).toContain('cat "$upload_resp"')
+
+    // 2. --max-time 与 --speed-limit 都由 COS 上限推出，不写死
+    expect(script).toContain('COS_PUT_CAP=200')
+    expect(fn).toContain('need_bps=$(( archive_bytes / COS_PUT_CAP + 1 ))')
+    expect(call).toContain('--max-time $(( COS_PUT_CAP + 10 ))')
+    expect(call).toContain('--speed-limit "$need_bps"')
+    expect(call).toContain('--speed-time 30')
+    expect(call).not.toContain('--max-time 300')
+
+    // 3. 重试不能靠 curl --retry：不带 --fail 时 400 是 exit 0，--retry 根本不会重试；
+    //    而且它复用同一条连接。改成循环，每次重新拉预签名 URL（换新连接）。
+    expect(call).not.toContain('--retry')
+    expect(fn).toContain('for attempt in 1 2 3 4 5; do')
+    expect(fn.slice(fn.indexOf('for attempt in'))).toContain('DescribeCloudBaseBuildService')
+    expect(fn).toContain('UserNetworkTooSlow')
+  })
+
   it('Docker builder 始终提供可复制的 public 目录', () => {
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
     const ensurePublic = dockerfile.indexOf('RUN mkdir -p public')
