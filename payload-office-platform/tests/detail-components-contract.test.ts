@@ -264,6 +264,34 @@ describe('detail component contracts', () => {
     expect(html).not.toContain('供给展示方式')
   })
 
+  it('桌面密度表每行「房源」列带缩略图；有封面出 <img>，无封面出共享占位（OPT-095）', () => {
+    const withCover = makeCard({
+      id: 11,
+      slug: 'with-cover',
+      title: '有图房源',
+      coverImage: { src: '/media/unit-a.jpg', alt: '有图房源封面', width: 1600, height: 1200 },
+    })
+    const withoutCover = makeCard({ id: 12, slug: 'no-cover', title: '无图房源', coverImage: null })
+    const snapshot: BuildingSupplySnapshot = {
+      ...LEASE_ONLY_SNAPSHOT,
+      totalEffectiveListings: 2,
+      resultCount: 2,
+      groups: [{ ...LEASE_ONLY_SNAPSHOT.groups[0]!, listings: [withCover, withoutCover] }],
+      availableGroups: [{ ...LEASE_ONLY_SNAPSHOT.availableGroups[0]!, totalEffectiveListings: 2 }],
+    }
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, { snapshot, basePath: '/buildings/jingan-center', currentSearch: '' }),
+    )
+
+    const thumbs = html.match(/class="building-supply-browser__table-thumb"/g) ?? []
+    expect(thumbs, '两行都要有缩略图槽位，无图行不能塌成纯文本').toHaveLength(2)
+    expect(html).toMatch(/table-thumb"><img[^>]*src="\/media\/unit-a\.jpg"[^>]*alt="有图房源封面"[^>]*loading="lazy"/)
+    expect(html).toContain('data-media-state="missing"')
+    // 标题链接仍在（E2E 靠 a[href$="/listings/<slug>"] 取行）
+    expect(html).toContain('href="/listings/with-cover"')
+    expect(html).toContain('href="/listings/no-cover"')
+  })
+
   it('组切换 href 只在非默认组时写入 group 参数，默认组省略', () => {
     const snapshot: BuildingSupplySnapshot = {
       ...LEASE_ONLY_SNAPSHOT,

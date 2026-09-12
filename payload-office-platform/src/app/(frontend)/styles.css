@@ -2524,11 +2524,47 @@ ol {
   padding-right: 16px;
 }
 
+/* OPT-095：「房源」列 = 56×42 缩略图 + 标题/副行。缩略图槽位恒渲染（无图给
+   .media-placeholder），行高由 tr 的 56 兜底，缩略图 42 高不撑行。 */
+.building-supply-browser__table-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.building-supply-browser__table-thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 42px;
+  border-radius: var(--r-input); /* 8px；列表页 .bd-row__thumb 是 48 方图配 10px，56×42 横图取小一档 */
+  overflow: hidden;
+  background: var(--bg-subtle);
+}
+
+.building-supply-browser__table-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 缩略图槽位里的占位符：去掉 .media-placeholder 的 16px padding，28px 图标才放得下 */
+.building-supply-browser__table-thumb .media-placeholder {
+  padding: 0;
+}
+
+.building-supply-browser__table-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /* 标题即详情页链接（原先是 span，整行只有最右侧 44px 箭头可点）。默认不加下划线
  * ——密度表里每行一条下划线会把表格拉成"一片蓝"，靠 hover / focus 才显形，与站内
  * 其它卡片标题的处理一致。focus 环走全局 `:focus-visible`。 */
 .building-supply-browser__table-primary {
   display: block;
+  overflow-wrap: anywhere; /* OPT-095：首列让出 56+12px 给缩略图后，长标题折行而不是撑宽表格 */
   padding-right: 24px;
   font-size: 15px;
   font-weight: 500;

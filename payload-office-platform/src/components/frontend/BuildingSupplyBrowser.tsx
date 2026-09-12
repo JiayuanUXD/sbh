@@ -14,6 +14,8 @@ import type {
 // 类型导入随便走桶（`import type` 编译期即擦除），值导入只走叶子。
 import { availabilityDay, isImmediatelyAvailable } from '@/domain/public-catalog/building-supply'
 import ListingCard from '@/components/frontend/ListingCard'
+import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
+import { cardCoverProps } from '@/lib/frontend/media-srcset'
 import { DECORATION_STATUS_LABELS } from '@/domain/review/listing-fields'
 import { formatAvailableDate, priceUnitLabel } from '@/lib/frontend/format'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
@@ -667,17 +669,39 @@ export default function BuildingSupplyBrowser({
                   return (
                     <tr key={`${activeGroupKey}:${listing.id}`}>
                       <td>
-                        {/* 标题即链接：原先整行只有最右侧那个 44px 箭头可点，用户
-                            直觉上会去点标题却没反应（移动端卡片视图的标题本来就在
-                            ListingCard 的整卡链接里，只有桌面密度表缺这一口）。 */}
-                        <a
-                          href={detailHref}
-                          className="building-supply-browser__table-primary"
-                          {...detailAnalyticsAttrs}
-                        >
-                          {listing.title}
-                        </a>
-                        {sub && <span className="building-supply-browser__table-sub">{sub}</span>}
+                        {/* OPT-095：「房源」列加缩略图。取图口径就是卡片的 coverImage
+                            （域层已做「房源封面 → 楼盘封面」兜底），两者都缺时给共享
+                            占位——槽位恒渲染，无图行不能塌成纯文本，否则同一张表里
+                            两种版式。移动端卡片视图本来就带图，这里只补桌面密度表。 */}
+                        <div className="building-supply-browser__table-cell">
+                          <span className="building-supply-browser__table-thumb">
+                            {listing.coverImage ? (
+                              <img
+                                {...cardCoverProps(listing.coverImage, '56px', 320)}
+                                alt={listing.coverImage.alt || listing.title}
+                                loading="lazy"
+                                decoding="async"
+                                width={listing.coverImage.width}
+                                height={listing.coverImage.height}
+                              />
+                            ) : (
+                              <CardMediaPlaceholder compact />
+                            )}
+                          </span>
+                          <span className="building-supply-browser__table-text">
+                            {/* 标题即链接：原先整行只有最右侧那个 44px 箭头可点，用户
+                                直觉上会去点标题却没反应（移动端卡片视图的标题本来就在
+                                ListingCard 的整卡链接里，只有桌面密度表缺这一口）。 */}
+                            <a
+                              href={detailHref}
+                              className="building-supply-browser__table-primary"
+                              {...detailAnalyticsAttrs}
+                            >
+                              {listing.title}
+                            </a>
+                            {sub && <span className="building-supply-browser__table-sub">{sub}</span>}
+                          </span>
+                        </div>
                       </td>
                       <td className="tabular building-supply-browser__table-num">{metricValue}</td>
                       <td className="tabular building-supply-browser__table-num">{priceCell}</td>
