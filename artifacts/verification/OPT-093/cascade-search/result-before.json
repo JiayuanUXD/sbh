@@ -1,0 +1,220 @@
+{
+  "origin": "http://localhost:3731",
+  "at": "2026-09-12T11:11:10.274Z",
+  "steps": [
+    {
+      "name": "[dark] 起点：无 tag、保存 disabled",
+      "ok": true,
+      "detail": {
+        "saveDisabled": true,
+        "tags": [],
+        "input": "",
+        "popupOpen": false,
+        "popupTop": null
+      }
+    },
+    {
+      "name": "[dark] 搜「徐汇」：不可见行复选框 disabled + aria-disabled 壳",
+      "ok": false,
+      "detail": {
+        "hidden": {
+          "text": "上海 / 徐汇 / 漕河泾开发区 （前台不可见）",
+          "liAriaDisabled": "false",
+          "blockedWrap": false,
+          "checkboxDisabled": false,
+          "checked": false
+        },
+        "hidden2": {
+          "text": "上海 / 徐汇 / 徐家汇 （前台不可见）",
+          "liAriaDisabled": "false",
+          "blockedWrap": false,
+          "checkboxDisabled": false,
+          "checked": false
+        }
+      }
+    },
+    {
+      "name": "[dark] 搜「徐汇」：可见行复选框可用",
+      "ok": true,
+      "detail": {
+        "text": "上海 / 徐汇 / 徐家汇",
+        "liAriaDisabled": "false",
+        "blockedWrap": false,
+        "checkboxDisabled": false,
+        "checked": false
+      }
+    },
+    {
+      "name": "[dark] 点不可见行文字：无 tag、未勾、保存仍 disabled",
+      "ok": false,
+      "detail": {
+        "saveDisabled": false,
+        "tags": [],
+        "input": "徐汇",
+        "popupOpen": true,
+        "popupTop": "1458.42px"
+      }
+    },
+    {
+      "name": "[dark] 点不可见行 li 空白：无 tag、未勾、保存仍 disabled",
+      "ok": false,
+      "detail": {
+        "saveDisabled": false,
+        "tags": [],
+        "input": "徐汇",
+        "popupOpen": true,
+        "popupTop": "1458.42px"
+      }
+    },
+    {
+      "name": "[dark] 点可见行：tag 出现、保存可点、关键词保留",
+      "ok": true,
+      "detail": {
+        "saveDisabled": false,
+        "tags": [
+          "上海 / 徐汇 / 徐家汇"
+        ],
+        "input": "徐汇",
+        "popupOpen": true,
+        "popupTop": "1458.42px"
+      }
+    },
+    {
+      "name": "[dark] 搜「上海」：浦东新区不可勾、其下陆家嘴可勾",
+      "ok": false,
+      "detail": {
+        "pudong": {
+          "text": "上海 / 浦东新区 （前台不可见）",
+          "liAriaDisabled": "false",
+          "blockedWrap": false,
+          "checkboxDisabled": false,
+          "checked": false
+        },
+        "lujiazui": {
+          "text": "上海 / 浦东新区 （前台不可见） / 陆家嘴",
+          "liAriaDisabled": "false",
+          "blockedWrap": false,
+          "checkboxDisabled": false,
+          "checked": false
+        }
+      }
+    },
+    {
+      "name": "[dark] 无新增控制台错误（媒体 500 为本地无 COS 既有现象，已排除）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "[light] 起点：无 tag、保存 disabled",
+      "ok": true,
+      "detail": {
+        "saveDisabled": true,
+        "tags": [],
+        "input": "",
+        "popupOpen": false,
+        "popupTop": null
+      }
+    },
+    {
+      "name": "[light] 搜「徐汇」：不可见行复选框 disabled + aria-disabled 壳",
+      "ok": false,
+      "detail": {
+        "hidden": {
+          "text": "上海 / 徐汇 / 漕河泾开发区 （前台不可见）",
+          "liAriaDisabled": "false",
+          "blockedWrap": false,
+          "checkboxDisabled": false,
+          "checked": false
+        },
+        "hidden2": {
+          "text": "上海 / 徐汇 / 徐家汇 （前台不可见）",
+          "liAriaDisabled": "false",
+          "blockedWrap": false,
+          "checkboxDisabled": false,
+          "checked": false
+        }
+      }
+    },
+    {
+      "name": "[light] 搜「徐汇」：可见行复选框可用",
+      "ok": true,
+      "detail": {
+        "text": "上海 / 徐汇 / 徐家汇",
+        "liAriaDisabled": "false",
+        "blockedWrap": false,
+        "checkboxDisabled": false,
+        "checked": false
+      }
+    },
+    {
+      "name": "[light] 点不可见行文字：无 tag、未勾、保存仍 disabled",
+      "ok": false,
+      "detail": {
+        "saveDisabled": false,
+        "tags": [],
+        "input": "徐汇",
+        "popupOpen": true,
+        "popupTop": "1458.42px"
+      }
+    },
+    {
+      "name": "[light] 点不可见行 li 空白：无 tag、未勾、保存仍 disabled",
+      "ok": false,
+      "detail": {
+        "saveDisabled": false,
+        "tags": [],
+        "input": "徐汇",
+        "popupOpen": true,
+        "popupTop": "1458.42px"
+      }
+    },
+    {
+      "name": "[light] 点可见行：tag 出现、保存可点、关键词保留",
+      "ok": true,
+      "detail": {
+        "saveDisabled": false,
+        "tags": [
+          "上海 / 徐汇 / 徐家汇"
+        ],
+        "input": "徐汇",
+        "popupOpen": true,
+        "popupTop": "1458.42px"
+      }
+    },
+    {
+      "name": "[light] 搜「上海」：浦东新区不可勾、其下陆家嘴可勾",
+      "ok": false,
+      "detail": {
+        "pudong": {
+          "text": "上海 / 浦东新区 （前台不可见）",
+          "liAriaDisabled": "false",
+          "blockedWrap": false,
+          "checkboxDisabled": false,
+          "checked": false
+        },
+        "lujiazui": {
+          "text": "上海 / 浦东新区 （前台不可见） / 陆家嘴",
+          "liAriaDisabled": "false",
+          "blockedWrap": false,
+          "checkboxDisabled": false,
+          "checked": false
+        }
+      }
+    },
+    {
+      "name": "[light] 无新增控制台错误（媒体 500 为本地无 COS 既有现象，已排除）",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "failures": [
+    "[dark] 搜「徐汇」：不可见行复选框 disabled + aria-disabled 壳",
+    "[dark] 点不可见行文字：无 tag、未勾、保存仍 disabled",
+    "[dark] 点不可见行 li 空白：无 tag、未勾、保存仍 disabled",
+    "[dark] 搜「上海」：浦东新区不可勾、其下陆家嘴可勾",
+    "[light] 搜「徐汇」：不可见行复选框 disabled + aria-disabled 壳",
+    "[light] 点不可见行文字：无 tag、未勾、保存仍 disabled",
+    "[light] 点不可见行 li 空白：无 tag、未勾、保存仍 disabled",
+    "[light] 搜「上海」：浦东新区不可勾、其下陆家嘴可勾"
+  ]
+}

@@ -93,6 +93,28 @@ DTO 代价：上海当前 32 个有在营楼盘的商圈 × 约 600B ≈ 20KB，
 - [x] 回归：楼盘编辑页的级联框正常，一个标签一个值
 - [x] `typecheck` / `lint` 0 error / `test` 5023 passed
 
+### 追加 2：搜索模式漏网（2026-09-12 线上复现）
+
+组件开着 `showSearch`，输入「虹桥」后是扁平结果列表 `.arco-cascader-list-search-item`——
+线上实测闵行「虹桥商务区」在这里 `aria-disabled="false"`、复选框照常可点。
+
+根因：Arco 2.66 `Cascader/panel/search-panel.js` 只认 Node 的 `disabled`，`disableCheckbox` 只在树形面板
+`panel/option.js` 生效。`filterOption` 也拦不住——`store.searchNodeByLabel` 是「路径上任一节点命中即保留」，
+搜「徐汇」会把徐汇底下的不可见商圈一起带出来（且不可见节点的 label 是带标注的 ReactNode，
+默认 filter 反而永远匹配不到它自己的名字）。本地复现（修复前）：值确实没写进去（`eligibleCascadeKeys` 兜底在搜索模式也走到了），
+但一次无效点击把表单置脏——「保存」从 disabled 变可点，无事可存。
+
+| 层 | 改动 |
+|---|---|
+| `location-cascade-eligibility.ts` | 新增 `reconcileCascadeSelection(next, current, byId, options)`：过滤之外还回答「与当前值有无实质变化」（含顺序），无变化不 setValue、不置脏 |
+| `LocationCascadeField.tsx` | `frontendVisibleOnly` 下 `showSearch` 改对象形态：`renderOption` 自绘搜索行（可选行复选框 + 路径；不可选行禁用复选框、`aria-disabled` 壳吞掉点击），`retainInputValueWhileSelect: true` 保住原来「勾完关键词还在」的行为；穿透到 li 的点击（行内空白 / 键盘 Enter）由 reconcile 兜底。其它 7 处字段仍是布尔 `showSearch`，字节不变 |
+| `tests/location-cascade-field-search.test.ts`（新） | happy-dom 里真渲染 Arco Cascader：打开、输入、点搜索行；不可见行禁用且不触碰表单，li 穿透路径不写值不置脏，不可见行政区下的可见商圈可勾，对照组（不开开关）照常可选。曾做变异检查：去掉 reconcile 的早返回，li 穿透用例即红 |
+
+- [x] 单测：reconcile 五种情形（勾到不可见 / 真变化 / 换序 / 旧值残留 / 不开开关）
+- [x] happy-dom 组件测试 5 条；全量 `pnpm test` 381 files / 5051 passed
+- [x] 本地浏览器（真实鼠标）：搜「徐汇」不可见行禁用；点文字、点行内空白都不写值、保存按钮保持 disabled；点可见行正常；搜「上海」浦东新区不可勾、其下陆家嘴可勾；选陆家嘴保存 PATCH 200 / 响应 `featuredRegions:[5]` / 刷新回显；树形面板不变
+- [x] 深浅两主题的展开态截图 + 修复前对照组（同一脚本跑 `origin/master` 版组件，4 项判据红）：`artifacts/verification/OPT-093/cascade-search/`
+
 ## 7. 不在本项内
 
 - 后台「该商圈暂无在营楼盘，首页不会展示」提示：需给级联组件新开一个查询接口，另立工作项。
