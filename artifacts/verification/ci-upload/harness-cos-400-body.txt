@@ -1,0 +1,23 @@
+6:curl() { command curl --limit-rate 12877 "$@"; }
+13:need_bps=1024
+18:for attempt in 1; do
+start 2026-09-12T16:28:48Z
+COS 单次 PUT 上限 200s → 本包至少需要 1024 B/s（约 1 KB/s）
+== 上传尝试 1/5：拉取新预签名 URL ==
+curl exit=0 http=400 用时=204.095318s 已传=2639728B 均速=12933B/s（需 1024B/s）
+COS 响应体：
+<?xml version='1.0' encoding='utf-8' ?>
+<Error>
+	<Code>UserNetworkTooSlow</Code>
+	<Message>User network is too slow.</Message>
+	<Resource>/home/2cd466e1f3bf4a13bb5071eabc2beffd/sbh-d9gnr8h5ef7e22e30-1789229005-sbh_1789229005_lV45qi0r.zip</Resource>
+	<RequestId>NmFhNTdkYzBfOGY0ZWJlMDlfZDAxOF8xY2M3OTZiZQ==</RequestId>
+	<TraceId>OGVmYzZiMmQzYjA2OWNhODk0NTRkMTBiOWVmMDAxODc0OWRkZjk0ZDM1NmI1M2E2MTRlY2MzZDhmNmI5MWI1OWRlZDk5YzgyOTg0ZTg2ODA1ODFjOGY0MWFhYWFhOTdmNzAxMmVkNTU0MzY5N2ZjNTlhZjVlMDg3N2I4ZjA5MDU=</TraceId>
+</Error>
+
+
+::warning::上传尝试 1 失败（curl exit=0 http=400），3s 后换新 URL 重试
+::error::5 次上传全部失败。若日志里是 UserNetworkTooSlow：本次 runner 到腾讯云的跨境吞吐低于 1024B/s，rerun 换一台机器通常就过；反复如此才考虑自托管 runner。
+exit=1
+end 2026-09-12T16:32:16Z
+

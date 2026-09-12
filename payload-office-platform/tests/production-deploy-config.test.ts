@@ -8,6 +8,19 @@ const here = fileURLToPath(new URL('.', import.meta.url))
 const appRoot = resolve(here, '..')
 const repositoryRoot = resolve(appRoot, '..')
 
+const workflow = () =>
+  readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
+
+/** 取某个 step 从 `- name:` 到下一个 `- name:` 之间的正文 */
+function stepBlock(yaml: string, nameFragment: string): string {
+  const lines = yaml.split('\n')
+  const start = lines.findIndex((l) => l.includes('- name:') && l.includes(nameFragment))
+  expect(start, `未找到步骤：${nameFragment}`).toBeGreaterThan(-1)
+  const rest = lines.slice(start + 1)
+  const end = rest.findIndex((l) => l.includes('- name:'))
+  return (end === -1 ? rest : rest.slice(0, end)).join('\n')
+}
+
 describe('production build database boundary', () => {
   it('keeps the Payload-backed frontend shell out of database-less prerendering', () => {
     const frontendLayout = readFileSync(
@@ -156,13 +169,10 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('git archive --format=zip HEAD:payload-office-platform')
     expect(workflow).toContain('3145728')
     expect(workflow).toContain('--http1.1')
-    // 重试机制：每次尝试重新拉取预签名 URL 再上传。curl --retry 会复用同一个
-    // 可能已过期的 URL，跨境慢传常在收尾被 COS 以 400 拒（run 31098998980）。
-    expect(workflow).toContain('for attempt in 1 2 3 4')
+    // 重试机制：每次尝试重新拉取预签名 URL 再上传（换新连接）。curl --retry 会复用
+    // 同一条连接与 URL；上传步骤的具体约束见下方「上传步骤 / COS 单次 PUT 200s 上限」。
+    expect(workflow).toContain('for attempt in 1 2 3 4 5')
     expect(workflow).toContain('fetch_upload_info')
-    expect(workflow).toContain('--max-time 300')
-    // 停滞检测：死连接 30s 内放弃换新 URL，而不是骑满整个签名窗口
-    expect(workflow).toContain('--speed-time 30')
 
     // 这条路径必须是真正在跑的，不能又被 if: false 关掉。
     expect(workflow).not.toContain('if: ${{ false }}')
@@ -231,19 +241,6 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
    *
    * 守护不变量：等构建结果的步骤**不带** SHOULD_PROMOTE 门；切流量才带。
    */
-  const workflow = () =>
-    readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
-
-  /** 取某个 step 从 `- name:` 到下一个 `- name:` 之间的正文 */
-  function stepBlock(yaml: string, nameFragment: string): string {
-    const lines = yaml.split('\n')
-    const start = lines.findIndex((l) => l.includes('- name:') && l.includes(nameFragment))
-    expect(start, `未找到步骤：${nameFragment}`).toBeGreaterThan(-1)
-    const rest = lines.slice(start + 1)
-    const end = rest.findIndex((l) => l.includes('- name:'))
-    return (end === -1 ? rest : rest.slice(0, end)).join('\n')
-  }
-
   it('等待构建就绪的步骤始终执行，不受 SHOULD_PROMOTE 控制', () => {
     const block = stepBlock(workflow(), '等待新版本构建就绪')
     // 判的是 `if:` 门而不是字面出现——步骤注释里就解释了「为什么没有这个门」，
@@ -476,5 +473,70 @@ describe('Umami 采集的构建期/运行期环境（OPT-064b）', () => {
     const headers = readFileSync(resolve(appRoot, 'src/lib/security-headers.ts'), 'utf8')
     expect(headers).toContain('process.env.NEXT_PUBLIC_UMAMI_SRC')
     expect(headers).not.toContain('umami-286300-10-1253925058')
+  })
+})
+
+describe('上传步骤 / COS 单次 PUT 200s 上限', () => {
+  /**
+   * 病根（run 34699498622 / 34702931927，2026-09-12）：跨境链路慢到 <13KB/s 时，
+   * 2.6MB 的包传不进 200s，COS 收完整个请求体后回 `400 UserNetworkTooSlow`。同一台
+   * runner 的 4 次重试速度相近，4×~3.5min 全挂共 16 分钟；rerun 换机器才过。
+   *
+   * 当时的实现 `curl --fail` 把 COS 的 XML 错误体丢掉了，日志里只剩 `curl: (22) 400`，
+   * 于是前两轮归因（预签名 URL 过期 / 连接被重置）都猜错——URL 窗口实际是 7 天。
+   * 本地对同一预签名 URL 用 --limit-rate 复现：≤200s 一律 200，≥205s 一律 400，
+   * 300KB 用 10KB/s 传 30s 照样 200（判的是时长不是速率）。证据见
+   * artifacts/verification/ci-upload/。
+   *
+   * 守护三条：
+   *   1. 错误体必须进日志（不带 --fail，响应体落盘、失败时 cat）；
+   *   2. --max-time 由 COS 上限推出，不再是拍脑袋的 300；
+   *   3. --speed-limit 由「包体积 / 上限」推出，达不到的连接早断早换，而不是 1KB/s
+   *      那种只防死连接的门槛（它对 12KB/s 的慢传视而不见，陪跑到 400）。
+   */
+  const block = () => stepBlock(workflow(), '上传代码包并提交灰度版本')
+
+  /** 只看 curl 调用本身，不把注释里的提及算进去 */
+  const curlCall = () => {
+    const b = block()
+    const start = b.indexOf('stats=$(curl')
+    expect(start, '上传步骤里找不到 stats=$(curl 调用').toBeGreaterThan(-1)
+    const end = b.indexOf('"$upload_url")', start)
+    expect(end, 'curl 调用没有以 "$upload_url") 收尾').toBeGreaterThan(start)
+    return b.slice(start, end)
+  }
+
+  it('不用 --fail，把 COS 的 XML 错误体（<Code>/<Message>/<RequestId>）打进日志', () => {
+    const call = curlCall()
+    expect(call).not.toContain('--fail')
+    expect(call).toContain('--output "$upload_resp"')
+    expect(call).toContain("--write-out '%{http_code}")
+    const b = block()
+    expect(b).toContain('cat "$upload_resp"')
+    // 状态码自己判：curl 不带 --fail 时 400 也是 exit 0，必须显式比对
+    expect(b).toContain('[ "$http_code" = "200" ]')
+  })
+
+  it('--max-time 与 --speed-limit 都由 COS 上限推出，不写死', () => {
+    const b = block()
+    expect(b).toContain('COS_PUT_CAP=200')
+    expect(b).toContain('need_bps=$(( archive_bytes / COS_PUT_CAP + 1 ))')
+    const call = curlCall()
+    // 比上限多留 10s：上限内传不完的由 COS 回 400（错误体是证据），curl 只兜底
+    expect(call).toContain('--max-time $(( COS_PUT_CAP + 10 ))')
+    expect(call).toContain('--speed-limit "$need_bps"')
+    expect(call).toContain('--speed-time 30')
+    expect(call).not.toContain('--max-time 300')
+    expect(call).not.toContain('--speed-limit 1024')
+  })
+
+  it('每次尝试重新拉取预签名 URL（换新连接），失败提示指向 rerun 而不是重试到底', () => {
+    const b = block()
+    expect(b).toContain('for attempt in 1 2 3 4 5; do')
+    // fetch 必须在 for 循环体内，而不是循环外只拉一次
+    const loopStart = b.indexOf('for attempt in')
+    // Windows 工作树可能是 CRLF，别拿 '\n' 硬匹配
+    expect(b.slice(loopStart)).toMatch(/^\s*fetch_upload_info\s*$/m)
+    expect(b).toContain('UserNetworkTooSlow')
   })
 })
