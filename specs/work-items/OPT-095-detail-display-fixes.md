@@ -1,6 +1,6 @@
 # Task Packet：OPT-095 详情页三处展示修正（楼盘封面 / 客服文案 / 供给表缩略图）
 
-> 状态：**设计已确认，待实施**
+> 状态：**已实施，待合并**
 > 创建日期：2026-09-12
 > 来源：用户一次提出 5 项需求，本项收其中三项无迁移、纯展示的改动先发；另两项（建筑形态字段、导航二级菜单）见 OPT-096
 
@@ -29,19 +29,19 @@
 | `tests/`（新增或就近） | 单测：喂一份 building 带 `coverImage` / `summary` / `buildingServices` 的 listing 文档，断言 `mapListingDetail(...).building.coverImage?.src` 非空、`airConditioning` 非空；同时断言 `mapListingCard(...).building.coverImage` 仍为 undefined（OPT-047 不回退） |
 | `src/components/frontend/ServicePhoneLink.tsx` | `header` 形态 `<span className="service-phone__number">` 前加 `<span className="service-phone__prefix">客服</span>`，与号码同受 ≥1024 显示控制 |
 | `src/app/(frontend)/styles/member.css` | `.service-phone__prefix` 与 `__number` 同一显隐规则；`white-space: nowrap` 已有 |
-| `src/components/frontend/BuildingSupplyBrowser.tsx` 桌面表 | 「房源」单元格改为 `缩略图 + (标题 / 副行)` 的横向布局；缩略图 56×42、`object-fit: cover`、`loading="lazy"`、`cardCoverProps(cover, '56px', 112)`；无图 `CardMediaPlaceholder compact` |
-| `src/app/(frontend)/styles.css` `.building-supply-browser__table*` | 新增 `__thumb` / `__primary-wrap` 样式；`colgroup` 首列仍 `1fr`，行高随缩略图从约 48 → 56 |
+| `src/components/frontend/BuildingSupplyBrowser.tsx` 桌面表 | 「房源」单元格改为 `缩略图 + (标题 / 副行)` 的横向布局；缩略图 56×42、`object-fit: cover`、`loading="lazy"`、`cardCoverProps(cover, '56px', 320)`（最小派生档就是 320w）；无图 `CardMediaPlaceholder compact` |
+| `src/app/(frontend)/styles.css` `.building-supply-browser__table*` | 新增 `__cell`（flex）/ `__thumb` / `__text` 样式，`__primary` 加 `overflow-wrap:anywhere`；`colgroup` 不动，行高由 tr 的 56 兜底（实测 69） |
 | 现有测试 | `tests/` 下引用供给表结构的断言（若有按 `td` 首个子元素取标题的）随之更新 |
 
 ## 4. 验收
 
-- [ ] 单测：`mapListingDetail` 的 building 带封面与楼宇服务字段；`mapListingCard` 收窄不回退
-- [ ] 本地浏览器（`next dev`，本地库需先 `payload migrate` 到最新）：
+- [x] 单测：`mapListingDetail` 的 building 带封面与楼宇服务字段（`frontend-mappers.test.ts`）；`mapListingCard` 收窄不回退（既有 `listing-card-payload-size.test.ts` 回归）
+- [x] 本地浏览器（`next dev -p 3727`，本地库 88/88 迁移已执行）：
   - 房源详情「所在楼盘」卡片出现楼盘封面 `<img>`；「房源概况」出现空调 / 网络 / 停车费行（对照楼盘详情页「楼宇服务」同值）
   - 1440 顶栏显示「客服 021 6888 8888」一行不折；375 只图标；抽屉行文案不变
   - 楼盘详情 1440 供给表每行「房源」列左侧缩略图；无封面行显示占位；移动端卡片视图不变
-- [ ] `typecheck` 干净 / `lint` 0 新增 warning / `test:changed` 全绿
-- [ ] E2E 自查：`rg` `tests/e2e/` 里与 `building-supply-browser__table`、`service-phone`、`building-summary-card` 相关的选择器，确认没有被结构改动打破
+- [x] `typecheck` 干净 / `lint` 0 error（+1 warning，与同目录手写 `<img>` 同类，见走查记录）/ `test:changed` 158 files 全绿
+- [x] E2E 自查：`rg` `tests/e2e/` 里与 `building-supply-browser__table`、`service-phone`、`building-summary-card` 相关的选择器，确认没有被结构改动打破
 
 证据：`artifacts/verification/OPT-095/`。
 
