@@ -61,6 +61,8 @@ export type ListingSearchInput = Readonly<{
   businessArea?: readonly string[]
   metro?: readonly string[]
   listingType?: readonly string[]
+  /** 建筑形态（OPT-096）。URL `form`，多值取并集；白名单见 search-params.ts。 */
+  buildingForm?: readonly string[]
   areaMin?: number
   areaMax?: number
   /**

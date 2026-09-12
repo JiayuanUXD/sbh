@@ -131,6 +131,8 @@ export type HomepageData = Readonly<{
 export type SearchFacets = Readonly<{
   districts: ReadonlyArray<DistrictViewModel & { count: number }>
   listingTypes: ReadonlyArray<{ value: string; count: number }>
+  /** 建筑形态计数（OPT-096）：一行多形态各计一次 */
+  buildingForms: ReadonlyArray<{ value: string; count: number }>
   rentUnits: ReadonlyArray<{ value: string; count: number }>
   totalDocs: number
 }>
@@ -1075,6 +1077,7 @@ export type ListingSearchDimension =
   | 'businessArea'
   | 'metro'
   | 'listingType'
+  | 'buildingForm'
   | 'price'
   | 'area'
   | 'availableBefore'
@@ -1130,6 +1133,7 @@ export function omitListingSearchDimensions(
   if (drop.has('businessArea')) delete next.businessArea
   if (drop.has('metro')) delete next.metro
   if (drop.has('listingType')) delete next.listingType
+  if (drop.has('buildingForm')) delete next.buildingForm
   if (drop.has('price')) {
     delete next.priceMin
     delete next.priceMax

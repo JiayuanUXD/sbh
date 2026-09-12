@@ -327,6 +327,7 @@ export const LISTING_SCAN_SELECT = {
   slug: true,
   title: true,
   listingType: true,
+  buildingForm: true,
   businessType: true,
   area: true,
   price: true,
@@ -697,6 +698,9 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
 
     if (input.listingType && input.listingType.length > 0) {
       where.listingType = { in: [...input.listingType] }
+    }
+    if (input.buildingForm && input.buildingForm.length > 0) {
+      where.buildingForm = { in: [...input.buildingForm] }
     }
     if (input.businessArea && input.businessArea.length > 0) {
       where['building.businessDistrict.slug'] = { in: [...input.businessArea] }
