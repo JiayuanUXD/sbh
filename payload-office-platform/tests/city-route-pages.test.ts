@@ -291,6 +291,8 @@ describe('city route boundaries', () => {
   })
 
   it('keeps coming-soon buildings dynamic and noindex without inventory queries', async () => {
+    // OPT-096 起 generateMetadata 会读 input.business 判出售口径，mock 得给个最小输入
+    io.parseBuildingSearchInput.mockReturnValue({ page: 1 })
     const props = { params: Promise.resolve({ city: 'hangzhou' }), searchParams: Promise.resolve({}) }
     await expect(generateBuildingsMetadata(props)).resolves.toMatchObject({ robots: { index: false, follow: true } })
     await CityBuildingsPage(props)

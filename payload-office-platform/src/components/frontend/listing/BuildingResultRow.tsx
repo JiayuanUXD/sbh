@@ -66,11 +66,13 @@ function formatLeasableArea(area: number): string {
   return Math.round(area).toLocaleString('en-US')
 }
 
-export default function BuildingResultRow({ building, citySlug, analytics }: Readonly<{
+export default function BuildingResultRow({ building, citySlug, analytics, stockUnitLabel = '套在租' }: Readonly<{
   building: BuildingSummaryViewModel
   citySlug?: string
   /** 列表页埋点上下文；不传则不产生点击事件 */
   analytics?: ListResultAnalytics
+  /** 套数量词（OPT-096）：租赁口径「套在租」，出售口径「套在售」；由页面 scope 决定 */
+  stockUnitLabel?: string
 }>) {
   const { coverImage, grade, address, nearestMetro, leasableArea, listingCount, name, slug } = building
   const gradeLabel = getBuildingGradeLabel(grade)
@@ -78,7 +80,7 @@ export default function BuildingResultRow({ building, citySlug, analytics }: Rea
   const areaText = leasableArea != null && leasableArea > 0 ? formatLeasableArea(leasableArea) : null
   // 与 `BuildingResultCard` 同一条可访问名口径：「这栋楼现在有几套在租」是用户最想
   // 知道的数，换个版式不该把它从可访问名里丢掉。
-  const ariaLabel = hasCount ? `${name}，${listingCount} 套在租` : name
+  const ariaLabel = hasCount ? `${name}，${listingCount} ${stockUnitLabel}` : name
 
   return (
     <NavLink
@@ -126,7 +128,7 @@ export default function BuildingResultRow({ building, citySlug, analytics }: Rea
         {hasCount ? (
           <span className="bd-rowcard__stock">
             <span className="bd-rowcard__stock-value sf-num">{listingCount}</span>
-            <span className="bd-rowcard__stock-unit">套在租</span>
+            <span className="bd-rowcard__stock-unit">{stockUnitLabel}</span>
           </span>
         ) : (
           <span className="bd-rowcard__stock bd-rowcard__stock--muted">暂无在租</span>

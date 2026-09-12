@@ -95,12 +95,40 @@ const COPY = {
  * `normalizeSort` 静默降级」的项，因此不需要按条件剔除（那条硬要求的目的是
  * 不渲染点了没反应的死控件，四项在任何 URL 下都真的会改变顺序）。
  */
-const SORTS: readonly ResultToolbarSort[] = [
-  { value: 'stock-desc', label: '在租最多' },
-  { value: 'area-desc', label: '在租面积' },
+const TAIL_SORTS: readonly ResultToolbarSort[] = [
   { value: 'grade', label: '等级' },
   { value: 'completion-desc', label: '竣工最新' },
 ]
+
+/**
+ * 在租 / 在售两套口径的文案（OPT-096）。`business=sale` 时整页换成在售语境：
+ * 域层已按 sale 聚合并只列有在售房源的楼盘，这里只负责把量词、标题、排序项说对，
+ * 「仅看有在租」开关在出售口径下没有意义（恒为真），不渲染。
+ */
+const SCOPE_COPY = {
+  lease: {
+    headingSuffix: '写字楼',
+    legacyHeading: '找写字楼',
+    stockUnit: '套在租',
+    stockNoun: '在租房源',
+    groupTitle: '当前有在租',
+    sorts: [
+      { value: 'stock-desc', label: '在租最多' },
+      { value: 'area-desc', label: '在租面积' },
+    ] as readonly ResultToolbarSort[],
+  },
+  sale: {
+    headingSuffix: '写字楼出售',
+    legacyHeading: '找出售写字楼',
+    stockUnit: '套在售',
+    stockNoun: '在售房源',
+    groupTitle: '当前有在售',
+    sorts: [
+      { value: 'stock-desc', label: '在售最多' },
+      { value: 'area-desc', label: '在售面积' },
+    ] as readonly ResultToolbarSort[],
+  },
+} as const
 
 /** 「去掉这一个条件」的 href：删该维度占用的全部 URL 键 + 删 page，其余原样保留。 */
 function buildDropDimensionHref(
@@ -129,7 +157,10 @@ export default function CityBuildingsView({ city, result, input, basePath, route
    */
   view?: ListingViewMode
 }>) {
-  const heading = routeMode === 'legacy' ? '找写字楼' : `${city.name}写字楼`
+  const scope = input.business === 'sale' ? 'sale' : 'lease'
+  const scopeCopy = SCOPE_COPY[scope]
+  const sorts: readonly ResultToolbarSort[] = [...scopeCopy.sorts, ...TAIL_SORTS]
+  const heading = routeMode === 'legacy' ? scopeCopy.legacyHeading : `${city.name}${scopeCopy.headingSuffix}`
   const {
     groups,
     totalDocs,
@@ -210,7 +241,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   // 但不等于任何一档），那种值不会渲染出行 chip，却会被 `activeValue != null`
   // 误判成「已经显示了」而跳过补充 chip，三处一起把生效中的条件藏起来。
   const rowActiveKeys = new Set(rows.filter(rowShowsActivePick).map((row) => row.key))
-  if (switchRow.active) rowActiveKeys.add(switchRow.paramKey)
+  if (scope === 'lease' && switchRow.active) rowActiveKeys.add(switchRow.paramKey)
   const extraPicks = activeDimensions.flatMap((d) => {
     const hidden = d.paramKeys.filter((key) => currentParams.has(key) && !rowActiveKeys.has(key))
     if (hidden.length === 0) return []
@@ -272,7 +303,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
           ) : null}
           {withStockTotal > 0 ? (
             <>
-              ，其中 <span className="sf-num">{withStockTotal}</span> 个现在有在租房源
+              ，其中 <span className="sf-num">{withStockTotal}</span> 个现在有{scopeCopy.stockNoun}
             </>
           ) : null}
         </p>
@@ -286,7 +317,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
           totalCount={totalDocs}
           countNoun={COPY.countNoun}
           clearAllHref={clearAllHref}
-          switchRow={switchRow}
+          switchRow={scope === 'lease' ? switchRow : undefined}
           extraPicks={extraPicks}
         />
       </div>
@@ -330,7 +361,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
               totalDocs={totalDocs}
               noun={COPY.rangeNoun}
               totalNoun={COPY.countNoun}
-              sorts={SORTS}
+              sorts={sorts}
               activeSort={input.sort}
               // 本页默认是「在租最多」，不是房源页的 recommended——组件据此决定
               // 排序 href 要不要把 sort 写进 URL（终审 M3）。取域层常量而非字面量。
@@ -347,7 +378,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
               <>
                 {groups.withoutStock.length > 0 ? (
                   <div className="bd-group">
-                    <span className="bd-group__title">当前有在租</span>
+                    <span className="bd-group__title">{scopeCopy.groupTitle}</span>
                     <span className="bd-group__count sf-num">{withStockTotal} 个</span>
                   </div>
                 ) : null}
@@ -361,6 +392,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
                         key={building.slug}
                         building={building}
                         citySlug={citySlug}
+                        stockUnitLabel={scopeCopy.stockUnit}
                         analytics={{
                           event: 'building_result_click',
                           city: building.citySlug,
@@ -379,6 +411,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
                         key={building.slug}
                         building={building}
                         citySlug={citySlug}
+                        stockUnitLabel={scopeCopy.stockUnit}
                         analytics={{
                           event: 'building_result_click',
                           city: building.citySlug,
@@ -455,7 +488,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
         currentQuery={currentParams.toString()}
         totalDocs={totalDocs}
         countNoun={COPY.countNoun}
-        switchRow={switchRow}
+        switchRow={scope === 'lease' ? switchRow : undefined}
         resetHref={clearAllHref}
       />
     </div>
