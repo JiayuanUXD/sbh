@@ -307,7 +307,9 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
     const allowed = ['id', 'slug', 'title', 'citySlug', 'cityName', 'price', 'area', 'floor', 'seats', 'businessType',
       'decorationStatus', 'listingType', 'availableFrom', 'isFeatured', 'building',
       'coverImage', 'gallery', 'mediaItems', 'factGroups', 'amenityGroups',
-      'verification', 'highlights', 'description', 'stableSortKey']
+      'verification', 'highlights', 'description', 'stableSortKey',
+      // OPT-096：建筑形态只进详情 DTO
+      'buildingForm']
     for (const k of Object.keys(detail)) {
       expect(allowed, `ListingDetailViewModel 不应包含未声明字段 ${k}`).toContain(k)
     }

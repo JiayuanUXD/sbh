@@ -195,7 +195,16 @@ export function matchesPriceFilter(price: PriceViewModel | null, input: ListingS
   return true
 }
 
-/** 在扫描行上应用内存维度（区域 / 类型 / 价格）。 */
+/**
+ * 行上的建筑形态；**缺字段按空数组**。扫描行经 `unstable_cache` 落盘，发布后的
+ * 前 5 分钟（revalidate 窗口）读到的仍是上一版写入的行，没有 `buildingForm`——
+ * 这里不防御的话，新版一上线列表页就 500 到缓存过期为止。
+ */
+function rowForms(row: ListingScanRow): readonly string[] {
+  return Array.isArray(row.buildingForm) ? row.buildingForm : []
+}
+
+/** 在扫描行上应用内存维度（区域 / 类型 / 建筑形态 / 价格）。 */
 export function applyMemoryFilters(
   rows: readonly ListingScanRow[],
   input: ListingSearchInput,
@@ -207,7 +216,7 @@ export function applyMemoryFilters(
   return rows.filter((row) => {
     if (districts && (!row.district || !districts.has(row.district.slug))) return false
     if (types && (!row.listingType || !types.has(row.listingType))) return false
-    if (forms && !row.buildingForm.some((form) => forms.has(form))) return false
+    if (forms && !rowForms(row).some((form) => forms.has(form))) return false
     return matchesPriceFilter(row.price, input)
   })
 }
@@ -236,7 +245,7 @@ export function computeFacets(rows: readonly ListingScanRow[]): ScanFacets {
     if (row.listingType) {
       listingTypeCounts.set(row.listingType, (listingTypeCounts.get(row.listingType) ?? 0) + 1)
     }
-    for (const form of row.buildingForm) {
+    for (const form of rowForms(row)) {
       buildingFormCounts.set(form, (buildingFormCounts.get(form) ?? 0) + 1)
     }
     if (row.price) {
