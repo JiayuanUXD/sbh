@@ -1,6 +1,6 @@
 # Task Packet：OPT-098 主域名 shangban.cc 收口（网关补绑 www + canonical 切换 + 旧域名 301）
 
-> 状态：**已实施，待合并**
+> 状态：**已上线**（PR #191，master `13453b3`，2026-09-14 部署成功，线上走查见 artifacts/verification/OPT-098/）
 > 创建日期：2026-09-14
 > 来源：用户要求「把 shangban.cc 绑定到这个项目」
 
