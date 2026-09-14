@@ -4,6 +4,7 @@ import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import { invalidateSiteSettingsPublicCache } from '@/lib/frontend/public-cache-revalidation'
 import { NAV_TARGET_OPTIONS, PAGE_TARGET_ID } from '@/lib/frontend/nav-targets'
+import { isValidIcpRecordNumber } from '@/lib/frontend/icp-record'
 import { isValidServicePhone } from '@/lib/frontend/service-phone'
 import { DEFAULT_WATERMARK_CONFIG } from '@/domain/media/watermark'
 import { detailSpecFieldsTab } from './site-settings-spec-fields'
@@ -168,6 +169,18 @@ export const SiteSettings: GlobalConfig = {
               type: 'text',
               defaultValue: '商办租赁平台',
               admin: { description: '渲染为「© {年份} {版权主体}」。' },
+            },
+            {
+              name: 'icpRecordNumber',
+              label: 'ICP 备案号',
+              type: 'text',
+              validate: (value: unknown) =>
+                isValidIcpRecordNumber(value) ||
+                '格式应为「沪ICP备2026037944号」（省份简称 + ICP备/证 + 数字 + 号，可带 -序号）',
+              admin: {
+                description:
+                  '按备案通知书原样填（如 沪ICP备2026037944号）。渲染在页脚版权之后，自动链接到工信部备案管理系统；留空不显示。保存后最长 60 秒全站生效。',
+              },
             },
             {
               name: 'footerTaglineSuffix',

@@ -87,6 +87,7 @@ import * as migration_20260911_031639_nav_page_target from './20260911_031639_na
 import * as migration_20260911_072752_opt_088_snapshot_chain_repair from './20260911_072752_opt_088_snapshot_chain_repair';
 import * as migration_20260912_083722_opt_094_header_service_phone from './20260912_083722_opt_094_header_service_phone';
 import * as migration_20260912_144311_opt_096_building_form from './20260912_144311_opt_096_building_form';
+import * as migration_20260914_034003_opt_097_icp_record from './20260914_034003_opt_097_icp_record';
 
 export const migrations = [
   {
@@ -532,6 +533,11 @@ export const migrations = [
   {
     up: migration_20260912_144311_opt_096_building_form.up,
     down: migration_20260912_144311_opt_096_building_form.down,
-    name: '20260912_144311_opt_096_building_form'
+    name: '20260912_144311_opt_096_building_form',
+  },
+  {
+    up: migration_20260914_034003_opt_097_icp_record.up,
+    down: migration_20260914_034003_opt_097_icp_record.down,
+    name: '20260914_034003_opt_097_icp_record'
   },
 ];
