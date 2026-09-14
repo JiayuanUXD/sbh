@@ -9,6 +9,7 @@ import {
 import type { Media, SiteSetting } from '@/payload-types'
 import { mapMedia } from '@/domain/public-catalog/mappers'
 import { resolveHeaderFeatures } from '@/lib/frontend/header-features'
+import { normalizeIcpRecordNumber } from './icp-record'
 import { resolveNavRow } from './nav-targets'
 import { attachMainNavSubmenu } from './nav-submenu'
 import {
@@ -150,6 +151,7 @@ function toView(doc: SiteSetting | null): SiteSettingsView {
     footerBrandBlurb: text(doc.footerBrandBlurb, SITE_SETTINGS_FALLBACK.footerBrandBlurb),
     copyrightHolder: text(doc.copyrightHolder, SITE_SETTINGS_FALLBACK.copyrightHolder),
     footerTaglineSuffix: text(doc.footerTaglineSuffix, SITE_SETTINGS_FALLBACK.footerTaglineSuffix),
+    icpRecordNumber: normalizeIcpRecordNumber(doc.icpRecordNumber),
     valueProps: mapValueProps(doc.valueProps),
     typeCards: mapTypeCards(doc.typeCards),
     mainNav: mapMainNav(doc.mainNav),
