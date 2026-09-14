@@ -10,6 +10,7 @@ import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 // 本组件是 'use client'，那条依赖链会把 sharp 拉进浏览器包，next build 直接失败
 // （57 个 non-ecmascript placeable asset 错误），而 typecheck 与单测全绿。
 import { isSvgLogo, renderCityPlaceholder, type SiteSettingsView } from '@/lib/frontend/site-settings-view'
+import { ICP_RECORD_URL } from '@/lib/frontend/icp-record'
 
 type FooterShellProps = Readonly<{
   cities: readonly PublicCityOption[]
@@ -98,6 +99,12 @@ function FooterContents({
       <div className="site-footer__bar">
         <div className="site-footer__bar-inner">
           <span>© {year} {settings.copyrightHolder}</span>
+          {/* OPT-097：备案编号必须展示在底部并链到工信部备案系统；未配置时整个节点不渲染 */}
+          {settings.icpRecordNumber ? (
+            <a className="site-footer__icp" href={ICP_RECORD_URL} target="_blank" rel="noopener noreferrer">
+              {settings.icpRecordNumber}
+            </a>
+          ) : null}
           <span>{cityName ? `${cityName} · ` : ''}{settings.footerTaglineSuffix}</span>
           {/* OPT-088：员工入口放页脚不放顶栏——公开访客用不到，不该占首屏动作区 */}
           <a href="/admin/login" rel="nofollow" className="site-footer__staff-link">员工入口</a>

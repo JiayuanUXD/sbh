@@ -1321,6 +1321,16 @@ ol {
   font-size: var(--fs-12);
 }
 
+/* OPT-097：备案号链接与「员工入口」同一处理——继承底栏字色，hover 才下划线 */
+.site-footer__icp {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-footer__icp:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 1024px) {
   .site-footer__inner {
     grid-template-columns: 1fr 1fr;
