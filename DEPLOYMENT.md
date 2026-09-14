@@ -39,6 +39,7 @@
 ### 🟠 P1 — 业务可用
 - [x] 首个管理员已存在（`85851205@qq.com`），从 `/admin/login` 登录即可。注：`/admin/create-first-user` 在 users 表非空时会 `notFound()`（白屏是正常行为，不是 bug）
 - [x] 后台 CRUD listing / 上传媒体，重启容器后数据与媒体仍在（PG + COS 持久化已验证）
+- [x] 自定义域名 `https://shangban.cc`（OPT-098，2026-09-14）：网关绑 `shangban.cc` + `www.shangban.cc`（同一张证书 `aKj4riGU`，TrustAsia 免费 DV，**2026-11-25 到期、未开自动续期**），路由 `/ → CBR sbh`；DNSPod 两条 CNAME → `shangban.cc.tcbaccess.tencentcloudbase.com`；`Dockerfile` 的 `NEXT_PUBLIC_SITE_URL` 切到主域名；`www` 与默认域名的页面请求由 `src/proxy.ts` 301 到主域名，`/api/*` 不跳
 
 ### 🟡 P2 — 优化（可选）
 - [ ] 流量稳定后把 CloudRun `MinNum` 1→0 省成本（代价：冷启动延迟）

@@ -108,7 +108,7 @@ gh workflow run deploy.yml -f promote=true --ref master
 
 ## CloudBase 部署事实
 
-- EnvId `sbh-d9gnr8h5ef7e22e30`，CloudRun 服务名 `sbh`，域名 `https://sbh-286300-10-1253925058.sh.run.tcloudbase.com`。
+- EnvId `sbh-d9gnr8h5ef7e22e30`，CloudRun 服务名 `sbh`。**对外主域名 `https://shangban.cc`**（网关自定义域名，OPT-098）；`www.shangban.cc` 与平台默认域名 `https://sbh-286300-10-1253925058.sh.run.tcloudbase.com` 的页面请求由 `src/proxy.ts` 301 到主域名，`/api/*` 不跳（CI 冒烟仍打默认域名的 `/api/health`）。
 
 - 生产 DB：TencentDB for PostgreSQL（共享库，**`push: false`，只走显式迁移**）。媒体：腾讯云 COS（S3 兼容）。
 

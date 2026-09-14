@@ -118,6 +118,12 @@ UNION ALL SELECT 'enum', typname FROM pg_type WHERE typname='<你的枚举名>';
 
 ## P2 — 可观测性与一致性
 
+### T16. `shangban.cc` 的免费证书 2026-11-25 到期，未开自动续期
+
+网关上 `shangban.cc` 与 `www.shangban.cc` 共用证书 `aKj4riGU`（TrustAsia C1 DV Free，90 天，`AutoRenewFlag=0`）。到期后两个域名 TLS 直接失效，HSTS preload 又让浏览器无法降级到 http——等于整站不可访问。
+
+**要做**：2026-11 中旬前在 [SSL 证书控制台](https://console.cloud.tencent.com/ssl) 重新申请（DNS 验证，DNSPod 同账号可自动），然后对两个域名各跑一次 `manageGateway(bindCustomDomain, certificateId=<新证书>)`（或控制台「HTTP 访问服务 → 自定义域名 → 更换证书」），再 `curl -vI https://shangban.cc/ 2>&1 | grep 'expire date'` 复核。长期解法是买一年期证书或接自动续期托管。
+
 ### T6. 通知重试耗尽后没有可见性
 
 `supplySubmissionNotificationTask` 重试 5 次后按 Payload 默认标记失败，没有死信队列或告警。`domain-events` 行会留 `processedAt=null` + `lastError`，但没有任何界面或告警把它暴露出来，永久卡住的通知无人知晓。
