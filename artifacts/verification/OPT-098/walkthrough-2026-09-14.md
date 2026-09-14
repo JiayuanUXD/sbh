@@ -38,6 +38,21 @@
 - `pnpm typecheck`：0 错
 - `eslint` 三个新文件：0 错
 
-## 4. 线上（合并部署后补）
+## 4. 线上（PR #191 合入 master `13453b3`，deploy run 34813968090 success，2026-09-14 14:50 +08:00）
 
-待填：`www` 301、旧域名页面 301、旧域名 `/api/health` 200、主域名 canonical / sitemap、后台登录。
+```
+旧域名 GET /api/health                     → 200 {"status":"ok","version":"13453b3d…"}（/api 豁免，冒烟探针不受影响）
+GET https://www.shangban.cc/shanghai/listings?page=2 → 301 Location: https://shangban.cc/shanghai/listings?page=2
+旧域名 GET /shanghai                        → 301 Location: https://shangban.cc/shanghai
+旧域名 GET /admin/login                     → 301 Location: https://shangban.cc/admin/login
+GET https://shangban.cc/shanghai            → 200（不跳，无环）
+canonical / og:url                          → https://shangban.cc/shanghai
+/sitemap.xml                                → 2380 条 <loc>，全部 https://shangban.cc
+/robots.txt                                 → Sitemap: https://shangban.cc/sitemap.xml
+GET https://www.shangban.cc/api/health      → 200（www 的 /api 也不跳）
+POST /admin/login Origin=https://shangban.cc Next-Action=伪造 → 404（Server Actions 同源判定通过）
+```
+
+后台：真实 Chrome（claude-in-chrome）打开 `https://shangban.cc/admin/login`，登录表单完整渲染（电子邮件 / 密码 / 忘记密码 / 登录按钮）——表单状态走 Server Action，渲染出来即说明主域名下 Server Actions 可用。未输入凭据。
+
+OPT-097 顺带核对：`GET /api/globals/site-settings` 已含 `icpRecordNumber`（当前 null，页脚不显示；后台「站点设置 → 页脚」填入后生效）。
