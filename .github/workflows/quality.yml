@@ -125,7 +125,7 @@ jobs:
       # ③ 合法 https 非 localhost 站点 URL；同时 build 期注入 sitemap/canonical。
       #    Playwright 的 baseURL 已与之解耦（playwright.config 用 PLAYWRIGHT_BASE_URL /
       #    localhost:PORT），故这里设线上 URL 不会把 E2E 打到线上。
-      NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
+      NEXT_PUBLIC_SITE_URL: https://shangban.cc
       # 本地 server 端口 + 让 playwright.config 的 webServer 切到 next start 生产 server
       PORT: '3717'
       E2E_PROD_SERVER: '1'

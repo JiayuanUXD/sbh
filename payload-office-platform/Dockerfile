@@ -26,7 +26,7 @@ COPY . .
 # 构建期不连库：首页 force-dynamic，避免无 DB 时构建失败
 # NEXT_PUBLIC_SITE_URL：构建期 /sitemap.xml 与 /robots.txt page data 收集会触发
 # site-config fail-closed（生产缺此值抛错），必须在此注入（Next.js 内联 NEXT_PUBLIC_*）。
-ENV NEXT_PUBLIC_SITE_URL=https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
+ENV NEXT_PUBLIC_SITE_URL=https://shangban.cc
 ENV NEXT_PUBLIC_AMAP_JS_KEY=1d41019b28b9dc0c7b91b9f7f0927b75
 # OPT-064b：自托管 Umami 采集开关。这三个值必须在**构建期**存在——Next 把
 # NEXT_PUBLIC_* 内联成字面量写进客户端 bundle，配在 CloudRun 的服务级环境变量里
@@ -47,7 +47,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 # NEXT_PUBLIC_SITE_URL：运行时 config-guard（OPT-015 fail-closed）校验 https + 非 localhost。
 # 烤进镜像，避免依赖 CloudRun 控制台单独配置（tcb deploy 不传 env-vars）。
-ENV NEXT_PUBLIC_SITE_URL=https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
+ENV NEXT_PUBLIC_SITE_URL=https://shangban.cc
 ENV NEXT_PUBLIC_AMAP_JS_KEY=1d41019b28b9dc0c7b91b9f7f0927b75
 # OPT-064b：运行期也要有，且必须与 builder 阶段逐字一致。
 # next.config.ts 顶层 import 了 src/lib/security-headers，由它按 NEXT_PUBLIC_UMAMI_SRC

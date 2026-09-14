@@ -23,7 +23,7 @@ set -eo pipefail
 ENV_ID="${TCB_ENV_ID:-sbh-d9gnr8h5ef7e22e30}"
 SERVICE="${TCB_SERVICE:-sbh}"
 APP_DIR="${TCB_APP_DIR:-payload-office-platform}"
-SITE_URL="${TCB_SERVICE_URL:-https://sbh-286300-10-1253925058.sh.run.tcloudbase.com}"
+SITE_URL="${TCB_SERVICE_URL:-https://shangban.cc}"
 
 # COS 对单次 PUT 的时长上限（秒）：实测 200.1s 的传输 200，202.1s 起一律
 # 400 UserNetworkTooSlow，与体积、速率本身无关（300KB 用 10KB/s 传 30s 照样 200）。
