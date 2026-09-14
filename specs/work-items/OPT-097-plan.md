@@ -13,7 +13,7 @@
 - 所有命令在 `E:\wt-097\payload-office-platform` 下用 **pnpm**。
 - 禁止 `any` / `as any` / `@ts-ignore`；外部输入 `unknown` 收窄。
 - 提交只用**显式** `git add <路径>`；提交信息简体中文、类型前缀；**不加署名行**。
-- `src/payload-types.ts` 生成物不入库；改 `SiteSettings.ts` 后必须 `pnpm generate:types`（生成后 `grep -c '"prefix"' src/payload-types.ts` 必须是 2）。迁移 `.ts` + `.json` 成对入库，`src/migrations/index.ts` 由 `migrate:create` 自动更新。
+- `src/payload-types.ts` 生成物不入库；改 `SiteSettings.ts` 后必须 `pnpm generate:types`（生成后 `grep -c "prefix" src/payload-types.ts` 必须是 2——类型文件里是 `prefix?:`，不带引号）。迁移 `.ts` + `.json` 成对入库，`src/migrations/index.ts` 由 `migrate:create` 自动更新。
 - 备案链接固定 `https://beian.miit.gov.cn/`；字段名 `icpRecordNumber`；列名 `icp_record_number`；页脚节点 class `site-footer__icp`。
 - **不做**：公安备案号、链接地址可配、按城市区分、任何默认备案号。
 - 校验正则（唯一事实源在 `icp-record.ts`）：`^[\u4e00-\u9fa5]{1,3}ICP(备|证)\d{6,12}号(-\d{1,3})?$`，对 trim 后的值判定。
@@ -31,7 +31,7 @@
 **Interfaces:**
 - Produces: `normalizeIcpRecordNumber(raw: unknown): string | null`、`isValidIcpRecordNumber(raw: unknown): boolean`、`ICP_RECORD_URL = 'https://beian.miit.gov.cn/'`
 
-- [ ] **Step 1: 克隆任务库并指向它**
+- [x] **Step 1: 克隆任务库并指向它**
 
 PowerShell（psql 不在 PATH，且 Git Bash 下会挂住）：
 
@@ -46,15 +46,15 @@ $env:PGCONNECT_TIMEOUT = "5"
 
 第一条计数必须是 0（否则 TEMPLATE 被拒，先停掉占着 `postgres` 库的 dev server）。然后把 `.env.local` 里 `DATABASE_URL` 末尾的 `/postgres` 改成 `/sbh_dev_097`（`sed -i 's#/postgres$#/sbh_dev_097#' .env.local`），并 `pnpm migrate:status 2>&1 | tail -3` 确认全部已应用。
 
-- [ ] **Step 2: 生成类型并确认基线干净**
+- [x] **Step 2: 生成类型并确认基线干净**
 
 ```bash
-cd /e/wt-097/payload-office-platform && pnpm generate:types && grep -c '"prefix"' src/payload-types.ts && pnpm typecheck
+cd /e/wt-097/payload-office-platform && pnpm generate:types && grep -c "prefix" src/payload-types.ts && pnpm typecheck
 ```
 
 Expected: `2`、typecheck 0 错。
 
-- [ ] **Step 3: 写失败的单测**
+- [x] **Step 3: 写失败的单测**
 
 `tests/opt097-icp-record.test.ts`：
 
@@ -112,7 +112,7 @@ it('备案链接固定指向工信部备案系统', () => {
 })
 ```
 
-- [ ] **Step 4: 跑测试确认失败**
+- [x] **Step 4: 跑测试确认失败**
 
 ```bash
 cd /e/wt-097/payload-office-platform && pnpm vitest run tests/opt097-icp-record.test.ts
@@ -120,7 +120,7 @@ cd /e/wt-097/payload-office-platform && pnpm vitest run tests/opt097-icp-record.
 
 Expected: FAIL，`Failed to resolve import "@/lib/frontend/icp-record"`。
 
-- [ ] **Step 5: 实现纯函数**
+- [x] **Step 5: 实现纯函数**
 
 `src/lib/frontend/icp-record.ts`：
 
@@ -159,7 +159,7 @@ export function isValidIcpRecordNumber(raw: unknown): boolean {
 }
 ```
 
-- [ ] **Step 6: 跑测试确认通过**
+- [x] **Step 6: 跑测试确认通过**
 
 ```bash
 cd /e/wt-097/payload-office-platform && pnpm vitest run tests/opt097-icp-record.test.ts
@@ -167,7 +167,7 @@ cd /e/wt-097/payload-office-platform && pnpm vitest run tests/opt097-icp-record.
 
 Expected: 5 passed。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```bash
 cd /e/wt-097 && git add payload-office-platform/src/lib/frontend/icp-record.ts payload-office-platform/tests/opt097-icp-record.test.ts && git commit -m "feat(site-settings): ICP 备案号归一化与校验纯函数（OPT-097）"
@@ -185,7 +185,7 @@ cd /e/wt-097 && git add payload-office-platform/src/lib/frontend/icp-record.ts p
 - Consumes: Task 1 的 `isValidIcpRecordNumber`
 - Produces: `SiteSetting.icpRecordNumber?: string | null`（`generate:types` 生成）；表 `site_settings` 列 `icp_record_number varchar`
 
-- [ ] **Step 1: 加字段**
+- [x] **Step 1: 加字段**
 
 在 `src/globals/SiteSettings.ts` 顶部 import 区加：
 
@@ -210,15 +210,15 @@ import { isValidIcpRecordNumber } from '@/lib/frontend/icp-record'
             },
 ```
 
-- [ ] **Step 2: 生成类型、生成迁移**
+- [x] **Step 2: 生成类型、生成迁移**
 
 ```bash
-cd /e/wt-097/payload-office-platform && pnpm generate:types && grep -c '"prefix"' src/payload-types.ts && pnpm exec payload migrate:create opt_097_icp_record 2>&1 | tail -5 && ls src/migrations | tail -3
+cd /e/wt-097/payload-office-platform && pnpm generate:types && grep -c "prefix" src/payload-types.ts && pnpm exec payload migrate:create opt_097_icp_record 2>&1 | tail -5 && ls src/migrations | tail -3
 ```
 
 Expected: `2`；新出现 `<时间戳>_opt_097_icp_record.ts` 与 `.json`。打开 `.ts`，`up()` 应**只**含 `ALTER TABLE "site_settings" ADD COLUMN "icp_record_number" varchar;`，`down()` 只含对应 `DROP COLUMN`。**若 diff 里出现与本任务无关的 DDL，停下核对 `sbh_dev_097` 的迁移状态，不要把无关变更带进本迁移。**
 
-- [ ] **Step 3: 应用迁移、跑闸门**
+- [x] **Step 3: 应用迁移、跑闸门**
 
 ```bash
 cd /e/wt-097/payload-office-platform && pnpm exec payload migrate 2>&1 | tail -3 && pnpm migrate:dry-run 2>&1 | tail -4 && pnpm typecheck && pnpm vitest run tests/opt083-detail-spec-settings-coverage.test.ts tests/admin-navigation-config.test.ts
@@ -226,7 +226,7 @@ cd /e/wt-097/payload-office-platform && pnpm exec payload migrate 2>&1 | tail -3
 
 Expected: 迁移应用成功；dry-run 报本迁移无禁用模式；typecheck 0 错；两份守卫仍绿。
 
-- [ ] **Step 4: 提交（迁移 .ts + .json + index.ts 一起）**
+- [x] **Step 4: 提交（迁移 .ts + .json + index.ts 一起）**
 
 ```bash
 cd /e/wt-097 && git add payload-office-platform/src/globals/SiteSettings.ts payload-office-platform/src/migrations/index.ts payload-office-platform/src/migrations/*opt_097_icp_record.ts payload-office-platform/src/migrations/*opt_097_icp_record.json && git commit -m "feat(site-settings): 页脚新增「ICP 备案号」字段与迁移（OPT-097）"
@@ -247,7 +247,7 @@ cd /e/wt-097 && git add payload-office-platform/src/globals/SiteSettings.ts payl
 - Consumes: Task 1 的 `normalizeIcpRecordNumber`、`ICP_RECORD_URL`；Task 2 的 `SiteSetting.icpRecordNumber`
 - Produces: `SiteSettingsView.icpRecordNumber: string | null`；页脚节点 `a.site-footer__icp[href="https://beian.miit.gov.cn/"][target=_blank][rel="noopener noreferrer"]`
 
-- [ ] **Step 1: 追加失败的测试**
+- [x] **Step 1: 追加失败的测试**
 
 在 `tests/opt097-icp-record.test.ts` 顶部 import 区加：
 
@@ -314,7 +314,7 @@ describe('toView 映射契约', () => {
 })
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```bash
 cd /e/wt-097/payload-office-platform && pnpm vitest run tests/opt097-icp-record.test.ts
@@ -322,7 +322,7 @@ cd /e/wt-097/payload-office-platform && pnpm vitest run tests/opt097-icp-record.
 
 Expected: 「兜底」「有值」「契约」三条 FAIL（`icpRecordNumber` 不存在于类型 / 页脚无该节点 / 源码无该行）。
 
-- [ ] **Step 3: 视图类型与兜底**
+- [x] **Step 3: 视图类型与兜底**
 
 `src/lib/frontend/site-settings-view.ts`：在 `footerTaglineSuffix: string` 之后加
 
@@ -338,7 +338,7 @@ Expected: 「兜底」「有值」「契约」三条 FAIL（`icpRecordNumber` �
   icpRecordNumber: null,
 ```
 
-- [ ] **Step 4: `toView` 映射**
+- [x] **Step 4: `toView` 映射**
 
 `src/lib/frontend/site-settings.ts`：import 区加
 
@@ -352,7 +352,7 @@ import { normalizeIcpRecordNumber } from './icp-record'
     icpRecordNumber: normalizeIcpRecordNumber(doc.icpRecordNumber),
 ```
 
-- [ ] **Step 5: 页脚渲染**
+- [x] **Step 5: 页脚渲染**
 
 `src/components/frontend/SiteFooter.tsx`：import 区加
 
@@ -371,7 +371,7 @@ import { ICP_RECORD_URL } from '@/lib/frontend/icp-record'
           ) : null}
 ```
 
-- [ ] **Step 6: 样式**
+- [x] **Step 6: 样式**
 
 `src/app/(frontend)/styles.css`，`.site-footer__bar-inner { … }` 块之后加：
 
@@ -387,7 +387,7 @@ import { ICP_RECORD_URL } from '@/lib/frontend/icp-record'
 }
 ```
 
-- [ ] **Step 7: 跑测试与类型**
+- [x] **Step 7: 跑测试与类型**
 
 ```bash
 cd /e/wt-097/payload-office-platform && pnpm vitest run tests/opt097-icp-record.test.ts tests/frontend-shell-hydration.test.ts tests/client-components-no-server-imports.test.ts && pnpm typecheck
@@ -395,7 +395,7 @@ cd /e/wt-097/payload-office-platform && pnpm vitest run tests/opt097-icp-record.
 
 Expected: 全绿（`client-components-no-server-imports` 守的是 client 组件不能拉进 payload——`icp-record.ts` 零 import，必须仍绿）。
 
-- [ ] **Step 8: 提交**
+- [x] **Step 8: 提交**
 
 ```bash
 cd /e/wt-097 && git add payload-office-platform/src/lib/frontend/site-settings-view.ts payload-office-platform/src/lib/frontend/site-settings.ts payload-office-platform/src/components/frontend/SiteFooter.tsx "payload-office-platform/src/app/(frontend)/styles.css" payload-office-platform/tests/opt097-icp-record.test.ts && git commit -m "feat(footer): 页脚底栏渲染 ICP 备案号链接（OPT-097）"
@@ -411,7 +411,7 @@ cd /e/wt-097 && git add payload-office-platform/src/lib/frontend/site-settings-v
 **Interfaces:**
 - Consumes: 夹具管理员 `e2e-adm@example.com / Test1234!`（`scripts/seed.ts`）；`POST /api/globals/site-settings`；页脚节点 `a.site-footer__icp`
 
-- [ ] **Step 1: 写 spec**
+- [x] **Step 1: 写 spec**
 
 ```ts
 /**
@@ -466,7 +466,7 @@ test.describe('页脚 ICP 备案号（OPT-097）', () => {
 })
 ```
 
-- [ ] **Step 2: 本地单跑（dev server 复用）**
+- [x] **Step 2: 本地单跑（dev server 复用）**
 
 先在 `.claude/launch.json`（主仓 `E:\github\sbh\.claude\launch.json`，不入库）加：
 
@@ -482,7 +482,7 @@ cd /e/wt-097/payload-office-platform && PORT=3729 pnpm exec playwright test test
 
 Expected: 2 passed。若「E2E 管理员账号应成功登录」失败，任务库缺夹具：`pnpm seed` 后重跑。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 cd /e/wt-097 && git add payload-office-platform/tests/e2e/footer-icp-record.spec.ts && git commit -m "test(e2e): 页脚 ICP 备案号配置、渲染与非法值拒绝（OPT-097）"
@@ -496,7 +496,7 @@ cd /e/wt-097 && git add payload-office-platform/tests/e2e/footer-icp-record.spec
 - Create: `artifacts/verification/OPT-097/walkthrough-2026-09-14.md`（+ 截图、抓包 JSON）
 - Modify: `specs/work-items/OPT-097-footer-icp-record.md`（勾验收、状态改「已实施，待合并」）
 
-- [ ] **Step 1: 全量闸门**
+- [x] **Step 1: 全量闸门**
 
 ```bash
 cd /e/wt-097/payload-office-platform && pnpm typecheck && pnpm lint 2>&1 | tail -3 && pnpm test 2>&1 | tail -6 && pnpm migrate:dry-run 2>&1 | tail -4
@@ -504,7 +504,7 @@ cd /e/wt-097/payload-office-platform && pnpm typecheck && pnpm lint 2>&1 | tail 
 
 Expected: typecheck 0 错、lint 0 error、test 全绿、dry-run 无禁用模式。
 
-- [ ] **Step 2: 后台走查（Browser pane，dev 3729）**
+- [x] **Step 2: 后台走查（Browser pane，dev 3729）**
 
 先 `GET /admin/logout` 清掉别的 worktree 串过来的 cookie，再用页内 fetch 以 `e2e-adm@example.com / Test1234!` 登录。打开 `/admin/globals/site-settings` → 「页脚」tab：
 
@@ -515,7 +515,7 @@ Expected: typecheck 0 错、lint 0 error、test 全绿、dry-run 无禁用模式
 | 3 | 强刷页面重进「页脚」tab | 输入框回显该值 |
 | 4 | 切深色主题截图 | 输入框底色跟 `--theme-elevation-*`，无残留白底 |
 
-- [ ] **Step 3: C 端走查**
+- [x] **Step 3: C 端走查**
 
 | # | 路由 / 视口 | 判据 |
 |---|---|---|
@@ -526,7 +526,7 @@ Expected: typecheck 0 错、lint 0 error、test 全绿、dry-run 无禁用模式
 
 控制台无新增错误（`read_console_messages onlyErrors`）。
 
-- [ ] **Step 4: 写证据与更新工作项**
+- [x] **Step 4: 写证据与更新工作项**
 
 `artifacts/verification/OPT-097/walkthrough-2026-09-14.md` 记录上面 8 条的实测结果、截图文件名、抓包片段；`specs/work-items/OPT-097-footer-icp-record.md` §4 逐条勾选、状态改「已实施，待合并」。
 
@@ -534,7 +534,7 @@ Expected: typecheck 0 错、lint 0 error、test 全绿、dry-run 无禁用模式
 cd /e/wt-097 && git add artifacts/verification/OPT-097 specs/work-items/OPT-097-footer-icp-record.md specs/work-items/OPT-097-plan.md && git commit -m "docs(opt-097): 走查证据与工作项状态"
 ```
 
-- [ ] **Step 5: 推送并开 PR**
+- [x] **Step 5: 推送并开 PR**
 
 ```bash
 cd /e/wt-097 && git push -u origin feat/opt-097-footer-icp-record-a26d

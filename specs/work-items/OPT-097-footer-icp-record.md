@@ -1,6 +1,6 @@
 # Task Packet：OPT-097 页脚 ICP 备案号（后台可配）
 
-> 状态：**设计已确认，实施中**
+> 状态：**已实施，待合并**（分支 `feat/opt-097-footer-icp-record-a26d`，证据 `artifacts/verification/OPT-097/`）
 > 创建日期：2026-09-14
 > 来源：用户要在 C 端挂「沪ICP备2026037944号」，问后台如何操作；排查发现站点设置里没有备案字段，
 > 页脚底栏只渲染「© 年份 版权主体」「城市 · 副标题后缀」「员工入口」。
@@ -39,13 +39,13 @@
 
 ## 4. 验收
 
-- [ ] 单测：`normalizeIcpRecordNumber` 正反例（三种合法形态、前后空格、空串、缺「号」、含空格、`undefined`）
-- [ ] 单测：`toView` 三态（有效 → 原值、NULL / 空 → null、非法 → null）；`SITE_SETTINGS_FALLBACK.icpRecordNumber === null`
-- [ ] 单测：`SiteFooter` 有值时渲染链接（href / target / rel / 文本），无值时无 `.site-footer__icp`
-- [ ] E2E：夹具管理员 POST `/api/globals/site-settings` 写入备案号 → 首页页脚出现该链接且 href 正确 → 结束后清空还原（沿用 `member-auth.spec.ts` 的开关模式）
-- [ ] 后台：填 `abc` 保存 → 400 + 字段红字；填 `沪ICP备2026037944号` 保存成功；抓包 Request Payload 含该字段；强刷回显
-- [ ] C 端浏览器：`/` 与 `/shanghai` 页脚底栏出现「沪ICP备2026037944号」链接，375 / 1440 两档；清空后不渲染
-- [ ] `typecheck` 干净 / `test` 全绿 / `migrate:dry-run` 本迁移无禁用模式 / `build` 通过
+- [x] 单测：`normalizeIcpRecordNumber` 正反例（三种合法形态、前后空格、空串、缺「号」、含空格、`undefined`）
+- [x] 单测：`toView` 三态（有效 → 原值、NULL / 空 → null、非法 → null）；`SITE_SETTINGS_FALLBACK.icpRecordNumber === null`
+- [x] 单测：`SiteFooter` 有值时渲染链接（href / target / rel / 文本），无值时无 `.site-footer__icp`
+- [x] E2E：夹具管理员 POST `/api/globals/site-settings` 写入备案号 → 首页页脚出现该链接且 href 正确 → 结束后清空还原（沿用 `member-auth.spec.ts` 的开关模式）
+- [x] 后台：填 `abc` 保存 → 400 + 字段红字；填 `沪ICP备2026037944号` 保存成功；抓包 Request Payload 含该字段；强刷回显
+- [x] C 端浏览器：`/` 与 `/shanghai` 页脚底栏出现「沪ICP备2026037944号」链接，375 / 1440 两档；清空后不渲染
+- [x] `typecheck` 干净 / `test` 全绿 / `migrate:dry-run` 本迁移无禁用模式 / `build` 通过
 
 证据：`artifacts/verification/OPT-097/`。
 
