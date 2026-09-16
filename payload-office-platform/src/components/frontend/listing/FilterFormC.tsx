@@ -1,6 +1,6 @@
 import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React from 'react'
-import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
+import { buildFilterOptionHref, buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
 import { XMarkIcon } from '@/components/frontend/ui/icons'
 
 /**
@@ -30,7 +30,7 @@ import { XMarkIcon } from '@/components/frontend/ui/icons'
  *   - **`cloneSearchParams` / `buildHref` 从 `lib/frontend/listing-url.ts` 导入**：
  *     那两个是与本文件曾经私有的 `cloneParams` / `toHref` 逐行相同的原语，Task 7
  *     code review 时收敛过去，避免同目录多个组件各自维护一份相同实现。本文件的
- *     `buildOptionHref`（同一行内选项互斥、再点已选项即清除）与
+ *     `buildFilterOptionHref`（同一行内选项互斥、再点已选项即清除）与
  *     `listing-url.ts` 的 `buildPriceUnitHref`（`priceUnit` 永远 `set`，没有
  *     「清除」这个合法状态）语义不同，**刻意没有合并**——理由见该文件顶部注释。
  */
@@ -40,6 +40,14 @@ export type FilterRow = Readonly<{
   label: string
   options: ReadonlyArray<Readonly<{ value: string; label: string; count?: number }>>
   activeValue?: string
+  /**
+   * 级联清除（OPT-099）：改动或取消本行时一并删掉的其它 URL 键。
+   *
+   * 唯一消费方是「位置」行的 `['businessArea']`——商圈从属于行政区，切区后留着
+   * 上一个区的商圈就是「静安 + 陆家嘴」这种恒空组合。声明在编排层
+   * （`listing-filter-rows.ts`），组件不推导从属关系。
+   */
+  clearsKeys?: readonly string[]
 }>
 
 /**
@@ -80,29 +88,22 @@ export type FilterSwitch = Readonly<{
 
 type ActivePick = Readonly<{ row: FilterRow; option: FilterRow['options'][number] }>
 
-/**
- * 单个选项的 href：只改本行一个参数，删除 page。
- * isActive=true（再点已选项）时只删不写，等价于清除该行筛选。
- */
-function buildOptionHref(
+/* 单个选项的 href 走 `listing-url.ts` 的 `buildFilterOptionHref`——OPT-099 之前
+   本文件与 `MobileFilterSheet.tsx` 各持有一份逐行相同的实现，收敛理由见那边注释。 */
+
+/** 底栏已选 chip 的 × ：清除这一行的参数（与再点已选项同一语义，独立导出便于复用）。 */
+function buildClearRowHref(
   basePath: string,
   currentParams: URLSearchParams,
   rowKey: string,
-  optionValue: string,
-  isActive: boolean,
+  alsoClear: readonly string[] = [],
 ): string {
   const sp = cloneSearchParams(currentParams)
   sp.delete('page')
   sp.delete(rowKey)
-  if (!isActive) sp.set(rowKey, optionValue)
-  return buildHref(basePath, sp)
-}
-
-/** 底栏已选 chip 的 × ：清除这一行的参数（与再点已选项同一语义，独立导出便于复用）。 */
-function buildClearRowHref(basePath: string, currentParams: URLSearchParams, rowKey: string): string {
-  const sp = cloneSearchParams(currentParams)
-  sp.delete('page')
-  sp.delete(rowKey)
+  // 与 `buildFilterOptionHref` 同一口径：清「位置」必须连商圈一起清，否则
+  // 会留下一个所属行已经消失、只活在地址栏里的生效条件。
+  for (const key of alsoClear) sp.delete(key)
   return buildHref(basePath, sp)
 }
 
@@ -235,7 +236,14 @@ export default function FilterFormC(props: Readonly<{
               return (
                 <NavLink
                   key={option.value}
-                  href={buildOptionHref(basePath, currentParams, row.key, option.value, isActive)}
+                  href={buildFilterOptionHref(
+                    basePath,
+                    currentParams,
+                    row.key,
+                    option.value,
+                    isActive,
+                    row.clearsKeys,
+                  )}
                   className={isActive ? 'ls-filterc__opt ls-filterc__opt--active' : 'ls-filterc__opt'}
                   // 高基数：一行内每个候选值都各自渲染一个 Link，Next 默认的 hover/
                   // 进入视口自动预取会对每个候选值都打一次查询（OPT-026 定的规矩，
@@ -294,7 +302,7 @@ export default function FilterFormC(props: Readonly<{
             {picks.map(({ row, option }) => (
               <NavLink
                 key={row.key}
-                href={buildClearRowHref(basePath, currentParams, row.key)}
+                href={buildClearRowHref(basePath, currentParams, row.key, row.clearsKeys)}
                 className="ls-filterc__chip"
               >
                 {row.label}：{option.label}

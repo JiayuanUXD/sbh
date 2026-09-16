@@ -130,6 +130,15 @@ export type HomepageData = Readonly<{
 /** 搜索 facet：当前可见房源的分布统计 */
 export type SearchFacets = Readonly<{
   districts: ReadonlyArray<DistrictViewModel & { count: number }>
+  /**
+   * 商圈计数（OPT-099）。与 `districts` 同形，名称随扫描行而来（`LISTING_SCAN_POPULATE`
+   * 早已展开 `buildings.businessDistrict`），**不额外查词表**——因此不存在「facet 里
+   * 有这个商圈、词表里查不到名字」的错配。
+   *
+   * 消费方（房源列表「商圈」筛选行）只在已选定行政区时渲染该行：本数组在未选区时
+   * 会是整城的商圈全集，条数可达数十，平铺放不下。级联闸门在 `listing-filter-rows.ts`。
+   */
+  businessAreas: ReadonlyArray<DistrictViewModel & { count: number }>
   listingTypes: ReadonlyArray<{ value: string; count: number }>
   /** 建筑形态计数（OPT-096）：一行多形态各计一次 */
   buildingForms: ReadonlyArray<{ value: string; count: number }>

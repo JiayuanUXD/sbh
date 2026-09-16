@@ -3,7 +3,7 @@
 import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
+import { buildFilterOptionHref } from '@/lib/frontend/listing-url'
 import { countActivePicks, type FilterRow, type FilterSwitch } from './FilterFormC'
 import FilterPill from './FilterPill'
 
@@ -82,21 +82,6 @@ import FilterPill from './FilterPill'
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-
-/** 单个选项的 href：与 FilterFormC.buildOptionHref 同一语义（同一行内互斥、再点已选即取消）。 */
-function buildOptionHref(
-  basePath: string,
-  currentParams: URLSearchParams,
-  rowKey: string,
-  optionValue: string,
-  isActive: boolean,
-): string {
-  const sp = cloneSearchParams(currentParams)
-  sp.delete('page')
-  sp.delete(rowKey)
-  if (!isActive) sp.set(rowKey, optionValue)
-  return buildHref(basePath, sp)
-}
 
 export default function MobileFilterSheet(props: Readonly<{
   rows: readonly FilterRow[]
@@ -274,7 +259,14 @@ export default function MobileFilterSheet(props: Readonly<{
                   return (
                     <FilterPill
                       key={option.value}
-                      href={buildOptionHref(basePath, currentParams, row.key, option.value, isActive)}
+                      href={buildFilterOptionHref(
+                        basePath,
+                        currentParams,
+                        row.key,
+                        option.value,
+                        isActive,
+                        row.clearsKeys,
+                      )}
                       label={option.label}
                       active={isActive}
                       count={option.count}

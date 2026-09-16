@@ -52,6 +52,7 @@ function row(over: Partial<ListingScanRow> & { id: number }): ListingScanRow {
     lastEffAt: 1000,
     buildingId: 1,
     district: { id: 10, slug: 'jingan', name: '静安' },
+    businessDistrict: { id: 20, slug: 'nanjing-west-road', name: '南京西路' },
     businessDistrictId: 20,
     coordinates: null,
     ...over,
@@ -61,8 +62,15 @@ function row(over: Partial<ListingScanRow> & { id: number }): ListingScanRow {
 const parse = (q: string) => parseListingSearchInput(new URLSearchParams(q))
 
 describe('OPT-068 listing scan：扫描输入与缓存键', () => {
-  it('内存维度固定为区域 / 类型 / 建筑形态 / 价格单位 / 价格区间', () => {
-    expect([...SCAN_MEMORY_DIMENSIONS].sort()).toEqual(['buildingForm', 'district', 'listingType', 'price', 'priceUnit'])
+  it('内存维度固定为区域 / 商圈 / 类型 / 建筑形态 / 价格单位 / 价格区间', () => {
+    expect([...SCAN_MEMORY_DIMENSIONS].sort()).toEqual([
+      'buildingForm',
+      'businessArea',
+      'district',
+      'listingType',
+      'price',
+      'priceUnit',
+    ])
   })
 
   it('toScanInput 剥掉区域/类型/价格并归零页码与排序，其余条件原样保留', () => {
@@ -71,6 +79,7 @@ describe('OPT-068 listing scan：扫描输入与缓存键', () => {
     )
     const scan = toScanInput(input)
     expect(scan.district).toBeUndefined()
+    expect(scan.businessArea).toBeUndefined()
     expect(scan.listingType).toBeUndefined()
     expect(scan.priceUnit).toBeUndefined()
     expect(scan.priceMax).toBeUndefined()
@@ -83,6 +92,8 @@ describe('OPT-068 listing scan：扫描输入与缓存键', () => {
     const key = (q: string) => buildListingScanCacheKey(parse(q))
     expect(key('district=jingan&page=2&sort=newest')).toBe(key(''))
     expect(key('type=traditional-office&priceUnit=rmb-sqm-day&priceMin=3')).toBe(key(''))
+    // OPT-099：商圈转内存维度后不再分裂扫描缓存（改之前每个商圈各一份扫描）
+    expect(key('businessArea=nanjing-west-road')).toBe(key(''))
     expect(key('areaMin=200')).not.toBe(key(''))
     expect(key('q=x')).not.toBe(key(''))
   })
@@ -123,6 +134,45 @@ describe('OPT-068 listing scan：内存过滤与 facet', () => {
     expect(ids(applyMemoryFilters(formed, parse('form=detached')))).toEqual([11])
     expect(ids(applyMemoryFilters(formed, parse('form=detached&form=double-row')))).toEqual([11, 12])
     expect(ids(applyMemoryFilters(formed, parse('form=nope')))).toEqual([11, 12, 13])
+  })
+
+  it('OPT-099：按商圈过滤——楼盘无商圈的行在指定商圈时不入选', () => {
+    const LUJIAZUI = { id: 21, slug: 'lujiazui', name: '陆家嘴' }
+    const areaRows = [
+      row({ id: 31 }), // 默认 nanjing-west-road
+      row({ id: 32, businessDistrict: LUJIAZUI }),
+      row({ id: 33, businessDistrict: null }),
+    ]
+    expect(ids(applyMemoryFilters(areaRows, parse('businessArea=lujiazui')))).toEqual([32])
+    expect(ids(applyMemoryFilters(areaRows, parse('businessArea=nanjing-west-road')))).toEqual([31])
+    // 与转内存维度之前的 where 等价：不指定商圈时无商圈的行照常入选
+    expect(ids(applyMemoryFilters(areaRows, parse('')))).toEqual([31, 32, 33])
+  })
+
+  it('OPT-099：商圈 facet 带名称与计数，无商圈的行不计入', () => {
+    const LUJIAZUI = { id: 21, slug: 'lujiazui', name: '陆家嘴' }
+    const areaRows = [
+      row({ id: 31 }),
+      row({ id: 32, businessDistrict: LUJIAZUI }),
+      row({ id: 33, businessDistrict: LUJIAZUI }),
+      row({ id: 34, businessDistrict: null }),
+    ]
+    expect(computeFacets(areaRows).businessAreas).toEqual([
+      { id: 20, slug: 'nanjing-west-road', name: '南京西路', count: 1 },
+      { id: 21, slug: 'lujiazui', name: '陆家嘴', count: 2 },
+    ])
+  })
+
+  it('OPT-099：旧版缓存行缺 businessDistrict 时按「无商圈」处理，不抛', () => {
+    // 扫描行整份进 unstable_cache，发布后 revalidate 窗口内读到的是上一版写入的行，
+    // 没有这个字段。这条守的是「新版一上线列表页 500 到缓存过期为止」。
+    const legacy = { ...row({ id: 41 }) } as Record<string, unknown>
+    delete legacy.businessDistrict
+    const rowsWithLegacy = [legacy as unknown as ListingScanRow]
+    expect(() => computeFacets(rowsWithLegacy)).not.toThrow()
+    expect(computeFacets(rowsWithLegacy).businessAreas).toEqual([])
+    expect(ids(applyMemoryFilters(rowsWithLegacy, parse('businessArea=lujiazui')))).toEqual([])
+    expect(ids(applyMemoryFilters(rowsWithLegacy, parse('')))).toEqual([41])
   })
 
   it('OPT-096：facet 统计每个形态出现的行数（一行多形态各计一次）', () => {
