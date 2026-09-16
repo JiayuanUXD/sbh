@@ -59,7 +59,7 @@ const SOURCE = /chooffice\.com|ChoOffice|上海找办公室网/i
 const CONTACT_HEADING = /联系方式|招商专线|招商热线|招商电话|租赁热线|预约看房|立即入驻|招商中心|恭候垂询|联系我们/
 /** 联系「壳」：短段落里出现这些就是招商话术，不是内容 */
 const CONTACT_SHELL =
-  /致电|来电|垂询|联系.{0,6}经理|王经理|微信同号|已认证|招商热线|招商专线|招商电话|租赁热线|租赁咨询|看房时间|预约实地|预约线下|24h|24小时(?:直租|服务|专线|招商)|直租热线|直租专线/
+  /致电|来电|垂询|联系.{0,6}经理|王经理|微信同号|已认证|招商热线|招商专线|招商电话|租赁热线|租赁咨询|看房时间|预约实地|预约线下|24h|24小时(?:直租|服务|专线|招商)|直租热线|直租专线|预约电话|联系电话|咨询电话|直连电话|服务电话|本次招商由|全程负责|全程对接|全程1对1|业主直租|招商直租|官方直租|^[\s，,]*24小时(?:认证)?[，,。！!]?\s*$/
 /**
  * 招商话术词。含电话的句子按分句切开后，去掉电话分句，**剩下的分句再剥掉这些词**，
  * 若剩不下几个字就说明整句都是话术（「获取最新房源信息、定制方案及优惠政策」），整句删；
@@ -77,7 +77,7 @@ const SUBSTANTIVE_MIN = 8
 /** 「数字 + 单位」：有它的分句一律当事实，不做话术判定 */
 const FACT_UNIT = /\d+(?:\.\d+)?\s*(?:元|㎡|平方米|米|%|万|层|号|年|㎡)/
 /** 抠句子时的判据：句子里有电话，或有下面这些强联系词 */
-const CONTACT_SENTENCE = /致电|垂询|王经理|微信同号|招商热线|招商专线|招商电话|租赁热线|租赁咨询|拨打|联系人/
+const CONTACT_SENTENCE = /致电|来电|垂询|王经理|微信同号|招商热线|招商专线|招商电话|租赁热线|租赁咨询|拨打|联系人/
 
 /** paragraph / quote 去掉联系内容后剩余 ≤ 这么多字，视为「整节点就是联系方式」 */
 export const RESIDUAL_MAX = 12
@@ -201,6 +201,9 @@ function stripContactLines(node: LexicalNode): { changed: boolean; removedLines:
           if (dropped[i]) { droppedHere.push(c); return }
           if (contentLength(c) === 0) return
           if (/^\s*[（(]/.test(c) && dropped[i + 1]) { droppedHere.push(c); return }
+          // 括号体的尾巴：分句里有「）」却没有配对的「（」，说明括号头在前一个被丢的分句里
+          // （「招商电话：137…（已认证，| 业主直租）！」）——尾巴跟着走。
+          if (/[）)]/.test(c) && !/[（(]/.test(c) && dropped[i - 1]) { droppedHere.push(c); return }
           solid.push(c)
         })
         if (solid.length === 0) {
@@ -215,8 +218,9 @@ function stripContactLines(node: LexicalNode): { changed: boolean; removedLines:
         const rest = solid.join('').replace(/[，,·（(\s]+$/, '')
         return rest && !/[。！!；;？?]\s*$/.test(rest) ? rest + terminator : rest
       })
+      // 只剩标点的行（「（请提前来电预约…。）」按句切后剩一个「）」）不要
       const rest = keptSentences.join('').trim()
-      if (rest) kept.push(rest)
+      if (contentLength(rest) > 0) kept.push(rest)
     }
     const text = kept.join('\n')
     if (text.trim()) nextChildren.push({ ...child, text })

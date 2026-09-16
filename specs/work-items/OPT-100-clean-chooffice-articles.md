@@ -1,6 +1,6 @@
 # Task Packet：OPT-100 清洗 ChoOffice 导入资讯正文的来源 / 图片 / 联系方式
 
-> 状态：**计划已生成，待用户过目后写库**
+> 状态：**已执行**（2026-09-17 写库完成，97 篇清洗、3 篇软文下架；验收见 `artifacts/verification/OPT-100/README.md`）
 > 创建日期：2026-09-16
 > 来源：用户「去掉资讯详情页里的来源、图片和联系方式」
 
@@ -30,7 +30,7 @@ Articles 集合无 versions / drafts，`content` 是 `articles.content` 一列 j
 | 封面 | **保留**，只去正文里的图（封面同时是列表卡与 OG 图） |
 | 联系方式粒度 | **含电话的整个节点删；混排块只抠号码段** |
 | 整篇软文 | **不改写**（删段落只剩残骸），报告单列，建议下架——待用户定 |
-| 写库路径 | 本机拿不到生产 `DATABASE_URL`；用 CloudBase MCP 直接 `UPDATE articles SET content=…, updated_at=now()`。绕过了 `afterChange` 缓存失效钩子，代价是最多 5 分钟旧缓存（revalidate 300s）。脚本同时提供 `--execute`（Payload Local API）给有 DB 访问权的环境，两条路吃同一份 `plan.json` |
+| 写库路径 | 本机拿不到生产 `DATABASE_URL`；用 CloudBase MCP 直接 `UPDATE`。绕过了 `afterChange` 缓存失效钩子，代价是最多 5 分钟旧缓存（revalidate 300s）。脚本同时提供 `--execute`（Payload Local API）给有 DB 访问权的环境。**实施时改为不重传整份 JSON**：把计划表达成顶层节点的删除 / 替换编辑脚本，用 `jsonb_array_elements WITH ORDINALITY` 在库内重组，SQL 从 1.1MB 降到 70kB；每条带 `md5(content::text)` 乐观锁 |
 | 孤儿 Media | 255 张正文图对应的 Media 记录**不删**（仓库红线：不物理删除主数据；它们只是变成无引用上传件），留作独立清理 |
 
 ## 4. 做法
@@ -57,11 +57,11 @@ Articles 集合无 versions / drafts，`content` 是 `articles.content` 一列 j
 
 - [x] 单测 29 条（每条规则一个 + 不误伤 + 不改入参 + 幂等）
 - [x] 对生产数据 dry-run，三类高风险删除人工逐条审过
-- [ ] 用户过目 `report.md`
-- [ ] 写库前用 SQL 再导一份 `backup-before.sql.json` 与公开 API 拉的备份比对（同一份数据的两条取径）
-- [ ] 分批 `UPDATE`（每批 ≤10 篇），每批后 `SELECT count(*)` 核对
-- [ ] 写库后：线上 API 重扫（电话 / 来源 / upload 全 0）；Playwright 开 3 篇详情页截图；等 5 分钟缓存过期后再扫一次页面
-- [ ] 三篇软文的处置（下架 / 保留）由用户定
+- [x] 用户过目 `report.md`（2026-09-16 裁定：软文下架，其余写库）
+- [x] 写库前 SQL 备份与 API 备份 100/100 结构一致；md5 本地/库端一致
+- [x] 分批 `UPDATE`（jsonb 编辑脚本 + md5 乐观锁），每批 API 回读 deep-equal：5 + 30 + 29 + 33 = 97/97
+- [x] 写库后线上 API 全量扫描：upload / 电话 / 来源 / 徽章全 0；Playwright 页面复测 3 篇；缓存过期后页面为新
+- [x] 三篇软文 status → draft（直开 404，列表不出现）
 
 ## 7. 不在本项内
 
