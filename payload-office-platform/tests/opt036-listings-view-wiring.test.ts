@@ -156,12 +156,22 @@ beforeEach(() => {
 })
 
 describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口径）', () => {
-  it('三份 facet 全部走剥离版本，剥的维度分别是 priceUnit / district / listingType', async () => {
+  it('facet 全部走剥离版本：priceUnit / district(+businessArea) / businessArea / listingType', async () => {
     await renderView('')
     const dimensionSets = getCachedSearchFacetsIgnoring.mock.calls.map((call) => call[2] as string[])
     expect(dimensionSets).toEqual(
-      expect.arrayContaining([['priceUnit'], ['district'], ['listingType']]),
+      expect.arrayContaining([
+        ['priceUnit'],
+        // OPT-099：区域候选必须**连商圈一起剥**——只剥 district 的话，选了商圈之后
+        // 其余区计数全为 0、位置行塌成只剩已选那一个区，用户再也切不走。
+        ['district', 'businessArea'],
+        // 商圈候选**只剥 businessArea**，district 留着，级联正是靠它成立。两者刻意不同。
+        ['businessArea'],
+        ['listingType'],
+      ]),
     )
+    // 守住「区域候选不再是只剥 district」：那是走查抓到的真实缺陷，回退就会复活。
+    expect(dimensionSets).not.toContainEqual(['district'])
   })
 
   it('绝不退回未剥离的 getCachedSearchFacets（退回即让单位提示条静默消失）', async () => {
