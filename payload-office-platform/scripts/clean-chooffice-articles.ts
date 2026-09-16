@@ -372,11 +372,20 @@ export function cleanArticleContent(
   // 「灵活空间方案」「已入驻核心企业矩阵」这类 h3 下面直接接下一个同级标题，疑似导入丢了表格）。
   // 两者都删——留一个光秃秃的标题是同一个视觉缺陷——但报告里分开写，审阅者能看出哪些
   // 不是本次清洗引起的。
+  // 「章标题」（一、二、…；1. 2.）的章一直延伸到**下一个章标题**，不看层级——导入件常把章下
+  // 的小节也标成 h2（「六、为什么选择西岸中环？」后面紧跟 h2「战略价值：…」），按层级判会把
+  // 一整章的标题当空章节删掉。其余标题仍按「到下一个同级或更高级标题为止」。
+  const isChapterHeading = (n: LexicalNode): boolean =>
+    headingLevel(n) > 0 && /^\s*(?:[一二三四五六七八九十]+、|\d+[、.．])/.test(textOf(n))
   const sectionHasContent = (list: LexicalNode[], i: number): boolean => {
     const level = headingLevel(list[i])
+    const chapter = isChapterHeading(list[i])
     for (let j = i + 1; j < list.length; j++) {
       const lv = headingLevel(list[j])
-      if (lv > 0 && lv <= level) break
+      // 章：只被「同级或更高级的章标题」截断——h2「二、五大亮点」下面的 h3「1. 区位优势」是小节，
+      // 不能把章截成空的。非章标题：到下一个同级或更高级标题为止。
+      const stop = chapter ? isChapterHeading(list[j]) && lv <= level : lv > 0 && lv <= level
+      if (stop) break
       if (isContentNode(list[j])) return true
     }
     return false

@@ -1,7 +1,7 @@
 # OPT-100 清洗计划（dry-run）
 
 - 篇数：100，有改动：97
-- 删除计数：{"upload":255,"contact-node":172,"source":98,"already-empty-heading":55,"hr":113,"contact-line":207,"empty-heading":6}
+- 删除计数：{"upload":255,"contact-node":172,"source":98,"already-empty-heading":54,"hr":113,"contact-line":207,"empty-heading":6}
 
 ## ⚠ 整篇 ChoOffice 软文（未处理，建议下架）
 
@@ -1386,7 +1386,7 @@
 
 ### chooffice-6346 — 西岸中环（Westbund Central）徐汇滨江·超甲级写字楼
 
-节点 81 → 70
+节点 81 → 71
 
 - [contact-line] #0 quote：招商热线
 - [contact-line] #0 quote：021-51306070 / 13774382509
@@ -1405,5 +1405,4 @@
 - [contact-line] #76 quote：强烈建议有意向的企业负责人立即致电 021-51306070 / 13774382509 王经理 ，获取 最新房源信息、整栋定制方案及入驻优惠政策 。
 - [contact-line] #78 paragraph：021-51306070 / 13774382509 王经理 恭候垂询！
 - [source] #80 paragraph：???ChoOffice?https://www.chooffice.com/6346.html?
-- [already-empty-heading] #32 heading/h2：六、为什么选择西岸中环？
 - [hr] #79 horizontalrule

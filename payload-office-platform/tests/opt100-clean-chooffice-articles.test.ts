@@ -174,6 +174,28 @@ describe('OPT-100 清洗：收尾', () => {
     expect(kinds(r)).toEqual(['already-empty-heading'])
   })
 
+  it('章标题（六、…）的章延伸到下一个章标题，小节被导成同级 h2 也不会让它变成空章节', () => {
+    const r = cleanArticleContent(
+      doc(h('h2', '六、为什么选择西岸中环？'), h('h2', '战略价值：徐汇滨江 = 下一个陆家嘴'), p(t('徐汇滨江是核心段。')), h('h2', '七、常见问题'), p(t('Q：…'))),
+    )
+    expect(texts(r)[0]).toBe('六、为什么选择西岸中环？')
+    expect(r.report.removals).toEqual([])
+  })
+
+  it('章下面是「1. 2. 3.」编号的 h3 小节 + 列表：章有内容，一个都不删', () => {
+    const r = cleanArticleContent(
+      doc(h('h2', '二、五大核心招商亮点'), h('h3', '1. 不可复制的区位优势'), ul(li('双枢纽加持：步行可达虹桥火车站')), h('h3', '2. 国际化甲级写字楼品质'), ul(li('层高 4.2 米')), h('h2', '三、租金')),
+    )
+    expect(r.report.removals.map((x) => x.kind)).toEqual(['already-empty-heading']) // 只有「三、租金」是真空的
+    expect(texts(r)[0]).toBe('二、五大核心招商亮点')
+    expect(texts(r)).toContain('1. 不可复制的区位优势')
+  })
+
+  it('章标题下面只有联系方式：联系方式删光后章标题也删（八、立即入驻…）', () => {
+    const r = cleanArticleContent(doc(h('h2', '一、总览'), p(t('正文')), h('h2', '八、下一步'), h('h3', '招商热线：13774382509 王经理'), h('h2', '九、结语'), p(t('完'))))
+    expect(texts(r)).toEqual(['一、总览', '正文', '九、结语', '完'])
+  })
+
   it('空章节：标题之下直到下一个同级标题之间没内容就删，有内容的不删', () => {
     const r = cleanArticleContent(
       doc(h('h2', '六、招商中心联系方式'), p(t('招商电话：13774382509 王经理')), h('h2', '七、交通'), p(t('地铁 2 号线')), h('h2', '八、结语'), h('h3', '子标题'), p(t('正文'))),
