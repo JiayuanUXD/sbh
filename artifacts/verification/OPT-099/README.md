@@ -151,7 +151,7 @@ headless Playwright **复现不出**这个场景：客户端导航后它的虚�
 
 ---
 
-## 走查中顺带发现的既有缺陷（**不在本项内**，已另立任务）
+## 走查中顺带发现的既有缺陷（**不在本项内**，已由 PR #193 `e2dbeb1` 单独修复并合入）
 
 旧式无城市段的列表链接在 307 重定向时会**静默丢掉 `district`**，而 `type` 保留：
 
@@ -160,7 +160,7 @@ https://shangban.cc/listings?district=changning  →  307 → /shanghai/listings
 https://shangban.cc/listings?type=coworking      →  307 → /shanghai/listings?type=coworking（保留）
 ```
 
-生产站（master 基线，无本次改动）与本地 dev 表现一致，**与 OPT-099 无关**。
+发现时生产站（master 基线 `28dfecd`）与本地 dev 表现一致，**与 OPT-099 无关**；本分支已 rebase 到含该修复的 master 之上。
 后果：多城市路由上线前分享出去的带区域筛选的链接，点开会得到全量结果且页面无任何提示。
 推测与「路由层拿城市区域词表校验 district、重定向时城市尚未确定」有关（`type` 走静态白名单故幸存），
 但未验证，不要当结论。
