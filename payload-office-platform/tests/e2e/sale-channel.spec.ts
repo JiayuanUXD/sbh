@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { expectCanonical } from './_canonical'
+
 /**
  * 出售频道冒烟（OPT-045）。
  *
@@ -34,6 +36,8 @@ test.describe('出售频道', () => {
     // 前者兜住"以后有人把标题也渲染进正文"，后者才是当下真正生效的那条。
     await expect(page.locator('body')).not.toContainText('页面未找到')
     await expect(page.locator('body')).not.toContainText('这个地址不存在')
+    // 开关开启时 /sale 307 到 /shanghai/sale，goto 会跟随，canonical 是带前缀的那条。
+    await expectCanonical(page, routingEnabled ? '/shanghai/sale' : '/sale')
   })
 
   test('/shanghai/sale 可达且不是 404', async ({ page }) => {
@@ -43,6 +47,22 @@ test.describe('出售频道', () => {
     const response = await page.goto('/shanghai/sale')
     expect(response?.status()).toBe(200)
     await expect(page.locator('body')).not.toContainText('页面未找到')
+    await expectCanonical(page, '/shanghai/sale')
+  })
+
+  test('带筛选的出售频道 canonical 指向频道自身，不并入租赁列表', async ({ page }) => {
+    // 2026-09-16 缺陷：`[city]/sale` 的 pageType 借用了 'listings'，
+    // `/shanghai/sale?…` 的 canonical 落到 `/shanghai/listings?…`。频道多数时候 noindex
+    // 把它压住，一过 shouldIndexSaleChannel 门槛就会被搜索引擎并进租赁列表。
+    // 用 areaMin（静态词表、不依赖 seed）加一个未知键，同时验「路径是 /sale」与
+    // 「query 走规范化后的那份」。开关开启时经 307 落到带前缀的 URL，query 原样透传
+    //（#193 起），unknown 的丢弃由目标路由的 canonical 完成。
+    const response = await page.goto('/sale?areaMin=100&unknown=drop')
+    expect(response?.status()).toBe(200)
+    await expectCanonical(
+      page,
+      routingEnabled ? '/shanghai/sale?areaMin=100' : '/sale?areaMin=100',
+    )
   })
 
   test('页面加载无客户端报错', async ({ page }) => {

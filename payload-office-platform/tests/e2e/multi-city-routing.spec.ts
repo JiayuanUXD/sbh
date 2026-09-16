@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
+import { expectCanonical } from './_canonical'
 import { blockUmamiScript } from './_umami-stub'
 
 const routingEnabled = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
@@ -49,13 +50,6 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => {
   expect(browserErrors.get(page) ?? []).toEqual([])
 })
-
-async function expectCanonical(page: Page, expected: string): Promise<void> {
-  const href = await page.locator('link[rel="canonical"]').getAttribute('href')
-  expect(href).not.toBeNull()
-  const canonical = new URL(href!, page.url())
-  expect(`${canonical.pathname}${canonical.search}`).toBe(expected)
-}
 
 async function expectRedirect(
   request: APIRequestContext,

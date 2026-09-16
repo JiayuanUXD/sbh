@@ -103,6 +103,7 @@ import CityHomePage, {
 import CityListingDetailPage, { generateMetadata as generateCityListingDetailMetadata } from '@/app/(frontend)/[city]/listings/[slug]/page'
 import CityListingsPage, { generateMetadata as generateListingsMetadata } from '@/app/(frontend)/[city]/listings/page'
 import CityBuildingsPage, { dynamic as buildingsDynamic, generateMetadata as generateBuildingsMetadata } from '@/app/(frontend)/[city]/buildings/page'
+import { generateMetadata as generateSaleMetadata } from '@/app/(frontend)/[city]/sale/page'
 import LegacyHomePage from '@/app/(frontend)/page'
 import LegacyListingsPage from '@/app/(frontend)/listings/page'
 import LegacyBuildingsPage from '@/app/(frontend)/buildings/page'
@@ -342,6 +343,40 @@ describe('city route boundaries', () => {
     expect((page.props as { input: { district?: unknown } }).input.district).toBeUndefined()
     // 视图拿到的必须就是查询用的那一份，不能是两个来源
     expect((page.props as { input: unknown }).input).toBe(queried)
+  })
+
+  // ── 出售频道 canonical 自指（2026-09-16）────────────────────────────────────
+  // `[city]/sale` 曾把 pageType 传成 'listings'，canonical 指向租赁列表。频道多数时候
+  // noindex 把它压住了，过了 shouldIndexSaleChannel 门槛就会被并进租赁列表。
+  // 守卫落在路由层：只锁 buildCityPageMetadata 的话，页面改回旧 pageType 照样全绿。
+
+  it('出售频道：canonical 指向 /[city]/sale 自身，而不是并入租赁列表', async () => {
+    process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
+    io.getCachedSearchListings.mockResolvedValue({ docs: [], pagination: { page: 1, totalPages: 1, totalDocs: 3 } })
+
+    await expect(generateSaleMetadata({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({}),
+    })).resolves.toMatchObject({
+      title: '上海写字楼出售 · 商办买卖',
+      alternates: { canonical: '/shanghai/sale' },
+      openGraph: { url: 'https://example.test/shanghai/sale' },
+      robots: { index: true, follow: true },
+    })
+    // 可索引门槛读的是出售口径的计数，不能查成租赁
+    expect(io.getCachedSearchListings).toHaveBeenCalledWith('shanghai', '', { page: 1 }, 'sale')
+  })
+
+  it('出售频道：开关关闭时 canonical 归还给无前缀 /sale 并 noindex', async () => {
+    io.getCachedSearchListings.mockResolvedValue({ docs: [], pagination: { page: 1, totalPages: 1, totalDocs: 3 } })
+
+    await expect(generateSaleMetadata({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({}),
+    })).resolves.toMatchObject({
+      alternates: { canonical: '/sale' },
+      robots: { index: false, follow: true },
+    })
   })
 
   it('uses the first Next.js array query value for legacy and prefixed listings', async () => {

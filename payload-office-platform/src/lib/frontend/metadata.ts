@@ -45,7 +45,7 @@ export type BuildPageMetadataInput = Readonly<{
   robots?: 'index' | 'noindex'
 }>
 
-export type CityMetadataPageType = 'home' | 'listings' | 'buildings'
+export type CityMetadataPageType = 'home' | 'listings' | 'buildings' | 'sale'
 
 export type BuildCityPageMetadataInput = Readonly<{
   city: CityContext
@@ -126,6 +126,13 @@ const CITY_PAGE_COPY: Readonly<Record<Exclude<CityMetadataPageType, 'home'>, Rea
   buildings: {
     title: (cityName) => `${cityName}写字楼`,
     description: (cityName) => `${cityName}写字楼与办公楼盘信息。`,
+  },
+  // 出售频道是 `/[city]/listings` 同一套组件的另一个实例，但 canonical 必须指向
+  // 频道自身：借用 'listings' 会让 `/shanghai/sale?…` 的 canonical 落到租赁列表，
+  // 一旦过了 shouldIndexSaleChannel 门槛，搜索引擎会把出售频道并进租赁列表。
+  sale: {
+    title: (cityName) => `${cityName}写字楼出售 · 商办买卖`,
+    description: (cityName) => `${cityName}写字楼、独栋办公与商办物业出售房源。`,
   },
 }
 
