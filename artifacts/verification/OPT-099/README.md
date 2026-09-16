@@ -114,7 +114,10 @@ headless Playwright **复现不出**这个场景：客户端导航后它的虚�
 
 - E3 的 chip 印出的是**商圈名「虹桥」**而不是维度名 —— 词表随扫描行而来，零额外查询
 - E4 的链接 href 实测为 `/shanghai/listings?district=xuhui`，**`businessArea` 已被级联清除**
-- 375 移动抽屉同样出现「商圈」行（行数据驱动，两端同一份 `rows`）
+- 375 移动抽屉（`/shanghai/listings?district=changning`）：行序为 位置 / **商圈** / 类型 / 面积下限，
+  「长宁 4」为激活态；在抽屉里点「虹桥」后 URL 变为 `?district=changning&businessArea=hongqiao-area`、
+  底栏变「查看 4 套」，且 **抽屉保持打开**（`.agent/frontend.md` 点名的「每选一个条件抽屉就关一次」
+  那条不变量未被破坏）
 
 截图：`05-filter-business-area-1440.png` / `05-filter-business-area-375.png`
 
@@ -144,3 +147,20 @@ headless Playwright **复现不出**这个场景：客户端导航后它的虚�
 ④ 的真实收益只有在**有「比 16:10 更高」的封面**的环境才看得到。本次上线后，
 用同一份 Playwright 脚本复测生产站 `/shanghai/listings`，预期
 「盒比例 8 种 → 1 种、卡片高 2 档 → 1 档」。
+
+
+---
+
+## 走查中顺带发现的既有缺陷（**不在本项内**，已另立任务）
+
+旧式无城市段的列表链接在 307 重定向时会**静默丢掉 `district`**，而 `type` 保留：
+
+```
+https://shangban.cc/listings?district=changning  →  307 → /shanghai/listings              （丢了）
+https://shangban.cc/listings?type=coworking      →  307 → /shanghai/listings?type=coworking（保留）
+```
+
+生产站（master 基线，无本次改动）与本地 dev 表现一致，**与 OPT-099 无关**。
+后果：多城市路由上线前分享出去的带区域筛选的链接，点开会得到全量结果且页面无任何提示。
+推测与「路由层拿城市区域词表校验 district、重定向时城市尚未确定」有关（`type` 走静态白名单故幸存），
+但未验证，不要当结论。
