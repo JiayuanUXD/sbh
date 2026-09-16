@@ -529,7 +529,15 @@
 
 .ls-toolbar__right { flex: none; display: flex; align-items: baseline; gap: 16px; }
 
-.ls-toolbar__sortlabel { font-size: 13px; color: var(--ink-3); letter-spacing: normal; }
+/* 排序项分组。可见的「排序」文案已按用户要求去掉（OPT-099，`.ls-toolbar__sortlabel`
+   随之删除），分组壳只为保住可访问名称（`role="group" aria-label="排序"`）。
+   必须自己声明 flex + gap：`.ls-toolbar__right` 的 gap 只作用于直接子项，
+   多包一层而不补 gap 会让四个排序项贴成一串。 */
+/* flex-wrap 是 375 的刚需：分组变成 `.ls-toolbar__right` 的单个 flex 子项后，
+   外层那条 `@media(max-width:767) .ls-toolbar__right{flex-wrap:wrap}` 只能换行
+   「整个分组」，管不到分组内部的四个排序项。 */
+.ls-toolbar__sortgroup { display: flex; align-items: baseline; flex-wrap: wrap;
+  gap: 8px 16px; }
 
 .ls-toolbar__sort { font-size: 13px; font-weight: 400; color: var(--ink-2); letter-spacing: normal;
   transition: color var(--duration-base) var(--ease-apple); }
