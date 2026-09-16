@@ -132,20 +132,28 @@ export default function ResultToolbar(props: Readonly<{
         显示第 {rangeStart}–{rangeEnd} {noun}，共 {totalDocs} {totalNoun ?? noun}
       </span>
       <span className="ls-toolbar__right">
-        <span className="ls-toolbar__sortlabel">排序</span>
-        {sorts.map((sort) => {
-          const isActive = sort.value === activeSort
-          return (
-            <NavLink
-              key={sort.value}
-              href={buildSortHref(basePath, currentParams, sort.value, canonicalDefaultSort)}
-              aria-current={isActive ? 'true' : undefined}
-              className={isActive ? 'ls-toolbar__sort ls-toolbar__sort--active' : 'ls-toolbar__sort'}
-            >
-              {sort.label}
-            </NavLink>
-          )
-        })}
+        {/* 可见的「排序」标签已按用户要求去掉（OPT-099），但**可访问名称不能跟着
+            一起没**：去掉那个 span 之后，这几条链接在屏幕阅读器里就只剩「推荐排序 /
+            面积最大 / ……」四个孤立链接，读不出它们是一组、是干什么的。因此把它们
+            包进一个具名分组——楼盘详情页供给区（BuildingSupplyBrowser）本来就是
+            这么写的，这里补齐后两处形态一致。
+            分组自己声明 flex + gap：`.ls-toolbar__right` 的 16px gap 只作用于它的
+            直接子项，多包一层会把各排序项之间的间距一起吃掉。 */}
+        <span className="ls-toolbar__sortgroup" role="group" aria-label="排序">
+          {sorts.map((sort) => {
+            const isActive = sort.value === activeSort
+            return (
+              <NavLink
+                key={sort.value}
+                href={buildSortHref(basePath, currentParams, sort.value, canonicalDefaultSort)}
+                aria-current={isActive ? 'true' : undefined}
+                className={isActive ? 'ls-toolbar__sort ls-toolbar__sort--active' : 'ls-toolbar__sort'}
+              >
+                {sort.label}
+              </NavLink>
+            )
+          })}
+        </span>
         {view ? (
           <>
             <span className="ls-toolbar__divider" aria-hidden="true" />

@@ -125,6 +125,19 @@ export default function SiteNav({
   servicePhone?: ServicePhone | null
 }>) {
   const [open, setOpen] = useState(false)
+  /**
+   * OPT-099：桌面下拉在「点了子项、已经跳过去了」之后仍然挂着不收。
+   *
+   * 实测（生产站 1440）：点「找楼盘 → 租赁」跳到 /shanghai/listings 之后，
+   * `.site-nav__menu` 仍是 visibility:visible / opacity:1，且 `.site-nav__group`
+   * 的 `:hover` 与 `:focus-within` **同时**仍然命中——指针没动过，而浏览器点击
+   * 链接本来就会给它焦点。纯 CSS 展开没有「导航已发生」这个信号可用。
+   *
+   * 处置：只叠加一个抑制态，**不改写成 state 驱动的下拉**——现有键盘流程
+   * （Tab 到父项即展开、继续 Tab 进子项）整个依赖 `:focus-within`，重写等于
+   * 重做全部键盘行为。值存被抑制的那一项的 `item.href`，同一时刻只可能有一个。
+   */
+  const [suppressedGroup, setSuppressedGroup] = useState<string | null>(null)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
   const drawerRef = useRef<HTMLDivElement | null>(null)
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
@@ -226,8 +239,26 @@ export default function SiteNav({
           if (children.length === 0) return <React.Fragment key={item.href}>{link}</React.Fragment>
           // 下拉靠 CSS :hover / :focus-within 展开（styles.css .site-nav__group），
           // 不引入 state：父项本身仍是可点的链接，键盘 Tab 到父项即展开、继续 Tab 进子项。
+          const releaseSuppression = () =>
+            setSuppressedGroup((current) => (current === item.href ? null : current))
           return (
-            <div key={item.href} className="site-nav__group">
+            <div
+              key={item.href}
+              className="site-nav__group"
+              data-nav-suppressed={suppressedGroup === item.href ? '' : undefined}
+              // 挂在 group 上而不是逐个链接上：父项自己也是会跳转的链接，点它同样
+              // 应该收起。`e.detail > 0` 才抑制——那是指针激活；键盘 Enter 的 click
+              // 事件 detail 恒为 0，此时焦点还在菜单里，收起来是错的（而且会把焦点
+              // 留在一个 visibility:hidden 的元素上）。
+              onClick={(e) => {
+                if (e.detail > 0) setSuppressedGroup(item.href)
+              }}
+              // 指针离开即解除：移开再移回来要能重新展开。
+              onPointerLeave={releaseSuppression}
+              // React 的 onFocus 走的是 focusin（会冒泡）：焦点进到本组里说明用户
+              // 在用键盘，此时必须让菜单可见，否则 Tab 会走进看不见的子项。
+              onFocus={releaseSuppression}
+            >
               {link}
               <ul className="site-nav__menu" aria-label={`${item.label}分类`}>
                 {children.map((child) => (

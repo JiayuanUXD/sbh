@@ -134,8 +134,15 @@ export function buildListingFilterDimensions(params: Readonly<{
   districts: readonly DistrictViewModel[]
   /** 见 `buildListingFilterRows` 同名参数注释。 */
   priceDimensionLabel: string
+  /**
+   * 商圈词表（OPT-099），来自剥掉 `businessArea` 维度后的 facet。**可选**：本函数
+   * 的调用契约是「在取数**之前**就能算出维度清单」（见上方注释），那一路调用拿不到
+   * facet，此时商圈仍回落成「叫不出名字」的既有行为。取数之后的调用（`buildListingFilterRows`）
+   * 传入它，chip 才能印出商圈名而不是只印维度名。
+   */
+  businessAreas?: readonly DistrictViewModel[]
 }>): readonly ListingFilterDimensionSpec[] {
-  const { input, districts, priceDimensionLabel } = params
+  const { input, districts, priceDimensionLabel, businessAreas } = params
   const activeDistrict = firstOrUndefined(input.district)
   const activeType = firstOrUndefined(input.listingType)
   const activeForm = firstOrUndefined(input.buildingForm)
@@ -223,7 +230,8 @@ export function buildListingFilterDimensions(params: Readonly<{
       },
     },
     {
-      // 商圈 / 地铁两个维度是本页唯一「词表型却拿不到词表」的一类：
+      // 地铁仍是本页唯一「词表型却拿不到词表」的一类；商圈已于 OPT-099 接上词表，
+      // 下面这段的历史成因保留，读的时候注意它现在只对 `metro` 成立：
       // URL 上是 `locations` 的 slug（`buildListingWhere` 按
       // `building.businessDistrict.slug` / `building.nearestMetro.slug` 下推），
       // 而本页从来不加载商圈 / 地铁站名表（`getCachedListingDistrictOptions`
@@ -237,13 +245,19 @@ export function buildListingFilterDimensions(params: Readonly<{
       //     「URL 写着筛了、结果却是全量」。
       // 取两者的交集：条件照旧生效、照旧可见可清除（`active: true`），
       // 但 chip 与退路只印维度名「商圈」/「地铁」，不印取值。
-      // 要让它们能说出名字，得先给本页接上商圈 / 地铁站词表（各多一次查询），
-      // 那是单独的产品决定，不在本次修复范围内。
+      // 商圈那一半已经解除（OPT-099）：`LISTING_SCAN_POPULATE` 本来就展开了
+      // `buildings.businessDistrict`，商圈的 name / slug 一直在扫描结果里，
+      // 只是被丢成了一个裸 id——补上它之后**零额外查询**就有了词表。
+      // 地铁站没有同款捷径（行上根本没有这个关联），维持原样。
       dimension: 'businessArea',
       label: '商圈',
       paramKeys: ['businessArea'],
       active: activeBusinessArea != null,
-      activeText: null,
+      // OPT-099 起商圈**有词表了**（见上方 `businessAreas` 参数注释）：名称随扫描行
+      // 而来，不必额外查库。判据仍与 `district` 完全一致——`vocabularyName` 查不到
+      // 就返回 null，**绝不回落成 URL 上的 slug**。两种查不到的情形：词表没传
+      // （取数前的那一路调用），或者取值确实不存在于当前结果集的商圈分布里。
+      activeText: vocabularyName(activeBusinessArea, businessAreas ?? []),
     },
     {
       /** 与 `businessArea` 同一处置，理由见上一个维度的注释。 */
@@ -290,6 +304,14 @@ export function buildListingFilterRows(params: Readonly<{
   typeCounts: ReadonlyMap<string, number>
   /** 建筑形态计数（OPT-096）；缺省视为全 0（只剩已选项会渲染）。 */
   buildingFormCounts?: ReadonlyMap<string, number>
+  /**
+   * 商圈候选（OPT-099）——剥掉 `businessArea` 维度后的 facet，**其余条件全部保留**。
+   *
+   * 正因为「其余条件保留」，级联是白送的：算这份 facet 时 `district` 仍然生效，
+   * 得到的商圈分布本就只含当前选中区里有房源的那些，不需要再查一次商圈的父子关系。
+   * 计数也直接取自 facet 项，不另传一张 count 表。
+   */
+  businessAreaFacets?: ReadonlyArray<DistrictViewModel & { count: number }>
   /** 价格行标签，租售语境不同（「租金上限」/「总价上限」），从 CHANNEL_COPY 取。 */
   priceRowLabel: string
   /**
@@ -302,10 +324,12 @@ export function buildListingFilterRows(params: Readonly<{
 }>): ListingFilterRowsResult {
   const { input, districts, districtCounts, typeCounts, priceRowLabel, priceDimensionLabel } = params
   const buildingFormCounts = params.buildingFormCounts ?? new Map<string, number>()
+  const businessAreaFacets = params.businessAreaFacets ?? []
 
   const activeDistrict = firstOrUndefined(input.district)
   const activeType = firstOrUndefined(input.listingType)
   const activeForm = firstOrUndefined(input.buildingForm)
+  const activeBusinessArea = firstOrUndefined(input.businessArea)
   const activePriceMax = input.priceMax != null ? String(input.priceMax) : undefined
   const activeAreaMin = input.areaMin != null ? String(input.areaMin) : undefined
 
@@ -341,6 +365,29 @@ export function buildListingFilterRows(params: Readonly<{
         : {}),
     }))
 
+  /**
+   * 商圈候选（OPT-099）——**级联闸门在这里**。
+   *
+   * 未选行政区时恒为空数组，`FilterFormC` 的「无候选值的行不渲染」规则会把整行隐藏。
+   * 这不是偷懒的降级：生产库 294 个商圈节点，整城平铺进一条纯文本行放不下，而列表页
+   * 是「密度优先、结果比控件重要」的筛选页（`.agent/frontend.md` 列表页小节）。
+   * 商圈从属于行政区，先收窄到区再选商圈，与 Locations 的树形结构也一致。
+   *
+   * 计数为 0 的候选不渲染、当前已选项永远保留 —— 与 `districtOptions` 同一口径。
+   * 注意「已选项永远保留」在这里**够不着** `activeBusinessArea` 却没选区的情形：
+   * 那时整行不渲染，该条件由编排层补一个 chip 兜住（`rowShowsActivePick` 判为未覆盖），
+   * 这正是既有的「生效却没有任何一行能显示的条件必须补 chip」机制在工作。
+   */
+  const businessAreaOptions = activeDistrict
+    ? businessAreaFacets
+        .filter((area) => area.slug === activeBusinessArea || area.count > 0)
+        .map((area) => ({
+          value: area.slug,
+          label: area.name,
+          ...(area.count > 0 ? { count: area.count } : {}),
+        }))
+    : []
+
   const priceBuckets = input.priceUnit ? PRICE_MAX_BUCKETS[input.priceUnit] : []
   const unitText = input.priceUnit ? priceUnitLabel(input.priceUnit) : ''
   const priceOptions = priceBuckets.map((threshold) => ({
@@ -354,7 +401,23 @@ export function buildListingFilterRows(params: Readonly<{
   }))
 
   const rows: FilterRow[] = [
-    { key: 'district', label: '位置', options: districtOptions, ...(activeDistrict ? { activeValue: activeDistrict } : {}) },
+    {
+      key: 'district',
+      label: '位置',
+      options: districtOptions,
+      // 切区 / 清空区都必须连商圈一起清：商圈从属于行政区，留着上一个区的商圈
+      // 就是「静安 + 陆家嘴」这种恒空组合，而且商圈行此刻会整行消失，用户看不到
+      // 是哪个条件把结果清空的。语义见 `buildFilterOptionHref` 的 `alsoClear`。
+      clearsKeys: ['businessArea'],
+      ...(activeDistrict ? { activeValue: activeDistrict } : {}),
+    },
+    // 商圈紧跟位置：两者是同一个「在哪儿」的问题，由粗到细。
+    {
+      key: 'businessArea',
+      label: '商圈',
+      options: businessAreaOptions,
+      ...(activeBusinessArea ? { activeValue: activeBusinessArea } : {}),
+    },
     { key: 'type', label: '类型', options: typeOptions, ...(activeType ? { activeValue: activeType } : {}) },
     { key: 'form', label: '建筑形态', options: formOptions, ...(activeForm ? { activeValue: activeForm } : {}) },
     { key: 'priceMax', label: priceRowLabel, options: priceOptions, ...(activePriceMax ? { activeValue: activePriceMax } : {}) },
@@ -363,7 +426,15 @@ export function buildListingFilterRows(params: Readonly<{
 
   // 维度清单与计数无关，交给独立的 `buildListingFilterDimensions`——编排层需要在
   // 取数之前就拿到它（见该函数注释）。这里仍然返回同一份，调用方两者取其一即可。
-  return { rows, dimensions: buildListingFilterDimensions({ input, districts, priceDimensionLabel }) }
+  return {
+    rows,
+    dimensions: buildListingFilterDimensions({
+      input,
+      districts,
+      priceDimensionLabel,
+      businessAreas: businessAreaFacets,
+    }),
+  }
 }
 
 /** 全部可被「清除全部条件」清掉的维度——不含 priceUnit，理由见 CityListingsView。 */

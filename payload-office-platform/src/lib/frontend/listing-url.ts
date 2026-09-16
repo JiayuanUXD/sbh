@@ -15,7 +15,13 @@ import type { PriceDisplayUnit } from '@/domain/public-catalog'
  *   - `cloneSearchParams` / `buildHref`（本文件）与 FilterFormC 私有的
  *     `cloneParams` / `toHref` 是**同一个原语**（逐行相同实现），因此收敛到
  *     这里，FilterFormC 改为从这里导入，不再自己重复定义。
- *   - `buildPriceUnitHref`（本文件）与 FilterFormC 的 `buildOptionHref` **语义
+ *   - `buildFilterOptionHref`（本文件）是 OPT-099 收敛进来的第三个：它此前在
+ *     `FilterFormC.tsx` 与 `MobileFilterSheet.tsx` 里**各有一份逐行相同的实现**，
+ *     后者的注释甚至写着「与 FilterFormC.buildOptionHref 同一语义」——那正是
+ *     `.agent/frontend.md` 点名的「同一份判断逻辑存在第二处副本」，而且点名的
+ *     恰好就是 href 构造。商圈级联要给它加「顺带清掉哪些键」的能力，两份都得改，
+ *     所以先合再改。
+ *   - `buildPriceUnitHref`（本文件）与 `buildFilterOptionHref` **语义
  *     不同**，刻意不合并：`buildOptionHref` 服务的是「同一行内多个互斥选项，
  *     再点已选项即清除本行」——`isActive` 时只删不设，允许「不选」是合法状态。
  *     `priceUnit` 没有「不选」这个合法状态：结果集必须始终处在某一个单位下
@@ -78,5 +84,36 @@ export function buildPriceUnitHref(
   sp.delete('page')
   sp.delete('rentUnit')
   sp.set('priceUnit', unit)
+  return buildHref(basePath, sp)
+}
+
+/**
+ * 筛选行内单个选项的 href：同一行内互斥、再点已选项即清除本行。
+ *
+ * 桌面分行条件区（`FilterFormC`）与移动抽屉（`MobileFilterSheet`）**共用这一份**
+ * ——OPT-099 之前两处各有一份逐行相同的实现，收敛理由见本文件顶部注释。
+ *
+ *   - 永远 `delete('page')`：筛选改的是结果集，停在旧页码要么空要么跳号
+ *     （`.agent/frontend.md` 列表页小节的硬约束）。
+ *   - `isActive` 时只删不设 = 取消本行筛选。
+ *   - `alsoClear` 是**级联清除**：本行的选择会让另一些维度失去意义时，一并删掉
+ *     它们占用的键。当前唯一消费方是「位置」行清 `businessArea`——商圈从属于
+ *     行政区，切到别的区还留着上一个区的商圈就是「静安 + 陆家嘴」这种恒空组合，
+ *     用户只会看到一页空结果而找不到是哪个条件造成的。**取消本行时同样要清**：
+ *     商圈行此时会整行消失（级联闸门），留着那个键就成了一个看不见的生效条件。
+ */
+export function buildFilterOptionHref(
+  basePath: string,
+  currentParams: URLSearchParams,
+  rowKey: string,
+  optionValue: string,
+  isActive: boolean,
+  alsoClear: readonly string[] = [],
+): string {
+  const sp = cloneSearchParams(currentParams)
+  sp.delete('page')
+  sp.delete(rowKey)
+  for (const key of alsoClear) sp.delete(key)
+  if (!isActive) sp.set(rowKey, optionValue)
   return buildHref(basePath, sp)
 }

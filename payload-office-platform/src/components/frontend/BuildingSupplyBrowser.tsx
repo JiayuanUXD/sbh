@@ -545,7 +545,6 @@ export default function BuildingSupplyBrowser({
               复用 CSS 外壳而不是复用组件——ResultToolbar 还承担「显示第 x–y，
               共 N」的计数职责，本组件的计数在 footer 且量词按组不同。 */}
           <div className="building-supply-browser__sort" role="group" aria-label="排序">
-            <span className="ls-toolbar__sortlabel">排序</span>
             {sortOptions.map((option) => {
               const isActive = option.value === activeSort
               return (

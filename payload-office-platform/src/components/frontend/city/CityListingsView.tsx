@@ -260,8 +260,8 @@ export default async function CityListingsView({
   // 每一份都先剥掉一个（或一组）维度再统计（见 omitListingSearchDimensions 注释）：
   //   - 剥 priceUnit：算「另有多少套按别的单位报价」。用现成的 getSearchFacets
   //     会因为它保留 priceUnit 而让其余单位计数恒为 0，提示条静默消失。
-  //   - 剥 district / listingType：算各候选自己的套数。不剥的话选中静安以后
-  //     其余区计数全为 0（Task 2「facets 算在筛选前」同型问题）。
+  //   - 剥 district / businessArea / listingType：算各候选自己的套数。不剥的话
+  //     选中静安以后其余区计数全为 0（Task 2「facets 算在筛选前」同型问题）。
   //   - 空态②的逐条退路与「清除全部」、空态①的全量总数：只在对应分支才发，
   //     正常路径零额外开销（与原实现一致，只是不再单独排一波）。
   //
@@ -273,10 +273,27 @@ export default async function CityListingsView({
   const facetsOmitting = (omit: readonly ListingSearchDimension[]) =>
     getCachedSearchFacetsIgnoring(city.slug, input, omit, businessType)
 
-  const [unitFacets, districtFacets, typeFacets, formFacets, relaxationFacets, clearAllFacets, noStockFacets] =
+  const [
+    unitFacets,
+    districtFacets,
+    areaFacets,
+    typeFacets,
+    formFacets,
+    relaxationFacets,
+    clearAllFacets,
+    noStockFacets,
+  ] =
     await Promise.all([
       facetsOmitting(['priceUnit']),
-      facetsOmitting(['district']),
+      // ★ 区域候选必须**连商圈一起剥**（OPT-099 走查实测）。只剥 `district` 的话，
+      // 一旦用户选了某个商圈，其余区的计数全为 0（那个商圈只属于当前这个区），
+      // 于是「位置」行塌成只剩已选的那一个区，用户再也切不走——这正是
+      // 「facets 算在筛选前」那条规则在**从属维度**上的翻版。
+      // 判据：算「改选浦东会有多少套」时，不能把一个属于长宁的商圈继续套上去。
+      facetsOmitting(['district', 'businessArea']),
+      // 剥 businessArea：算各商圈自己的套数。**只剥这一个**——`district` 留着，
+      // 级联正是靠它成立（得到的商圈分布只含当前选中区里有房源的那些）。
+      facetsOmitting(['businessArea']),
       facetsOmitting(['listingType']),
       facetsOmitting(['buildingForm']),
       showEmptyFiltered
@@ -306,6 +323,7 @@ export default async function CityListingsView({
     districtCounts: toCountMap(districtFacets.districts),
     typeCounts: toCountMap(typeFacets.listingTypes),
     buildingFormCounts: toCountMap(formFacets.buildingForms),
+    businessAreaFacets: areaFacets.businessAreas,
     priceRowLabel: copy.priceRowLabel,
     priceDimensionLabel: copy.priceDimensionLabel,
   })

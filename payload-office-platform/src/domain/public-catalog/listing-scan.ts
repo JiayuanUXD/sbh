@@ -54,6 +54,15 @@ export type ListingScanRow = Readonly<{
   lastEffAt: number
   buildingId: number | null
   district: DistrictViewModel | null
+  /**
+   * 商圈（OPT-099）。`businessDistrictId` 保留不动——`rowToCandidate` 要的是 id。
+   *
+   * 零额外查询：`LISTING_SCAN_POPULATE` 里 `buildings.businessDistrict: true` 配合
+   * `locations: { name, slug, type, status }`，商圈的 name / slug 一直都在扫描结果
+   * 里，只是此前被丢成了一个裸 id。补上它，商圈 facet 才有名字可印——也因此解除了
+   * `listing-filter-rows.ts` 里「商圈叫不出名字、chip 只能印维度名」那条限制。
+   */
+  businessDistrict: DistrictViewModel | null
   businessDistrictId: number | null
   coordinates: CoordinatesViewModel | null
 }>
@@ -65,9 +74,20 @@ export type ListingScanRow = Readonly<{
  * 坍缩：`district × listingType × priceUnit × 区间 × page × sort` 的全部组合共用
  * 同一份扫描。
  */
-export type ScanMemoryDimension = 'district' | 'listingType' | 'buildingForm' | 'priceUnit' | 'price'
+export type ScanMemoryDimension =
+  | 'district'
+  | 'businessArea'
+  | 'listingType'
+  | 'buildingForm'
+  | 'priceUnit'
+  | 'price'
 export const SCAN_MEMORY_DIMENSIONS: readonly ScanMemoryDimension[] = [
   'district',
+  // OPT-099：商圈从 where 下推（`building.businessDistrict.slug`）转为内存维度，
+  // 口径同 `district`。两个收益：① 商圈 facet 能与列表共用同一份扫描算出来，不必
+  // 为「剥掉商圈维度」再查一次库；② 缓存键收敛——改之前每选一个商圈就产生一份
+  // 独立扫描，改之后同城同频道共用一份。
+  'businessArea',
   'listingType',
   'buildingForm',
   'priceUnit',
@@ -77,6 +97,8 @@ export const SCAN_MEMORY_DIMENSIONS: readonly ScanMemoryDimension[] = [
 /** facet 统计与 `SearchFacets` 同构（定义在 facade），这里只依赖字段形状。 */
 export type ScanFacets = Readonly<{
   districts: ReadonlyArray<DistrictViewModel & { count: number }>
+  /** 商圈计数（OPT-099）；名称随扫描行而来，不额外查词表 */
+  businessAreas: ReadonlyArray<DistrictViewModel & { count: number }>
   listingTypes: ReadonlyArray<{ value: string; count: number }>
   buildingForms: ReadonlyArray<{ value: string; count: number }>
   rentUnits: ReadonlyArray<{ value: string; count: number }>
@@ -132,6 +154,7 @@ export function rowFromListing(raw: unknown): ListingScanRow | null {
     lastEffAt: parseTime(raw.updatedAt),
     buildingId,
     district: mapDistrict(building.district) ?? null,
+    businessDistrict: mapDistrict(building.businessDistrict) ?? null,
     businessDistrictId: numberId(building.businessDistrict),
     coordinates: mapCoordinates(building.latitude, building.longitude) ?? null,
   }
@@ -156,6 +179,7 @@ export function rowsFromListings(docs: readonly unknown[]): ListingScanRow[] {
 export function toScanInput(input: ListingSearchInput): ListingSearchInput {
   const next: Record<string, unknown> = { ...input }
   delete next.district
+  delete next.businessArea
   delete next.listingType
   delete next.buildingForm
   delete next.priceUnit
@@ -204,17 +228,34 @@ function rowForms(row: ListingScanRow): readonly string[] {
   return Array.isArray(row.buildingForm) ? row.buildingForm : []
 }
 
-/** 在扫描行上应用内存维度（区域 / 类型 / 建筑形态 / 价格）。 */
+/**
+ * 行上的商圈；**缺字段按 null**。理由与 `rowForms` 逐字相同：扫描行经
+ * `unstable_cache` 落盘，`businessDistrict` 是 OPT-099 新增的字段，发布后 revalidate
+ * 窗口内读到的仍是上一版写入的行，没有这个字段。不防御的话，新版一上线商圈筛选
+ * 与 facet 就会在旧行上炸到缓存过期为止。
+ */
+function rowArea(row: ListingScanRow): DistrictViewModel | null {
+  return row.businessDistrict ?? null
+}
+
+/** 在扫描行上应用内存维度（区域 / 商圈 / 类型 / 建筑形态 / 价格）。 */
 export function applyMemoryFilters(
   rows: readonly ListingScanRow[],
   input: ListingSearchInput,
 ): ListingScanRow[] {
   const districts = input.district && input.district.length > 0 ? new Set(input.district) : null
+  const areas = input.businessArea && input.businessArea.length > 0 ? new Set(input.businessArea) : null
   const types = input.listingType && input.listingType.length > 0 ? new Set(input.listingType) : null
   // OPT-096：建筑形态是多选字段，行与输入有交集即命中（多值 form 取并集）
   const forms = input.buildingForm && input.buildingForm.length > 0 ? new Set(input.buildingForm) : null
   return rows.filter((row) => {
     if (districts && (!row.district || !districts.has(row.district.slug))) return false
+    // 与转内存维度之前的 where（`building.businessDistrict.slug in [...]`）逐字等价：
+    // 楼盘没有商圈的房源在指定了商圈时不入选。`rowArea` 兜住旧版缓存行缺字段的情形。
+    if (areas) {
+      const area = rowArea(row)
+      if (!area || !areas.has(area.slug)) return false
+    }
     if (types && (!row.listingType || !types.has(row.listingType))) return false
     if (forms && !rowForms(row).some((form) => forms.has(form))) return false
     return matchesPriceFilter(row.price, input)
@@ -222,13 +263,17 @@ export function applyMemoryFilters(
 }
 
 /**
- * facet：当前可见行的分布统计（区域 / 类型 / 计价单位）。
+ * facet：当前可见行的分布统计（区域 / 商圈 / 类型 / 计价单位）。
  *
  * 与原 `getSearchFacets` 逐字段等价：区域按楼盘所属区聚合、类型按 `listingType`、
  * 单位只统计非空价格；`totalDocs` 是行数。插入顺序即首次出现顺序（Map 语义）。
+ *
+ * 商圈（OPT-099）按 `building.businessDistrict` 聚合，名称直接取行上的 VM——
+ * 不查词表，因此也不会出现「facet 里有这个商圈、词表里查不到名字」的错配。
  */
 export function computeFacets(rows: readonly ListingScanRow[]): ScanFacets {
   const districtCounts = new Map<string, { vm: DistrictViewModel; count: number }>()
+  const businessAreaCounts = new Map<string, { vm: DistrictViewModel; count: number }>()
   const listingTypeCounts = new Map<string, number>()
   const buildingFormCounts = new Map<string, number>()
   const rentUnitCounts = new Map<string, number>()
@@ -240,6 +285,15 @@ export function computeFacets(rows: readonly ListingScanRow[]): ScanFacets {
         existing.count += 1
       } else {
         districtCounts.set(row.district.slug, { vm: row.district, count: 1 })
+      }
+    }
+    const area = rowArea(row)
+    if (area) {
+      const existing = businessAreaCounts.get(area.slug)
+      if (existing) {
+        existing.count += 1
+      } else {
+        businessAreaCounts.set(area.slug, { vm: area, count: 1 })
       }
     }
     if (row.listingType) {
@@ -255,6 +309,7 @@ export function computeFacets(rows: readonly ListingScanRow[]): ScanFacets {
 
   return {
     districts: Array.from(districtCounts.values()).map(({ vm, count }) => ({ ...vm, count })),
+    businessAreas: Array.from(businessAreaCounts.values()).map(({ vm, count }) => ({ ...vm, count })),
     listingTypes: Array.from(listingTypeCounts.entries()).map(([value, count]) => ({ value, count })),
     buildingForms: Array.from(buildingFormCounts.entries()).map(([value, count]) => ({ value, count })),
     rentUnits: Array.from(rentUnitCounts.entries()).map(([value, count]) => ({ value, count })),
