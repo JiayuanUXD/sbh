@@ -119,12 +119,19 @@ test.describe('multi-city route ownership', () => {
       expect(await root.text(), '/ canonical').toMatch(/<link rel="canonical" href="[^"]*\/shanghai"/)
       await expectRedirect(request, '/listings', '/shanghai/listings')
       await expectRedirect(request, '/buildings', '/shanghai/buildings')
+      // 旧式链接带 district 重定向后 district 仍在：加前缀是同城改写，query 原样
+      // 透传（此前借用跨城白名单，district / page 被静默丢掉、type 却保留——
+      // 2026-09-16 线上实测）。旧名 rentUnit/rentMax 的归并、unknown 的丢弃都留给
+      // 目标路由的 canonical（下一个用例断言的就是它）。
       await expectRedirect(
         request,
-        // rentUnit 不能省：缺单位的 rentMax 被闸门整段丢弃，重定向目标里就没有它
         '/listings?district=pudong&areaMin=100&page=3&rentUnit=rmb-sqm-day&rentMax=10',
-        // 输入 rentUnit/rentMax（旧名，仍被解析），canonical 收敛为 priceUnit/priceMax
-        '/shanghai/listings?areaMin=100&priceMax=10&priceUnit=rmb-sqm-day',
+        '/shanghai/listings?district=pudong&areaMin=100&page=3&rentUnit=rmb-sqm-day&rentMax=10',
+      )
+      await expectRedirect(
+        request,
+        '/buildings?district=pudong&grade=grade-a&page=2',
+        '/shanghai/buildings?district=pudong&grade=grade-a&page=2',
       )
       return
     }

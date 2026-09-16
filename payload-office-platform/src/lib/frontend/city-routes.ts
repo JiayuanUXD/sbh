@@ -1,7 +1,11 @@
 /**
  * Public city routing is deliberately independent from profile lookup. Callers
  * provide a trusted city option, while this module only accepts already
- * canonical slugs and whitelists every path/query fragment it emits.
+ * canonical slugs and whitelists every path fragment it emits.
+ *
+ * Query 的处置分两类：跨城切换（`switchCityUrl`）按白名单只带可携带的筛选；
+ * 同城加 / 去前缀（`prefixedCanonicalPath` / `legacyCanonicalPath`）对列表路由
+ * 原样透传，校验留给目标路由——见 `passThroughQuery` 的注释。
  */
 
 import { BUILDING_GRADE_VALUES } from '@/domain/public-catalog/building-search'
@@ -486,7 +490,23 @@ export function citySwitchPreservedFilters(sourceUrl: unknown, destinationUrl: u
   return false
 }
 
-/** Removes a valid city prefix while retaining only canonical route state. */
+/**
+ * 加 / 去城市前缀是**同城**改写，列表路由的 query 原样透传。
+ *
+ * 这里刻意不走 `selectListingQuery` / `selectBuildingQuery`：那两份是 `switchCityUrl`
+ * 的**跨城**白名单，换城市时区域 / 商圈 / 地铁 / 页码没有意义，所以它们不在名单里。
+ * 但 legacy `/listings?district=changning` 307 到 `/shanghai/listings` 时城市没变，
+ * 目标路由认的每一个参数在这里都合法——借用跨城白名单会把 district 静默丢掉、
+ * `type` 却因为恰好在名单里而幸存（2026-09-16 线上实测）。校验只由目标路由做：
+ * 它把输入当 unknown 解析（`parseListingSearchInput` / `parseBuildingSearchInput`），
+ * 再按地点表收口区域（`(frontend)/_lib/search-input.ts`），这里不维护第二份键表。
+ * `URLSearchParams.toString()` 会重新百分号编码，路径段的加固不受影响。
+ */
+function passThroughQuery(params: URLSearchParams): URLSearchParams {
+  return new URLSearchParams(params)
+}
+
+/** Removes a valid city prefix while keeping the list query verbatim. */
 export function legacyCanonicalPath(sourceUrl: unknown): string | null {
   const route = parseRoute(sourceUrl)
   if (!route) return null
@@ -494,13 +514,13 @@ export function legacyCanonicalPath(sourceUrl: unknown): string | null {
     case 'home':
       return '/'
     case 'listings':
-      return withQuery('/listings', selectListingQuery(route.params))
+      return withQuery('/listings', passThroughQuery(route.params))
     case 'sale':
-      return withQuery('/sale', selectListingQuery(route.params))
+      return withQuery('/sale', passThroughQuery(route.params))
     case 'listing-detail':
       return route.detailSlug ? `/listings/${route.detailSlug}` : null
     case 'buildings':
-      return withQuery('/buildings', selectBuildingQuery(route.params))
+      return withQuery('/buildings', passThroughQuery(route.params))
     case 'building-detail':
       return route.detailSlug ? `/buildings/${route.detailSlug}` : null
     case 'news':
@@ -522,7 +542,7 @@ export function legacyCanonicalPath(sourceUrl: unknown): string | null {
   }
 }
 
-/** Adds a trusted city prefix where the route is city-scoped. */
+/** Adds a trusted city prefix where the route is city-scoped, keeping the list query verbatim. */
 export function prefixedCanonicalPath(sourceUrl: unknown, citySlug: string): string | null {
   if (!isPublicCitySlug(citySlug)) return null
   const route = parseRoute(sourceUrl)
@@ -531,13 +551,13 @@ export function prefixedCanonicalPath(sourceUrl: unknown, citySlug: string): str
     case 'home':
       return `/${citySlug}`
     case 'listings':
-      return withQuery(`/${citySlug}/listings`, selectListingQuery(route.params))
+      return withQuery(`/${citySlug}/listings`, passThroughQuery(route.params))
     case 'sale':
-      return withQuery(`/${citySlug}/sale`, selectListingQuery(route.params))
+      return withQuery(`/${citySlug}/sale`, passThroughQuery(route.params))
     case 'listing-detail':
       return route.detailSlug ? `/${citySlug}/listings/${route.detailSlug}` : null
     case 'buildings':
-      return withQuery(`/${citySlug}/buildings`, selectBuildingQuery(route.params))
+      return withQuery(`/${citySlug}/buildings`, passThroughQuery(route.params))
     case 'building-detail':
       return route.detailSlug ? `/${citySlug}/buildings/${route.detailSlug}` : null
     case 'entrust':
