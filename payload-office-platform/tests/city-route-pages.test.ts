@@ -365,13 +365,18 @@ describe('city route boundaries', () => {
     await expect(LegacyBuildingsPage({ searchParams: Promise.resolve({}) })).rejects.toThrow('redirect:/shanghai/buildings')
   })
 
-  it('redirects legacy list and building queries through the city URL canonicalizer', async () => {
+  it('redirects legacy list and building queries with the query kept verbatim', async () => {
+    // 同城加前缀不改 query：district / page 这类目标路由认的参数必须活着到达
+    // （此前借用跨城白名单，`?district=changning` 307 之后就没了），旧名 rentUnit
+    // 的归并与 unknown 的丢弃都留给目标路由的解析层 + canonical。
     process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
     await expect(LegacyListingsPage({ searchParams: Promise.resolve({
-      type: 'coworking', rentUnit: 'rmb-sqm-day', sort: 'rent-asc', q: 'near metro', page: '3', unknown: 'drop',
-    }) })).rejects.toThrow('redirect:/shanghai/listings?type=coworking&priceUnit=rmb-sqm-day&q=near+metro&sort=price-asc')
-    await expect(LegacyBuildingsPage({ searchParams: Promise.resolve({ grade: 'grade-a', page: '2', unknown: 'drop' }) }))
-      .rejects.toThrow('redirect:/shanghai/buildings?grade=grade-a')
+      district: 'changning', type: 'coworking', rentUnit: 'rmb-sqm-day', sort: 'rent-asc', q: 'near metro', page: '3', unknown: 'drop',
+    }) })).rejects.toThrow('redirect:/shanghai/listings?district=changning&type=coworking&rentUnit=rmb-sqm-day&sort=rent-asc&q=near+metro&page=3&unknown=drop')
+    await expect(LegacyBuildingsPage({ searchParams: Promise.resolve({ district: 'changning', grade: 'grade-a', page: '2', unknown: 'drop' }) }))
+      .rejects.toThrow('redirect:/shanghai/buildings?district=changning&grade=grade-a&page=2&unknown=drop')
+    // 解析与区域收口没有在重定向前发生：这条路由把校验整个留给目标路由
+    expect(io.getCachedListingDistrictOptions).not.toHaveBeenCalled()
   })
 
   it('fails closed instead of redirecting legacy roots through an invalid default-city configuration', async () => {

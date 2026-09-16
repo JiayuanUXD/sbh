@@ -255,16 +255,63 @@ describe('city route URL contract', () => {
     expect(legacyCanonicalPath(source)).toBe(source)
   })
 
-  it('derives legacy and prefixed canonical paths without retaining unapproved query data', () => {
+  // ── 加 / 去城市前缀是同城改写，query 必须原样透传 ─────────────────────────
+  // 2026-09-16 线上实测：`/listings?district=changning` 307 到 `/shanghai/listings`，
+  // district 被静默丢掉、type 却保留。根因是 prefixedCanonicalPath 借用了
+  // switchCityUrl 的**跨城**白名单（换城市时区域 / 页码没意义，所以那份白名单刻意
+  // 不含它们），而 legacy → 前缀是同一个城市，目标路由认的参数在这里全部合法。
+  // 校验只留给目标路由做（它本来就把输入当 unknown 解析 + 按地点表收口区域），
+  // 这里不再维护第二份会漂移的键表。
+  it('keeps the whole query verbatim when adding a city prefix to a list route（旧式链接带 district 重定向后 district 仍在）', () => {
+    expect(prefixedCanonicalPath('/listings?district=changning', 'shanghai')).toBe(
+      '/shanghai/listings?district=changning',
+    )
+    expect(
+      prefixedCanonicalPath('/listings?district=changning&type=coworking&page=2&view=list', 'shanghai'),
+    ).toBe('/shanghai/listings?district=changning&type=coworking&page=2&view=list')
+    expect(prefixedCanonicalPath('/sale?district=changning&areaMin=100', 'shanghai')).toBe(
+      '/shanghai/sale?district=changning&areaMin=100',
+    )
+    // 楼盘页此前只放行 grade / business，区域、关键词、地铁、竣工年份、分页全丢
+    expect(
+      prefixedCanonicalPath('/buildings?district=changning&metro=line-2&completedAfter=2015&page=2', 'shanghai'),
+    ).toBe('/shanghai/buildings?district=changning&metro=line-2&completedAfter=2015&page=2')
+    // 多值与重复键也原样保留：解析层自己会去重 / 取首值，这里不替它做决定
+    expect(prefixedCanonicalPath('/listings?district=jingan&district=xuhui', 'shanghai')).toBe(
+      '/shanghai/listings?district=jingan&district=xuhui',
+    )
+    // 旧名 rentUnit / rentMax 也不在这里改名：canonical 归并是目标页 <link rel=canonical> 的事
+    expect(
+      prefixedCanonicalPath('/listings?district=pudong&rentUnit=rmb-sqm-day&rentMax=10', 'shanghai'),
+    ).toBe('/shanghai/listings?district=pudong&rentUnit=rmb-sqm-day&rentMax=10')
+  })
+
+  it('keeps the whole query verbatim when removing a city prefix from a list route（与加前缀互为逆运算）', () => {
     expect(
       legacyCanonicalPath('/hangzhou/listings?district=pudong&areaMin=100&page=3&unknown=drop'),
-    ).toBe('/listings?areaMin=100')
+    ).toBe('/listings?district=pudong&areaMin=100&page=3&unknown=drop')
+    expect(legacyCanonicalPath('/hangzhou/buildings?district=pudong&grade=grade-a&page=2')).toBe(
+      '/buildings?district=pudong&grade=grade-a&page=2',
+    )
+    const source = '/listings?district=changning&type=coworking&page=2'
+    expect(legacyCanonicalPath(prefixedCanonicalPath(source, 'shanghai'))).toBe(source)
+  })
+
+  it('still whitelists the query on cross-city switches（跨城白名单只归 switchCityUrl）', () => {
+    // 同一个输入：加前缀原样保留，换城市按白名单过滤——两者的差别就是本次修复的边界
+    const source = '/listings?district=changning&type=coworking&page=2'
+    expect(prefixedCanonicalPath(source, 'shanghai')).toBe(`/shanghai${source}`)
+    expect(switchCityUrl(`/shanghai${source}`, 'hangzhou')).toBe('/hangzhou/listings?type=coworking')
+  })
+
+  it('detail and global routes still drop their query when re-prefixed', () => {
+    // 详情页的 query 从来不承载筛选状态，全站路由也不带城市语义，这几类维持原判
     expect(
       legacyCanonicalPath('/hangzhou/buildings/central-tower?grade=A&district=pudong'),
     ).toBe('/buildings/central-tower')
-    expect(
-      prefixedCanonicalPath('/listings?sort=price-desc&priceUnit=rmb-month&district=pudong&page=3', 'hangzhou'),
-    ).toBe('/hangzhou/listings?priceUnit=rmb-month&sort=price-desc')
+    expect(prefixedCanonicalPath('/listings/central-office?district=pudong', 'hangzhou')).toBe(
+      '/hangzhou/listings/central-office',
+    )
     expect(prefixedCanonicalPath('/news/market-report?page=2', 'hangzhou')).toBe('/news/market-report')
     expect(prefixedCanonicalPath('/entrust?city=shanghai&email=private', 'hangzhou')).toBe(
       '/entrust?city=hangzhou',
