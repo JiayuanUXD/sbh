@@ -50,6 +50,44 @@ describe('卡片等高：共享基元', () => {
   })
 })
 
+/**
+ * OPT-099：媒体盒的 16:10 必须真的生效。
+ *
+ * 2026-09-04 那一轮锁住了 `.sf-card { height: 100% }`（外框等高），但**没管媒体盒**，
+ * 于是等高只在「同一行内」成立，行与行之间仍然按各自最高的那张图分档。
+ *
+ * 根因（2026-09-16 生产站实测）：`.sf-media img { height: 100% }` 的百分比在「由
+ * aspect-ratio 推导出来的高度」上解析不了，回落成 auto（图片原始比例）；带
+ * aspect-ratio 的块盒其自动最小尺寸取内容尺寸，于是比 16:10 更高的图把盒子顶高。
+ * `/shanghai/listings` 一页 24 张卡因此出现 8 种不同的媒体盒比例、两档卡片高度。
+ *
+ * 两条缺一不可，删任一条 16:10 都会重新变成一句没有效力的声明：
+ *   1. img `position: absolute; inset: 0` —— 让 height 有确定的解析基准，图片不再撑高；
+ *   2. `.sf-media { overflow: hidden }` —— 兜住残留溢出。
+ *
+ * ⚠️ 本文件是文本断言，量不到真实布局。**真实证据只能来自「有比 16:10 更高的图」的
+ * 环境**：本地夹具封面全是 768x432（16:9），在那上面这个 bug 永远复现不出来。
+ */
+describe('卡片等高：媒体盒比例真的生效（OPT-099）', () => {
+  const surface = read('styles/surface.css')
+
+  it('.sf-media img 绝对定位撑满容器 —— 否则 height:100% 解析不了、图片会顶高盒子', () => {
+    const rule = ruleOf(surface, '.sf-media img')
+    expect(rule).toMatch(/position:\s*absolute/)
+    expect(rule).toMatch(/inset:\s*0/)
+    expect(rule).toMatch(/height:\s*100%/)
+    expect(rule).toMatch(/object-fit:\s*cover/)
+  })
+
+  it('.sf-media 裁切溢出', () => {
+    expect(ruleOf(surface, '.sf-media')).toMatch(/overflow:\s*hidden/)
+  })
+
+  it('比例档位仍由修饰符声明（消费方靠它，不靠图片原始比例）', () => {
+    expect(ruleOf(surface, '.sf-media--16x10')).toMatch(/aspect-ratio:\s*16\s*\/\s*10/)
+  })
+})
+
 describe('卡片等高：竖排变体的价格贴底', () => {
   it('首页供给卡：竖排 + 正文 flex:1 + 价格 margin-top:auto + 标题两行封顶', () => {
     const home = read('styles/home.css')

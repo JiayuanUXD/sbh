@@ -78,7 +78,12 @@
 .hm-rail__track {
   gap: 16px;
   scroll-padding-inline-start: calc((100% - min(var(--w), 100% - var(--gut) * 2)) / 2);
-  padding: 4px calc((100% - min(var(--w), 100% - var(--gut) * 2)) / 2) 12px;
+  /* 纵向走 `--sf-card-shadow-bleed-block`（surface.css）而不是字面量 4/12：
+     `overflow-x: auto` 把本容器变成纵向裁切盒，4/12 装不下 `.sf-card` 的 hover 投影
+     （需 6/30），下缘被切掉 18px——用户 2026-09-16 反馈的现象。横向 calc 原样保留，
+     它同时负责首卡与居中容器对齐，理由见 token 注释。 */
+  padding-block: var(--sf-card-shadow-bleed-block);
+  padding-inline: calc((100% - min(var(--w), 100% - var(--gut) * 2)) / 2);
 }
 .hm-rail__item { flex: 0 0 400px; }
 .hm-rail__arrow {

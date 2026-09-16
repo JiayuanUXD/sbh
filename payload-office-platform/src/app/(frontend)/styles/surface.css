@@ -8,6 +8,22 @@
  * display:block 改回 flex），顺序反了会静默失效。
  * ========================================================================== */
 
+/* 持有 `.sf-card` 的裁切型滚动容器必须预留的纵向出血（OPT-099）。
+ *
+ * 推导（改 `--shadow-hover` 或 hover 位移时这两个数要跟着重算）：
+ *   `--shadow-hover: 0 14px 36px` → 投影矩形 = 卡片盒向下偏移 14，四周再糊开 blur/2 = 18
+ *   hover 还会把卡片 `translateY(-2px)`
+ *   向上 = 18 − 14 + 2 = 6px
+ *   向下 = 18 + 14 − 2 = 30px
+ *
+ * 只管纵向。横向**刻意不收口**：`.hm-rail__track` 的左右 padding 同时承担「首卡与
+ * 居中容器对齐」的职责（那串 calc），横向裁切对滚动容器本就是正确行为；仅 ≤767px
+ * 时 `--gut`(16) < 18，首卡左缘差 2px，不值得为它破坏对齐。
+ *
+ * 全站消费方只有两个（`.hm-rail__track`、`.nearby-strip`）——普通网格（`.ls-grid` /
+ * `.card-grid`）不裁切，不需要它。新增横滑轨道时跟这条，别再各写一组数字。 */
+:root { --sf-card-shadow-bleed-block: 6px 30px; }
+
 .sf-card {
   display: block; color: inherit;
   /* 等高：撑满所在网格格子 / 轨道项的高度。
@@ -33,12 +49,32 @@
    稀疏展示下仍有反馈——见 cross-batch-design-decisions.md「卡片 hover」 */
 .sf-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
 
-/* 图容器：display:block 必须显式声明——span 默认 inline 会让 aspect-ratio 失效、高度塌成 0 */
-.sf-media { position: relative; display: block; background: var(--media-placeholder); }
+/* 图容器：display:block 必须显式声明——span 默认 inline 会让 aspect-ratio 失效、高度塌成 0
+ *
+ * ★ `overflow: hidden` 与下面 img 的绝对定位是一对，缺任一条 `--16x10` / `--4x3`
+ *   就**只是一句没有效力的声明**。OPT-099 实测生产站 `/shanghai/listings`：同一页
+ *   24 张卡出现 8 种不同的媒体盒比例（1.333 / 1.341 / 1.348 / 1.484 / 1.500 /
+ *   1.530 / 1.600…），每一种都正好等于那张封面图的**原始比例**，卡片高度因此分成
+ *   329.3 / 356.3 两档。
+ *
+ *   机制：img 的 `height: 100%` 百分比在「由 aspect-ratio 推导出来的高度」上
+ *   **解析不了**，回落成 auto（图片原始比例）；而带 aspect-ratio 的块盒其自动最小
+ *   尺寸取内容尺寸，于是比 16:10 更高的图会把盒子**顶高**，声明的比例形同虚设。
+ *   绝对定位让 height 有确定的解析基准（相对本元素的 padding box），图片不再参与
+ *   撑高；overflow 兜住任何残留溢出。
+ *
+ *   为什么活了这么久：本地夹具封面全是 768x432（16:9，比 16:10 更扁），永远顶不高
+ *   盒子——本地量 24 张卡高度完全一致。**只有真实图才暴露**。改这一段之前先想清楚
+ *   你的验证环境里有没有「比 16:10 更高」的图，没有就测不出来。 */
+.sf-media { position: relative; display: block; overflow: hidden;
+  background: var(--media-placeholder); }
 /* object-position 的 50% 回退值 = 改动前的居中裁切；组件只在有焦点时才发
    --focal-x/--focal-y（OPT-059）。本规则被六处调用共享，未迁移的组件不发变量、
-   行为不变。 */
-.sf-media img { width: 100%; height: 100%; object-fit: cover;
+   行为不变。
+   `position: absolute; inset: 0` 见上方 .sf-media 的长注释——它是 16:10 真正生效的
+   前提，不是可有可无的写法偏好。缺图时渲染的是 `CardMediaPlaceholder` 而不是 img，
+   走普通流、不受这条影响，容器高度仍由 aspect-ratio 撑住。 */
+.sf-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   object-position: var(--focal-x, 50%) var(--focal-y, 50%); display: block; }
 /* --4x3 目前**没有产品消费方**（OPT-082 把房源卡统一到 16:10）。保留基元本身：
    `ui/Media.tsx` 的 ratio 联合类型与 dev-story 的基元陈列仍引用它，删了就是把一个
@@ -78,6 +114,10 @@
  * `scroll-behavior: smooth` 放在这里是安全的：全站禁用的是**根元素**的平滑滚动
  * （会把浏览器的历史滚动恢复也动画化，见 styles.css §2 那段长注释），
  * 嵌套滚动容器不受那条约束，且减少动效下由通配 `!important` 规则回落。 */
+/* ★ `overflow-x: auto` 会把 `overflow-y` 从 visible **连带提升成 auto**（CSS
+ *   overflow 规范：两轴不能一个 visible 一个 auto）。于是每一个横滑轨道都是一个
+ *   纵向裁切盒，`.sf-card` 的 hover 投影会被它切掉——这不是浏览器 bug，是规范行为，
+ *   唯一的出路是给容器留出足以容纳投影的纵向 padding，见 `--sf-card-shadow-bleed-block`。 */
 .sf-rail {
   display: flex;
   overflow-x: auto;

@@ -1039,6 +1039,19 @@ ol {
   transition-delay: 0s;
 }
 
+/* 点了子项、已经跳过去了之后强制收起（OPT-099）。
+ *
+ * 必须写在上面那两条**之后**：本选择器特异度同为 (0,2,1)，靠「同特异度、后来者胜」
+ * 压过 `:hover` / `:focus-within`——本仓库既有惯例（见 styles/surface.css 顶部的
+ * 加载顺序约束），因此不需要 `!important`。挪动这段的位置会让它静默失效。
+ *
+ * 属性置位与解除都在 SiteNav.tsx，判据见那里的 `suppressedGroup` 注释：
+ * 只有指针激活才抑制，指针离开或焦点进入本组即解除。 */
+.site-nav__group[data-nav-suppressed] .site-nav__menu {
+  opacity: 0;
+  visibility: hidden;
+}
+
 .site-nav__sub {
   display: flex;
   align-items: center;
@@ -5315,7 +5328,11 @@ ol {
 .nearby-strip {
   list-style: none;
   margin: 0;
-  padding: var(--sp-1);
+  /* 纵向走 `--sf-card-shadow-bleed-block`（styles/surface.css）：本条带同样是
+     `overflow-x: auto` 的纵向裁切盒，原来四周只有 4px，`.sf-card` 的 hover 投影
+     （需上 6 下 30）被切得比首页轨道还狠。横向维持 4px，理由见 token 注释。 */
+  padding-block: var(--sf-card-shadow-bleed-block);
+  padding-inline: var(--sp-1);
   gap: var(--sp-3);
 }
 
