@@ -40,9 +40,11 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   // 与页面同一份 input（含区域词表校验），理由见 `[city]/listings/page.tsx` 同处注释。
   const input = await resolveListingSearchInput(city.slug, toUrlSearchParams(raw))
   const query = buildCanonicalSearchParams(input).toString()
+  // pageType 必须是 'sale'：canonical 要指向频道自身（`/[city]/sale?…`），
+  // 传 'listings' 会把它并进租赁列表（2026-09-16 实测缺陷）。文案也随 pageType 走。
   const base = buildCityPageMetadata({
     city,
-    pageType: 'listings',
+    pageType: 'sale',
     canonicalQuery: query || undefined,
     multiCityRoutingEnabled: getMultiCityRoutingEnabled(),
   })
@@ -54,7 +56,6 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
   return {
     ...base,
-    title: `${city.name}写字楼出售 · 商办买卖`,
     ...(indexable ? {} : { robots: { index: false, follow: true } }),
   }
 }

@@ -83,6 +83,39 @@ describe('city metadata observation contract', () => {
     })
   })
 
+  // 2026-09-16：出售频道曾借用 pageType 'listings'，canonical 因此指向租赁列表
+  // （`/shanghai/sale?district=changning` → `/shanghai/listings?district=changning`）。
+  // 频道多数时候 noindex 把影响压住了，一旦过了 shouldIndexSaleChannel 门槛就会被
+  // 搜索引擎并进租赁列表。canonical 必须指向出售频道自身，文案也要是出售语境。
+  it('gives the sale channel its own canonical and copy instead of folding it into listings', () => {
+    expect(buildCityPageMetadata({
+      city: liveShanghai,
+      pageType: 'sale',
+      multiCityRoutingEnabled: true,
+      canonicalQuery: 'district=changning',
+    })).toMatchObject({
+      title: expect.stringContaining('上海'),
+      description: expect.stringContaining('出售'),
+      alternates: { canonical: '/shanghai/sale?district=changning' },
+      openGraph: { url: 'https://example.com/shanghai/sale?district=changning' },
+      robots: { index: true, follow: true },
+    })
+  })
+
+  it('returns sale canonical ownership to the legacy /sale URL while the flag is off', () => {
+    expect(buildCityPageMetadata({
+      city: liveShanghai,
+      pageType: 'sale',
+      multiCityRoutingEnabled: false,
+      routeMode: 'prefixed',
+      canonicalQuery: 'district=changning',
+    })).toMatchObject({
+      alternates: { canonical: '/sale?district=changning' },
+      openGraph: { url: 'https://example.com/sale?district=changning' },
+      robots: { index: false, follow: true },
+    })
+  })
+
   it('keeps every city-partner query variant on one query-free canonical', () => {
     expect(cityPartnerCanonical('?city=hangzhou')).toBe('/city-partner')
     expect(cityPartnerCanonical('?city=hangzhou&phone=13800001111')).toBe('/city-partner')
