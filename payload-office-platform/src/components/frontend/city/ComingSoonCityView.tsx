@@ -10,7 +10,6 @@ import RecruitSecondaryCta from '@/components/frontend/city-partner/RecruitSecon
 import RecruitValueProps from '@/components/frontend/city-partner/RecruitValueProps'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
-import { CITY_PARTNER_COPY } from '@/lib/frontend/city-partner-config'
 import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
 
 /**
@@ -65,14 +64,19 @@ export type ComingSoonCityViewProps = Readonly<{
 export default function ComingSoonCityView({ city, cities }: ComingSoonCityViewProps) {
   const basePath = `/${city.slug}`
   const profile = city.profile
-  const selectableCities: readonly PublicCityOption[] = cities && cities.length > 0
+  // 表单在 lockCity 下不渲染城市选择器（OPT-101），而第一步校验仍要求 `city ∈ cities`，
+  // 校验失败时没有任何字段能显示这条错误。所以这里**结构上**保证路由城市在候选里：
+  // 调用方给的 `cities` 缺它（`listPublicCityOptions` 会滤掉 switcherVisible=false 的城市）
+  // 就追加，而不是只在 `cities` 为空时兜底。现有四条路由都不传 `cities`，走的是追加分支。
+  const routeCity: PublicCityOption = {
+    slug: city.slug,
+    name: city.name,
+    serviceStatus: city.serviceStatus,
+    sortOrder: profile.sortOrder,
+  }
+  const selectableCities: readonly PublicCityOption[] = cities?.some((option) => option.slug === city.slug)
     ? cities
-    : [{
-        slug: city.slug,
-        name: city.name,
-        serviceStatus: city.serviceStatus,
-        sortOrder: profile.sortOrder,
-      }]
+    : [...(cities ?? []), routeCity]
 
   const trackCta = (ctaType: 'entrust' | 'publish' | 'inquiry' | 'city-partner') => {
     safeTrackCityEvent(track, 'coming_soon_cta_clicked', {
@@ -107,7 +111,10 @@ export default function ComingSoonCityView({ city, cities }: ComingSoonCityViewP
         {/* 方案 A：价值点主栏 + sticky 表单卡共用同一条灰底带。
             表单的 4 个 prop（cities / initialCity / invalidExplicitCity / lockCity）
             与那个 `city-coming-soon__embedded-form` 的 className 一字未改——
-            城市锁定、单选项兜底、提交链路全部保持原触发条件。 */}
+            单选项兜底、提交链路全部保持原触发条件。`lockCity` 自 OPT-101 起
+            是「不渲染城市选择器」而不是「渲染一个 disabled 的」：城市已由路由钉死，
+            页面 h1 也写着城市名，表单里再放一行改不了的下拉只是重复信息。
+            表单卡下方原有的合规声明（「提交申请不代表合作确认……」）同批按产品裁定去掉。 */}
         <section className="rc-section rc-section--band" aria-labelledby="city-launch-value-props">
           <div className="rc-container">
             <div className="rc-core">
@@ -120,11 +127,6 @@ export default function ComingSoonCityView({ city, cities }: ComingSoonCityViewP
                   lockCity
                   className="city-coming-soon__embedded-form"
                 />
-                {/* 合规声明。改版前只有 `/city-partner` 显示它，城市路由没有；
-                    而城市路由旧版恰恰是承诺最多的一版（「切实保障本地合伙人长期收益」
-                    「核心商圈独家/优先合作席位」）。两个消费面共用同一张申请表，
-                    「提交申请不代表合作确认」在两边同样成立，补上是收紧不是放松。 */}
-                <p className="rc-aside__note">{CITY_PARTNER_COPY.note}</p>
               </aside>
             </div>
           </div>

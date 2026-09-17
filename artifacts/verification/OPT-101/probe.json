@@ -1,0 +1,118 @@
+[
+  {
+    "url": "/hangzhou",
+    "viewport": "1440x900",
+    "horizontalOverflow": false,
+    "districtGridRendered": false,
+    "hero": {
+      "height": 480,
+      "minHeight": "480px",
+      "contentTopInset": 128,
+      "contentBottomInset": 128,
+      "hasBackdrop": false
+    },
+    "tailIsNextSiblingOfBand": true,
+    "tailPaddingTop": "72px",
+    "gapBandBottomToFirstCardTop": 72,
+    "citySelect": null,
+    "formLabels": [
+      "姓名 *",
+      "手机号 *",
+      "合作身份 *",
+      "我已阅读并同意 隐私政策，并授权工作人员联系我。"
+    ],
+    "stageOneH2": "请留下联系信息",
+    "stageOneHintP": null,
+    "asideNoteInDom": false,
+    "disclaimerTextOnPage": false
+  },
+  {
+    "url": "/city-partner?city=hangzhou",
+    "viewport": "1440x900",
+    "horizontalOverflow": false,
+    "districtGridRendered": false,
+    "hero": {
+      "height": 480,
+      "minHeight": "480px",
+      "contentTopInset": 144,
+      "contentBottomInset": 144,
+      "hasBackdrop": false
+    },
+    "tailIsNextSiblingOfBand": true,
+    "tailPaddingTop": "72px",
+    "gapBandBottomToFirstCardTop": 72,
+    "citySelect": {
+      "disabled": false,
+      "value": "hangzhou"
+    },
+    "formLabels": [
+      "申请城市 *",
+      "姓名 *",
+      "手机号 *",
+      "合作身份 *",
+      "我已阅读并同意 隐私政策，并授权工作人员联系我。"
+    ],
+    "stageOneH2": "请留下联系信息",
+    "stageOneHintP": null,
+    "asideNoteInDom": false,
+    "disclaimerTextOnPage": false
+  },
+  {
+    "url": "/hangzhou",
+    "viewport": "375x812",
+    "horizontalOverflow": false,
+    "districtGridRendered": false,
+    "hero": {
+      "height": 434,
+      "minHeight": "400px",
+      "contentTopInset": 72,
+      "contentBottomInset": 72,
+      "hasBackdrop": false
+    },
+    "tailIsNextSiblingOfBand": true,
+    "tailPaddingTop": "72px",
+    "gapBandBottomToFirstCardTop": 72,
+    "citySelect": null,
+    "formLabels": [
+      "姓名 *",
+      "手机号 *",
+      "合作身份 *",
+      "我已阅读并同意 隐私政策，并授权工作人员联系我。"
+    ],
+    "stageOneH2": "请留下联系信息",
+    "stageOneHintP": null,
+    "asideNoteInDom": false,
+    "disclaimerTextOnPage": false
+  },
+  {
+    "url": "/city-partner?city=hangzhou",
+    "viewport": "375x812",
+    "horizontalOverflow": false,
+    "districtGridRendered": false,
+    "hero": {
+      "height": 400,
+      "minHeight": "400px",
+      "contentTopInset": 98,
+      "contentBottomInset": 98,
+      "hasBackdrop": false
+    },
+    "tailIsNextSiblingOfBand": true,
+    "tailPaddingTop": "72px",
+    "gapBandBottomToFirstCardTop": 72,
+    "citySelect": {
+      "disabled": false,
+      "value": "hangzhou"
+    },
+    "formLabels": [
+      "申请城市 *",
+      "姓名 *",
+      "手机号 *",
+      "合作身份 *",
+      "我已阅读并同意 隐私政策，并授权工作人员联系我。"
+    ],
+    "stageOneH2": "请留下联系信息",
+    "stageOneHintP": null,
+    "asideNoteInDom": false,
+    "disclaimerTextOnPage": false
+  }
+]

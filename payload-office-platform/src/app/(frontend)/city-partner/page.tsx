@@ -94,6 +94,13 @@ export default async function CityPartnerPage({
         <div className="rc-container">
           <div className="rc-core">
             <RecruitValueProps titleId="city-partner-value-props" />
+            {/* 本页保留表单内的「申请城市」选择器（不传 lockCity）：canonical 恒为
+                `/city-partner`、默认城市可被 `?city=` 覆盖但也可能无效，选择器是用户
+                在这一面唯一的城市入口（e2e `city-partner-flow.spec.ts` 的无效城市用例
+                正是靠它改选）。城市路由那一面的表单不渲染它，见 ComingSoonCityView。
+                表单卡下方原有的合规声明（「提交申请不代表合作确认……」）已按产品裁定
+                去掉（OPT-101）；`city-partner-page-seo.test.ts` 的四个禁词断言是纯
+                `not.toMatch`，只禁词、不要求任何声明存在，删它不动任何守卫。 */}
             <aside className="rc-aside">
               <CityPartnerApplicationForm
                 cities={selectableCities}
@@ -101,10 +108,6 @@ export default async function CityPartnerPage({
                 invalidExplicitCity={selection.invalidExplicitCity}
                 cityUnavailableMessage={cityUnavailableMessage}
               />
-              {/* 合规声明：稿子没有它的位置，但它是既有合规文案，不能因改版消失
-                  （`city-partner-page-seo.test.ts:39` 的四个禁词正是它在否认的东西）。
-                  放表单卡正下方——它说的是「提交这张表意味着什么」。 */}
-              <p className="rc-aside__note">{CITY_PARTNER_COPY.note}</p>
             </aside>
           </div>
         </div>
