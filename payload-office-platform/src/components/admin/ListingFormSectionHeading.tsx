@@ -11,6 +11,9 @@ import React from 'react'
  * 定稿方案要的只是一条标题 + 说明 + 分隔线，不需要折叠语义，所以用纯展示的 ui 字段。
  *
  * 无 name、不进表单状态、不影响数据路径与 schema。
+ *
+ * OPT-102 起楼盘编辑表单（Buildings.ts 的 `sectionHeading()`）也用它分节——
+ * 组件本身与房源无关，名字里的 Listing 只是出生地；改名要动 importMap 与两处守卫测试，不值。
  */
 export default function ListingFormSectionHeading({
   title,

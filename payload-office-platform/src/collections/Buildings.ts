@@ -26,7 +26,35 @@ import { createBuildingDedupCheckEndpoint } from '@/endpoints/building-dedup-che
 import { createBuildingMergeEndpoint } from '@/endpoints/building-merge-endpoint'
 import { createBuildingDeactivationImpactEndpoint } from '@/endpoints/building-deactivation-impact-endpoint'
 import { createBuildingOperationalToggleEndpoint } from '@/endpoints/building-operational-toggle-endpoint'
-import { createDataSourceGroup } from '@/domain/supply-import/data-source-field'
+import { createDataSourceGroup, hasDataSourceData } from '@/domain/supply-import/data-source-field'
+
+// 固定列轴（OPT-102，口径同房源 OPT-032 §3.3-A3）：基本信息节 3 列，其余节 4 列，
+// textarea 独占一行。row 内字段必须给 admin.width，否则 flex-grow 会把短行拉满、撑歪列轴。
+const COL_3 = '33.333%'
+const COL_4 = '25%'
+const COL_FULL = '100%'
+
+/**
+ * 分节标题（纯展示 ui 字段，无 name，不进数据路径）。复用房源表单的
+ * ListingFormSectionHeading——两张表的分节要长得一样，不另造一个组件。
+ */
+const sectionHeading = (
+  title: string,
+  description: string,
+  condition?: (data: unknown) => boolean,
+): Field =>
+  ({
+    type: 'ui',
+    admin: {
+      ...(condition ? { condition } : {}),
+      components: {
+        Field: {
+          path: '/components/admin/ListingFormSectionHeading#default',
+          clientProps: { title, description },
+        },
+      },
+    },
+  }) as unknown as Field
 
 const BUILDING_MEDIA_CATEGORIES = ['exterior', 'lobby', 'common-area', 'facilities'] as const
 
@@ -211,30 +239,46 @@ export const Buildings: CollectionConfig = {
       type: 'tabs',
       tabs: [
         {
-          label: '基本信息',
-          description: '维护楼盘名称、发布状态和楼宇等级。',
+          // OPT-102：原「基本信息 / 位置交通 / 楼宇属性」三个 tab 合并成一个，各自降级为
+          // ui 分节标题（无 name，不进数据路径，零 schema 影响）——与房源编辑页
+          // （OPT-032 §3.3-A1）同一手法、同一组件（ListingFormSectionHeading，纯展示）。
+          //
+          // 不用 collapsible 做分节：它带折叠箭头、点标题会收起，且折叠态持久化到用户
+          // preferences（理由见 ListingFormSectionHeading 文件头）。
+          //
+          // 「展示内容」单独一个 tab：它装着楼盘媒体资源（maxRows 40，mount 即发 /api/media
+          // 并渲染缩略图）与 Lexical 富文本；Payload 客户端只渲染激活 tab，留它单独一页
+          // 等于用一次点击挡掉这笔首屏开销。
+          label: '基础信息',
+          description: '楼盘的全部录入项。图片、配套与介绍在「展示内容」页签。',
           fields: [
-            {
-              name: 'name',
-              label: '楼盘名称',
-              type: 'text',
-              required: true,
-            },
+            sectionHeading('基本信息', '维护楼盘名称、URL 标识、发布状态、启停与楼宇等级。'),
             {
               type: 'row',
               fields: [
                 {
+                  name: 'name',
+                  label: '楼盘名称',
+                  type: 'text',
+                  required: true,
+                  admin: { width: COL_3 },
+                },
+                {
+                  // 楼盘的 slug 没有服务端生成钩子（房源那边由 listing-protect 的 ensureUniqueSlug
+                  // 生成，故能收进标题框的图标）；这里仍是运营手填的必填项，保留为可编辑字段。
                   name: 'slug',
                   label: 'URL 标识',
                   type: 'text',
                   required: true,
                   unique: true,
+                  admin: { width: COL_3, description: '用于前台 URL（/buildings/xxx），发布后不建议再改。' },
                 },
                 {
                   name: 'status',
                   label: '发布状态',
                   type: 'select',
                   defaultValue: 'published',
+                  admin: { width: COL_3 },
                   options: [
                     { label: '草稿', value: 'draft' },
                     { label: '已发布', value: 'published' },
@@ -253,6 +297,7 @@ export const Buildings: CollectionConfig = {
                   label: '启停状态',
                   type: 'select',
                   defaultValue: 'active',
+                  admin: { width: COL_3 },
                   options: BUILDING_OPERATIONAL_STATUSES.map((value) => ({
                     label: BUILDING_OPERATIONAL_STATUS_LABELS[value],
                     value,
@@ -262,20 +307,17 @@ export const Buildings: CollectionConfig = {
                   name: 'buildingType',
                   label: '物业类型',
                   type: 'select',
+                  admin: { width: COL_3 },
                   options: BUILDING_TYPES.map((value) => ({
                     label: BUILDING_TYPE_LABELS[value],
                     value,
                   })),
                 },
-              ],
-            },
-            {
-              type: 'row',
-              fields: [
                 {
                   name: 'grade',
                   label: '楼宇等级',
                   type: 'select',
+                  admin: { width: COL_3 },
                   options: [
                     { label: '甲级', value: 'grade-a' },
                     { label: '超甲级', value: 'super-grade-a' },
@@ -283,25 +325,27 @@ export const Buildings: CollectionConfig = {
                     { label: '服务式办公', value: 'serviced-office' },
                   ],
                 },
-                {
-                  name: 'verificationStatus',
-                  label: '认证状态',
-                  type: 'select',
-                  defaultValue: 'unverified',
-                  options: VERIFICATION_STATUSES.map((value) => ({
-                    label: VERIFICATION_STATUS_LABELS[value],
-                    value,
-                  })),
-                },
               ],
             },
             {
               type: 'row',
               fields: [
                 {
+                  name: 'verificationStatus',
+                  label: '认证状态',
+                  type: 'select',
+                  defaultValue: 'unverified',
+                  admin: { width: COL_3 },
+                  options: VERIFICATION_STATUSES.map((value) => ({
+                    label: VERIFICATION_STATUS_LABELS[value],
+                    value,
+                  })),
+                },
+                {
                   name: 'registrationCapability',
                   label: '注册能力',
                   type: 'select',
+                  admin: { width: COL_3 },
                   options: REGISTRATION_CAPABILITIES.map((value) => ({
                     label: REGISTRATION_CAPABILITY_LABELS[value],
                     value,
@@ -312,23 +356,12 @@ export const Buildings: CollectionConfig = {
                   label: '推荐排序',
                   type: 'number',
                   defaultValue: 0,
-                  admin: { description: '数值越小越靠前' },
+                  admin: { width: COL_3, description: '数值越小越靠前' },
                 },
               ],
             },
-            {
-              name: 'version',
-              type: 'number',
-              defaultValue: 1,
-              admin: { readOnly: true },
-            },
-            createDataSourceGroup('楼盘'),
-          ],
-        },
-        {
-          label: '位置交通',
-          description: '维护城市、行政区、商圈、地址、地铁和地图坐标。',
-          fields: [
+
+            sectionHeading('位置交通', '维护城市、行政区、商圈、地址、地铁和地图坐标。'),
             {
               // M3.1：城市维度（design §3.4 buildings.city）。protect hook 校验
               // 存在 + type=city + 启用；仅启用城市可作为新建候选。
@@ -357,58 +390,46 @@ export const Buildings: CollectionConfig = {
               },
             },
             {
-              type: 'row',
-              fields: [
-                {
-                  name: 'district',
-                  label: '行政区',
-                  type: 'relationship',
-                  relationTo: 'locations',
-                  required: true,
-                  // OPT-074：原注释称「历史已存值不受影响（filterOptions 仅约束下拉候选）」，
-                  // 2026-09-06 实测证伪——filterOptions 在保存时是硬校验，停用一个正被
-                  // 引用的行政区，引用它的楼盘连改摘要都会被拦。故这里只留 type。
-                  filterOptions: () => locationTypeFilter(['district']),
-                  // 由 city 字段上的级联控制器接管
-                  admin: { hidden: true },
-                },
-                {
-                  name: 'businessDistrict',
-                  label: '商圈',
-                  type: 'relationship',
-                  relationTo: 'locations',
-                  filterOptions: () => locationTypeFilter(['business_area']),
-                  // 由 city 字段上的级联控制器接管
-                  admin: { hidden: true },
-                },
-              ],
+              // 由 city 字段上的级联控制器接管，不渲染；不再包在 row 里——
+              // 不渲染的字段没有列宽可言，留在 row 里只会让「row 内字段必须给 width」的守卫多一个豁免。
+              name: 'district',
+              label: '行政区',
+              type: 'relationship',
+              relationTo: 'locations',
+              required: true,
+              // OPT-074：原注释称「历史已存值不受影响（filterOptions 仅约束下拉候选）」，
+              // 2026-09-06 实测证伪——filterOptions 在保存时是硬校验，停用一个正被
+              // 引用的行政区，引用它的楼盘连改摘要都会被拦。故这里只留 type。
+              filterOptions: () => locationTypeFilter(['district']),
+              admin: { hidden: true },
+            },
+            {
+              name: 'businessDistrict',
+              label: '商圈',
+              type: 'relationship',
+              relationTo: 'locations',
+              filterOptions: () => locationTypeFilter(['business_area']),
+              // 由 city 字段上的级联控制器接管
+              admin: { hidden: true },
             },
             {
               type: 'row',
               fields: [
-                { name: 'address', label: '地址', type: 'text' },
+                { name: 'address', label: '地址', type: 'text', admin: { width: COL_4 } },
                 {
                   name: 'nearestMetro',
                   label: '最近地铁',
                   type: 'relationship',
                   relationTo: 'locations',
                   filterOptions: () => activeLocationFilter(['metro_station']),
+                  admin: { width: COL_4 },
                 },
+                { name: 'latitude', label: '纬度', type: 'number', admin: { width: COL_4 } },
+                { name: 'longitude', label: '经度', type: 'number', admin: { width: COL_4 } },
               ],
             },
-            {
-              type: 'row',
-              fields: [
-                { name: 'latitude', label: '纬度', type: 'number' },
-                { name: 'longitude', label: '经度', type: 'number' },
-              ],
-            },
-          ],
-        },
-        {
-          label: '楼宇属性',
-          description: '维护竣工时间、楼层、物业和停车等楼宇明细。',
-          fields: [
+
+            sectionHeading('楼宇属性', '维护竣工时间、楼层、物业、停车、开发商与规模、垂直交通和楼宇服务。'),
             {
               type: 'row',
               fields: [
@@ -416,63 +437,50 @@ export const Buildings: CollectionConfig = {
                   name: 'completionDate',
                   label: '竣工时间',
                   type: 'date',
-                  admin: { date: { pickerAppearance: 'monthOnly' } },
+                  admin: { width: COL_4, date: { pickerAppearance: 'monthOnly' } },
                 },
+                { name: 'totalFloors', label: '总楼层', type: 'number', min: 0, admin: { width: COL_4 } },
+                { name: 'propertyCompany', label: '物业公司', type: 'text', admin: { width: COL_4 } },
                 {
-                  name: 'totalFloors',
-                  label: '总楼层',
+                  name: 'propertyFee',
+                  label: '物业费',
                   type: 'number',
                   min: 0,
+                  admin: { width: COL_4, description: '元/㎡/月' },
                 },
               ],
             },
             {
               type: 'row',
               fields: [
+                { name: 'parkingSpaces', label: '停车位数量', type: 'number', min: 0, admin: { width: COL_4 } },
                 {
-                  name: 'propertyCompany',
-                  label: '物业公司',
-                  type: 'text',
-                },
-                {
-                  name: 'propertyFee',
-                  label: '物业费',
+                  /**
+                   * 在售单价（OPT-045 D1）。
+                   *
+                   * **单值，不是区间**，也不做「在售房源单价区间」的派生展示——用户裁定。
+                   * 楼盘表此前没有任何价格字段（只有 `totalFloors` 与
+                   * `verification_info_price_verified_at`），出售类楼盘无处填单价。
+                   *
+                   * **口径固定为「元/㎡」**，不带周期与单位选择：
+                   * 楼盘层面的在售单价是一个招商口径的参考值，不是可成交的结构化价格。
+                   * 真正参与前台价格展示、排序、筛选的是**房源**的
+                   * `price.{amount,currency,period,unit}` 四件套（出售走
+                   * `period='one-time'` + `unit='sqm'|'suite'`）。这里刻意不做成四件套，
+                   * 免得两处价格来源打架——楼盘页的价格聚合一直来自其下房源，
+                   * 本字段不进任何聚合。
+                   */
+                  name: 'saleUnitPrice',
+                  label: '在售单价（元/㎡）',
                   type: 'number',
                   min: 0,
-                  admin: { description: '元/㎡/月' },
+                  admin: {
+                    width: COL_4,
+                    description:
+                      '招商参考口径的在售单价，单值。前台价格展示与筛选一律来自房源的结构化价格，本字段不参与聚合。',
+                  },
                 },
               ],
-            },
-            {
-              name: 'parkingSpaces',
-              label: '停车位数量',
-              type: 'number',
-              min: 0,
-            },
-            {
-              /**
-               * 在售单价（OPT-045 D1）。
-               *
-               * **单值，不是区间**，也不做「在售房源单价区间」的派生展示——用户裁定。
-               * 楼盘表此前没有任何价格字段（只有 `totalFloors` 与
-               * `verification_info_price_verified_at`），出售类楼盘无处填单价。
-               *
-               * **口径固定为「元/㎡」**，不带周期与单位选择：
-               * 楼盘层面的在售单价是一个招商口径的参考值，不是可成交的结构化价格。
-               * 真正参与前台价格展示、排序、筛选的是**房源**的
-               * `price.{amount,currency,period,unit}` 四件套（出售走
-               * `period='one-time'` + `unit='sqm'|'suite'`）。这里刻意不做成四件套，
-               * 免得两处价格来源打架——楼盘页的价格聚合一直来自其下房源，
-               * 本字段不进任何聚合。
-               */
-              name: 'saleUnitPrice',
-              label: '在售单价（元/㎡）',
-              type: 'number',
-              min: 0,
-              admin: {
-                description:
-                  '招商参考口径的在售单价，单值。前台价格展示与筛选一律来自房源的结构化价格，本字段不参与聚合。',
-              },
             },
             {
               name: 'developerAndScale',
@@ -482,22 +490,17 @@ export const Buildings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    { name: 'developer', label: '开发商', type: 'text', maxLength: 100 },
-                    { name: 'grossFloorArea', label: '总建筑面积（㎡）', type: 'number', min: 0 },
+                    { name: 'developer', label: '开发商', type: 'text', maxLength: 100, admin: { width: COL_4 } },
+                    { name: 'grossFloorArea', label: '总建筑面积（㎡）', type: 'number', min: 0, admin: { width: COL_4 } },
+                    { name: 'typicalFloorArea', label: '标准层面积（㎡）', type: 'number', min: 0, admin: { width: COL_4 } },
+                    { name: 'standardFloorHeight', label: '标准层高（m）', type: 'number', min: 0, admin: { width: COL_4 } },
                   ],
                 },
                 {
                   type: 'row',
                   fields: [
-                    { name: 'typicalFloorArea', label: '标准层面积（㎡）', type: 'number', min: 0 },
-                    { name: 'standardFloorHeight', label: '标准层高（m）', type: 'number', min: 0 },
-                  ],
-                },
-                {
-                  type: 'row',
-                  fields: [
-                    { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0 },
-                    { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100 },
+                    { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0, admin: { width: COL_4 } },
+                    { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100, admin: { width: COL_4 } },
                   ],
                 },
               ],
@@ -510,8 +513,8 @@ export const Buildings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    { name: 'passengerElevators', label: '客梯数量', type: 'number', min: 0 },
-                    { name: 'freightElevators', label: '货梯数量', type: 'number', min: 0 },
+                    { name: 'passengerElevators', label: '客梯数量', type: 'number', min: 0, admin: { width: COL_4 } },
+                    { name: 'freightElevators', label: '货梯数量', type: 'number', min: 0, admin: { width: COL_4 } },
                   ],
                 },
                 { name: 'zoningNote', label: '分区说明', type: 'textarea', maxLength: 300 },
@@ -525,22 +528,17 @@ export const Buildings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    { name: 'airConditioning', label: '空调', type: 'text', maxLength: 100 },
-                    { name: 'network', label: '网络', type: 'text', maxLength: 100 },
+                    { name: 'airConditioning', label: '空调', type: 'text', maxLength: 100, admin: { width: COL_4 } },
+                    { name: 'network', label: '网络', type: 'text', maxLength: 100, admin: { width: COL_4 } },
+                    { name: 'powerSupply', label: '供电', type: 'text', maxLength: 100, admin: { width: COL_4 } },
+                    { name: 'accessControl', label: '门禁', type: 'text', maxLength: 100, admin: { width: COL_4 } },
                   ],
                 },
                 {
                   type: 'row',
                   fields: [
-                    { name: 'powerSupply', label: '供电', type: 'text', maxLength: 100 },
-                    { name: 'accessControl', label: '门禁', type: 'text', maxLength: 100 },
-                  ],
-                },
-                {
-                  type: 'row',
-                  fields: [
-                    { name: 'parkingFee', label: '停车费', type: 'text', maxLength: 100 },
-                    { name: 'serviceHours', label: '服务时间', type: 'text', maxLength: 100 },
+                    { name: 'parkingFee', label: '停车费', type: 'text', maxLength: 100, admin: { width: COL_4 } },
+                    { name: 'serviceHours', label: '服务时间', type: 'text', maxLength: 100, admin: { width: COL_4 } },
                   ],
                 },
               ],
@@ -557,6 +555,8 @@ export const Buildings: CollectionConfig = {
                 { name: 'publicVisible', label: '公开展示', type: 'checkbox', defaultValue: false },
               ],
             },
+
+            sectionHeading('核验与版本', '信息 / 价格核验时间由运营维护；版本号由乐观锁驱动，此处只读。'),
             {
               name: 'verificationInfo',
               label: '核验信息',
@@ -570,35 +570,59 @@ export const Buildings: CollectionConfig = {
                       label: '信息核验时间',
                       type: 'date',
                       defaultValue: () => new Date().toISOString(),
+                      admin: { width: COL_4 },
                     },
-                    { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date' },
+                    { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date', admin: { width: COL_4 } },
                   ],
                 },
               ],
             },
+            {
+              type: 'row',
+              fields: [
+                {
+                  // 与房源的四个只读状态同一展示态组件（字段名 + 值，不是禁用输入框）。
+                  name: 'version',
+                  label: '版本号',
+                  type: 'number',
+                  defaultValue: 1,
+                  admin: {
+                    readOnly: true,
+                    width: COL_4,
+                    description: '乐观锁版本，每次保存自动递增。',
+                    components: { Field: '/components/admin/ListingReadonlyValue' },
+                  },
+                },
+              ],
+            },
+
+            // 标题与组共用同一个显示条件：手工建的楼盘没有外部来源，两者一起不渲染，
+            // 不留一条只有标题没有内容的空分节。
+            sectionHeading('数据来源', '标记外部抓取来源与同步信息，便于追溯、去重与增量更新。', hasDataSourceData),
+            createDataSourceGroup('楼盘'),
           ],
         },
         {
-          label: '媒体与配套',
-          description: '维护楼盘封面、空间图集和楼宇配套。',
+          label: '展示内容',
+          description: '维护前台卡片和详情页使用的封面、图集、配套、介绍与 SEO 摘要。',
           fields: [
+            sectionHeading('媒体与配套', '封面与图集由下方媒体资源自动生成；配套用于详情页标签。'),
             {
+              // hidden：由楼盘媒体资源（BuildingMediaManager）操作，保存时 syncBuildingMedia
+              // 从 mediaItems 派生首张图为封面（仅在此前没有封面时）。
               name: 'coverImage',
               label: '封面图',
               type: 'upload',
               relationTo: 'media',
-              admin: {
-                hidden: true,
-              },
+              admin: { hidden: true },
             },
             {
+              // hidden：同上，gallery = mediaItems 中 kind=image 的派生列表。
               name: 'gallery',
               label: '空间图集',
               type: 'array',
               maxRows: BUILDING_GALLERY_MAX,
-              admin: {
-                hidden: true,
-              },
+              admin: { hidden: true },
               fields: [
                 {
                   name: 'image',
@@ -657,12 +681,8 @@ export const Buildings: CollectionConfig = {
                 },
               },
             },
-          ],
-        },
-        {
-          label: '介绍与 SEO',
-          description: '维护详情页内容和搜索引擎摘要。',
-          fields: [
+
+            sectionHeading('介绍与 SEO', '维护详情页内容和搜索引擎摘要。'),
             { name: 'summary', label: '摘要', type: 'textarea' },
             { name: 'description', label: '详细介绍', type: 'richText' },
             {
@@ -670,8 +690,13 @@ export const Buildings: CollectionConfig = {
               label: 'SEO',
               type: 'group',
               fields: [
-                { name: 'title', label: '标题', type: 'text' },
-                { name: 'description', label: '描述', type: 'textarea' },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'title', label: '标题', type: 'text', admin: { width: COL_FULL } },
+                    { name: 'description', label: '描述', type: 'textarea', admin: { width: COL_FULL } },
+                  ],
+                },
               ],
             },
           ],
