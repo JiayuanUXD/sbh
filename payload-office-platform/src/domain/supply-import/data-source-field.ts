@@ -11,6 +11,18 @@ const COL_4 = '25%'
  * (dataSource.source, dataSource.externalId) 的幂等语义会在两个集合间漂移。
  * 只有 admin.description 里的主语不同。
  */
+/**
+ * 「数据来源」组的显示条件：仅外部来源已有数据时显示；手工新建的对象不需要维护此组字段。
+ * 导出给 Buildings.ts 的分节标题共用——标题与组必须同进同出，否则会剩一条空标题（OPT-102）。
+ */
+export const hasDataSourceData = (data: unknown): boolean => {
+  const ds = (data as { dataSource?: unknown } | null | undefined)?.dataSource as
+    | { source?: string | null; externalId?: string | null; sourceUrl?: string | null; syncedAt?: string | null }
+    | null
+    | undefined
+  return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
+}
+
 export function createDataSourceGroup(subject: '房源' | '楼盘'): Field {
   return {
     name: 'dataSource',
@@ -18,14 +30,7 @@ export function createDataSourceGroup(subject: '房源' | '楼盘'): Field {
     type: 'group',
     admin: {
       hideGutter: true,
-      // 仅外部来源已有数据时显示；手工新建的对象不需要维护此组字段
-      condition: (data) => {
-        const ds = data?.dataSource as
-          | { source?: string | null; externalId?: string | null; sourceUrl?: string | null; syncedAt?: string | null }
-          | null
-          | undefined
-        return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
-      },
+      condition: (data) => hasDataSourceData(data),
     },
     fields: [
       {

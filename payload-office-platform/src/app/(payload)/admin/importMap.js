@@ -8,6 +8,8 @@ import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_7a2881d0f1b3170eb0d9bf10761aa35d } from '../../../components/admin/LocationCascadeField'
 import { default as default_32cd175b11a507bc1d2e1118d0c77c0b } from '../../../components/admin/BuildingAggregateCard'
+import { default as default_b126e0b58866da4320d49e1bf76cea7c } from '../../../components/admin/ListingFormSectionHeading'
+import { default as default_e824639d01f5ca07b270b546b9ee9053 } from '../../../components/admin/ListingReadonlyValue'
 import { default as default_7614944393d31d9bb0b1ff1f9ac564e2 } from '../../../components/admin/BuildingMediaManager'
 import { default as default_e656613ffd999162e9cb4b0ea24b8fca } from '../../../components/admin/AmenitiesChipSelector'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -42,11 +44,9 @@ import { default as default_e2334a3ded7dbfed3d718a8b27260221 } from '../../../co
 import { default as default_0d79803fec97d005c6fb5ad40b155808 } from '../../../components/admin/BuildingsListView'
 import { default as default_78df23b1d99d35811c4eaef06cc2eeed } from '../../../components/admin/ListingCompletenessCard'
 import { default as default_0b8faaaab4eb657e1e6d583eda93d27d } from '../../../components/admin/ListingVisibilityCard'
-import { default as default_b126e0b58866da4320d49e1bf76cea7c } from '../../../components/admin/ListingFormSectionHeading'
 import { default as default_af1391405ef33ef431edd52406e13adf } from '../../../components/admin/PublishRequiredLabel'
 import { default as default_181346d2083e59b03eff0bedc3d20f68 } from '../../../components/admin/ListingSlugBadge'
 import { NumberComponent as NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139 } from '@nouance/payload-better-fields-plugin/Number/client'
-import { default as default_e824639d01f5ca07b270b546b9ee9053 } from '../../../components/admin/ListingReadonlyValue'
 import { default as default_5df1f245f9261c4f614a05a75f0ee773 } from '../../../components/admin/ListingMediaManager'
 import { default as default_15b867d1269829aac37bf5806d1f03fb } from '../../../components/admin/ListingPublicationActions'
 import { default as default_c4eb0c1818eaaae48f1870533fcd2a2e } from '../../../components/admin/ListingsListView'
@@ -101,6 +101,8 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "/components/admin/LocationCascadeField#default": default_7a2881d0f1b3170eb0d9bf10761aa35d,
   "/components/admin/BuildingAggregateCard#default": default_32cd175b11a507bc1d2e1118d0c77c0b,
+  "/components/admin/ListingFormSectionHeading#default": default_b126e0b58866da4320d49e1bf76cea7c,
+  "/components/admin/ListingReadonlyValue#default": default_e824639d01f5ca07b270b546b9ee9053,
   "/components/admin/BuildingMediaManager#default": default_7614944393d31d9bb0b1ff1f9ac564e2,
   "/components/admin/AmenitiesChipSelector#default": default_e656613ffd999162e9cb4b0ea24b8fca,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -135,11 +137,9 @@ export const importMap = {
   "/components/admin/BuildingsListView#default": default_0d79803fec97d005c6fb5ad40b155808,
   "/components/admin/ListingCompletenessCard#default": default_78df23b1d99d35811c4eaef06cc2eeed,
   "/components/admin/ListingVisibilityCard#default": default_0b8faaaab4eb657e1e6d583eda93d27d,
-  "/components/admin/ListingFormSectionHeading#default": default_b126e0b58866da4320d49e1bf76cea7c,
   "/components/admin/PublishRequiredLabel#default": default_af1391405ef33ef431edd52406e13adf,
   "/components/admin/ListingSlugBadge#default": default_181346d2083e59b03eff0bedc3d20f68,
   "@nouance/payload-better-fields-plugin/Number/client#NumberComponent": NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139,
-  "/components/admin/ListingReadonlyValue#default": default_e824639d01f5ca07b270b546b9ee9053,
   "/components/admin/ListingMediaManager#default": default_5df1f245f9261c4f614a05a75f0ee773,
   "/components/admin/ListingPublicationActions#default": default_15b867d1269829aac37bf5806d1f03fb,
   "/components/admin/ListingsListView#default": default_c4eb0c1818eaaae48f1870533fcd2a2e,

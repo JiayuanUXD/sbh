@@ -13,6 +13,13 @@
 - 禁止 shadcn-ui、Tailwind reset 和全局第三方 reset。
 - Custom View 支持中文、暗色、空、错和无权限状态。
 - 长表单使用 Tabs、Row、Collapsible 和侧栏分组，不改变字段路径。
+- 房源 / 楼盘编辑页统一是**两个 tab**（录入项 + 展示内容）+ `ui` 分节标题（`ListingFormSectionHeading`，
+  两张表共用）+ 固定列轴（基本信息节 33.333%、其余 25%、textarea 100%，row 子字段必须给 `admin.width`）
+  + `.collection-edit--{listings,buildings}` 作用域内去组框。守卫：`tests/{listing,building}-form-layout.test.ts`。
+  分节不用 collapsible（折叠态持久化到 preferences，收起后字段找得到却不可见）。
+- ★ **后台走查陷阱**：Payload 的 `RenderFields` 套着 `RenderIfInViewport`，**没滚进视口的字段不渲染**
+  （group 的 `.render-fields` 在折下时是空的）。DOM 探针 / 整页截图前必须把页面滚一遍，否则会把懒加载
+  误判成「组内字段没渲染」（OPT-102 走查踩过，靠旧配置对照才发现是视口问题）。
 
 ## Payload
 

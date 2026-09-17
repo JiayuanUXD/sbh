@@ -13,6 +13,9 @@ type Option = { label?: unknown; value?: unknown }
  * 是误导。改成字段名 + 值的纯文本，原来的 admin.description 收进 ⓘ 的 hover。
  *
  * 顺带省高：四项从四个 34px 控件行压成一行文本。
+ *
+ * OPT-102 起楼盘编辑表单的「版本号」也用它（Buildings.ts）；组件按 props.field 读标签 /
+ * 选项 / 说明，与具体 collection 无关。
  */
 export default function ListingReadonlyValue(props: {
   path?: string
