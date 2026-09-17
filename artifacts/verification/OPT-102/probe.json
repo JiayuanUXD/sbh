@@ -1,0 +1,278 @@
+[
+  {
+    "viewport": "1440x900",
+    "tab": "基础信息",
+    "tabs": [
+      "基础信息",
+      "展示内容"
+    ],
+    "sections": [
+      "基本信息",
+      "位置交通",
+      "楼宇属性",
+      "核验与版本"
+    ],
+    "rows": [
+      [
+        "楼盘名称*:calc(33.333% - 16px)",
+        "URL 标识*:calc(33.333% - 16px)",
+        "发布状态:calc(33.333% - 16px)"
+      ],
+      [
+        "启停状态:calc(33.333% - 16px)",
+        "物业类型:calc(33.333% - 16px)",
+        "楼宇等级:calc(33.333% - 16px)"
+      ],
+      [
+        "认证状态:calc(33.333% - 16px)",
+        "注册能力:calc(33.333% - 16px)",
+        "推荐排序:calc(33.333% - 16px)"
+      ],
+      [
+        "地址:calc(25% - 16px)",
+        "最近地铁:calc(25% - 16px)",
+        "纬度:calc(25% - 16px)",
+        "经度:calc(25% - 16px)"
+      ],
+      [
+        "竣工时间:calc(25% - 16px)",
+        "总楼层:calc(25% - 16px)",
+        "物业公司:calc(25% - 16px)",
+        "物业费:calc(25% - 16px)"
+      ],
+      [
+        "停车位数量:calc(25% - 16px)",
+        "在售单价（元/㎡）:calc(25% - 16px)"
+      ],
+      [
+        "开发商:calc(25% - 16px)",
+        "总建筑面积（㎡）:calc(25% - 16px)",
+        "标准层面积（㎡）:calc(25% - 16px)",
+        "标准层高（m）:calc(25% - 16px)"
+      ],
+      [
+        "净层高（m）:calc(25% - 16px)",
+        "得房率（%）:calc(25% - 16px)"
+      ],
+      [
+        "客梯数量:calc(25% - 16px)",
+        "货梯数量:calc(25% - 16px)"
+      ],
+      [
+        "空调:calc(25% - 16px)",
+        "网络:calc(25% - 16px)",
+        "供电:calc(25% - 16px)",
+        "门禁:calc(25% - 16px)"
+      ],
+      [
+        "停车费:calc(25% - 16px)",
+        "服务时间:calc(25% - 16px)"
+      ],
+      [
+        "信息核验时间:calc(25% - 16px)",
+        "价格核验时间:calc(25% - 16px)"
+      ],
+      [
+        "listing-readonly:calc(25% - 16px)"
+      ]
+    ],
+    "groups": [
+      {
+        "title": "开发商与规模",
+        "children": 2,
+        "border": "0px",
+        "marginLeft": "0px"
+      },
+      {
+        "title": "垂直交通",
+        "children": 2,
+        "border": "0px",
+        "marginLeft": "0px"
+      },
+      {
+        "title": "楼宇服务",
+        "children": 2,
+        "border": "0px",
+        "marginLeft": "0px"
+      },
+      {
+        "title": "核验信息",
+        "children": 1,
+        "border": "0px",
+        "marginLeft": "0px"
+      }
+    ],
+    "readonly": [
+      "版本号i63"
+    ],
+    "richTextEditors": 0,
+    "dataSourceRendered": false
+  },
+  {
+    "viewport": "1440x900",
+    "tab": "展示内容",
+    "tabs": [
+      "基础信息",
+      "展示内容"
+    ],
+    "sections": [
+      "媒体与配套",
+      "介绍与 SEO"
+    ],
+    "rows": [
+      [
+        "标题:calc(100% - 16px)",
+        "描述:calc(100% - 16px)"
+      ]
+    ],
+    "groups": [
+      {
+        "title": "SEO",
+        "children": 1,
+        "border": "0px",
+        "marginLeft": "0px"
+      }
+    ],
+    "readonly": [],
+    "richTextEditors": 1,
+    "dataSourceRendered": false
+  },
+  {
+    "viewport": "375x812",
+    "tab": "基础信息",
+    "tabs": [
+      "基础信息",
+      "展示内容"
+    ],
+    "sections": [
+      "基本信息",
+      "位置交通",
+      "楼宇属性",
+      "核验与版本"
+    ],
+    "rows": [
+      [
+        "楼盘名称*:100%",
+        "URL 标识*:100%",
+        "发布状态:100%"
+      ],
+      [
+        "启停状态:100%",
+        "物业类型:100%",
+        "楼宇等级:100%"
+      ],
+      [
+        "认证状态:100%",
+        "注册能力:100%",
+        "推荐排序:100%"
+      ],
+      [
+        "地址:100%",
+        "最近地铁:100%",
+        "纬度:100%",
+        "经度:100%"
+      ],
+      [
+        "竣工时间:100%",
+        "总楼层:100%",
+        "物业公司:100%",
+        "物业费:100%"
+      ],
+      [
+        "停车位数量:100%",
+        "在售单价（元/㎡）:100%"
+      ],
+      [
+        "开发商:100%",
+        "总建筑面积（㎡）:100%",
+        "标准层面积（㎡）:100%",
+        "标准层高（m）:100%"
+      ],
+      [
+        "净层高（m）:100%",
+        "得房率（%）:100%"
+      ],
+      [
+        "客梯数量:100%",
+        "货梯数量:100%"
+      ],
+      [
+        "空调:100%",
+        "网络:100%",
+        "供电:100%",
+        "门禁:100%"
+      ],
+      [
+        "停车费:100%",
+        "服务时间:100%"
+      ],
+      [
+        "信息核验时间:100%",
+        "价格核验时间:100%"
+      ],
+      [
+        "listing-readonly:calc(50% - 12px)"
+      ]
+    ],
+    "groups": [
+      {
+        "title": "开发商与规模",
+        "children": 2,
+        "border": "0px",
+        "marginLeft": "0px"
+      },
+      {
+        "title": "垂直交通",
+        "children": 2,
+        "border": "0px",
+        "marginLeft": "0px"
+      },
+      {
+        "title": "楼宇服务",
+        "children": 2,
+        "border": "0px",
+        "marginLeft": "0px"
+      },
+      {
+        "title": "核验信息",
+        "children": 1,
+        "border": "0px",
+        "marginLeft": "0px"
+      }
+    ],
+    "readonly": [
+      "版本号i63"
+    ],
+    "richTextEditors": 0,
+    "dataSourceRendered": false
+  },
+  {
+    "viewport": "375x812",
+    "tab": "展示内容",
+    "tabs": [
+      "基础信息",
+      "展示内容"
+    ],
+    "sections": [
+      "媒体与配套",
+      "介绍与 SEO"
+    ],
+    "rows": [
+      [
+        "标题:100%",
+        "描述:100%"
+      ]
+    ],
+    "groups": [
+      {
+        "title": "SEO",
+        "children": 1,
+        "border": "0px",
+        "marginLeft": "0px"
+      }
+    ],
+    "readonly": [],
+    "richTextEditors": 1,
+    "dataSourceRendered": false
+  }
+]
