@@ -60,10 +60,23 @@
 | 闸门红 | 不部署（job 自己判 `workflow_run.conclusion == 'success'`） |
 | Actions 手动触发，`promote` 勾上 | 同第一行，用于重发某个历史 ref |
 | Actions 手动触发，`promote` 不勾 | 构建并提交一个 GRAY 版本，**0% 流量**，线上保持当前版本 |
+| 平台侧版本创建失败（部署记录 `create_failed` 或其它 `*failed*` 态） | 等待步骤立即 `exit 1`、不切流、线上不变；日志里打印部署记录 + processLogs + rerun 命令，处置见下 |
 
 ```bash
 gh workflow run deploy.yml -f promote=true --ref master
 ```
+
+> **日志里出现 `版本创建失败：create_failed` 时的处置**（2026-09-17 sbh-194 / run 35244832897）：
+> 构建日志 `Image pushed successfully`，版本却在建好 4 秒后被平台判
+> `check_build_image : fail, [ErrorCode]:300502, [ErrorMessage]:build not found`，ImageUrl 为空、
+> 版本已死——平台侧构建与版本创建之间的竞态，不是代码问题、也不是包的问题。当时等待循环没有对应
+> 分支，`create_failed` 落到兜底继续 sleep，空转到 job 25 分钟上限被取消；现在该分支会打印部署记录、
+> 拉 `DescribeCloudRunProcessLog` 并直接 `exit 1`（流量没动，Rollback 步骤只在 promote 路径上跑，
+> `traffic rollback` 对 0% 流量的 GRAY 版本无害）。先用上面的命令重发同一个 ref，换一次平台构建；
+> 连续两次 `create_failed`（当天 sbh-194、手动重发的 sbh-195 就是）说明不是偶发，去控制台
+> 「云托管 → sbh → 该版本」或 CloudBase MCP `queryCloudRun(action=getProcessLog, runId=<记录里的 RunId>)`
+> 看 processLogs 找平台侧原因。记录状态从 `creating` 翻到 `create_failed` 本身约需 17 分钟
+>（00:16 建版 → 00:33 翻状态），这段等待省不掉，省的是后面的空转。
 
 > **触发方式的沿革（两次反向，别把中间那版的理由套到现在）**
 >

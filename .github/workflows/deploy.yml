@@ -23,6 +23,10 @@
 #              放量需勾选 promote，届时才走
 #              切 10% 灰度 -> 冒烟（/api/health + /）-> traffic promote 全量，
 #              失败则 traffic rollback。
+#              等构建就绪的轮询：记录状态 normal 才往下走；build_failed / deploy_failed /
+#              create_failed（及任何 *failed* 态）立刻让 job 红，其中 create_failed 分支
+#              打印部署记录 + processLogs + rerun 命令，不再空转（2026-09-17 sbh-194
+#              create_failed 时没有这条分支，空转到 25 分钟上限被取消）。
 #
 # 机制：用 CloudBase 官方 API 分配上传地址，带重试上传 ZIP，再显式提交 GRAY 版本。
 #       避免 CloudBase CLI 单次上传遇到 ECONNRESET 后直接失败（CLI 的 uploadZip 就是
@@ -347,6 +351,41 @@ jobs:
                 ;;
               build_failed|deploy_failed)
                 echo "::error::$version_name 部署失败：$deploy_status"
+                exit 1
+                ;;
+              create_failed|*failed*)
+                # 2026-09-17 sbh-194 / run 35244832897：构建日志 `Image pushed successfully`，
+                # 版本却在建好 4 秒后被平台判 `check_build_image : fail, [ErrorCode]:300502,
+                # build not found`，ImageUrl 为空、版本已死（平台侧构建与版本创建之间的竞态）。
+                # 当时这个状态不在任何分支里，落到 `*)` 继续 sleep，空转到 job 25 分钟上限被
+                # 取消，日志只剩一串重复的 `sbh-194 -> create_failed`。失败态不会自愈，立刻退出；
+                # 流量从未离开稳定版本，Rollback 步骤按它自己的条件（SHOULD_PROMOTE）决定。
+                # 注意记录状态从 creating 翻到 create_failed 本身花了约 17 分钟（00:16 建版 →
+                # 00:33 翻状态），这条分支省下的是后面的空转，不是全部等待。
+                echo "::error::$version_name 版本创建失败：$deploy_status（平台侧状态，不会自愈）"
+                echo "部署记录（DescribeCloudRunDeployRecord）："
+                jq --arg deployId "$deploy_id" \
+                  '.data.DeployRecords[] | select(.DeployId == $deployId)' "$records_info"
+                run_id=$(jq -r --arg deployId "$deploy_id" \
+                  '.data.DeployRecords[] | select(.DeployId == $deployId) | .RunId // empty' \
+                  "$records_info")
+                echo "平台部署阶段日志（processLogs，DescribeCloudRunProcessLog RunId=$run_id）："
+                if [ -n "$run_id" ]; then
+                  log_body=$(jq -cn --arg envId "$TCB_ENV_ID" --arg runId "$run_id" \
+                    '{EnvId:$envId,RunId:$runId}')
+                  timeout 60 tcb api tcbr DescribeCloudRunProcessLog \
+                    --api-version 2022-02-17 \
+                    --json \
+                    --body "$log_body" |
+                    sed -n '/^{/,$p' | jq -r '.data.Logs[]? // empty' || true
+                fi
+                echo "同一份日志也可在控制台「云托管 → sbh → 版本 $version_name」或 CloudBase MCP"
+                echo "queryCloudRun(action=getProcessLog, detailServerName=sbh, runId=$run_id) 查看。"
+                # --ref 用触发时的 ref：workflow_dispatch 重发历史 ref 失败时，硬编码 master
+                # 会把 master HEAD 发出去而不是重试那次发布；自动路径上它本来就是 master。
+                echo "代码包已上传、闸门已过，先重发同一个 ref（换一次平台构建）："
+                echo "  gh workflow run deploy.yml -f promote=true --ref $GITHUB_REF_NAME"
+                echo "再次 create_failed 就不是偶发竞态，按上面的 processLogs 找平台侧原因。"
                 exit 1
                 ;;
               *)

@@ -254,6 +254,36 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
     expect(block).toContain('exit 1')
   })
 
+  it('版本创建失败（create_failed 等平台侧 *failed* 态）立即退出，不再空转等满轮次', () => {
+    // 2026-09-17 sbh-194 / run 35244832897：镜像已 `Image pushed successfully`，版本却在建好
+    // 4 秒后被平台判 `check_build_image : fail, [ErrorCode]:300502, build not found`，
+    // ImageUrl 为空、版本已死。部署记录状态 create_failed 不在任何分支里，落到 `*)` 继续
+    // sleep，空转到 job 25 分钟上限被取消（手动重跑的 sbh-195 同样如此）。
+    const block = stepBlock(workflow(), '等待新版本构建就绪')
+    const caseAt = block.indexOf('case "$deploy_status" in')
+    expect(caseAt, '等待循环里找不到 case "$deploy_status"').toBeGreaterThan(-1)
+    const body = block.slice(caseAt)
+
+    // 分支模式：点名 create_failed，同时兜住其它没见过的 *failed* 态
+    const FAILED_BRANCH = /^[ \t]*create_failed\|\*failed\*\)\s*$/m
+    expect(body).toMatch(FAILED_BRANCH)
+    // 兜底 `*)` 必须排在它之后，case 首个命中即止，反过来 *failed* 永远轮不到
+    const failedAt = body.search(FAILED_BRANCH)
+    const defaultAt = body.search(/^[ \t]*\*\)\s*$/m)
+    expect(defaultAt, '兜底 *) 分支应排在 create_failed|*failed*) 之后').toBeGreaterThan(failedAt)
+
+    // 分支正文：打印部署记录、拉平台 processLogs、给出 rerun 命令、退出非零
+    const branch = body.slice(failedAt, body.indexOf(';;', failedAt))
+    expect(branch).toContain('.data.DeployRecords[]')
+    expect(branch).toContain('DescribeCloudRunProcessLog')
+    // rerun 命令要带**触发时的 ref**：workflow_dispatch 重发历史 ref 失败时，硬编码
+    // `--ref master` 会把 master HEAD 发出去而不是重试那次发布（PR #200 Codex 评审指出）。
+    // 自动 workflow_run 路径上 GITHUB_REF_NAME 就是 master，两条路径一个写法。
+    expect(branch).toContain('gh workflow run deploy.yml -f promote=true --ref $GITHUB_REF_NAME')
+    expect(branch).not.toContain('--ref master')
+    expect(branch).toMatch(/^[ \t]*exit 1\s*$/m)
+  })
+
   /**
    * 2026-08-26：本条与下一条**整体反向重写**。
    *

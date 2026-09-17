@@ -88,6 +88,7 @@ cd payload-office-platform && pnpm branch:new feat multi city search
 | 合并到 `master`（只动 `specs/`、根级 md 等 paths 外文件） | 闸门不跑，因此不部署                               |
 | `workflow_dispatch`、`promote` 勾上            | 同上，用于重发某个历史 ref                          |
 | `workflow_dispatch`、`promote` 不勾            | 只出 GRAY 版本，0% 流量，线上不变                    |
+| 平台侧版本创建失败（部署记录 `create_failed`，2026-09-17 sbh-194：镜像已推、版本却被判 build not found） | job 立即红、不切流、线上不变；日志里有部署记录 + processLogs + rerun 命令，先用下面的命令重发一次，再红看 `DEPLOYMENT.md` |
 
 ```bash
 gh workflow run deploy.yml -f promote=true --ref master
