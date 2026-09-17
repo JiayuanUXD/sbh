@@ -36,6 +36,22 @@ test('saves stage one once, completes optional stage two, and keeps the canonica
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/city-partner$/)
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
   await expect(page.getByLabel('申请城市')).toHaveValue('hangzhou')
+  // OPT-101：本页永远没有商圈段，次要入口段直接贴着灰底带，要拿回一份 section padding
+  // （recruit.css `.rc-section--band + .rc-section--tail`），否则灰卡与灰带零间距粘在一起。
+  // 守卫落在层叠的最终结果上，不是 CSS 源码文本。
+  expect(await page.locator('section.rc-section--tail').evaluate((node) => getComputedStyle(node).paddingTop)).toBe('72px')
+  // 反向也钉住：商圈段垫在中间时（本地夹具 featuredRegions 全空，塞一个空 section 模拟）
+  // 相邻选择器不再命中，尾注回到稿子的 padding-top 0。丢掉 `+` 组合器就会在这里红。
+  expect(await page.locator('section.rc-section--tail').evaluate((node) => {
+    const stub = document.createElement('section')
+    stub.className = 'rc-section'
+    node.before(stub)
+    const value = getComputedStyle(node).paddingTop
+    stub.remove()
+    return value
+  })).toBe('0px')
+  // OPT-101：Hero 段撑到 `--rc-hero-min-h`(480) 并把文案垂直居中；同样守层叠结果。
+  expect(await page.locator('section.rc-section--hero').evaluate((node) => getComputedStyle(node).minHeight)).toBe('480px')
 
   await page.getByLabel('姓名').fill('测试申请人')
   await page.getByLabel('手机号').fill('13800001111')
@@ -121,6 +137,8 @@ test('shows invalid query visibly, supports keyboard recovery, and skips details
 
   await page.setViewportSize({ width: 375, height: 812 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  // ≤767 档 Hero 最小高度收到 400（OPT-101）。读 minHeight 而不是盒高：文案撑高时盒高不定。
+  expect(await page.locator('section.rc-section--hero').evaluate((node) => getComputedStyle(node).minHeight)).toBe('400px')
 })
 
 test('keeps skip disabled and announces progress while stage two is pending', async ({ page }) => {

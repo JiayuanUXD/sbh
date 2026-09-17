@@ -5,7 +5,10 @@ import React from 'react'
  *
  * 设计依据：docs/SBH设计任务讨论/城市招募页.dc.html:224-236 与末尾 specRows
  *   - 整段是**上一段的尾注**：`padding-top: 0`，与商圈段的间距 = 1×--pad 而非 2×--pad
- *     （骨架里的 `.rc-section--tail`，Task 1 已落地）
+ *     （骨架里的 `.rc-section--tail`，Task 1 已落地）。商圈段没渲染、本段直接贴着
+ *     灰底带时（`/city-partner` 恒如此；城市路由在 `featuredRegions` 为空时如此），
+ *     recruit.css 用 `.rc-section--band + .rc-section--tail` 补回一份 --pad——
+ *     否则灰卡贴着灰带零间距（OPT-101）。
  *   - 卡：稿子 `--bg-subtle`（= 灰，本项目是 `--bg`，**按颜色映射**见 recruit.css 文件头）
  *     · radius 18 · padding 40/48 · 左右两栏 space-between · gap 48
  *   - 标题 24/600/1.2 · 说明 17/1.47 --ink-2 · 卡内两行 gap 6

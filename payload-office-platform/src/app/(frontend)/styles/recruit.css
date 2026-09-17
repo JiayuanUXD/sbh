@@ -65,6 +65,11 @@
      且在 1024 与 1023 断点之间的窗口里会撑出横向溢出。 */
   --rc-side: 400px;
   --rc-colgap: 72px;
+  /* Hero 段最小高度（OPT-101「hero 区域高一点」）。此前 Hero 只有 `.rc-section` 的
+     72 + 文案 + 72 ≈ 320–360，作为页面首屏的定调段偏矮，运营配了背景图时图也只露
+     一条。480 是本页自选的值（首页 Hero 是 760 的满幅视频稿，两页不是同一档，
+     不对齐），写成变量是为了 ≤767 只改一处、也方便日后调。 */
+  --rc-hero-min-h: 480px;
 
   width: 100vw;
   margin-block: calc(var(--sp-6) * -1);
@@ -109,6 +114,16 @@
    = var(--pad) 而非 2×var(--pad)」（城市招募页.dc.html:225-227）。
    只给 padding-top:0，不动 padding-bottom——尾注仍要与页脚留满一份 --pad。 */
 .rc-section--tail { padding-top: 0; }
+/* ★ 上面那条「尾注」前提是商圈段（白底、自带 padding-bottom 72）垫在它上面。
+   商圈段 `featuredRegions` 为空时整段不渲染（本地 7 个 profile 全空，用户走查的
+   杭州页也没有它；`/city-partner` 则是**永远**不渲染它），此时尾注段直接贴着灰底带
+   `.rc-section--band`——白底段 padding-top 0 + 入口卡本身又是灰底（`--bg`），
+   视觉上灰卡与灰带零间距粘在一起（OPT-101 用户走查：「距离顶部的距离太小」）。
+   紧邻灰底带时拿回一份 section padding：带的 72（灰）+ 本段的 72（白）= 相邻
+   section 总留白 `--gap`(144)，与全站节奏一致。写成相邻选择器而不是改组件传 prop：
+   「商圈段有没有渲染」的判断只在 RecruitDistrictGrid 一处（空数组返回 null），
+   这里只对 DOM 结果做反应，不复制那份判断。商圈段存在时前提成立，仍走 0。 */
+.rc-section--band + .rc-section--tail { padding-top: var(--pad); }
 
 /* 正文栏宽上限 702（specRows）。稿子里 Hero 副标与商圈引导语都受这条约束，
    两处共用一个类而不是各写一遍 `max-width: var(--measure)`。 */
@@ -161,6 +176,16 @@
  * 排在静态流内容**之后**，不给容器一个定位上下文，那张 18% 不透明度的图会盖在
  * 标题上（旧版 `.city-coming-soon__hero` 就是这个形态）。这一行让文字回到图上层。 */
 .rc-hero { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--sp-5); }
+
+/* Hero 段本体：撑到 `--rc-hero-min-h` 并把 `.rc-hero` 垂直居中。
+   `.rc-section` 的 72/72 padding 保留——min-height 含 padding（全站 border-box），
+   文案短时由 justify-content 均分余量，文案长（长城市名 + 三行副标）时按内容撑高。
+   只加 `--hero` 修饰类而不动 `.rc-section`：价值点 / 商圈 / 尾注三段不该跟着变高。
+   backdrop 图是 `position:absolute; inset:0` 的脱流物，不受这里 flex 影响。 */
+.rc-section--hero {
+  min-height: var(--rc-hero-min-h);
+  display: flex; flex-direction: column; justify-content: center;
+}
 
 /* 眉标 pill（稿子:68）。零色相：`--ink-2`(#6e6e73) 与 `--bg`(#f5f5f7) 都是中性灰，
    全段不含任何彩色 token。底色用 `--bg`——**这是稿子的 `--bg-subtle`(#f5f5f7)
@@ -572,21 +597,12 @@
 }
 .rc-quick-links a:not(.visually-hidden):hover { color: var(--accent-hover); }
 
-/* 合规声明（`CITY_PARTNER_COPY.note`：提交申请不代表合作确认……）。
-   落在表单卡正下方而不是 Hero 里：它说的是「提交这张表意味着什么」，
-   离表单越近越有效；稿子的隐私说明档位（12/400/1.33/--ink-3）正好是同一档。
-   ⚠️ **没有任何守卫钉着这条**（终审 M3 订正）。原注释说
-   `tests/city-partner-page-seo.test.ts` 的四个禁词断言「要求它必须渲染」，
-   这是把一条不存在的守卫说成存在：那条断言（现 `:45`）是纯
-   `expect(markup).not.toMatch(/保证收益|独家代理|开城日期|年入百万/)`，
-   只禁止出现那四个词，**不要求任何合规声明存在**——删掉 `.rc-aside__note`
-   三道闸门全绿。要保留它靠的是产品判断（两个消费面共用同一张申请表，
-   合规声明不该只在其中一面出现），不是测试。照原注释判断安全边界会误判。 */
-.rc-aside__note {
-  margin: var(--sp-4) 0 0;
-  font-size: 12px; font-weight: 400; line-height: 1.33;
-  letter-spacing: normal; color: var(--ink-3); text-wrap: pretty;
-}
+/* 表单卡下方原有一条合规声明 `.rc-aside__note`（`CITY_PARTNER_COPY.note`：
+   提交申请不代表合作确认……），OPT-101 按产品裁定从两个消费面一起去掉，
+   规则随之摘除（全仓 grep 零消费方；它不是运行时注入的类名）。
+   当初保留它靠的是产品判断而非测试：`tests/city-partner-page-seo.test.ts`
+   的四个禁词断言是纯 `not.toMatch(/保证收益|独家代理|开城日期|年入百万/)`，
+   只禁词、不要求任何声明存在——所以删掉它三道闸门本来就全绿。 */
 
 /* 城市 profile 的 `hero.media` 背景图（RecruitHero 的 backdrop 插槽）。
    定位与透明度仍由 styles.css 的 `.city-coming-soon__media` 给（Task 6 清理时
@@ -615,6 +631,9 @@
    副标 21 不缩，同 `.hm-hero__lead`（首页移动端也保持 21）。 */
 @media (max-width: 767px) {
   .rc-hero__title { font-size: 40px; }
+  /* Hero 最小高度随之收一档（480 → 400）：375 宽下文案本身已占 ≈250 + 144 padding，
+     保持 480 会在首屏多出一大截空白。与首页 Hero 760 → 560 的同型缩放。 */
+  .rc-page { --rc-hero-min-h: 400px; }
   /* 商圈网格塌单列：375 容器只有 343，三列各 ≈98px 连「浦东新区」都放不下。
      这是**宽度逼出来的布局变更**，不是照抄稿子的移动排版。
      稿子的移动稿还把商圈名降到 19、区位降到 14、格内 gap 收到 6、行距收到 20，

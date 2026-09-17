@@ -84,7 +84,9 @@ export default function RecruitHero({
   backdrop,
 }: RecruitHeroProps) {
   return (
-    <section className="rc-section" {...(titleId ? { 'aria-labelledby': titleId } : {})}>
+    // `rc-section--hero`：给 Hero 段一个最小高度并把文案垂直居中（recruit.css），
+    // OPT-101 用户走查「hero 区域高一点」。不动 `.rc-section` 本体——其余段不该跟着变高。
+    <section className="rc-section rc-section--hero" {...(titleId ? { 'aria-labelledby': titleId } : {})}>
       {backdrop}
       <div className="rc-container rc-hero">
         {eyebrow ? <span className="rc-hero__eyebrow">{eyebrow}</span> : null}
