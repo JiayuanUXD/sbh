@@ -381,8 +381,10 @@ jobs:
                 fi
                 echo "同一份日志也可在控制台「云托管 → sbh → 版本 $version_name」或 CloudBase MCP"
                 echo "queryCloudRun(action=getProcessLog, detailServerName=sbh, runId=$run_id) 查看。"
+                # --ref 用触发时的 ref：workflow_dispatch 重发历史 ref 失败时，硬编码 master
+                # 会把 master HEAD 发出去而不是重试那次发布；自动路径上它本来就是 master。
                 echo "代码包已上传、闸门已过，先重发同一个 ref（换一次平台构建）："
-                echo "  gh workflow run deploy.yml -f promote=true --ref master"
+                echo "  gh workflow run deploy.yml -f promote=true --ref $GITHUB_REF_NAME"
                 echo "再次 create_failed 就不是偶发竞态，按上面的 processLogs 找平台侧原因。"
                 exit 1
                 ;;

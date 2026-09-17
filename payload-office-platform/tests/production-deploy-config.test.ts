@@ -276,7 +276,11 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
     const branch = body.slice(failedAt, body.indexOf(';;', failedAt))
     expect(branch).toContain('.data.DeployRecords[]')
     expect(branch).toContain('DescribeCloudRunProcessLog')
-    expect(branch).toContain('gh workflow run deploy.yml -f promote=true --ref master')
+    // rerun 命令要带**触发时的 ref**：workflow_dispatch 重发历史 ref 失败时，硬编码
+    // `--ref master` 会把 master HEAD 发出去而不是重试那次发布（PR #200 Codex 评审指出）。
+    // 自动 workflow_run 路径上 GITHUB_REF_NAME 就是 master，两条路径一个写法。
+    expect(branch).toContain('gh workflow run deploy.yml -f promote=true --ref $GITHUB_REF_NAME')
+    expect(branch).not.toContain('--ref master')
     expect(branch).toMatch(/^[ \t]*exit 1\s*$/m)
   })
 
