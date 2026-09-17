@@ -342,6 +342,12 @@ export default function CityPartnerApplicationForm({
   initialCity: string
   invalidExplicitCity: boolean
   cityUnavailableMessage?: string
+  /**
+   * 城市由路由钉死（城市路由 `/[city]` 的内嵌表单）：**不渲染**「申请城市」选择器，
+   * `city` 仍取 `initialCity` 随第一步一起提交。OPT-101 之前这里是渲染一个
+   * `disabled` 的下拉——对用户来说只是一行改不了的重复信息（页面 h1 已经写着城市名）。
+   * `/city-partner` 不传它：那一面没有别的城市入口，选择器是唯一的城市来源。
+   */
   lockCity?: boolean
   className?: string
 }>) {
@@ -355,17 +361,20 @@ export default function CityPartnerApplicationForm({
   })
   const [stageTwo, setStageTwo] = useState<CityPartnerStageTwoValues>({ resourceTypes: [] })
   const [state, setState] = useState<CityPartnerFormState>({ status: 'idle' })
+  // lockCity 下没有城市选择器，页面级的两个「城市不可用」信号（无效 ?city= / 默认城市
+  // 不可申请）既无处显示、也没有能解除 cityBlocked 的交互（唯一的 setCityBlocked(false)
+  // 在选择器的 onChange 里）——放行会得到一个永远灰掉、又不说原因的提交按钮。
+  // 城市路由从不传这两个 prop；这里把组合钉死成「锁城即不受城市门控」，不靠调用方自觉。
+  const cityGate = !lockCity && (invalidExplicitCity || Boolean(cityUnavailableMessage))
   const [stageOneErrors, setStageOneErrors] = useState<StageOneErrors>(
-    invalidExplicitCity
-      ? { city: '链接中的城市无效，请重新选择城市' }
-      : cityUnavailableMessage
-        ? { city: cityUnavailableMessage }
-        : {},
+    !cityGate
+      ? {}
+      : invalidExplicitCity
+        ? { city: '链接中的城市无效，请重新选择城市' }
+        : { city: cityUnavailableMessage },
   )
   const [stageTwoErrors, setStageTwoErrors] = useState<StageTwoErrors>({})
-  const [cityBlocked, setCityBlocked] = useState(
-    invalidExplicitCity || Boolean(cityUnavailableMessage),
-  )
+  const [cityBlocked, setCityBlocked] = useState(cityGate)
   const refs = useRef<Record<string, HTMLElement | null>>({})
   const [coordinator] = useState(() =>
     createCityPartnerApplicationCoordinator(newRequestId, fetch, setState),
@@ -441,12 +450,17 @@ export default function CityPartnerApplicationForm({
       onChangeCapture={startFromCurrentCity}
       noValidate
     >
-      <header><span className="city-partner-form__step">第一步 · 必填</span><h2>{CITY_PARTNER_COPY.stageOneTitle}</h2><p>{CITY_PARTNER_COPY.stageOneHint}</p></header>
-      <Field label="申请城市" id="partner-city" error={stageOneErrors.city} required>
-        <Select ref={(node) => { refs.current.city = node }} name="city" value={stageOne.city} disabled={lockCity} onChange={(event) => { coordinator.start(event.target.value); setStageOne((prev) => ({ ...prev, city: event.target.value })); setStageOneErrors((prev) => ({ ...prev, city: undefined })); setCityBlocked(false) }}>
-          <option value="">请选择城市</option>{cities.map((city) => <option key={city.slug} value={city.slug}>{city.name}{city.serviceStatus === 'coming-soon' ? '（筹备中）' : ''}</option>)}
-        </Select>
-      </Field>
+      <header><span className="city-partner-form__step">第一步 · 必填</span><h2>{CITY_PARTNER_COPY.stageOneTitle}</h2></header>
+      {/* lockCity 时整个字段不渲染（见 props 注释）。此时 `stageOneErrors.city` 无处显示，
+          但它在锁定面上不可达：城市路由传 `invalidExplicitCity={false}`、不传
+          `cityUnavailableMessage`，且 `cities` 由调用方保证含当前城市。 */}
+      {lockCity ? null : (
+        <Field label="申请城市" id="partner-city" error={stageOneErrors.city} required>
+          <Select ref={(node) => { refs.current.city = node }} name="city" value={stageOne.city} onChange={(event) => { coordinator.start(event.target.value); setStageOne((prev) => ({ ...prev, city: event.target.value })); setStageOneErrors((prev) => ({ ...prev, city: undefined })); setCityBlocked(false) }}>
+            <option value="">请选择城市</option>{cities.map((city) => <option key={city.slug} value={city.slug}>{city.name}{city.serviceStatus === 'coming-soon' ? '（筹备中）' : ''}</option>)}
+          </Select>
+        </Field>
+      )}
       <Field label="姓名" id="partner-name" error={stageOneErrors.applicantName} required><Input ref={(node) => { refs.current.applicantName = node }} name="applicantName" autoComplete="name" maxLength={50} value={stageOne.applicantName} onChange={(event) => setStageOne((prev) => ({ ...prev, applicantName: event.target.value }))} /></Field>
       {/* className="sf-num"：手机号是本表单唯一的数字输入，稿子给它单独标了
           tabular-nums（城市招募页.dc.html:105）。全站「数字一律 tabular-nums」

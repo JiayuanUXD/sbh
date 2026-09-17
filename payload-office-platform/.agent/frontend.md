@@ -201,6 +201,14 @@ OPT-038 锁定，样式在 `styles/recruit.css`（`.rc-*`），组件在 `compon
 `ComingSoonCityView`（挂 `/[city]`、`/[city]/listings`、`/[city]/buildings`、`/[city]/sale` **四条**路由）。
 **改这套组件必然外溢到五条路由，逐条核触发条件，别只看 `/city-partner`。**
 
+- 城市路由那一面的表单传 `lockCity`，**不渲染「申请城市」选择器**（OPT-101 起；之前是渲染一个
+  disabled 的），`city` 仍取路由城市随第一步提交。`/city-partner` 不传：选择器是那一面唯一的城市入口。
+- 表单卡下方**没有**合规声明（「提交申请不代表合作确认……」已于 OPT-101 按产品裁定从两面一起去掉）。
+  `city-partner-page-seo.test.ts` 的四个禁词断言只禁词，不要求任何声明存在。
+- 次要入口段 `.rc-section--tail` 的 `padding-top: 0` 只在商圈段垫在上面时成立；紧邻灰底带时
+  （`/city-partner` 恒如此、城市路由 `featuredRegions` 为空时如此）由
+  `.rc-section--band + .rc-section--tail` 补回一份 `--pad`，否则灰卡贴灰带零间距。
+
 ### 容器 1024，且主栏 552 **不能**写成常量
 
 - `.rc-page` 上定义 `--rc-w: 1024px` / `--rc-side: 400px` / `--rc-colgap: 72px`；

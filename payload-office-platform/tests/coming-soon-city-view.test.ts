@@ -140,6 +140,10 @@ describe('ComingSoonCityView shell', () => {
       },
     } })))
 
+    // OPT-101：城市路由那一面的表单不渲染「申请城市」（lockCity），但表单本体仍在。
+    expect(container.querySelector('.city-coming-soon__embedded-form')).not.toBeNull()
+    expect(container.querySelector('#partner-city')).toBeNull()
+
     const partner = container.querySelector<HTMLAnchorElement>('a[href="/city-partner?city=hangzhou"]')
     if (!partner) throw new Error('missing partner CTA')
     await act(async () => partner.click())
