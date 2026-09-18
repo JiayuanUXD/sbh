@@ -66,17 +66,25 @@
 gh workflow run deploy.yml -f promote=true --ref master
 ```
 
-> **日志里出现 `版本创建失败：create_failed` 时的处置**（2026-09-17 sbh-194 / run 35244832897）：
-> 构建日志 `Image pushed successfully`，版本却在建好 4 秒后被平台判
-> `check_build_image : fail, [ErrorCode]:300502, [ErrorMessage]:build not found`，ImageUrl 为空、
-> 版本已死——平台侧构建与版本创建之间的竞态，不是代码问题、也不是包的问题。当时等待循环没有对应
-> 分支，`create_failed` 落到兜底继续 sleep，空转到 job 25 分钟上限被取消；现在该分支会打印部署记录、
-> 拉 `DescribeCloudRunProcessLog` 并直接 `exit 1`（流量没动，Rollback 步骤只在 promote 路径上跑，
-> `traffic rollback` 对 0% 流量的 GRAY 版本无害）。先用上面的命令重发同一个 ref，换一次平台构建；
-> 连续两次 `create_failed`（当天 sbh-194、手动重发的 sbh-195 就是）说明不是偶发，去控制台
-> 「云托管 → sbh → 该版本」或 CloudBase MCP `queryCloudRun(action=getProcessLog, runId=<记录里的 RunId>)`
-> 看 processLogs 找平台侧原因。记录状态从 `creating` 翻到 `create_failed` 本身约需 17 分钟
->（00:16 建版 → 00:33 翻状态），这段等待省不掉，省的是后面的空转。
+> **日志里出现 `版本创建失败：create_failed` 时的处置**（2026-09-17/18 sbh-194 → 197 四连挂复盘）
+>
+> 四个版本的 processLogs 一字不差：`check_build_image : fail, [ErrorCode]:300502, [ErrorMessage]:build not found`，
+> 都出现在建版后 4–11 秒；而平台构建本身要约 6 分钟且最终 `Image pushed successfully`（sbh-197：07:34:55 判失败，
+> 07:35:07 构建才开始解包，07:40:31 推镜像成功）。也就是平台在构建**开始之前**就去查镜像，查不到就把版本判死，
+> ImageUrl 为空。恢复后的 sbh-198（09-18 10:41，同一 commit、同一 CI GRAY 路径）检查在构建完成后才跑
+> （+5m45s `check_build_image : succ`）。这是平台侧时序故障，不是代码、包体积、上传或 GRAY/FULL 发布类型的问题。
+>
+> 时间线：sbh-193（09-17 10:01）是故障前最后一个成功版本；sbh-194（PR #198 自动部署，09-18 00:16）、
+> 195（手动重发）、196（PR #199 自动）、197（PR #200 自动，07:34）全挂，期间合入的三个 PR 都没上线；
+> 10:41 手动重发的 sbh-198 走通并全量。故障至少持续 7 小时，没有任何我们这边的改动参与恢复。
+>
+> 处置：等待步骤自 PR #200 起遇 `create_failed`（及任何 `*failed*` 态）直接 `exit 1`，打印部署记录、
+> `DescribeCloudRunProcessLog` 的 processLogs 和 rerun 命令；流量没动，Rollback 步骤只在 promote 路径上跑，
+> `traffic rollback` 对 0% 流量的 GRAY 版本无害。看 processLogs 里 `check_build_image` 的**时间**做判断：
+> 建版后几秒就 fail ＝ 平台还没恢复，此时立刻重发只会多烧一个版本号，隔一两个小时再重发，反复如此就提工单
+> 附 RunId；构建完成后才 fail 才值得去构建日志里找我们自己的问题。记录状态从 `creating` 翻到 `create_failed`
+> 要 10–17 分钟（processLogs 在 +11s 就写了失败），等待步骤省的是之后的空转；把 `DescribeCloudRunProcessLog`
+> 也纳入轮询能在 +11s 就失败，待做。
 
 > **触发方式的沿革（两次反向，别把中间那版的理由套到现在）**
 >
