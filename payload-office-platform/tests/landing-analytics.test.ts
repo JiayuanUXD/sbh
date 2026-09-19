@@ -75,6 +75,15 @@ describe('landing analytics safety boundary', () => {
     expect(resolveCityPageObservation('/hangzhou/listings', cities)).toEqual({
       city: 'hangzhou', status: 'coming-soon', page_type: 'listings',
     })
+    // OPT-103：coworking 是新频道，sale 是既有但漏收进 CITY_PAGE_TYPES 的频道——两者
+    // 缺席时 buildCityAnalyticsPayload 会因 page_type 不在白名单而返回 null，事件被
+    // 静默丢弃却没有任何报错。这里断言它们真的能解析出 page_type 并被发出。
+    expect(resolveCityPageObservation('/shanghai/coworking', cities)).toEqual({
+      city: 'shanghai', status: 'live', page_type: 'coworking',
+    })
+    expect(resolveCityPageObservation('/shanghai/sale', cities)).toEqual({
+      city: 'shanghai', status: 'live', page_type: 'sale',
+    })
     expect(resolveCityPageObservation('/news', cities)).toBeNull()
     expect(resolveCityPageObservation('/unknown', cities)).toBeNull()
   })

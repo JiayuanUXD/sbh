@@ -39,7 +39,7 @@ export type CityAnalyticsTrack = (
 
 const CITY_STATUSES = new Set<unknown>(['live', 'coming-soon'])
 const CITY_PAGE_TYPES = new Set<unknown>([
-  'home', 'listings', 'listing-detail', 'buildings', 'building-detail',
+  'home', 'listings', 'sale', 'coworking', 'listing-detail', 'buildings', 'building-detail',
   'news', 'news-detail', 'privacy', 'page-detail', 'entrust', 'publish', 'city-partner',
 ] satisfies readonly Exclude<CityPageType, 'unknown'>[])
 const COMING_SOON_CTA_TYPES = new Set<unknown>(['entrust', 'publish', 'inquiry', 'city-partner'])
