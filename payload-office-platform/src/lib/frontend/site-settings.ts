@@ -150,7 +150,6 @@ function toView(doc: SiteSetting | null): SiteSettingsView {
     imageDisclaimer: text(doc.imageDisclaimer, SITE_SETTINGS_FALLBACK.imageDisclaimer),
     footerBrandBlurb: text(doc.footerBrandBlurb, SITE_SETTINGS_FALLBACK.footerBrandBlurb),
     copyrightHolder: text(doc.copyrightHolder, SITE_SETTINGS_FALLBACK.copyrightHolder),
-    footerTaglineSuffix: text(doc.footerTaglineSuffix, SITE_SETTINGS_FALLBACK.footerTaglineSuffix),
     icpRecordNumber: normalizeIcpRecordNumber(doc.icpRecordNumber),
     valueProps: mapValueProps(doc.valueProps),
     typeCards: mapTypeCards(doc.typeCards),

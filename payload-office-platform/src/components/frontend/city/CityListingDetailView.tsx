@@ -18,7 +18,6 @@ import DetailGallery from '@/components/frontend/DetailGallery'
 import DetailMobileBarPrice from '@/components/frontend/DetailMobileBarPrice'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import LocationPanel from '@/components/frontend/LocationPanel'
-import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type { ListingDetailViewModel } from '@/domain/public-catalog/contracts'
@@ -111,7 +110,6 @@ export default function CityListingDetailView({
   routeMode: RouteMode
 }>) {
   const basePath = routeMode === 'prefixed' ? `/${city.slug}` : ''
-  const listingPath = `${basePath}/listings/${encodeURIComponent(listing.slug)}`
   const building = listing.building
   const media = listing.mediaItems.length > 0
     ? listing.mediaItems
@@ -181,14 +179,12 @@ export default function CityListingDetailView({
         />
         <div className="dt-titlebar__row">
           <h1 className="dt-titlebar__title">{listing.title}</h1>
-          {/* comp 标题栏右侧是「收藏 / 加入对比 / 分享」pill 组；我们有的是
-              收藏+分享（ShareSaveActions）与纠错（CorrectionModal），
-              「加入对比」功能不存在，不画空按钮。位置与楼盘详情页
-              （BuildingDetailLayout 的 .detail-v2__titlebar-actions）一致，
-              两个详情页的这排操作不再一个在标题栏、一个在决策卡里。 */}
+          {/* comp 标题栏右侧是「收藏 / 加入对比 / 分享」pill 组；我们只保留纠错
+              （CorrectionModal）。「加入对比」功能不存在，不画空按钮；分享 / 收藏
+              （原 ShareSaveActions）已于 2026-09-19 按产品决定关闭，组件一并删除，
+              守卫见 tests/detail-share-save-removed.test.ts。位置与楼盘详情页
+              （BuildingDetailLayout 的 .dt-titlebar__actions）一致。 */}
           <div className="dt-titlebar__actions">
-            <ShareSaveActions canonicalUrl={`${siteConfig.siteOrigin}${listingPath}`}
-              savedDetail={{ type: 'listing', id: listing.id, slug: listing.slug }} />
             <CorrectionModal targetType="listing" targetSlug={listing.slug} targetSummary={listing.title} />
           </div>
         </div>

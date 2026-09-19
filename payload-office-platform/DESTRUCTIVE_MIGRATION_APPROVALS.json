@@ -7,6 +7,13 @@
       "approvedWhat": "删除 listing_merchant_relations 表本体（DROP TABLE，级联带走 payload_locked_documents_rels 上指向它的外键约束）及该多态关系表上对应的 listing_merchant_relations_id 列（DROP COLUMN）。后者是 Payload 多态关系机制的必然副产品：摘掉一个 collection 的注册，它在 payload_locked_documents_rels 上对应的那一列就要一并删除。",
       "impact": "生产环境涉及 2208 条 listing_merchant_relations 关系记录，随 DROP TABLE 一并删除，不可逆。有效期机制（effectiveFrom/effectiveTo）从未在业务上使用——2208 条记录全部是 1:1（每条房源恰好一条现行关系），0 条设置过 effectiveTo。读侧已在 OPT-034 Task 1-4 全部迁移到 listings.merchant 字段，此表切换后零消费者；切换前后可见房源数 2169→2172，0 条因切换而消失。",
       "approvedFileSha256": "a7005d1f0bdc075fd0aa6fb6e659db017bde4a968f06790f3461ff2453895097"
+    },
+    {
+      "migrationName": "20260919_153235_footer_tagline_suffix_removed",
+      "approvedIn": "2026-09-19 用户会话（页脚去掉「页脚副标题后缀」），无工作项编号",
+      "approvedWhat": "删除 Global site_settings 表的 footer_tagline_suffix 列（DROP COLUMN）。该字段只被 SiteFooter 底栏「{城市} · {后缀}」一处消费，本次同一提交里已把 Global 字段、视图类型、兜底值、mapper 与页脚渲染整链移除，切换后零读写方。",
+      "impact": "site_settings 是单行 Global，生产仅 1 行、该列当前值「商办空间」（运营 2026-09-14 15:20 改过；默认值是「商务办公租赁」），随 DROP COLUMN 丢失、不可逆。down() 只能按默认值补回列，不能恢复运营改过的值。用户于 2026-09-19 会话中明确批准（在删列与「字段 admin.hidden 软关闭」两个选项里选了删列）。",
+      "approvedFileSha256": "9b1222bac8bb40b62e7f340d713fb854dd89690a383ea8415710247cb9baa63f"
     }
   ]
 }
