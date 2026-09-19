@@ -1,0 +1,221 @@
+{
+  "tag": "before",
+  "origin": "http://localhost:3717",
+  "viewport": "1440x900@2x",
+  "clip": {
+    "x": 640,
+    "y": 0,
+    "width": 800,
+    "height": 64
+  },
+  "cases": [
+    {
+      "case": "home-scrolled",
+      "url": "/shanghai",
+      "sentinel": {
+        "pathname": "/shanghai",
+        "status": 200,
+        "statusOk": true,
+        "family": "home",
+        "missing": [],
+        "ok": true
+      },
+      "placeholderWidth": 140,
+      "form": {
+        "background": "rgb(245, 245, 247)",
+        "border": "rgba(0, 0, 0, 0.08)",
+        "boxShadow": "none"
+      },
+      "placeholderColor": "rgb(110, 110, 115)",
+      "tokens": {
+        "ink": "#1d1d1f",
+        "ink2": "#5f5f66",
+        "ink3": "#6e6e73"
+      },
+      "inputRect": {
+        "left": 950.6875,
+        "right": 1121.6875,
+        "top": 12.5,
+        "bottom": 50.5
+      },
+      "headerTransparent": false,
+      "sampleRegionPx": {
+        "x0": 913,
+        "x1": 955,
+        "y0": 47,
+        "y1": 79
+      },
+      "wellMeanRgb": [
+        245,
+        245,
+        247
+      ],
+      "contrast": {
+        "placeholder": 4.66,
+        "ink2": 5.82,
+        "ink3": 4.66,
+        "typedText": 15.46
+      },
+      "file": "before-home-scrolled.png"
+    },
+    {
+      "case": "listings",
+      "url": "/shanghai/listings",
+      "sentinel": {
+        "pathname": "/shanghai/listings",
+        "status": 200,
+        "statusOk": true,
+        "family": "listings-index",
+        "missing": [],
+        "ok": true
+      },
+      "placeholderWidth": 140,
+      "form": {
+        "background": "rgb(245, 245, 247)",
+        "border": "rgba(0, 0, 0, 0.08)",
+        "boxShadow": "none"
+      },
+      "placeholderColor": "rgb(110, 110, 115)",
+      "tokens": {
+        "ink": "#1d1d1f",
+        "ink2": "#5f5f66",
+        "ink3": "#6e6e73"
+      },
+      "inputRect": {
+        "left": 950.6875,
+        "right": 1121.6875,
+        "top": 12.5,
+        "bottom": 50.5
+      },
+      "headerTransparent": false,
+      "sampleRegionPx": {
+        "x0": 913,
+        "x1": 955,
+        "y0": 47,
+        "y1": 79
+      },
+      "wellMeanRgb": [
+        245,
+        245,
+        247
+      ],
+      "contrast": {
+        "placeholder": 4.66,
+        "ink2": 5.82,
+        "ink3": 4.66,
+        "typedText": 15.46
+      },
+      "file": "before-listings.png"
+    },
+    {
+      "case": "listings-hover",
+      "url": "/shanghai/listings",
+      "sentinel": {
+        "pathname": "/shanghai/listings",
+        "status": 200,
+        "statusOk": true,
+        "family": "listings-index",
+        "missing": [],
+        "ok": true
+      },
+      "placeholderWidth": 140,
+      "form": {
+        "background": "rgb(245, 245, 247)",
+        "border": "rgba(0, 0, 0, 0.08)",
+        "boxShadow": "none"
+      },
+      "placeholderColor": "rgb(110, 110, 115)",
+      "tokens": {
+        "ink": "#1d1d1f",
+        "ink2": "#5f5f66",
+        "ink3": "#6e6e73"
+      },
+      "inputRect": {
+        "left": 950.6875,
+        "right": 1121.6875,
+        "top": 12.5,
+        "bottom": 50.5
+      },
+      "headerTransparent": false,
+      "sampleRegionPx": {
+        "x0": 913,
+        "x1": 955,
+        "y0": 47,
+        "y1": 79
+      },
+      "wellMeanRgb": [
+        245,
+        245,
+        247
+      ],
+      "contrast": {
+        "placeholder": 4.66,
+        "ink2": 5.82,
+        "ink3": 4.66,
+        "typedText": 15.46
+      },
+      "file": "before-listings-hover.png"
+    },
+    {
+      "case": "listings-focus",
+      "url": "/shanghai/listings",
+      "sentinel": {
+        "pathname": "/shanghai/listings",
+        "status": 200,
+        "statusOk": true,
+        "family": "listings-index",
+        "missing": [],
+        "ok": true
+      },
+      "placeholderWidth": 140,
+      "form": {
+        "background": "rgb(245, 245, 247)",
+        "border": "rgba(0, 0, 0, 0.16)",
+        "boxShadow": "none"
+      },
+      "placeholderColor": "rgb(110, 110, 115)",
+      "tokens": {
+        "ink": "#1d1d1f",
+        "ink2": "#5f5f66",
+        "ink3": "#6e6e73"
+      },
+      "inputRect": {
+        "left": 950.6875,
+        "right": 1121.6875,
+        "top": 12.5,
+        "bottom": 50.5
+      },
+      "headerTransparent": false,
+      "sampleRegionPx": {
+        "x0": 913,
+        "x1": 955,
+        "y0": 47,
+        "y1": 79
+      },
+      "wellMeanRgb": [
+        245,
+        245,
+        247
+      ],
+      "contrast": {
+        "placeholder": 4.66,
+        "ink2": 5.82,
+        "ink3": 4.66,
+        "typedText": 15.46
+      },
+      "file": "before-listings-focus.png"
+    }
+  ],
+  "footerBar": {
+    "sentinel": {
+      "pathname": "/shanghai/listings",
+      "status": 200,
+      "statusOk": true,
+      "family": "listings-index",
+      "missing": [],
+      "ok": true
+    },
+    "innerText": "© 2026 商办租赁平台\n上海 · 商务办公租赁\n员工入口",
+    "file": "before-footer-bar.png"
+  }
+}
