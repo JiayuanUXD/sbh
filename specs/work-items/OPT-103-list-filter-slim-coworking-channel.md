@@ -26,7 +26,7 @@
 | 筛选行 | 位置 / 等级 / 地铁 / 在租面积 / 竣工年代 / **在租状态（开关 pill）** | 位置 / **商圈** / 等级 / 地铁 / 在租面积 / 竣工年代 |
 | 底栏 | 「N 个楼盘符合条件 │ chip… │ 清除全部」 | 「chip… │ 清除全部」；无已选条件时整行不渲染 |
 | 移动抽屉 | 含「仅看有在租」开关 | 不含 |
-| `?onlyWithStock=1` 老链接 | 开关高亮 | 仍生效；底栏补一个可清除 chip「在租状态：仅看有在租」（走既有 `extraPicks` 机制） |
+| `?onlyWithStock=1` 老链接 | 开关高亮 | 仍生效；底栏补一个可清除 chip「在租状态：仅看有在租」（走既有 `extraPicks` 机制）（桌面）；移动端筛选条整块隐藏，chip 不可见——记 TODOS T17 |
 
 商圈行口径**逐字对齐房源页（OPT-099）**：
 
@@ -59,7 +59,7 @@
 - **不渲染**：单位行（同 2.2）、「类型」筛选行、筛选状态底栏的**计数**（全站已去）；「类型：共享办公」chip 不出现（类型不是这个页面的条件，是它的定义）。
 - **保留**：位置 / 商圈 / 建筑形态 / 面积下限行；工具条（显示第 1–N 套 · 推荐 / 最新 · 网格/横排）；分页；移动抽屉（不含类型行）。
 - 底栏例外：手写 URL 带 `?q=` / `?metro=` / `?availableBefore=` 这类没有筛选行的条件时，底栏为这几个 chip 出现——「生效条件必须可见」是既有铁律，正常点击流程碰不到。
-- 空态：无筛选零结果 → 空态①「{城市}的共享办公房源还在收录中」；有筛选零结果 → 空态②逐条退路（类型不在退路清单里）。
+- 空态：无筛选零结果 → 空态①「{城市}共享办公房源还在收录中」；有筛选零结果 → 空态②逐条退路（类型不在退路清单里）。
 - SEO：`CityMetadataPageType` 增 `coworking`，标题「{城市}共享办公 · 工位与联合办公」，描述「{城市}共享办公、联合办公与灵活工位在租房源。」；canonical 指向频道自身 `/[city]/coworking?…`；sitemap 与 `/listings` 同口径：每个已开城城市**无条件**收录 `{prefix}/coworking`（sitemap 条目不带 listingType，不为此扩 adapter 的 select；出售频道那种按数量设门槛的做法不沿用）。
 - `city-routes.ts`：`CityPageType` 增 `coworking`、`RESERVED_CITY_ROOT_SEGMENTS` 增 `coworking`、解析 `/coworking` 与 `/[city]/coworking`、`buildCityPath('coworking')`、城市切换保留查询串（规则同 `listings`）。
 - 导航：`nav-targets.ts` 的 `listings-type-coworking` 目标 `href` 改为 `/coworking`（生产 `SiteSettings.mainNav` 存的是目标 id，**零数据迁移**）；`public-nav.ts` / `site-settings-view.ts` 兜底表里的 `/listings?type=coworking` 同步改；首页类型卡 `HomeTypeCards` 的 coworking 卡 `href` 改 `/coworking`；页脚「联合办公」同源改。**「找办公室」页类型行不动**——那里的「共享办公」仍是普通筛选。
@@ -88,7 +88,7 @@
 |---|---|
 | `src/lib/frontend/building-filter-rows.ts` | 增商圈行（位置行之后，级联口径见 2.1）；位置行 `clearsKeys: ['businessArea']`；`BuildingFacets` 增 `businessAreas`；dimensions 增 `businessArea`（activeText 用 `vocabularyName`）；`onlyWithStock` 维度**保留**（老链接 chip 需要它） |
 | `src/components/frontend/city/CityBuildingsView.tsx` | 删 `switchRow` 构造与传递；`rowActiveKeys` 不再加开关键；页头副题保留 |
-| `src/components/frontend/city/CityListingsView.tsx` | 增 `channel?: 'lease' \| 'sale' \| 'coworking'`（替代 `businessType`，值 `coworking` 时查询频道仍是 `lease`）；`CHANNEL_COPY.coworking`；不渲染 `PriceUnitSegment` 与 `ExcludedUnitsBar`（组件文件保留，2.2 表末行的老链接分支照旧）；coworking 时 `rows` 过滤掉 `type` 行、`extraPicks` 跳过 `listingType` 维度、`noStockNoun` 取频道名词；`unitFacets` 的取数仍要（页头「价格面议」差额句依赖它） |
+| `src/components/frontend/city/CityListingsView.tsx` | 增 `channel?: 'lease' \| 'sale' \| 'coworking'`（替代 `businessType`，值 `coworking` 时查询频道仍是 `lease`）；`CHANNEL_COPY.coworking`；不渲染 `PriceUnitSegment` 与 `ExcludedUnitsBar`（组件文件保留，2.2 表末行的老链接分支照旧）；coworking 时 `rows` 过滤掉 `type` 行、`extraPicks` 跳过 `listingType` 维度、`noStockNoun` 取频道名词；`facetsOmitting(['priceUnit'])` 一并删除；页头副题改为「共 N 套按 X 报价的{noun}」 |
 | `src/components/frontend/listing/FilterFormC.tsx` | 删 `totalCount` / `countNoun` / `switchRow` 与 `FilterSwitch` 类型；底栏仅 `hasPicks` 时渲染；`countActivePicks` 签名去掉 `switchRow` |
 | `src/components/frontend/listing/MobileFilterShell.tsx` / `MobileFilterSheet.tsx` | 删 `switchRow` prop 与开关渲染 |
 | `src/app/(frontend)/styles/list.css` | 删 `.ls-filterc__switch*`、`.ls-filterc__count`、`.ls-filterc__divider`、`.ls-msheet__switch*` |
@@ -99,7 +99,7 @@
 | 文件 | 改动 |
 |---|---|
 | `src/app/(frontend)/[city]/coworking/page.tsx`（新） | 照 `[city]/sale/page.tsx`：解析 → 强制 `listingType` → canonical（剥 type）→ `CityListingsView channel="coworking"` |
-| `src/app/(frontend)/coworking/page.tsx`（新） | 照 `sale/page.tsx`：多城市开关下 301 到 `/{defaultCity}/coworking?…`，否则 legacy 渲染 |
+| `src/app/(frontend)/coworking/page.tsx`（新） | 照 `sale/page.tsx`：多城市开关下 307 到 `/{defaultCity}/coworking?…`，否则 legacy 渲染 |
 | `src/lib/frontend/coworking-channel.ts`（新） | `coworkingChannelPath(citySlug?)`、`lockCoworkingInput(input)`（强制类型 + 供 canonical 剥 type 的纯函数），与 `sale-channel.ts` 同形 |
 | `src/lib/frontend/city-routes.ts` | 见 2.3 |
 | `src/lib/frontend/metadata.ts` | `CityMetadataPageType` 增 `coworking` + 文案 |
@@ -121,7 +121,7 @@
 - `tests/building-filter-rows*.test.ts`：商圈行位置、未选区时空候选、`clearsKeys`、`activeText` 不回显 slug；无 switch。
 - `tests/opt036-buildings-view-wiring.test.ts` / `opt036-listings-view-wiring.test.ts`：改期望——无 `switchRow`、无 `totalCount`、无 `PriceUnitSegment`；`?onlyWithStock=1` 老链接出 chip。
 - `FilterFormC` 相关：底栏无计数；无 pick 不渲染底栏。
-- `tests/city-routes.test.ts` / `city-route-pages.test.ts`：`coworking` 页型解析、`buildCityPath`、路由页强制类型 + canonical 不含 type、legacy 301。
+- `tests/city-routes.test.ts` / `city-route-pages.test.ts`：`coworking` 页型解析、`buildCityPath`、路由页强制类型 + canonical 不含 type、legacy 307。
 - `tests/opt096-nav-submenu.test.ts` / `site-nav-current.test.ts` / nav-targets 相关：目标 href 为 `/coworking`，当前页高亮。
 - `tests/production-deploy-config.test.ts` 等守卫不受影响（不动发布链路）。
 
