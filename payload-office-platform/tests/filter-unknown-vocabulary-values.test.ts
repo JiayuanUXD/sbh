@@ -155,6 +155,7 @@ describe('房源列表路由层：未知区域从查询与 canonical 一起丢�
 describe('楼盘列表：同一类回落在三个维度上一起收口', () => {
   const FACETS = {
     districts: [{ slug: 'jingan', name: '静安', count: 3 }],
+    businessAreas: [{ slug: 'jingan-temple', name: '静安寺', count: 3 }],
     grades: [{ value: 'grade-a', count: 3 }],
     metros: [{ slug: 'jingansi', name: '静安寺', count: 3 }],
   }
@@ -171,7 +172,7 @@ describe('楼盘列表：同一类回落在三个维度上一起收口', () => {
   })
 
   it('全量覆盖：敌意取值不出现在任何维度文案里', () => {
-    const query = `?district=${HOSTILE}&metro=${HOSTILE}&grade=${HOSTILE}&sort=${HOSTILE}`
+    const query = `?district=${HOSTILE}&metro=${HOSTILE}&grade=${HOSTILE}&businessArea=${HOSTILE}&sort=${HOSTILE}`
     for (const dimension of dimensionsFor(query)) {
       expect(
         dimension.activeText ?? '',

@@ -11,9 +11,8 @@ import { enumLabel, vocabularyName } from './filter-dimension'
  * 楼盘列表页筛选行（形态 C）的构造。
  *
  * 设计依据：docs/SBH设计任务讨论/楼盘列表.dc.html specRows「筛选维度」——
- * 区域 · 等级 · 地铁 · 在租面积 · 竣工年代 · 仅看有在租（6）。前五个是文本条件行，
- * 第六个是开关 pill（本批次唯一允许用 accent 底的筛选项），由编排层单独构造，
- * 见 `FilterFormC.switchRow`。
+ * 区域 · 商圈 · 等级 · 地铁 · 在租面积 · 竣工年代（6 行文本条件；『仅看有在租』开关
+ * 已于 OPT-103 移除，`onlyWithStock` 维度保留给老链接补 chip）。
  *
  * ## 与 comp 的两处差异（显式取舍，不是遗漏）
  *
@@ -94,13 +93,14 @@ function firstOrUndefined(values: readonly string[] | undefined): string | undef
 
 export type BuildingFacets = Readonly<{
   districts: ReadonlyArray<{ slug: string; name: string; count: number }>
+  businessAreas: ReadonlyArray<{ slug: string; name: string; count: number }>
   grades: ReadonlyArray<{ value: string; count: number }>
   metros: ReadonlyArray<{ slug: string; name: string; count: number }>
 }>
 
 export type BuildingFilterRowsResult = Readonly<{
   rows: readonly FilterRow[]
-  /** 六个维度（含开关），顺序即空态②退路的展示顺序。 */
+  /** 七个维度（六行文本条件 + 保留给老链接的 onlyWithStock 开关），顺序即空态②退路的展示顺序。 */
   dimensions: readonly BuildingFilterDimensionSpec[]
 }>
 
@@ -116,6 +116,7 @@ export function buildBuildingFilterRows(params: Readonly<{
   const { input, facets } = params
 
   const activeDistrict = firstOrUndefined(input.district)
+  const activeBusinessArea = firstOrUndefined(input.businessArea)
   const activeGrade = firstOrUndefined(input.grade)
   const activeMetro = firstOrUndefined(input.metro)
   const activeAreaMin = input.leasableAreaMin != null ? String(input.leasableAreaMin) : undefined
@@ -124,6 +125,18 @@ export function buildBuildingFilterRows(params: Readonly<{
   const districtOptions = facets.districts
     .filter((d) => keepOption(d.count, d.slug === activeDistrict))
     .map((d) => ({ value: d.slug, label: d.name, ...(d.count > 0 ? { count: d.count } : {}) }))
+
+  /**
+   * 商圈候选（OPT-103，口径逐字对齐房源页 OPT-099）——**级联闸门在这里**。
+   * 未选行政区时恒为空数组，`FilterFormC` 的「无候选值的行不渲染」规则会把整行隐藏：
+   * 生产库 294 个商圈整城平铺进一条纯文本行放不下，先收窄到区再选商圈。
+   * 计数为 0 的候选不渲染、当前已选项永远保留——与 districtOptions 同一口径。
+   */
+  const businessAreaOptions = activeDistrict
+    ? facets.businessAreas
+        .filter((a) => keepOption(a.count, a.slug === activeBusinessArea))
+        .map((a) => ({ value: a.slug, label: a.name, ...(a.count > 0 ? { count: a.count } : {}) }))
+    : []
 
   const gradeOptions = (Object.keys(BUILDING_GRADE_LABELS) as BuildingGrade[])
     .map((value) => ({ value, count: facets.grades.find((g) => g.value === value)?.count ?? 0 }))
@@ -145,7 +158,9 @@ export function buildBuildingFilterRows(params: Readonly<{
   }))
 
   const rows: FilterRow[] = [
-    { key: 'district', label: '位置', options: districtOptions, ...(activeDistrict ? { activeValue: activeDistrict } : {}) },
+    // 切区 / 清区连商圈一起清：商圈从属于行政区，留着上一个区的商圈就是「静安 + 陆家嘴」这种恒空组合。
+    { key: 'district', label: '位置', options: districtOptions, clearsKeys: ['businessArea'], ...(activeDistrict ? { activeValue: activeDistrict } : {}) },
+    { key: 'businessArea', label: '商圈', options: businessAreaOptions, ...(activeBusinessArea ? { activeValue: activeBusinessArea } : {}) },
     { key: 'grade', label: '等级', options: gradeOptions, ...(activeGrade ? { activeValue: activeGrade } : {}) },
     { key: 'metro', label: '地铁', options: metroOptions, ...(activeMetro ? { activeValue: activeMetro } : {}) },
     { key: 'leasableAreaMin', label: '在租面积', options: areaOptions, ...(activeAreaMin ? { activeValue: activeAreaMin } : {}) },
@@ -168,6 +183,14 @@ export function buildBuildingFilterRows(params: Readonly<{
       paramKeys: BUILDING_DIMENSION_PARAM_KEYS.district,
       active: activeDistrict != null,
       activeText: districtName,
+    },
+    {
+      dimension: 'businessArea',
+      label: '商圈',
+      paramKeys: BUILDING_DIMENSION_PARAM_KEYS.businessArea,
+      active: activeBusinessArea != null,
+      // 词表来自扫描行的 businessDistrict（facets.businessAreas 清单取自全集）；查不到只印维度名。
+      activeText: vocabularyName(activeBusinessArea, facets.businessAreas),
     },
     {
       dimension: 'grade',
