@@ -2023,7 +2023,14 @@ ol {
   transform-origin: center;
 }
 
-.detail-gallery__main-media:hover img {
+/* 触发器挂在 figure（整个图片区域）而不是主图 <button> 上：左右箭头
+   .detail-gallery__main-nav-button 是 figure 下与主图按钮平级的覆盖层，不在
+   按钮里面。:hover 只沿祖先链传播，若把 :hover 挂在 __main-media 按钮自身上，
+   指针一移到箭头上按钮就不再 hover，transform 回到 scale(1)，320ms 过渡把它
+   变成肉眼可见的「缩回去」（2026-09-19 用户报）。figure 覆盖主图、箭头、计数
+   pill、角标，指针在图片区域内任何位置都保持放大。
+   守卫：tests/detail-gallery-motion.test.ts。 */
+.detail-gallery__main:hover .detail-gallery__main-media img {
   /* 1.02 → 1.04：16:10 大图上 2% 的位移小到只够让人察觉"抖了一下"而读不出
      是缩放，反而更像卡顿。配合更长的收尾缓动，4% 才读得出是一个连续动作。 */
   transform: scale(1.04);

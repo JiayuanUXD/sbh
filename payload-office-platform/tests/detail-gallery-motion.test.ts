@@ -44,6 +44,20 @@ function ruleBody(selector: string): string {
   return match?.[2] ?? ''
 }
 
+/**
+ * 主图 hover 缩放的触发器必须挂在整个图片区域（`<figure class="detail-gallery__main">`）上。
+ *
+ * 左右箭头 `.detail-gallery__main-nav-button` 不在主图 `<button>` 里面，而是 figure
+ * 下与之平级的覆盖层（`.detail-gallery__main-nav`，`inset: 0` + 按钮 `pointer-events: auto`）。
+ * `:hover` 只沿祖先链传播：指针一落到箭头上，主图按钮就不再 hover，`transform` 回到
+ * `scale(1)`，320ms 过渡把它变成肉眼可见的「缩回去」。用户报的就是这个（2026-09-19）。
+ *
+ * 修法是把触发器提到 figure：它覆盖主图、箭头、计数 pill、角标，指针在图片区域内的
+ * 任何位置都算 hover。下面两条一起守：新选择器存在且带 scale；旧的按钮级 `:hover`
+ * 不得再出现（否则有人把它加回来，两条规则同时成立时旧的照样在箭头上失效）。
+ */
+const MAIN_HOVER_SELECTOR = '.detail-gallery__main:hover .detail-gallery__main-media img'
+
 describe('详情页主图 hover 缩放的过渡不得被后来的同特异度规则吃掉', () => {
   it('.detail-gallery__open img 的 transition 同时覆盖 opacity 与 transform', () => {
     const body = ruleBody('.detail-gallery__open img')
@@ -65,12 +79,25 @@ describe('详情页主图 hover 缩放的过渡不得被后来的同特异度规
   })
 
   it('hover 缩放幅度仍在"看得出是缩放"的量级', () => {
-    const hover = ruleBody('.detail-gallery__main-media:hover img')
+    const hover = ruleBody(MAIN_HOVER_SELECTOR)
     const scale = hover.match(/scale\(([\d.]+)\)/)?.[1]
 
     expect(scale).toBeDefined()
     // 1.02 在 16:10 大图上小到只读得出"抖了一下"；上限防止有人调成夸张的橱窗效果
     expect(Number(scale)).toBeGreaterThanOrEqual(1.03)
     expect(Number(scale)).toBeLessThanOrEqual(1.06)
+  })
+})
+
+describe('主图 hover 缩放以整个图片区域为触发器，指针移到左右箭头上不得缩回', () => {
+  it('缩放规则挂在 .detail-gallery__main:hover（figure）上', () => {
+    const hover = ruleBody(MAIN_HOVER_SELECTOR)
+
+    expect(hover).not.toBe('')
+    expect(hover).toMatch(/transform:\s*scale\(/)
+  })
+
+  it('不再有只盯主图按钮自身的 :hover 缩放规则', () => {
+    expect(CSS).not.toMatch(/\.detail-gallery__main-media:hover/)
   })
 })
