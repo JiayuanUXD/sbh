@@ -17,9 +17,13 @@ test.describe('共享办公频道', () => {
     await expectCanonical(page, routingEnabled ? '/shanghai/coworking' : '/coworking')
   })
 
-  test('没有类型行、没有单位行、没有底栏计数；标题是共享办公', async ({ page }) => {
+  test('筛选条已渲染但没有类型行；全站已移除的单位行 / 底栏计数在本频道同样不存在', async ({ page }) => {
     await page.goto('/coworking')
     await expect(page.locator('h1')).toContainText('共享办公')
+    // 先证明筛选条本身渲染了：下面几条 toHaveCount(0) 断言如果在整个 .ls-filterc
+    // 都没挂出来的情况下也会全部通过，那就什么都没证明——同类「消失的不是我要
+    // 测的东西，是它的容器」的假阴性已经在别处踩过（见 OPT-103 复审）。
+    await expect(page.locator('.ls-filterc__label', { hasText: '位置' })).toHaveCount(1)
     await expect(page.locator('.ls-filterc__label', { hasText: '类型' })).toHaveCount(0)
     await expect(page.locator('.ls-unitband')).toHaveCount(0)
     await expect(page.locator('.ls-filterc__count')).toHaveCount(0)
@@ -31,6 +35,8 @@ test.describe('共享办公频道', () => {
     expect(response?.status()).toBe(200)
     await expectCanonical(page, routingEnabled ? '/shanghai/coworking?areaMin=100' : '/coworking?areaMin=100')
     const filterHrefs = await page.locator('.ls-filterc a[href]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''))
+    // 同一类假阴性：空数组的 .every() 恒为 true，链接全没渲染出来也会「通过」。
+    expect(filterHrefs.length).toBeGreaterThan(0)
     expect(filterHrefs.every((h) => !h.includes('type='))).toBe(true)
   })
 

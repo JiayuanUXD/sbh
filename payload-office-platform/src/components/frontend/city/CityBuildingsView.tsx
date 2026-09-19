@@ -240,7 +240,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   const isOutOfRange = page > totalPages && totalDocs > 0
   const isEmpty = totalDocs === 0
   // 有筛选 → 空态②（条件收得太紧，逐条给退路）；无筛选 → 空态①（这个城市还没有
-  // 收录楼盘）。楼盘页六个维度全是收窄型，没有房源页那种「只挑了类目」的中间态。
+  // 收录楼盘）。楼盘页七个维度全是收窄型，没有房源页那种「只挑了类目」的中间态。
   const showEmptyFiltered = isEmpty && hasActiveFilters
   const showEmptyNoStock = isEmpty && !hasActiveFilters
 

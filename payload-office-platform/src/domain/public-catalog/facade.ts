@@ -192,7 +192,7 @@ export type BuildingFilteredResult = Readonly<{
   }>
   /**
    * 单独放宽某一个维度后的命中数（空态②逐条退路：「取消『位置：静安』这一个条件 → 12」）。
-   * 六个维度恒有值，未生效的维度其值等于当前 `totalDocs`（放宽一个没生效的条件不改变结果）。
+   * 七个维度恒有值，未生效的维度其值等于当前 `totalDocs`（放宽一个没生效的条件不改变结果）。
    */
   dimensionHits: Readonly<Record<BuildingSearchDimension, number>>
 }>

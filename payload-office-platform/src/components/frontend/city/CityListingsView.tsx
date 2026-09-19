@@ -51,12 +51,12 @@ type Districts = Awaited<ReturnType<typeof getCachedListingDistrictOptions>>
  *
  * ## 为什么是 async Server Component
  *
- * 页面上有三类数字**路由层拿不到**：各计价单位的套数、各筛选候选的套数、空态②
- * 逐条退路的命中数。它们都必须与列表同一口径（同一 asOf、同一有效供给谓词），
- * 且租/售两个频道共四个路由入口（`/[city]/listings`、`/listings`、`/[city]/sale`、
- * `/sale`）。在四个路由里各抄一份取数逻辑必然漂移，因此取数收在这一层，路由只
- * 负责解析 URL 与解析城市。props 签名保持不变，只新增了一个可选的 `view`
- * ——理由见下方该 prop 的注释。
+ * 页面上有两类数字**路由层拿不到**：各筛选候选的套数、空态②逐条退路的命中数。
+ * 它们都必须与列表同一口径（同一 asOf、同一有效供给谓词），且租/售/共享办公
+ * 三个频道共六个路由入口（`/[city]/listings`、`/listings`、`/[city]/sale`、
+ * `/sale`、`/[city]/coworking`、`/coworking`）。在六个路由里各抄一份取数逻辑
+ * 必然漂移，因此取数收在这一层，路由只负责解析 URL 与解析城市。props 签名
+ * 保持不变，只新增了一个可选的 `view`——理由见下方该 prop 的注释。
  *
  * ## URL 是唯一事实源
  *
@@ -68,20 +68,23 @@ type Districts = Awaited<ReturnType<typeof getCachedListingDistrictOptions>>
 /**
  * 各频道共用的文案。
  *
- * 组件复用不等于文案复用：同一套栅格里,「在租房源」「统一租金单位」「扩大价格范围」
- * 放到出售页就是错的语境。集中成表而不是散在 JSX 里,新增交易类型时只补一行。
+ * 组件复用不等于文案复用：同一套栅格里,「在租房源」「扩大价格范围」放到出售页
+ * 就是错的语境。集中成表而不是散在 JSX 里,新增交易类型时只补一行。
  * 各组件的 `countNoun` / `noun` / `totalNoun` 一律从这张表取值，调用点不写字面量
- * （见 FilterFormC.tsx、ResultToolbar.tsx、MobileFilterTrigger.tsx 的同名 prop 注释）。
+ * （见 ResultToolbar.tsx、MobileFilterTrigger.tsx 的同名 prop 注释）。
  * `heading` 是页头标题的频道词（『上海』+ heading），`noun` 是计数主语。
  */
 const CHANNEL_COPY = {
   lease: {
     heading: '在租房源',
     noun: '在租房源',
+    /** 计数量词，用于「显示第 1–24 套」「查看 N 套」。 */
     countNoun: '套',
+    /** EmptyNoStock 主按钮的量词短语：「查看全部 N 套在租房源」。 */
     totalNoun: '套在租房源',
     unitDimensionLabel: '租金单位',
     priceRowLabel: '租金上限',
+    /** 空态②退路文案里的价格维度名（覆盖 priceMin+priceMax，不只是上限）。 */
     priceDimensionLabel: '租金',
   },
   sale: {
@@ -343,7 +346,7 @@ export default async function CityListingsView({
   // （用户点了其中一个仍停在零结果页，还看不出为什么）。因此编排层——唯一知道完整
   // 维度清单的那一层——算一次，两处都用它，`FilterFormC` 不再从它收到的 rows 去猜。
   // 保留 priceUnit：comp 稿按钮字面「清除全部条件 · 1,893 套」，1,893 正是某一个
-  // 计价单位下的总数；换单位由分段控件与提示条负责，不归「清除条件」管。
+  // 计价单位下的总数；换单位不归「清除条件」管。
   const clearAllHref = buildDropDimensionHref(
     basePath,
     currentParams,
@@ -366,9 +369,8 @@ export default async function CityListingsView({
   // 误判成「已经显示了」而跳过补充 chip，三处一起把生效中的条件藏起来。
   const rowActiveKeys = new Set(visibleRows.filter(rowShowsActivePick).map((row) => row.key))
   const extraPicks = activeDimensions.flatMap((d) => {
-    // 计价单位不补 chip：它已经不再是一个用户可操作的控件，不属于「看不见的
-    // 生效条件」。补一个「租金单位 ×」还会凭空造出一个「清除单位」的入口——那与
-    // Task 7 的裁定相反（单位永远是 set，不归清除条件管）。
+    // 计价单位不补 chip：它已由页头副题「按 X 报价的…」完整显示，不是看不见的
+    // 生效条件；且没有任何控件能把它写进 URL，补「×」等于凭空造一个清除入口。
     if (!clearableDimensions.includes(d.dimension)) return []
     const hidden = d.paramKeys.filter((key) => currentParams.has(key) && !rowActiveKeys.has(key))
     if (hidden.length === 0) return []
