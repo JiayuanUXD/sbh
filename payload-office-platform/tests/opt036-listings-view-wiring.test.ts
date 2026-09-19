@@ -34,12 +34,17 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSearchFacetsIgnoring: (...args: unknown[]) => getCachedSearchFacetsIgnoring(...args),
   getCachedSearchFacets: (...args: unknown[]) => getCachedSearchFacets(...args),
 }))
+// OPT-103：新增的「页头文案」用例把整棵树交给 renderToStaticMarkup（要读 <h1>
+// 实际渲出的文本），会真的执行 ListingNavigationProvider 里的 useRouter()——
+// 不在 app router 里跑会抛 invariant，因此需要这个最小 stub。
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: () => {} }),
+}))
 
 import CityListingsView from '@/components/frontend/city/CityListingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
-import { countActivePicks, type FilterRow, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
+import { countActivePicks, type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
-import ExcludedUnitsBar from '@/components/frontend/listing/ExcludedUnitsBar'
 import ResultToolbar from '@/components/frontend/listing/ResultToolbar'
 import { parseListingSearchInput } from '@/domain/public-catalog'
 import type { ListingSearchInput } from '@/domain/public-catalog'
@@ -72,7 +77,7 @@ function buildResult(totalDocs: number) {
 }
 
 async function renderView(query: string, overrides: Partial<{
-  businessType: 'lease' | 'sale'
+  channel: 'lease' | 'sale' | 'coworking'
   totalDocs: number
   districts: readonly { slug: string; name: string }[]
 }> = {}) {
@@ -84,7 +89,7 @@ async function renderView(query: string, overrides: Partial<{
     input,
     basePath: '/shanghai/listings',
     routeMode: 'prefixed',
-    ...(overrides.businessType ? { businessType: overrides.businessType } : {}),
+    ...(overrides.channel ? { channel: overrides.channel } : {}),
   })) as ReactElement
 }
 
@@ -136,9 +141,9 @@ function shellBadge(shell: Visited): number {
   return matched ? Number(matched[1]) : 0
 }
 
-/** shell 收到的 rows/switchRow，用于与抽屉共用的口径函数对账。 */
-function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }> {
-  return shell.node.props as Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }>
+/** shell 收到的 rows，用于与抽屉共用的口径函数对账。 */
+function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[] }> {
+  return shell.node.props as Readonly<{ rows: readonly FilterRow[] }>
 }
 
 function findByDisplayName(tree: ReactElement, name: string): Visited | undefined {
@@ -156,12 +161,11 @@ beforeEach(() => {
 })
 
 describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口径）', () => {
-  it('facet 全部走剥离版本：priceUnit / district(+businessArea) / businessArea / listingType', async () => {
+  it('facet 全部走剥离版本：district(+businessArea) / businessArea / listingType', async () => {
     await renderView('')
     const dimensionSets = getCachedSearchFacetsIgnoring.mock.calls.map((call) => call[2] as string[])
     expect(dimensionSets).toEqual(
       expect.arrayContaining([
-        ['priceUnit'],
         // OPT-099：区域候选必须**连商圈一起剥**——只剥 district 的话，选了商圈之后
         // 其余区计数全为 0、位置行塌成只剩已选那一个区，用户再也切不走。
         ['district', 'businessArea'],
@@ -178,11 +182,11 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     await renderView('?priceUnit=rmb-sqm-day&district=jingan', { totalDocs: 3 })
     expect(getCachedSearchFacets).not.toHaveBeenCalled()
     const dimensionSets = getCachedSearchFacetsIgnoring.mock.calls.map((call) => call[2] as string[])
-    expect(dimensionSets).toContainEqual(['priceUnit'])
+    expect(dimensionSets).toContainEqual(['district', 'businessArea'])
   })
 
   it('剥离查询把频道透传下去，出售频道不会拿到租赁口径的计数', async () => {
-    await renderView('', { businessType: 'sale' })
+    await renderView('', { channel: 'sale' })
     for (const call of getCachedSearchFacetsIgnoring.mock.calls) {
       expect(call[0]).toBe('shanghai')
       expect(call[3]).toBe('sale')
@@ -345,8 +349,8 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
         await renderView(query, { totalDocs: 3, districts: [{ slug: 'jingan', name: '静安' }] }),
         'MobileFilterShell',
       )!
-      const { rows, switchRow } = shellRows(shell)
-      expect(shellBadge(shell), query).toBe(countActivePicks(rows, switchRow))
+      const { rows } = shellRows(shell)
+      expect(shellBadge(shell), query).toBe(countActivePicks(rows))
     }
   })
 
@@ -359,24 +363,12 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     expect(html).not.toContain('sort=recommended')
   })
 
-  it('被排除单位提示条的量词来自 CHANNEL_COPY，不是硬编码「套」（终审 M4）', async () => {
-    getCachedSearchFacetsIgnoring.mockResolvedValue({
-      districts: [],
-      listingTypes: [],
-      buildingForms: [],
-      rentUnits: [
-        { value: 'rmb-sqm-day', count: 3 },
-        { value: 'rmb-month', count: 536 },
-      ],
-      totalDocs: 3,
-    })
-    const bar = findByDisplayName(
-      await renderView('?priceUnit=rmb-sqm-day', { totalDocs: 3 }),
-      'ExcludedUnitsBar',
-    )!
-    const props = bar.node.props as Parameters<typeof ExcludedUnitsBar>[0]
-    expect(props.countNoun).toBe('套')
-    expect(renderToStaticMarkup(createElement(ExcludedUnitsBar, props))).toContain('536</span> 套按')
+  it('OPT-103：单位分段与被排除单位提示条不再渲染（带 priceUnit 的老链接也一样）', async () => {
+    getCachedSearchFacetsIgnoring.mockResolvedValue({ districts: [], listingTypes: [], buildingForms: [], rentUnits: [{ value: 'rmb-sqm-day', count: 3 }, { value: 'rmb-month', count: 536 }], totalDocs: 3 })
+    const tree = await renderView('?priceUnit=rmb-sqm-day', { totalDocs: 3 })
+    expect(findByDisplayName(tree, 'PriceUnitSegment')).toBeUndefined()
+    expect(findByDisplayName(tree, 'ExcludedUnitsBar')).toBeUndefined()
+    expect(findByDisplayName(tree, 'FilterFormC')).toBeDefined()
   })
 
   it('空态①：总数为 0 时不摆指回本页的死按钮，总数 >0 时仍给主按钮', async () => {
@@ -390,5 +382,42 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     const some = findByDisplayName(await renderView('?type=coworking', { totalDocs: 0 }), 'EmptyNoStock')!
     expect((some.node.props as { unfilteredTotalCount?: number }).unfilteredTotalCount).toBe(1893)
     expect(countPrimaryButtons(some)).toBe(1)
+  })
+
+  describe('OPT-103 共享办公频道', () => {
+    const coworking = (query: string, totalDocs = 3) =>
+      renderView(query, { channel: 'coworking', totalDocs, districts: [{ slug: 'jingan', name: '静安' }] })
+
+    it('类型行不渲染，页内 href 不带 type', async () => {
+      const tree = await coworking('?district=jingan')
+      const form = findByDisplayName(tree, 'FilterFormC')!.node.props as { rows: readonly FilterRow[]; currentParams: URLSearchParams; clearAllHref: string }
+      expect(form.rows.map((r) => r.key)).not.toContain('type')
+      expect(form.currentParams.has('type')).toBe(false)
+      expect(form.clearAllHref).toBe('/shanghai/listings')
+    })
+
+    it('类型不补 chip、不进退路、不进已选计数', async () => {
+      const tree = await coworking('?district=jingan', 0)
+      const form = findByDisplayName(tree, 'FilterFormC')!.node.props as { extraPicks?: readonly { key: string }[] }
+      expect(form.extraPicks?.map((p) => p.key) ?? []).not.toContain('listingType')
+      const empty = findByDisplayName(tree, 'EmptyFiltered')!.node.props as { relaxations: readonly { label: string }[] }
+      expect(empty.relaxations.map((r) => r.label)).toEqual(['取消「位置：静安」这一个条件'])
+      const shell = findByDisplayName(tree, 'MobileFilterShell')!
+      expect(shellBadge(shell)).toBe(1)
+    })
+
+    it('剥离查询不剥类型：空态①与「清除全部」的总数仍是共享办公口径', async () => {
+      await coworking('', 0)
+      for (const call of getCachedSearchFacetsIgnoring.mock.calls) {
+        expect(call[2]).not.toContain('listingType')
+        expect(call[3]).toBe('lease')
+      }
+    })
+
+    it('页头文案：标题「上海共享办公」、副题主语「共享办公房源」', async () => {
+      const html = renderToStaticMarkup(await coworking(''))
+      expect(html).toContain('上海共享办公</h1>')
+      expect(html).toContain('套共享办公房源')
+    })
   })
 })
