@@ -51,7 +51,7 @@ vi.mock('next/navigation', () => ({
 
 import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
-import { countActivePicks, type FilterRow } from '@/components/frontend/listing/FilterFormC'
+import { countActivePicks, type ExtraPick, type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import ResultToolbar from '@/components/frontend/listing/ResultToolbar'
@@ -186,8 +186,8 @@ function shellBadge(shell: Visited): number {
   return matched ? Number(matched[1]) : 0
 }
 
-function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[] }> {
-  return shell.node.props as Readonly<{ rows: readonly FilterRow[] }>
+function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[]; extraPicks?: readonly ExtraPick[] }> {
+  return shell.node.props as Readonly<{ rows: readonly FilterRow[]; extraPicks?: readonly ExtraPick[] }>
 }
 
 /** 用编排层实际传下去的 props 把 EmptyNoStock 跑一遍，数主按钮个数。 */
@@ -483,26 +483,39 @@ describe('CityBuildingsView 编排层守卫', () => {
   // ── 终审 I1：悬浮 pill 徽标与抽屉「已选 N 项」必须同口径 ────────────────────
   // shell 曾用 `rows.reduce(row.activeValue != null)` 自己数一遍，比抽屉的
   // `visibleRows` + `findActiveOption` 宽松。本页的可达触发形状是「偏离预设档位的
-  // 数值维度」：`?leasableAreaMin=750` 在 375 下会让底栏徽标写 1、抽屉头部空着。
+  // 数值维度」：`?leasableAreaMin=750` 在 375 下曾让底栏徽标写 1、抽屉头部空着。
+  // T17 起两处都计入 extraPicks，仍以「共用同一个 countActivePicks」为守卫。
   // （「零候选行」那一种形状本页构造不出来——楼盘五行里，面积/竣工是静态档位，
   //  区域/等级/地铁的选中项由 keepOption 保留——已在房源页守卫覆盖。）
 
-  it('落在预设档位之外的数值条件不进徽标（?leasableAreaMin=750）', () => {
+  it('落在预设档位之外的数值条件：行内显示不出来，但经 extraPicks 进抽屉与徽标（?leasableAreaMin=750）', () => {
     const shell = findByDisplayName(
       renderView('?leasableAreaMin=750', buildResult({ withStock: [doc('a', 2)] })),
       'MobileFilterShell',
     )!
-    const areaRow = shellRows(shell).rows.find((row) => row.key === 'leasableAreaMin')!
+    const { rows, extraPicks } = shellRows(shell)
+    const areaRow = rows.find((row) => row.key === 'leasableAreaMin')!
     expect(areaRow.activeValue).toBe('750')
     expect(areaRow.options.some((option) => option.value === '750')).toBe(false)
-    expect(shellBadge(shell)).toBe(0)
+    // T17 之前这里断言徽标 0（抽屉里根本看不见它）；现在它作为「其他条件」pill 可见可清，
+    // 徽标与抽屉头部同为 1——两个数字仍然同口径，只是都不再对一个生效条件装瞎。
+    expect(extraPicks?.map((p) => p.key)).toEqual(['leasableAreaMin'])
+    expect(shellBadge(shell)).toBe(1)
   })
 
-  it('老链接的 onlyWithStock 不进徽标（它由补充 chip 显示，不在抽屉里）', () => {
+  it('T17：老链接的 onlyWithStock 经 extraPicks 进抽屉与徽标（偏离档位的面积仍不计）', () => {
     const onlySwitch = findByDisplayName(renderView('?onlyWithStock=1&leasableAreaMin=750', buildResult({ withStock: [doc('a', 2)] })), 'MobileFilterShell')!
-    expect(shellBadge(onlySwitch)).toBe(0)
+    const picks = (onlySwitch.node.props as { extraPicks?: readonly { key: string; label: string; href: string }[] }).extraPicks ?? []
+    expect(picks.find((p) => p.key === 'onlyWithStock')).toEqual({
+      key: 'onlyWithStock',
+      label: '在租状态：仅看有在租',
+      href: '/shanghai/buildings?leasableAreaMin=750',
+    })
+    // 750 不等于任何一档：行内没有选中项，但它同样是无行可显示的生效条件，也进 extraPicks
+    expect(picks.map((p) => p.key)).toEqual(['leasableAreaMin', 'onlyWithStock'])
+    expect(shellBadge(onlySwitch)).toBe(2)
     const rowAndSwitch = findByDisplayName(renderView('?onlyWithStock=1&district=jingan', buildResult({ withStock: [doc('a', 2)] })), 'MobileFilterShell')!
-    expect(shellBadge(rowAndSwitch)).toBe(1)
+    expect(shellBadge(rowAndSwitch)).toBe(2)
   })
 
   it('徽标数恒等于抽屉头部所用的同一个口径函数（分叉即变红）', () => {
@@ -511,8 +524,8 @@ describe('CityBuildingsView 编排层守卫', () => {
         renderView(query, buildResult({ withStock: [doc('a', 2)] })),
         'MobileFilterShell',
       )!
-      const { rows } = shellRows(shell)
-      expect(shellBadge(shell), query).toBe(countActivePicks(rows))
+      const { rows, extraPicks } = shellRows(shell)
+      expect(shellBadge(shell), query).toBe(countActivePicks(rows, extraPicks))
     }
   })
 

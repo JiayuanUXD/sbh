@@ -463,6 +463,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
         totalDocs={totalDocs}
         countNoun={COPY.countNoun}
         resetHref={clearAllHref}
+        extraPicks={extraPicks}
       />
     </div>
     </ListingNavigationProvider>
