@@ -88,6 +88,17 @@
   --header-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.04),
     0 4px 20px -2px rgba(0, 0, 0, 0.06);
+  /* 顶栏搜索框（玻璃上的磨砂胶囊）：半透白让头部的模糊底色透过来，顶边一道内高光
+     与 --header-shadow 的晶体高光同一语言；hover / 聚焦逐级提亮，聚焦近实白便于输入。
+     不用 --bg：实心 #f5f5f7 在 55–75% 白的玻璃上是一块不透、不折射的"纸片"（2026-09-19 用户报）。
+     透明度定在 0.62 是对比度算出来的：首页滚动后玻璃压在 hero 上，井底约 (229,231,234)，
+     占位文字换用 --ink-2 才有 ≥4.5:1；曾试过 4.5% 黑的暗井，同一位置占位只剩 2.54:1，否决。 */
+  --header-well: rgba(255, 255, 255, 0.62);
+  --header-well-hover: rgba(255, 255, 255, 0.74);
+  --header-well-focus: rgba(255, 255, 255, 0.92);
+  --header-well-edge: rgba(0, 0, 0, 0.06);
+  --header-well-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.04);
   --font-cn: "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC",
     "Microsoft YaHei", sans-serif;
   --font: "SF Pro Text", -apple-system, "Helvetica Neue", var(--font-cn);
@@ -753,13 +764,25 @@ ol {
   gap: var(--sp-2);
   height: 40px;
   padding: 0 4px 0 var(--sp-3);
-  border: 1px solid var(--line);
+  /* 材质见 :root 的 --header-well* 注释：搜索框是嵌在玻璃里的磨砂胶囊，不是贴上去的纸片。
+     描边比 --line 再淡一档（6% 黑）：只负责在浅色页上勾出轮廓，不把它从玻璃里"切"出来。 */
+  border: 1px solid var(--header-well-edge);
   border-radius: var(--r-pill);
-  background: var(--bg);
+  background: var(--header-well);
+  box-shadow: var(--header-well-shadow);
   color: var(--ink-3);
+  transition: background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
+.header-search__form:hover {
+  background: var(--header-well-hover);
+}
+
+/* 聚焦：提到近实白 + --line-strong 收边——「点亮」这枚胶囊。:hover 的 (0,2,0) 与本条
+   同特异度，本条在后，聚焦时不会被 hover 底色盖回去。 */
 .header-search__form:focus-within {
+  background: var(--header-well-focus);
   border-color: var(--line-strong);
 }
 
@@ -805,7 +828,9 @@ ol {
 }
 
 .header-search__input::placeholder {
-  color: var(--ink-3);
+  /* --ink-2 而非 --ink-3：胶囊是半透的，压在首页 hero 上时井底只有约 (229,231,234)，
+     --ink-3 在那里 4.0:1 不达 AA，--ink-2 有 5.1:1；浅色页上 6.3:1。 */
+  color: var(--ink-2);
 }
 
 .header-search__input:focus {
