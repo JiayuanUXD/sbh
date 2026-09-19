@@ -91,8 +91,8 @@ export default function MobileFilterSheet(props: Readonly<{
   currentParams: URLSearchParams
   totalDocs: number
   /**
-   * 底栏「查看 N {countNoun}」的计数名词——与 `FilterFormC.countNoun` /
-   * `MobileFilterTrigger.countNoun` 同一约定：必填、无默认值。brief 给的
+   * 底栏「查看 N {countNoun}」的计数名词——与 `MobileFilterTrigger.countNoun`
+   * 同一约定：必填、无默认值。brief 给的
    * 接口没有这个字段；没有它底栏按钮只能写「查看 N」这种不完整文案，属于
    * 本批次明令禁止的「接口没给这个信息就把文案降级」，因此开宽接口。
    * Task 11/12 接线必须提供（房源列表传「套」，楼盘列表传「个楼盘」）。

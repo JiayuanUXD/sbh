@@ -38,7 +38,7 @@ export default function ExcludedUnitsBar(props: Readonly<{
   currentParams: URLSearchParams
   /**
    * 「另有 N {countNoun}按 X 报价」里的量词。必填、无默认值——与
-   * `FilterFormC.countNoun` / `ResultToolbar.noun` / `MobileFilterTrigger.countNoun`
+   * `ResultToolbar.noun` / `MobileFilterTrigger.countNoun`
    * / `MobileFilterSheet.countNoun` / `EmptyNoStock.countNoun` /
    * `EmptyFiltered.countNoun` 同一约定，调用方从 `CHANNEL_COPY` 取值，不写字面量。
    *
