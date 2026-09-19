@@ -41,14 +41,23 @@ function sourceUrl(pathname: string, value: SearchParams): string {
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  // 同 `/sale`：无前缀路由只服务默认城市，默认城市不存在或未开城时 noindex——
+  // 与下方页面组件的 notFound 口径一致，不能让 metadata 声称可索引而页面其实 404。
+  // 与 sale 不同：共享办公没有「房源数门槛」这个概念（spec 与 `/listings` 一样是
+  // 无条件的），所以这里不引入 shouldIndexSaleChannel 那一档计数闸门。
   const input = lockCoworkingInput(
     await resolveListingSearchInput(siteConfig.defaultCity, toUrlSearchParams(await searchParams)),
   )
   const query = buildCoworkingCanonicalParams(input).toString()
-  return buildPageMetadata({
+  const base = buildPageMetadata({
     title: '共享办公',
     canonicalPath: query ? `/coworking?${query}` : '/coworking',
   })
+  const city = await resolveCityContext(siteConfig.defaultCity)
+  if (!city || city.serviceStatus !== 'live') {
+    return { ...base, robots: { index: false, follow: true } }
+  }
+  return base
 }
 
 export default async function CoworkingPage({ searchParams }: Props) {

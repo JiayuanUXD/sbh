@@ -110,7 +110,7 @@ import CityListingsPage, { generateMetadata as generateListingsMetadata } from '
 import CityBuildingsPage, { dynamic as buildingsDynamic, generateMetadata as generateBuildingsMetadata } from '@/app/(frontend)/[city]/buildings/page'
 import { generateMetadata as generateSaleMetadata } from '@/app/(frontend)/[city]/sale/page'
 import CityCoworkingPage, { generateMetadata as generateCoworkingMetadata } from '@/app/(frontend)/[city]/coworking/page'
-import LegacyCoworkingPage from '@/app/(frontend)/coworking/page'
+import LegacyCoworkingPage, { generateMetadata as generateCoworkingLegacyMetadata } from '@/app/(frontend)/coworking/page'
 import LegacyHomePage from '@/app/(frontend)/page'
 import LegacyListingsPage from '@/app/(frontend)/listings/page'
 import LegacyBuildingsPage from '@/app/(frontend)/buildings/page'
@@ -430,6 +430,14 @@ describe('city route boundaries', () => {
       params: Promise.resolve({ city: 'shanghai' }),
       searchParams: Promise.resolve({}),
     })).resolves.toMatchObject({ alternates: { canonical: '/coworking' }, robots: { index: false, follow: true } })
+  })
+
+  it('共享办公频道：legacy 元数据在默认城市未开城时 noindex，与页面组件的 notFound 判据对齐（同 /sale）', async () => {
+    // 页面组件遇到非 live 的默认城市会 notFound；元数据必须用同一个判据 noindex，
+    // 不能声称可索引却指向一个实际 404 的页面。
+    io.resolveCityContext.mockResolvedValue(comingSoonCity)
+    await expect(generateCoworkingLegacyMetadata({ searchParams: Promise.resolve({}) }))
+      .resolves.toMatchObject({ alternates: { canonical: '/coworking' }, robots: { index: false, follow: true } })
   })
 
   it('uses the first Next.js array query value for legacy and prefixed listings', async () => {
