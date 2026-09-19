@@ -14,9 +14,7 @@ import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import LocationPanel from '@/components/frontend/LocationPanel'
-import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
-import { siteConfig } from '@/lib/frontend/site-config'
 import DetailSideRail from './DetailSideRail'
 import HeroSummaryPanel from './HeroSummaryPanel'
 import NearbyBuildingsStrip from './NearbyBuildingsStrip'
@@ -145,7 +143,6 @@ export default function BuildingDetailLayout({
 
   const basePath = citySlug ? `/${citySlug}` : ''
   const buildingPagePath = `${basePath}/buildings/${encodeURIComponent(building.slug)}`
-  const canonicalUrl = `${siteConfig.siteOrigin}${buildingPagePath}`
 
   // comp 标题栏副标：「静安区南京西路 1515 号 · 甲级写字楼 · 2013 年竣工」。
   // 三段各自判空（站内既有的 join(' · ') 列表转字符串约定），一段都没有时
@@ -195,11 +192,9 @@ export default function BuildingDetailLayout({
         />
         <div className="dt-titlebar__row">
           <h1 className="dt-titlebar__title">{building.name}</h1>
+          {/* 分享 / 收藏（原 ShareSaveActions）已于 2026-09-19 按产品决定关闭，
+              组件一并删除；守卫见 tests/detail-share-save-removed.test.ts。 */}
           <div className="dt-titlebar__actions">
-            <ShareSaveActions
-              canonicalUrl={canonicalUrl}
-              savedDetail={{ type: 'building', id: building.id, slug: building.slug }}
-            />
             <CorrectionModal
               targetType="building"
               targetSlug={building.slug}
