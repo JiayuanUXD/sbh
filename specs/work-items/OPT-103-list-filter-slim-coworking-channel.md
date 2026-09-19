@@ -1,6 +1,6 @@
 # Task Packet：OPT-103 列表页筛选瘦身 + 共享办公独立频道
 
-> 状态：**设计已确认，待实施**（分支 `feat/opt-103-list-filter-slim-694d`，证据 `artifacts/verification/OPT-103/`）
+> 状态：**已实施，待合并**（分支 `feat/opt-103-list-filter-slim-694d`，证据 `artifacts/verification/OPT-103/`）
 > 创建日期：2026-09-19
 > 来源：用户「前端优化」四条：①楼盘列表去掉在租状态筛选、去掉「xx 个楼盘符合条件」；
 > ②楼盘列表增加商圈（对齐房源列表）；③房源列表去掉租金单位筛选、去掉「xx 套符合条件」；
@@ -139,7 +139,7 @@
 
 ## 5. 验收
 
-- [ ] `typecheck` / `lint` / `pnpm test` 全绿；改动过的 E2E 本地单跑通过
-- [ ] 四个页面走查截图齐全，文案用 innerText 核对（不用低分辨率截图读中文）
-- [ ] 老链接三种（`onlyWithStock` / `priceUnit` / `listings?type=coworking`）行为如 §2
-- [ ] 生产后台主导航「共享办公」无需改配置即指向新频道（`navTargetById('listings-type-coworking').href === '/coworking'`）
+- [x] `typecheck` / `lint` / `pnpm test` 全绿；改动过的 E2E 本地单跑通过（数字见 `artifacts/verification/OPT-103/README.md`「闸门」节，摘自 Task 8：typecheck 0 输出 exit 0；lint 35 条改动前既有警告、0 error；`pnpm test` 393 文件 / 5220 用例全绿；`coworking-channel.spec.ts` + `sale-channel.spec.ts` 在 `MULTI_CITY_ROUTING_ENABLED=false/true` 两种状态下分别 8 passed/1 skipped、5 passed）
+- [x] 走查截图齐全，文案用 innerText 核对（不用低分辨率截图读中文）（实际覆盖 7 个页面/场景共 19 张截图，超出 brief 原定「四个页面」，逐条断言见 README 走查表；`/shanghai/buildings` 商圈行验证因本地夹具「静安/浦东」楼盘缺 `businessDistrict` 数据改用「长宁」区验证，已在 README 注明为数据限制、非代码问题）
+- [x] 老链接三种（`onlyWithStock` / `priceUnit` / `listings?type=coworking`）行为如 §2（三者均实测通过，见 README 走查表第 2/4/6 行）
+- [x] 生产后台主导航「共享办公」无需改配置即指向新频道（`navTargetById('listings-type-coworking').href === '/coworking'`）（源码核对 `src/lib/frontend/nav-targets.ts` + Task 8 全量单测覆盖，非浏览器走查项，见 README 走查表第 8 行）
