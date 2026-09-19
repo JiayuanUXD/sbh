@@ -9,7 +9,7 @@ import { LISTING_TYPES } from '@/domain/review/listing-fields'
  *
  *   - Next.js 对不存在的路由渲染 404，**不抛异常、不进日志告警**；
  *   - 页脚死链尤其隐蔽——没人天天点页脚，可能几个月无人察觉；
- *   - 带参路由（`/listings?type=coworking`）的参数值绑定 `listingType` 枚举，
+ *   - 带参路由（`/listings?type=full-floor`）的参数值绑定 `listingType` 枚举，
  *     填一个不存在的枚举值**不会 404，会返回空结果页**，比 404 更难发现。
  *
  * 所以运营能改的是：**顺序、标签、显隐、分组归属**。不能改：目标 URL 本身。
@@ -68,7 +68,8 @@ const LISTING_TYPE_LABELS: Readonly<Record<(typeof LISTING_TYPES)[number], strin
 
 const TYPE_TARGETS: readonly NavTarget[] = LISTING_TYPES.map((type) => ({
   id: `listings-type-${type}`,
-  href: `/listings?type=${type}`,
+  // OPT-103：共享办公升格为独立频道，目标 id 不变（枚举值进了迁移），只改落点。
+  href: type === 'coworking' ? '/coworking' : `/listings?type=${type}`,
   defaultLabel: LISTING_TYPE_LABELS[type],
 }))
 

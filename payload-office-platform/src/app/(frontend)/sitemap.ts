@@ -138,6 +138,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { url: prefix, lastModified: now, changeFrequency: 'daily', priority: 1 },
       { url: `${prefix}/listings`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
       { url: `${prefix}/buildings`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
+      // 共享办公频道（OPT-103）：与 /listings 同口径无条件收录——sitemap 条目不带房源类型，
+      // 不为此扩 adapter 的 select；出售频道那种按数量设门槛的做法不沿用。
+      { url: `${prefix}/coworking`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     )
     // 出售频道页与 noindex 判定同口径：房源数为 0 时既不进索引也不进 sitemap。
     // 两者不一致就是自相矛盾的信号（「别收录」+「快来收录」），noindex 的降噪

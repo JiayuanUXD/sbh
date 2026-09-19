@@ -12,9 +12,12 @@
  *   1. **任何词表型维度的文案都不得出现 URL 原始取值**（`q` 除外——它是自由文本，
  *      取值本身就是内容）。这一条是逐维度全量扫的，新增维度时漏了会红。
  *   2. **查不到名称的取值不能继续悄悄筛**：能判定「不存在」的一律丢弃——区域走路由层
- *      的**地点表**（两条列表路由同一份），等级走解析层静态白名单；判定不了的
- *      （地铁 / 商圈，没有任何词表可查）保留过滤但不回显取值，且必须仍然是一个
- *      **可见可清除**的条件（`active: true`）。
+ *      的**地点表**（两条列表路由同一份），等级走解析层静态白名单；地铁没有任何
+ *      词表可查，判定不了存在性，只能保留过滤但不回显。商圈自 OPT-099（房源列表）/
+ *      OPT-103（楼盘列表）起已有词表，但本节的 `dimensionsFor` 测的是取数**之前**
+ *      那条不接词表的调用路径（见 `buildListingFilterDimensions` 同名参数注释），
+ *      因此这里仍按「查不到」处理。两者都必须仍然是一个**可见可清除**的条件
+ *      （`active: true`）。
  *
  *   判定存在性**只能用地点表，不能用结果集里出现过的取值**：楼盘扫描有 200 条上限
  *   且库查后还会再过一道 `isPublicBuilding`，拿它当词表会把「只出现在第 200 名之后
@@ -82,9 +85,10 @@ describe('房源列表：未知区域不再被当成条件名展示', () => {
   })
 
   it('地铁 / 商圈永远不回显取值，但仍然是生效且可清除的条件', () => {
-    // 这两个维度是「词表型却拿不到词表」的一类：本页从不加载地铁站 / 商圈名表，
-    // 因此判定不了取值存不存在——不能替用户把一个真的在收窄结果集的条件丢掉，
-    // 只能不印取值。旧实现把 slug 直接当名字印出「地铁：jingansi」，合法值非法值一律如此。
+    // 地铁没有任何词表可查；商圈自 OPT-099 起有词表，但本用例走的是 `dimensionsFor`
+    // ——取数**之前**那条不接词表的调用路径（见文件头注释），因此这里两者都判定不了
+    // 取值存不存在——不能替用户把一个真的在收窄结果集的条件丢掉，只能不印取值。
+    // 旧实现把 slug 直接当名字印出「地铁：jingansi」，合法值非法值一律如此。
     const dimensions = dimensionsFor(`?metro=${HOSTILE}&businessArea=${HOSTILE}`)
     for (const name of ['metro', 'businessArea'] as const) {
       const dimension = dimensions.find((d) => d.dimension === name)!
@@ -155,6 +159,7 @@ describe('房源列表路由层：未知区域从查询与 canonical 一起丢�
 describe('楼盘列表：同一类回落在三个维度上一起收口', () => {
   const FACETS = {
     districts: [{ slug: 'jingan', name: '静安', count: 3 }],
+    businessAreas: [{ slug: 'jingan-temple', name: '静安寺', count: 3 }],
     grades: [{ value: 'grade-a', count: 3 }],
     metros: [{ slug: 'jingansi', name: '静安寺', count: 3 }],
   }
@@ -171,7 +176,7 @@ describe('楼盘列表：同一类回落在三个维度上一起收口', () => {
   })
 
   it('全量覆盖：敌意取值不出现在任何维度文案里', () => {
-    const query = `?district=${HOSTILE}&metro=${HOSTILE}&grade=${HOSTILE}&sort=${HOSTILE}`
+    const query = `?district=${HOSTILE}&metro=${HOSTILE}&grade=${HOSTILE}&businessArea=${HOSTILE}&sort=${HOSTILE}`
     for (const dimension of dimensionsFor(query)) {
       expect(
         dimension.activeText ?? '',

@@ -82,7 +82,7 @@ export default async function SalePage({ searchParams }: Props) {
       input={input}
       basePath={saleChannelPath()}
       routeMode="legacy"
-      businessType="sale"
+      channel="sale"
       view={parseListingViewMode(raw.view)}
     />
   )

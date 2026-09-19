@@ -33,6 +33,9 @@ import { XMarkIcon } from '@/components/frontend/ui/icons'
  *     `buildFilterOptionHref`（同一行内选项互斥、再点已选项即清除）与
  *     `listing-url.ts` 的 `buildPriceUnitHref`（`priceUnit` 永远 `set`，没有
  *     「清除」这个合法状态）语义不同，**刻意没有合并**——理由见该文件顶部注释。
+ *
+ * OPT-103：底栏不再报「N 套符合条件」（计数在页头副题与工具条已有，三处同屏是
+ * 噪音），且只在有已选条件时渲染；开关型行（楼盘页「仅看有在租」）随开关一起移除。
  */
 
 export type FilterRow = Readonly<{
@@ -48,42 +51,6 @@ export type FilterRow = Readonly<{
    * （`listing-filter-rows.ts`），组件不推导从属关系。
    */
   clearsKeys?: readonly string[]
-}>
-
-/**
- * 开关型筛选行（楼盘列表的「仅看有在租」）——最后一行，形态是 pill 内嵌开关。
- *
- * 设计依据：楼盘列表.dc.html specRows「开关 pill」：36 高 pill 内嵌 34×20 开关，
- * **本批次唯一用 accent 底的筛选项**。为什么它配得上这个例外：暂无在租的楼盘被
- * 降权分组到列表末尾（方案 A），这个开关是那条产品判断的正面出口——「不想看楼宇
- * 字典的人一键关掉」（comp 判断 F 原话）。其余筛选项一律零色相，别照着它再给
- * 第二个筛选项上 accent 底。
- *
- * 只支持「一个二元开关」，不是通用的多选行：href 由编排层算好（开→关 / 关→开
- * 都是同一个 href，因为它就是「切到另一个状态」），组件不推导。
- */
-export type FilterSwitch = Readonly<{
-  /** 左侧标签列文案，如「在租状态」。 */
-  label: string
-  /** 开关自身的文案，如「仅看有在租」。 */
-  optionLabel: string
-  /** 打开后的结果数；缺省或 <=0 不渲染数字（批次统一的「不显示 0」）。 */
-  count?: number
-  /** 切到另一个状态的目标地址，由编排层构造（与其它筛选项同一口径：删 page）。 */
-  href: string
-  active: boolean
-  /**
-   * 该开关占用的 URL 键。本组件不渲染它，编排层用它记账：判断「这个条件是不是
-   * 已经被某个控件显示出来了」，从而决定要不要补一个 `extraPicks` chip。
-   *
-   * 历史：它原本是给移动抽屉的「重置」推导作用域用的（重置按 rows 的 key 逐个删，
-   * 漏掉开关就会「重置完仍然只看有在租」）。那套推导已经删除——重置改为直接接收
-   * 编排层算好的 `resetHref`，与两个「清除全部」共用同一个值，见
-   * `MobileFilterSheet.resetHref` 注释。
-   */
-  paramKey: string
-  /** 抽屉里的副行文案，如「26 / 68 个」；桌面 pill 不渲染它（那里只放计数）。 */
-  subLabel?: string
 }>
 
 type ActivePick = Readonly<{ row: FilterRow; option: FilterRow['options'][number] }>
@@ -132,7 +99,7 @@ export function rowShowsActivePick(row: FilterRow): boolean {
 }
 
 /**
- * 「已选 N 项」的唯一口径：**能被这套筛选控件显示出来的**已选行数 + 开关。
+ * 「已选 N 项」的唯一口径：**能被这套筛选控件显示出来的**已选行数。
  *
  * 两个消费者必须逐字同口径，否则同一屏上两个数字互相矛盾：
  * `MobileFilterSheet` 头部的「已选 N 项」与 `MobileFilterShell` 交给悬浮 pill 的
@@ -156,32 +123,14 @@ export function rowShowsActivePick(row: FilterRow): boolean {
  * 落在这两条之外的生效条件由 `FilterFormC.extraPicks` 在桌面筛选条里补 chip 显示，
  * 不进这个计数——这个数说的是「抽屉里你能看见几个选中项」，不是「URL 上有几个参数」。
  */
-export function countActivePicks(
-  rows: readonly FilterRow[],
-  switchRow?: FilterSwitch,
-): number {
-  const shown = rows.filter((row) => row.options.length > 0 && rowShowsActivePick(row)).length
-  return shown + (switchRow?.active ? 1 : 0)
+export function countActivePicks(rows: readonly FilterRow[]): number {
+  return rows.filter((row) => row.options.length > 0 && rowShowsActivePick(row)).length
 }
 
 export default function FilterFormC(props: Readonly<{
   rows: readonly FilterRow[]
   basePath: string
   currentParams: URLSearchParams
-  totalCount: number
-  /**
-   * 底栏计数单位名词，拼成「N {countNoun}符合条件」——如 `套`（房源列表 →
-   * 「168 套符合条件」）、`个楼盘`（楼盘列表 → 「24 个楼盘符合条件」）。
-   *
-   * 必填、无默认值：组件复用不等于文案复用，见
-   * `src/components/frontend/city/CityListingsView.tsx` 的 `CHANNEL_COPY`
-   * 及其顶部注释——同一套栅格换到出售频道，「在租房源」就是错的语境。
-   * 房源列表.dc.html 写「N 套符合」，楼盘列表.dc.html 写「N 个楼盘」，两个
-   * 页面本就不共享同一个名词；给个默认值只会把两者悄悄磨成一个通用词，
-   * 且在未来接出售频道时继续读错语境。调用方（Task 11/12 接线）应从
-   * `CHANNEL_COPY` 一类的集中文案表取值，不要在调用点写字面量。
-   */
-  countNoun: string
   /**
    * 底栏「清除全部」的目标地址，**由调用方给定，本组件不自行推导**。
    *
@@ -198,8 +147,6 @@ export default function FilterFormC(props: Readonly<{
    * `×` 与再点已选项），那是行级作用域，不存在歧义。
    */
   clearAllHref: string
-  /** 开关型筛选行（楼盘页「仅看有在租」）；省略则不渲染这一行，见 `FilterSwitch`。 */
-  switchRow?: FilterSwitch
   /**
    * 「生效了、但没有任何一行能显示出来」的条件，渲染成与行内 chip 同款的
    * 可清除 chip。
@@ -213,17 +160,14 @@ export default function FilterFormC(props: Readonly<{
    */
   extraPicks?: ReadonlyArray<Readonly<{ key: string; label: string; href: string }>>
 }>): React.JSX.Element {
-  const { rows, basePath, currentParams, totalCount, countNoun, clearAllHref, switchRow, extraPicks } = props
+  const { rows, basePath, currentParams, clearAllHref, extraPicks } = props
   const visibleRows = rows.filter((row) => row.options.length > 0)
   const picks: readonly ActivePick[] = visibleRows.reduce<ActivePick[]>((acc, row) => {
     const option = findActiveOption(row)
     if (option) acc.push({ row, option })
     return acc
   }, [])
-  // 开关打开时也算一个已选条件：否则「只开了开关」这种状态下底栏既不显示 chip
-  // 也不显示「清除全部」，用户没有出口把它关掉（pill 本身可以再点一次关掉，但
-  // 底栏会呈现成「一个条件都没选」，与屏幕上明明开着的开关不符）。
-  const hasPicks = picks.length > 0 || switchRow?.active === true || (extraPicks?.length ?? 0) > 0
+  const hasPicks = picks.length > 0 || (extraPicks?.length ?? 0) > 0
 
   return (
     <div className="ls-filterc">
@@ -261,69 +205,24 @@ export default function FilterFormC(props: Readonly<{
           </div>
         </div>
       ))}
-      {switchRow ? (
-        <div className="ls-filterc__row">
-          <span className="ls-filterc__label">{switchRow.label}</span>
-          <div className="ls-filterc__options">
-            {/* 导航链接，不是 <button>：状态写进 URL（与本页其它筛选项同一口径），
-                因此当前态用 aria-current 而不是 aria-pressed——后者加在 role=link
-                上是无效属性（Task 9 已全站清零，别在这里重新引入）。 */}
-            <NavLink
-              href={switchRow.href}
-              aria-current={switchRow.active ? 'true' : undefined}
-              className={
-                switchRow.active
-                  ? 'ls-filterc__switch ls-filterc__switch--on'
-                  : 'ls-filterc__switch'
-              }
-            >
-              <span className="ls-filterc__switch-track" aria-hidden="true">
-                <span className="ls-filterc__switch-knob" />
-              </span>
-              {switchRow.optionLabel}
-              {switchRow.count != null && switchRow.count > 0 ? (
-                <span className="ls-filterc__switch-count sf-num">{switchRow.count}</span>
-              ) : null}
+      {hasPicks ? (
+        <div className="ls-filterc__footer">
+          {picks.map(({ row, option }) => (
+            <NavLink key={row.key} href={buildClearRowHref(basePath, currentParams, row.key, row.clearsKeys)} className="ls-filterc__chip">
+              {row.label}：{option.label}
+              <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
             </NavLink>
-          </div>
+          ))}
+          {(extraPicks ?? []).map((pick) => (
+            <NavLink key={pick.key} href={pick.href} className="ls-filterc__chip">
+              {pick.label}
+              <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
+            </NavLink>
+          ))}
+          {/* href 由调用方给定：本组件收到的 rows 只是被渲染出来的那几行，不等于 URL 上真正生效的全部筛选维度。 */}
+          <NavLink href={clearAllHref} className="ls-filterc__clear-all">清除全部</NavLink>
         </div>
       ) : null}
-      <div className="ls-filterc__footer">
-        <span className="ls-filterc__count">{totalCount} {countNoun}符合条件</span>
-        {hasPicks ? (
-          <>
-            <span className="ls-filterc__divider" aria-hidden="true" />
-            {switchRow?.active ? (
-              <NavLink href={switchRow.href} className="ls-filterc__chip">
-                {switchRow.label}：{switchRow.optionLabel}
-                <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
-              </NavLink>
-            ) : null}
-            {picks.map(({ row, option }) => (
-              <NavLink
-                key={row.key}
-                href={buildClearRowHref(basePath, currentParams, row.key, row.clearsKeys)}
-                className="ls-filterc__chip"
-              >
-                {row.label}：{option.label}
-                <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
-              </NavLink>
-            ))}
-            {(extraPicks ?? []).map((pick) => (
-              <NavLink key={pick.key} href={pick.href} className="ls-filterc__chip">
-                {pick.label}
-                <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
-              </NavLink>
-            ))}
-            {/* href 由调用方给定：本组件收到的 rows 只是被渲染出来的那几行，不等于
-                URL 上真正生效的全部筛选维度——理由与那次「同一屏两个清除全部、作用域
-                不同」的缺陷见 clearAllHref 的 prop 注释。 */}
-            <NavLink href={clearAllHref} className="ls-filterc__clear-all">
-              清除全部
-            </NavLink>
-          </>
-        ) : null}
-      </div>
     </div>
   )
 }

@@ -367,7 +367,7 @@ const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: Bu
 
 // ---------------------------------------------------------------------------
 // Fixture：FilterFormC + FilterPill（Task 6）—— 覆盖全未选 / 多行已选（含底栏
-// chip 与计数，且保留无关参数验证 href 只改一个参数）/ 单候选行 / 候选带
+// chip，且保留无关参数验证 href 只改一个参数）/ 单候选行 / 候选带
 // count / 楼盘版 5 行（4 字标签，验证列宽自动收敛到约 70px，不靠硬编码 prop）/
 // 多候选换行 / 隐藏行（0 候选）+ 清除全部彻底清空残留参数。
 // ---------------------------------------------------------------------------
@@ -464,16 +464,14 @@ const FILTER_FORM_C_LISTING_FIXTURES: readonly Readonly<{
   label: string
   rows: readonly FilterRow[]
   currentParams: URLSearchParams
-  totalCount: number
 }>[] = [
   {
     label: '全未选',
     rows: listingFilterRows({}),
     currentParams: new URLSearchParams(),
-    totalCount: 168,
   },
   {
-    label: '多行已选（底栏 chip + 计数；混入 sort=newest 与 page=3——验证选项 href 只改本行参数、且都删除 page）',
+    label: '多行已选（底栏 chip；混入 sort=newest 与 page=3——验证选项 href 只改本行参数、且都删除 page）',
     rows: listingFilterRows({ district: 'jingan', type: 'coworking', priceBucket: '3-5' }),
     currentParams: new URLSearchParams([
       ['district', 'jingan'],
@@ -482,19 +480,16 @@ const FILTER_FORM_C_LISTING_FIXTURES: readonly Readonly<{
       ['sort', 'newest'],
       ['page', '3'],
     ]),
-    totalCount: 12,
   },
   {
     label: '装修行只有一个候选（精装带家具）',
     rows: listingFilterRows({}),
     currentParams: new URLSearchParams(),
-    totalCount: 168,
   },
   {
     label: '类型行候选带 count（86 / 24 / 41 / 7）',
     rows: listingFilterRows({ type: 'traditional-office' }),
     currentParams: new URLSearchParams([['type', 'traditional-office']]),
-    totalCount: 86,
   },
   {
     // 位置行候选换到真实规模（16 个区，与楼盘列表.dc.html FG.loc 同一份数据）：
@@ -504,7 +499,6 @@ const FILTER_FORM_C_LISTING_FIXTURES: readonly Readonly<{
       row.key === 'district' ? { ...row, options: MANY_DISTRICT_OPTIONS } : row,
     ),
     currentParams: new URLSearchParams(),
-    totalCount: 168,
   },
 ]
 
@@ -521,7 +515,6 @@ const FILTER_FORM_C_LISTING_FIXTURES: readonly Readonly<{
 const HIDDEN_ROW_FIXTURE: Readonly<{
   rows: readonly FilterRow[]
   currentParams: URLSearchParams
-  totalCount: number
 }> = {
   rows: [
     ...listingFilterRows({ district: 'jingan' }),
@@ -536,13 +529,11 @@ const HIDDEN_ROW_FIXTURE: Readonly<{
     ['district', 'jingan'],
     ['metro', 'jingansi'],
   ]),
-  totalCount: 34,
 }
 
 const BUILDING_FILTER_FORM_C_FIXTURE: Readonly<{
   rows: readonly FilterRow[]
   currentParams: URLSearchParams
-  totalCount: number
 }> = {
   rows: [
     {
@@ -597,7 +588,6 @@ const BUILDING_FILTER_FORM_C_FIXTURE: Readonly<{
     ['district', 'jingan'],
     ['leasableAreaMin', '2000'],
   ]),
-  totalCount: 24,
 }
 
 // ---------------------------------------------------------------------------
@@ -882,7 +872,7 @@ export default function Opt036PreviewPage() {
         <PreviewSection
           id="filter-form-c"
           title="分行文本条件区（FilterFormC）"
-          note="标签列宽度按当前渲染行的最长 label 自动定宽（CSS Grid，不写死 52/70）；选中态 accent-link/500，未选 ink——与下方 FilterPill 的零色相是两套不同规则；再点已选项即取消；底栏计数 tabular-nums，countNoun 必填（房源版「套」/ 楼盘版「个楼盘」），不给通用默认词"
+          note="标签列宽度按当前渲染行的最长 label 自动定宽（CSS Grid，不写死 52/70）；选中态 accent-link/500，未选 ink——与下方 FilterPill 的零色相是两套不同规则；再点已选项即取消；OPT-103：底栏只在有已选条件时渲染 chip + 清除全部，不再报计数、无开关型行"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {FILTER_FORM_C_LISTING_FIXTURES.map((fixture) => (
@@ -892,8 +882,6 @@ export default function Opt036PreviewPage() {
                   rows={fixture.rows}
                   basePath="/shanghai/listings"
                   currentParams={fixture.currentParams}
-                  totalCount={fixture.totalCount}
-                  countNoun="套"
                   clearAllHref={previewClearAllHref('/shanghai/listings', fixture.currentParams, fixture.rows)}
                 />
               </div>
@@ -906,8 +894,6 @@ export default function Opt036PreviewPage() {
                 rows={HIDDEN_ROW_FIXTURE.rows}
                 basePath="/shanghai/listings"
                 currentParams={HIDDEN_ROW_FIXTURE.currentParams}
-                totalCount={HIDDEN_ROW_FIXTURE.totalCount}
-                countNoun="套"
                 clearAllHref={previewClearAllHref('/shanghai/listings', HIDDEN_ROW_FIXTURE.currentParams, HIDDEN_ROW_FIXTURE.rows)}
               />
             </div>
@@ -919,8 +905,6 @@ export default function Opt036PreviewPage() {
                 rows={BUILDING_FILTER_FORM_C_FIXTURE.rows}
                 basePath="/shanghai/buildings"
                 currentParams={BUILDING_FILTER_FORM_C_FIXTURE.currentParams}
-                totalCount={BUILDING_FILTER_FORM_C_FIXTURE.totalCount}
-                countNoun="个楼盘"
                 clearAllHref={previewClearAllHref('/shanghai/buildings', BUILDING_FILTER_FORM_C_FIXTURE.currentParams, BUILDING_FILTER_FORM_C_FIXTURE.rows)}
               />
             </div>

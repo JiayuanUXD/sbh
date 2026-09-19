@@ -138,6 +138,8 @@ export type BuildingSummaryViewModel = Readonly<PublicCityIdentity & {
   address: string
   grade?: Building['grade']
   district?: DistrictViewModel
+  /** 商圈（OPT-103 楼盘列表商圈筛选）；扫描本就 depth 2，零额外查询。 */
+  businessDistrict?: DistrictViewModel
   coverImage?: MediaViewModel
   /** 楼盘一句话简介，用于详情页"所在楼盘"模块 */
   summary?: string

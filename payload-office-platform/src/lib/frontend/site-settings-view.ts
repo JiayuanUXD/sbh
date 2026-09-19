@@ -115,7 +115,7 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
     { href: '/', label: '首页' },
     { href: '/listings', label: '找办公室' },
     { href: '/buildings', label: '找楼盘' },
-    { href: '/listings?type=coworking', label: '共享办公' },
+    { href: '/coworking', label: '共享办公' },
     { href: '/entrust', label: '委托找房' },
     { href: '/publish', label: '投放房源' },
     { href: '/news', label: '资讯' },
@@ -134,7 +134,7 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
       title: '按类型',
       links: [
         { href: '/listings?type=traditional-office', label: '传统办公' },
-        { href: '/listings?type=coworking', label: '联合办公' },
+        { href: '/coworking', label: '联合办公' },
         { href: '/listings?type=full-floor', label: '整层办公' },
       ],
     },

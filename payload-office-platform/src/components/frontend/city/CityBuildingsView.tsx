@@ -8,7 +8,7 @@ import BuildingResultRow from '@/components/frontend/listing/BuildingResultRow'
 import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/EmptyFiltered'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
-import FilterFormC, { rowShowsActivePick, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
+import FilterFormC, { rowShowsActivePick } from '@/components/frontend/listing/FilterFormC'
 import ListPager from '@/components/frontend/listing/ListPager'
 import { ListingNavigationProvider, PendingRegion } from '@/components/frontend/listing/ListingNavigation'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
@@ -31,8 +31,9 @@ type BuildingsResult = Awaited<ReturnType<typeof getCachedSearchBuildingsFiltere
  * OPT-036 楼盘列表页编排层。
  *
  * 设计依据：docs/SBH设计任务讨论/楼盘列表.dc.html。组合顺序照 comp：
- * 页头 → 筛选条 C（6 行，末行是「仅看有在租」开关 pill）→ 结果工具条 →
- * 有在租组（4 列卡片网格）→ 分组标题 → 暂无在租组（两列紧凑行）→ 分页。
+ * 页头 → 筛选条 C（6 行文本条件：位置 / 商圈 / 等级 / 地铁 / 在租面积 / 竣工年代；
+ * OPT-103 移除了「仅看有在租」开关，`?onlyWithStock=1` 老链接经 extraPicks 补 chip）
+ * → 结果工具条 → 有在租组（4 列卡片网格）→ 分组标题 → 暂无在租组（两列紧凑行）→ 分页。
  *
  * 本文件只做编排：把 DTO 投影成各组件的 props、构造 href、按条件选分支。
  * **不做任何筛选、排序、分页、分组**——那些全在 `searchBuildingsFiltered`
@@ -102,8 +103,7 @@ const TAIL_SORTS: readonly ResultToolbarSort[] = [
 
 /**
  * 在租 / 在售两套口径的文案（OPT-096）。`business=sale` 时整页换成在售语境：
- * 域层已按 sale 聚合并只列有在售房源的楼盘，这里只负责把量词、标题、排序项说对，
- * 「仅看有在租」开关在出售口径下没有意义（恒为真），不渲染。
+ * 域层已按 sale 聚合并只列有在售房源的楼盘，这里只负责把量词、标题、排序项说对。
  */
 const SCOPE_COPY = {
   lease: {
@@ -195,28 +195,6 @@ export default function CityBuildingsView({ city, result, input, basePath, route
     return buildHref(basePath, params)
   }
 
-  // 「仅看有在租」开关：开→关 与 关→开 是同一个 href（切到另一个状态），
-  // 与其它筛选项同一口径删 page。计数是「打开之后会剩多少个」，即 withStockTotal。
-  const switchHref = (() => {
-    const sp = cloneSearchParams(currentParams)
-    sp.delete('page')
-    if (input.onlyWithStock) sp.delete('onlyWithStock')
-    else sp.set('onlyWithStock', '1')
-    return buildHref(basePath, sp)
-  })()
-  const switchRow: FilterSwitch = {
-    label: '在租状态',
-    optionLabel: '仅看有在租',
-    href: switchHref,
-    active: input.onlyWithStock === true,
-    paramKey: 'onlyWithStock',
-    ...(withStockTotal > 0 ? { count: withStockTotal } : {}),
-    // 分母是「不看这个开关时有多少个」（comp 抽屉字面「26 / 68 个」），因此取
-    // dimensionHits.onlyWithStock 而不是 totalDocs——开关已经打开时 totalDocs
-    // 就是分子本身，会印出「5 / 5 个」这种自证的废话。
-    subLabel: `${withStockTotal} / ${dimensionHits.onlyWithStock} 个`,
-  }
-
   // 「清除全部」只有一个口径，本层算一次、**三个出口共用**：筛选条底栏、空态②、
   // 移动抽屉的「重置」。这三处在用户眼里是同一件事，作用域一旦不同就是同名不同义
   // （房源页 Task 11 的 I2 是前两个，Task 12 审查的 I1 是第三个——抽屉原先按
@@ -241,7 +219,6 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   // 但不等于任何一档），那种值不会渲染出行 chip，却会被 `activeValue != null`
   // 误判成「已经显示了」而跳过补充 chip，三处一起把生效中的条件藏起来。
   const rowActiveKeys = new Set(rows.filter(rowShowsActivePick).map((row) => row.key))
-  if (scope === 'lease' && switchRow.active) rowActiveKeys.add(switchRow.paramKey)
   const extraPicks = activeDimensions.flatMap((d) => {
     const hidden = d.paramKeys.filter((key) => currentParams.has(key) && !rowActiveKeys.has(key))
     if (hidden.length === 0) return []
@@ -263,7 +240,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   const isOutOfRange = page > totalPages && totalDocs > 0
   const isEmpty = totalDocs === 0
   // 有筛选 → 空态②（条件收得太紧，逐条给退路）；无筛选 → 空态①（这个城市还没有
-  // 收录楼盘）。楼盘页六个维度全是收窄型，没有房源页那种「只挑了类目」的中间态。
+  // 收录楼盘）。楼盘页七个维度全是收窄型，没有房源页那种「只挑了类目」的中间态。
   const showEmptyFiltered = isEmpty && hasActiveFilters
   const showEmptyNoStock = isEmpty && !hasActiveFilters
 
@@ -314,10 +291,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
           rows={rows}
           basePath={basePath}
           currentParams={currentParams}
-          totalCount={totalDocs}
-          countNoun={COPY.countNoun}
           clearAllHref={clearAllHref}
-          switchRow={scope === 'lease' ? switchRow : undefined}
           extraPicks={extraPicks}
         />
       </div>
@@ -488,7 +462,6 @@ export default function CityBuildingsView({ city, result, input, basePath, route
         currentQuery={currentParams.toString()}
         totalDocs={totalDocs}
         countNoun={COPY.countNoun}
-        switchRow={scope === 'lease' ? switchRow : undefined}
         resetHref={clearAllHref}
       />
     </div>

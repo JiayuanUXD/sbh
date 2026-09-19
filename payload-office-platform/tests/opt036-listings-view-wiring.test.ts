@@ -6,19 +6,22 @@
  * **函数本身**——它们保证「剥离维度这件事一旦发生，算出来的数是对的」。但
  * **没有任何断言保证 `CityListingsView` 真的去调那个剥离版本**。有人把它「简化」
  * 回 `getCachedSearchFacets`，那 7 条测试照样全绿、typecheck 照样过、页面照样
- * 不报错——只是各单位计数重新恒为 0，`ExcludedUnitsBar` 重新 `return null`，
- * 「另有 N 套按 X 报价，因单位不可换算未计入本结果集」那条诚实提示重新静默消失。
+ * 不报错——只是各维度候选计数重新算在筛选前（选中商圈后其余区计数全部塌成 0，
+ * coworking 频道也会拿到未锁定类型的候选），级联与空态②的逐条退路一起失真。
  * 这正是它被列为 ★★ 硬要求的原因，守卫必须落在失效点这一层。
  *
- * 本文件因此断言的是**调用行为与结构**，不是渲染结果：
- *   1. 编排层发出三次剥离查询，剥的维度分别是 priceUnit / district / listingType；
+ * 本文件因此断言的是**调用行为与结构**，不是渲染结果（页头文案一条例外，见下）：
+ *   1. 编排层发出的剥离查询覆盖 district+businessArea / businessArea /
+ *      listingType（coworking 频道锁定类型时跳过这一条）/ buildingForm；
  *   2. 编排层**从不**退回未剥离的 `getCachedSearchFacets`；
  *   3. 无 priceUnit 时价格排序两项不进 `ResultToolbar.sorts`（要求 2）；
  *   4. 「清除全部」两个控件共用同一个 href（要求 I2 的回归锁）；
  *   5. 移动筛选抽屉的状态容器挂在结果区**之外**、且不带 key（要求 6 的结构前提）。
  *
- * 不做渲染：`CityListingsView` 是 async Server Component，`renderToStaticMarkup`
- * 渲染不了；直接 await 调用它拿到 React 元素树即可，本文件要断言的东西都在树上。
+ * 基本不做渲染：`CityListingsView` 是 async Server Component，多数用例直接 await
+ * 调用它拿到 React 元素树、断言树上的 props 即可。唯一例外是共享办公频道的页头
+ * 文案用例（见下方 `OPT-103 共享办公频道` 块），它用 `renderToStaticMarkup` 把
+ * 整棵树渲成 HTML 读 `<h1>` 实际文本——props 断不出「标题到底印成了什么字」。
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest'
@@ -34,15 +37,21 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSearchFacetsIgnoring: (...args: unknown[]) => getCachedSearchFacetsIgnoring(...args),
   getCachedSearchFacets: (...args: unknown[]) => getCachedSearchFacets(...args),
 }))
+// OPT-103：新增的「页头文案」用例把整棵树交给 renderToStaticMarkup（要读 <h1>
+// 实际渲出的文本），会真的执行 ListingNavigationProvider 里的 useRouter()——
+// 不在 app router 里跑会抛 invariant，因此需要这个最小 stub。
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: () => {} }),
+}))
 
 import CityListingsView from '@/components/frontend/city/CityListingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
-import { countActivePicks, type FilterRow, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
+import { countActivePicks, type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
-import ExcludedUnitsBar from '@/components/frontend/listing/ExcludedUnitsBar'
 import ResultToolbar from '@/components/frontend/listing/ResultToolbar'
 import { parseListingSearchInput } from '@/domain/public-catalog'
 import type { ListingSearchInput } from '@/domain/public-catalog'
+import { lockCoworkingInput } from '@/lib/frontend/coworking-channel'
 
 const CITY = {
   id: 1,
@@ -72,11 +81,14 @@ function buildResult(totalDocs: number) {
 }
 
 async function renderView(query: string, overrides: Partial<{
-  businessType: 'lease' | 'sale'
+  channel: 'lease' | 'sale' | 'coworking'
   totalDocs: number
   districts: readonly { slug: string; name: string }[]
+  /** 调用方已锁定/改写过的 input（例如 coworking 频道路由层做的 lockCoworkingInput）；
+   * 缺省时按 query 原样解析，与未加锁的频道行为一致。 */
+  input: ListingSearchInput
 }> = {}) {
-  const input: ListingSearchInput = parseListingSearchInput(new URLSearchParams(query))
+  const input: ListingSearchInput = overrides.input ?? parseListingSearchInput(new URLSearchParams(query))
   return (await CityListingsView({
     city: CITY,
     result: buildResult(overrides.totalDocs ?? 0),
@@ -84,7 +96,7 @@ async function renderView(query: string, overrides: Partial<{
     input,
     basePath: '/shanghai/listings',
     routeMode: 'prefixed',
-    ...(overrides.businessType ? { businessType: overrides.businessType } : {}),
+    ...(overrides.channel ? { channel: overrides.channel } : {}),
   })) as ReactElement
 }
 
@@ -136,9 +148,9 @@ function shellBadge(shell: Visited): number {
   return matched ? Number(matched[1]) : 0
 }
 
-/** shell 收到的 rows/switchRow，用于与抽屉共用的口径函数对账。 */
-function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }> {
-  return shell.node.props as Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }>
+/** shell 收到的 rows，用于与抽屉共用的口径函数对账。 */
+function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[] }> {
+  return shell.node.props as Readonly<{ rows: readonly FilterRow[] }>
 }
 
 function findByDisplayName(tree: ReactElement, name: string): Visited | undefined {
@@ -156,12 +168,11 @@ beforeEach(() => {
 })
 
 describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口径）', () => {
-  it('facet 全部走剥离版本：priceUnit / district(+businessArea) / businessArea / listingType', async () => {
+  it('facet 全部走剥离版本：district(+businessArea) / businessArea / listingType', async () => {
     await renderView('')
     const dimensionSets = getCachedSearchFacetsIgnoring.mock.calls.map((call) => call[2] as string[])
     expect(dimensionSets).toEqual(
       expect.arrayContaining([
-        ['priceUnit'],
         // OPT-099：区域候选必须**连商圈一起剥**——只剥 district 的话，选了商圈之后
         // 其余区计数全为 0、位置行塌成只剩已选那一个区，用户再也切不走。
         ['district', 'businessArea'],
@@ -174,15 +185,15 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     expect(dimensionSets).not.toContainEqual(['district'])
   })
 
-  it('绝不退回未剥离的 getCachedSearchFacets（退回即让单位提示条静默消失）', async () => {
+  it('绝不退回未剥离的 getCachedSearchFacets（退回即让 district+businessArea / businessArea / listingType / buildingForm 四类候选计数失真）', async () => {
     await renderView('?priceUnit=rmb-sqm-day&district=jingan', { totalDocs: 3 })
     expect(getCachedSearchFacets).not.toHaveBeenCalled()
     const dimensionSets = getCachedSearchFacetsIgnoring.mock.calls.map((call) => call[2] as string[])
-    expect(dimensionSets).toContainEqual(['priceUnit'])
+    expect(dimensionSets).toContainEqual(['district', 'businessArea'])
   })
 
   it('剥离查询把频道透传下去，出售频道不会拿到租赁口径的计数', async () => {
-    await renderView('', { businessType: 'sale' })
+    await renderView('', { channel: 'sale' })
     for (const call of getCachedSearchFacetsIgnoring.mock.calls) {
       expect(call[0]).toBe('shanghai')
       expect(call[3]).toBe('sale')
@@ -345,8 +356,8 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
         await renderView(query, { totalDocs: 3, districts: [{ slug: 'jingan', name: '静安' }] }),
         'MobileFilterShell',
       )!
-      const { rows, switchRow } = shellRows(shell)
-      expect(shellBadge(shell), query).toBe(countActivePicks(rows, switchRow))
+      const { rows } = shellRows(shell)
+      expect(shellBadge(shell), query).toBe(countActivePicks(rows))
     }
   })
 
@@ -359,24 +370,12 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     expect(html).not.toContain('sort=recommended')
   })
 
-  it('被排除单位提示条的量词来自 CHANNEL_COPY，不是硬编码「套」（终审 M4）', async () => {
-    getCachedSearchFacetsIgnoring.mockResolvedValue({
-      districts: [],
-      listingTypes: [],
-      buildingForms: [],
-      rentUnits: [
-        { value: 'rmb-sqm-day', count: 3 },
-        { value: 'rmb-month', count: 536 },
-      ],
-      totalDocs: 3,
-    })
-    const bar = findByDisplayName(
-      await renderView('?priceUnit=rmb-sqm-day', { totalDocs: 3 }),
-      'ExcludedUnitsBar',
-    )!
-    const props = bar.node.props as Parameters<typeof ExcludedUnitsBar>[0]
-    expect(props.countNoun).toBe('套')
-    expect(renderToStaticMarkup(createElement(ExcludedUnitsBar, props))).toContain('536</span> 套按')
+  it('OPT-103：单位分段与被排除单位提示条不再渲染（带 priceUnit 的老链接也一样）', async () => {
+    getCachedSearchFacetsIgnoring.mockResolvedValue({ districts: [], listingTypes: [], buildingForms: [], rentUnits: [{ value: 'rmb-sqm-day', count: 3 }, { value: 'rmb-month', count: 536 }], totalDocs: 3 })
+    const tree = await renderView('?priceUnit=rmb-sqm-day', { totalDocs: 3 })
+    expect(findByDisplayName(tree, 'PriceUnitSegment')).toBeUndefined()
+    expect(findByDisplayName(tree, 'ExcludedUnitsBar')).toBeUndefined()
+    expect(findByDisplayName(tree, 'FilterFormC')).toBeDefined()
   })
 
   it('空态①：总数为 0 时不摆指回本页的死按钮，总数 >0 时仍给主按钮', async () => {
@@ -390,5 +389,58 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     const some = findByDisplayName(await renderView('?type=coworking', { totalDocs: 0 }), 'EmptyNoStock')!
     expect((some.node.props as { unfilteredTotalCount?: number }).unfilteredTotalCount).toBe(1893)
     expect(countPrimaryButtons(some)).toBe(1)
+  })
+
+  describe('OPT-103 共享办公频道', () => {
+    const coworking = (query: string, totalDocs = 3) =>
+      renderView(query, {
+        channel: 'coworking',
+        totalDocs,
+        districts: [{ slug: 'jingan', name: '静安' }],
+        // 路由层真实做的事：先解析、再 lockCoworkingInput 锁死类型（见
+        // src/app/(frontend)/[city]/coworking/page.tsx）。不锁的话 input.listingType
+        // 恒为 undefined，本 describe 块下面这些断言即使 CityListingsView 忘了排除
+        // 「类型」这个锁定维度也照样绿——锁上才是在测真正会发生的输入。
+        input: lockCoworkingInput(parseListingSearchInput(new URLSearchParams(query))),
+      })
+
+    it('类型行不渲染，页内 href 不带 type', async () => {
+      const tree = await coworking('?district=jingan')
+      const form = findByDisplayName(tree, 'FilterFormC')!.node.props as { rows: readonly FilterRow[]; currentParams: URLSearchParams; clearAllHref: string }
+      expect(form.rows.map((r) => r.key)).not.toContain('type')
+      expect(form.currentParams.has('type')).toBe(false)
+      expect(form.clearAllHref).toBe('/shanghai/listings')
+    })
+
+    it('类型不补 chip、不进退路、不进已选计数', async () => {
+      const tree = await coworking('?district=jingan', 0)
+      const form = findByDisplayName(tree, 'FilterFormC')!.node.props as { extraPicks?: readonly { key: string }[] }
+      expect(form.extraPicks?.map((p) => p.key) ?? []).not.toContain('listingType')
+      const empty = findByDisplayName(tree, 'EmptyFiltered')!.node.props as { relaxations: readonly { label: string }[] }
+      expect(empty.relaxations.map((r) => r.label)).toEqual(['取消「位置：静安」这一个条件'])
+      const shell = findByDisplayName(tree, 'MobileFilterShell')!
+      expect(shellBadge(shell)).toBe(1)
+      // 每一次剥离查询收到的 input 都带着锁定的类型、且 omit 列表里没有 listingType
+      // （锁定维度不该再被当成「可以剥掉再问」的候选维度）。
+      for (const call of getCachedSearchFacetsIgnoring.mock.calls) {
+        expect((call[1] as ListingSearchInput).listingType).toEqual(['coworking'])
+        expect(call[2]).not.toContain('listingType')
+      }
+    })
+
+    it('剥离查询不剥类型：空态①与「清除全部」的总数仍是共享办公口径', async () => {
+      await coworking('', 0)
+      for (const call of getCachedSearchFacetsIgnoring.mock.calls) {
+        expect((call[1] as ListingSearchInput).listingType).toEqual(['coworking'])
+        expect(call[2]).not.toContain('listingType')
+        expect(call[3]).toBe('lease')
+      }
+    })
+
+    it('页头文案：标题「上海共享办公」、副题主语「共享办公房源」', async () => {
+      const html = renderToStaticMarkup(await coworking(''))
+      expect(html).toContain('上海共享办公</h1>')
+      expect(html).toContain('套共享办公房源')
+    })
   })
 })

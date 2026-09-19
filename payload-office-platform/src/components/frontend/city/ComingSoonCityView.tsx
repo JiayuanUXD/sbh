@@ -15,8 +15,8 @@ import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
 /**
  * OPT-038 Task 5：城市路由接线（两个消费面之一 · **城市专属文案面**）。
  *
- * 挂在 4 条路由上：`/[city]`、`/[city]/listings`、`/[city]/buildings`、`/[city]/sale`
- * （`serviceStatus === 'coming-soon'` 时渲染）。与 `/city-partner` 共用
+ * 挂在 5 条路由上：`/[city]`、`/[city]/listings`、`/[city]/buildings`、`/[city]/sale`、
+ * `/[city]/coworking`（`serviceStatus === 'coming-soon'` 时渲染）。与 `/city-partner` 共用
  * RecruitHero / RecruitValueProps / 表单卡 / RecruitSecondaryCta，
  * 差异由 props 承载（工作项 §3.5）：这边给城市专属语气 + 该城 `featuredRegions`。
  *

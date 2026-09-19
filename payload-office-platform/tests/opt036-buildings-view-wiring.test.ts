@@ -18,8 +18,8 @@
  *   4. 筛选条底栏与空态②的「清除全部」是同一个 href；
  *   5. 移动筛选状态容器挂在结果区之外、不带 key；
  *   6. 各组件的计数名词是楼盘语境（不是房源的「套」）；
- *   7. 「仅看有在租」开关的 href 只切 onlyWithStock 并删 page，且把 paramKey 交给
- *      抽屉的「重置」（漏掉它 = 点了重置仍然只看有在租）。
+ *   7. 『仅看有在租』开关已于 OPT-103 移除；`?onlyWithStock=1` 老链接由补充 chip
+ *      显示并可清除。
  *
  * 不做渲染：直接调用组件拿 React 元素树即可，要断言的东西都在树上。
  */
@@ -51,7 +51,7 @@ vi.mock('next/navigation', () => ({
 
 import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
-import { countActivePicks, type FilterRow, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
+import { countActivePicks, type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import ResultToolbar from '@/components/frontend/listing/ResultToolbar'
@@ -88,7 +88,7 @@ function buildResult(over: Partial<{
   unfilteredTotalDocs: number
   page: number
   totalPages: number
-  facets: { districts: { slug: string; name: string; count: number }[]; grades: { value: string; count: number }[]; metros: { slug: string; name: string; count: number }[] }
+  facets: { districts: { slug: string; name: string; count: number }[]; businessAreas: { slug: string; name: string; count: number }[]; grades: { value: string; count: number }[]; metros: { slug: string; name: string; count: number }[] }
 }> = {}) {
   const withStock = over.withStock ?? []
   const withoutStock = over.withoutStock ?? []
@@ -107,11 +107,13 @@ function buildResult(over: Partial<{
     // 让「行能显示这个条件」的分支测不到。
     facets: over.facets ?? {
       districts: [{ slug: 'jingan', name: '静安区', count: 2 }],
+      businessAreas: [],
       grades: [{ value: 'grade-a', count: 3 }],
       metros: [],
     },
     dimensionHits: {
       district: 7,
+      businessArea: 7,
       grade: 7,
       metro: 7,
       leasableArea: 7,
@@ -184,8 +186,8 @@ function shellBadge(shell: Visited): number {
   return matched ? Number(matched[1]) : 0
 }
 
-function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }> {
-  return shell.node.props as Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }>
+function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[] }> {
+  return shell.node.props as Readonly<{ rows: readonly FilterRow[] }>
 }
 
 /** 用编排层实际传下去的 props 把 EmptyNoStock 跑一遍，数主按钮个数。 */
@@ -426,11 +428,10 @@ describe('CityBuildingsView 编排层守卫', () => {
   it('计数名词是楼盘语境，不是房源的「套」', () => {
     const tree = renderView('', buildResult({ withStock: [doc('a', 2)] }))
     const nouns = [
-      (findByDisplayName(tree, 'FilterFormC')!.node.props as { countNoun: string }).countNoun,
       (findByDisplayName(tree, 'MobileFilterShell')!.node.props as { countNoun: string }).countNoun,
       (findByDisplayName(tree, 'ResultToolbar')!.node.props as { totalNoun?: string }).totalNoun ?? '',
     ]
-    expect(nouns).toEqual(['个楼盘', '个楼盘', '个楼盘'])
+    expect(nouns).toEqual(['个楼盘', '个楼盘'])
     for (const noun of nouns) expect(noun).not.toBe('套')
   })
 
@@ -455,21 +456,28 @@ describe('CityBuildingsView 编排层守卫', () => {
     expect(html).toContain('sort=area-desc')
   })
 
-  it('「仅看有在租」开关：只切 onlyWithStock、删 page，并把 paramKey 交给抽屉重置', () => {
-    const off = findByDisplayName(renderView('?district=jingan&page=3', buildResult()), 'FilterFormC')!
-    const on = findByDisplayName(
-      renderView('?district=jingan&onlyWithStock=1', buildResult()),
-      'FilterFormC',
-    )!
-    const sw = (v: typeof off) => (v.node.props as { switchRow: { href: string; active: boolean; paramKey: string } }).switchRow
-    expect(sw(off).href).toBe('/shanghai/buildings?district=jingan&onlyWithStock=1')
-    expect(sw(off).active).toBe(false)
-    expect(sw(on).href).toBe('/shanghai/buildings?district=jingan')
-    expect(sw(on).active).toBe(true)
-    expect(sw(on).paramKey).toBe('onlyWithStock')
-    // 抽屉拿到的是同一个开关（否则移动端少一个真实维度）
+  it('OPT-103：没有开关行；?onlyWithStock=1 老链接仍补一个可清除 chip', () => {
+    const form = findByDisplayName(renderView('?district=jingan&onlyWithStock=1', buildResult()), 'FilterFormC')!
+    const props = form.node.props as { switchRow?: unknown; extraPicks?: readonly { key: string; label: string; href: string }[] }
+    expect(props.switchRow).toBeUndefined()
+    const pick = props.extraPicks?.find((p) => p.key === 'onlyWithStock')
+    expect(pick?.label).toBe('在租状态：仅看有在租')
+    expect(pick?.href).toBe('/shanghai/buildings?district=jingan')
     const shell = findByDisplayName(renderView('', buildResult()), 'MobileFilterShell')!
-    expect((shell.node.props as { switchRow?: unknown }).switchRow).toBeTruthy()
+    expect((shell.node.props as { switchRow?: unknown }).switchRow).toBeUndefined()
+  })
+
+  it('OPT-103：商圈行在位置行之后；选区后才有候选', () => {
+    const result = buildResult({ facets: {
+      districts: [{ slug: 'jingan', name: '静安区', count: 2 }],
+      businessAreas: [{ slug: 'jingan-temple', name: '静安寺', count: 1 }],
+      grades: [], metros: [],
+    } })
+    const keys = (q: string) => shellRows(findByDisplayName(renderView(q, result), 'MobileFilterShell')!).rows.map((r) => r.key)
+    expect(keys('')).toEqual(['district', 'businessArea', 'grade', 'metro', 'leasableAreaMin', 'completedAfter'])
+    const areaRow = (q: string) => shellRows(findByDisplayName(renderView(q, result), 'MobileFilterShell')!).rows.find((r) => r.key === 'businessArea')!
+    expect(areaRow('').options).toEqual([])
+    expect(areaRow('?district=jingan').options.map((o) => o.value)).toEqual(['jingan-temple'])
   })
 
   // ── 终审 I1：悬浮 pill 徽标与抽屉「已选 N 项」必须同口径 ────────────────────
@@ -490,18 +498,11 @@ describe('CityBuildingsView 编排层守卫', () => {
     expect(shellBadge(shell)).toBe(0)
   })
 
-  it('开关与能显示的行照常计数（开关 1 项 + 偏离档位的面积仍是 0 项）', () => {
-    const onlySwitch = findByDisplayName(
-      renderView('?onlyWithStock=1&leasableAreaMin=750', buildResult({ withStock: [doc('a', 2)] })),
-      'MobileFilterShell',
-    )!
-    expect(shellBadge(onlySwitch)).toBe(1)
-
-    const rowAndSwitch = findByDisplayName(
-      renderView('?onlyWithStock=1&district=jingan', buildResult({ withStock: [doc('a', 2)] })),
-      'MobileFilterShell',
-    )!
-    expect(shellBadge(rowAndSwitch)).toBe(2)
+  it('老链接的 onlyWithStock 不进徽标（它由补充 chip 显示，不在抽屉里）', () => {
+    const onlySwitch = findByDisplayName(renderView('?onlyWithStock=1&leasableAreaMin=750', buildResult({ withStock: [doc('a', 2)] })), 'MobileFilterShell')!
+    expect(shellBadge(onlySwitch)).toBe(0)
+    const rowAndSwitch = findByDisplayName(renderView('?onlyWithStock=1&district=jingan', buildResult({ withStock: [doc('a', 2)] })), 'MobileFilterShell')!
+    expect(shellBadge(rowAndSwitch)).toBe(1)
   })
 
   it('徽标数恒等于抽屉头部所用的同一个口径函数（分叉即变红）', () => {
@@ -510,8 +511,8 @@ describe('CityBuildingsView 编排层守卫', () => {
         renderView(query, buildResult({ withStock: [doc('a', 2)] })),
         'MobileFilterShell',
       )!
-      const { rows, switchRow } = shellRows(shell)
-      expect(shellBadge(shell), query).toBe(countActivePicks(rows, switchRow))
+      const { rows } = shellRows(shell)
+      expect(shellBadge(shell), query).toBe(countActivePicks(rows))
     }
   })
 
@@ -631,27 +632,23 @@ describe('OPT-081 楼盘列表卡片样式切换', () => {
 describe('OPT-096 楼盘列表出售口径', () => {
   const stocked = buildResult({ withStock: [doc('a', 2)], unfilteredTotalDocs: 1 })
 
-  it('出售口径：卡片量词「套在售」、排序「在售最多」、标题带「出售」，不渲染「仅看有在租」开关', () => {
+  it('出售口径：卡片量词「套在售」、排序「在售最多」、标题带「出售」', () => {
     const tree = renderView('business=sale', stocked)
     const card = findByDisplayName(tree, 'BuildingResultCard')!
     expect((card.node.props as { stockUnitLabel?: string }).stockUnitLabel).toBe('套在售')
     const toolbar = findByDisplayName(tree, 'ResultToolbar')!
     const sorts = (toolbar.node.props as Parameters<typeof ResultToolbar>[0]).sorts
     expect(sorts.map((s) => s.label)).toEqual(['在售最多', '在售面积', '等级', '竣工最新'])
-    const shell = findByDisplayName(tree, 'MobileFilterShell')!
-    expect(shellRows(shell).switchRow).toBeUndefined()
     const html = renderToStaticMarkup(createElement(BuildingResultCard, card.node.props as Parameters<typeof BuildingResultCard>[0]))
     expect(html).toContain('套在售')
     expect(html).not.toContain('套在租')
     expect(html).toContain('2 套在售')
   })
 
-  it('租赁口径原样：「套在租」与「仅看有在租」都在', () => {
+  it('租赁口径原样：「套在租」', () => {
     const tree = renderView('', stocked)
     const card = findByDisplayName(tree, 'BuildingResultCard')!
     expect((card.node.props as { stockUnitLabel?: string }).stockUnitLabel).toBe('套在租')
-    const shell = findByDisplayName(tree, 'MobileFilterShell')!
-    expect(shellRows(shell).switchRow?.optionLabel).toBe('仅看有在租')
   })
 })
 

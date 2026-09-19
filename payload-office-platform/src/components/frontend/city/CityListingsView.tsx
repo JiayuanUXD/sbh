@@ -3,7 +3,6 @@ import InquiryModal from '@/components/frontend/InquiryModal'
 import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/EmptyFiltered'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
-import ExcludedUnitsBar, { type ExcludedUnitOption } from '@/components/frontend/listing/ExcludedUnitsBar'
 import FilterFormC, { rowShowsActivePick } from '@/components/frontend/listing/FilterFormC'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
 import ListingResultRow from '@/components/frontend/listing/ListingResultRow'
@@ -12,14 +11,12 @@ import ListPager from '@/components/frontend/listing/ListPager'
 import { ListingNavigationProvider, PendingRegion } from '@/components/frontend/listing/ListingNavigation'
 import ListSearchAnalytics from '@/components/frontend/listing/ListSearchAnalytics'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
-import PriceUnitSegment, { type PriceUnitOption } from '@/components/frontend/listing/PriceUnitSegment'
 import ResultToolbar, { type ResultToolbarSort } from '@/components/frontend/listing/ResultToolbar'
 import {
   LISTING_DEFAULT_SORT,
   buildCanonicalSearchParams,
   type ListingSearchDimension,
   type ListingSearchInput,
-  type PriceDisplayUnit,
 } from '@/domain/public-catalog'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import {
@@ -44,8 +41,9 @@ type Districts = Awaited<ReturnType<typeof getCachedListingDistrictOptions>>
  * OPT-036 房源列表页编排层。
  *
  * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html。组合顺序照 comp：
- * 页头 → 单位分段 → 筛选条 C → 结果工具条 → 结果网格 → 被排除单位提示条 → 分页；
- * 三种空态按条件替换结果区（不是叠加在结果之上）。
+ * 页头 → 筛选条 C → 结果工具条 → 结果网格 → 分页（OPT-103 去掉了单位分段与被排除
+ * 单位提示条：单位不再是用户可选的控件，带 `?priceUnit=` 的老链接仍按单位解析、
+ * 仍出租金上限行与价格排序）；三种空态按条件替换结果区（不是叠加在结果之上）。
  *
  * 本文件只做编排：把 DTO 投影成各组件的 props、构造 href、按条件选分支。
  * 所有视觉规格在组件与 `styles/list.css` 里，所有查询在 `lib/frontend/cached-queries`
@@ -53,12 +51,12 @@ type Districts = Awaited<ReturnType<typeof getCachedListingDistrictOptions>>
  *
  * ## 为什么是 async Server Component
  *
- * 页面上有三类数字**路由层拿不到**：各计价单位的套数、各筛选候选的套数、空态②
- * 逐条退路的命中数。它们都必须与列表同一口径（同一 asOf、同一有效供给谓词），
- * 且租/售两个频道共四个路由入口（`/[city]/listings`、`/listings`、`/[city]/sale`、
- * `/sale`）。在四个路由里各抄一份取数逻辑必然漂移，因此取数收在这一层，路由只
- * 负责解析 URL 与解析城市。props 签名保持不变，只新增了一个可选的 `view`
- * ——理由见下方该 prop 的注释。
+ * 页面上有两类数字**路由层拿不到**：各筛选候选的套数、空态②逐条退路的命中数。
+ * 它们都必须与列表同一口径（同一 asOf、同一有效供给谓词），且租/售/共享办公
+ * 三个频道共六个路由入口（`/[city]/listings`、`/listings`、`/[city]/sale`、
+ * `/sale`、`/[city]/coworking`、`/coworking`）。在六个路由里各抄一份取数逻辑
+ * 必然漂移，因此取数收在这一层，路由只负责解析 URL 与解析城市。props 签名
+ * 保持不变，只新增了一个可选的 `view`——理由见下方该 prop 的注释。
  *
  * ## URL 是唯一事实源
  *
@@ -68,59 +66,47 @@ type Districts = Awaited<ReturnType<typeof getCachedListingDistrictOptions>>
  */
 
 /**
- * 租售频道共用的文案。
+ * 各频道共用的文案。
  *
- * 组件复用不等于文案复用：同一套栅格里,「在租房源」「统一租金单位」「扩大价格范围」
- * 放到出售页就是错的语境。集中成表而不是散在 JSX 里,新增交易类型时只补一行。
+ * 组件复用不等于文案复用：同一套栅格里,「在租房源」「扩大价格范围」放到出售页
+ * 就是错的语境。集中成表而不是散在 JSX 里,新增交易类型时只补一行。
  * 各组件的 `countNoun` / `noun` / `totalNoun` 一律从这张表取值，调用点不写字面量
- * （见 FilterFormC.tsx、ResultToolbar.tsx、MobileFilterTrigger.tsx 的同名 prop 注释）。
+ * （见 ResultToolbar.tsx、MobileFilterTrigger.tsx 的同名 prop 注释）。
+ * `heading` 是页头标题的频道词（『上海』+ heading），`noun` 是计数主语。
  */
 const CHANNEL_COPY = {
   lease: {
+    heading: '在租房源',
     noun: '在租房源',
-    /** 计数量词，用于「N 套符合条件」「显示第 1–24 套」「查看 N 套」。 */
+    /** 计数量词，用于「显示第 1–24 套」「查看 N 套」。 */
     countNoun: '套',
     /** EmptyNoStock 主按钮的量词短语：「查看全部 N 套在租房源」。 */
     totalNoun: '套在租房源',
-    unitNote: '已按统一租金单位显示',
-    unitRowLabel: '租金单位',
     unitDimensionLabel: '租金单位',
     priceRowLabel: '租金上限',
     /** 空态②退路文案里的价格维度名（覆盖 priceMin+priceMax，不只是上限）。 */
     priceDimensionLabel: '租金',
   },
   sale: {
+    heading: '出售房源',
     noun: '出售房源',
     countNoun: '套',
     totalNoun: '套出售房源',
-    unitNote: '已按统一计价单位显示',
-    unitRowLabel: '计价单位',
     unitDimensionLabel: '计价单位',
     priceRowLabel: '总价上限',
     priceDimensionLabel: '总价',
   },
-} as const satisfies Record<'lease' | 'sale', Readonly<Record<string, string>>>
-
-/**
- * 计价单位在分段控件里的固定顺序。
- *
- * 不按套数排序：同一个城市今天元/月最多、明天元/㎡/天最多，分段项就会左右横跳，
- * 用户上一次点的位置这一次不在那里。顺序固定 = 位置可记忆。
- */
-const PRICE_UNIT_ORDER: readonly PriceDisplayUnit[] = [
-  'rmb-sqm-day',
-  'rmb-sqm-month',
-  'rmb-sqm-year',
-  'rmb-sqm-total',
-  'rmb-month',
-  'rmb-day',
-  'rmb-year',
-  'rmb-total',
-  'rmb-seat-day',
-  'rmb-seat-month',
-  'rmb-seat-year',
-  'rmb-seat-total',
-]
+  /** OPT-103：共享办公频道。类型被路由层锁死，见 lib/frontend/coworking-channel.ts。 */
+  coworking: {
+    heading: '共享办公',
+    noun: '共享办公房源',
+    countNoun: '套',
+    totalNoun: '套共享办公房源',
+    unitDimensionLabel: '租金单位',
+    priceRowLabel: '租金上限',
+    priceDimensionLabel: '租金',
+  },
+} as const satisfies Record<'lease' | 'sale' | 'coworking', Readonly<Record<string, string>>>
 
 const BASE_SORTS: readonly ResultToolbarSort[] = [
   { value: 'recommended', label: '推荐' },
@@ -170,7 +156,7 @@ export default async function CityListingsView({
   input,
   basePath,
   routeMode,
-  businessType = 'lease',
+  channel = 'lease',
   view = 'grid',
 }: Readonly<{
   city: CityContext
@@ -179,8 +165,8 @@ export default async function CityListingsView({
   input: ListingSearchInput
   basePath: string
   routeMode: 'legacy' | 'prefixed'
-  /** 当前频道；决定文案语境。缺省为租赁,保持既有调用零改动。 */
-  businessType?: 'lease' | 'sale'
+  /** 当前频道；决定文案、类型锁定与查询口径（`sale` 查出售扫描，其余查租赁）。缺省租赁，既有调用零改动。 */
+  channel?: 'lease' | 'sale' | 'coworking'
   /**
    * 结果区版式（`?view=grid|row`）。
    *
@@ -192,8 +178,12 @@ export default async function CityListingsView({
    */
   view?: ListingViewMode
 }>) {
-  const copy = CHANNEL_COPY[businessType]
-  const heading = routeMode === 'legacy' ? copy.noun : `${city.name}${copy.noun}`
+  const copy = CHANNEL_COPY[channel]
+  const businessType: 'lease' | 'sale' = channel === 'sale' ? 'sale' : 'lease'
+  const heading = routeMode === 'legacy' ? copy.heading : `${city.name}${copy.heading}`
+  // 被频道锁定的维度：不是条件、不可清除、不进退路与计数（coworking 的类型）。
+  const lockedDimensions: readonly ListingSearchDimension[] = channel === 'coworking' ? ['listingType'] : []
+  const clearableDimensions = LISTING_CLEARABLE_DIMENSIONS.filter((d) => !lockedDimensions.includes(d))
   const { docs, pagination } = result
   const { page, totalPages, totalDocs } = pagination
   const activeUnit = input.priceUnit
@@ -228,13 +218,22 @@ export default async function CityListingsView({
   // 判据是 `active` 而不是 `activeText != null`：词表型维度可能生效却叫不出名字
   // （见 `ListingFilterDimensionSpec.active` 的注释）。用后者会让那类条件从 chip、
   // 空态②退路和「清除全部」的作用域里一起消失，变成看不见的生效条件。
-  const activeDimensions = allDimensions.filter((d) => d.active)
+  // 被频道锁定的维度（coworking 的类型）额外排除：它不是用户加的条件，是频道
+  // 的定义，因此不进 chip、不进退路、不进「清除全部」的作用域。
+  const activeDimensions = allDimensions.filter((d) => d.active && !lockedDimensions.includes(d.dimension))
 
   // ── URL ─────────────────────────────────────────────────────────────────
   // canonical 之外再挂 view：canonical 不含 view（SEO 上两者是同一页面），
   // 但地址栏与页内每一个 href 都要带着它，否则一点筛选就把版式态丢了。
   const currentParams = buildCanonicalSearchParams(input)
   if (view === 'row') currentParams.set('view', 'row')
+  // coworking：类型被锁死，页内任何 href 都不应带 `type`——canonical 之外单独
+  // 删一次，理由同 coworking-channel.ts 的 buildCoworkingCanonicalParams。
+  for (const d of lockedDimensions) {
+    for (const key of allDimensions.find((x) => x.dimension === d)?.paramKeys ?? []) {
+      currentParams.delete(key)
+    }
+  }
 
   const buildPageHref = (targetPage: number) => {
     const params = cloneSearchParams(currentParams)
@@ -258,8 +257,6 @@ export default async function CityListingsView({
 
   // ── 取数：整页 facet 只发这一次 fan-out ──────────────────────────────────
   // 每一份都先剥掉一个（或一组）维度再统计（见 omitListingSearchDimensions 注释）：
-  //   - 剥 priceUnit：算「另有多少套按别的单位报价」。用现成的 getSearchFacets
-  //     会因为它保留 priceUnit 而让其余单位计数恒为 0，提示条静默消失。
   //   - 剥 district / businessArea / listingType：算各候选自己的套数。不剥的话
   //     选中静安以后其余区计数全为 0（Task 2「facets 算在筛选前」同型问题）。
   //   - 空态②的逐条退路与「清除全部」、空态①的全量总数：只在对应分支才发，
@@ -273,18 +270,8 @@ export default async function CityListingsView({
   const facetsOmitting = (omit: readonly ListingSearchDimension[]) =>
     getCachedSearchFacetsIgnoring(city.slug, input, omit, businessType)
 
-  const [
-    unitFacets,
-    districtFacets,
-    areaFacets,
-    typeFacets,
-    formFacets,
-    relaxationFacets,
-    clearAllFacets,
-    noStockFacets,
-  ] =
+  const [districtFacets, areaFacets, typeFacets, formFacets, relaxationFacets, clearAllFacets, noStockFacets] =
     await Promise.all([
-      facetsOmitting(['priceUnit']),
       // ★ 区域候选必须**连商圈一起剥**（OPT-099 走查实测）。只剥 `district` 的话，
       // 一旦用户选了某个商圈，其余区的计数全为 0（那个商圈只属于当前这个区），
       // 于是「位置」行塌成只剩已选的那一个区，用户再也切不走——这正是
@@ -294,39 +281,35 @@ export default async function CityListingsView({
       // 剥 businessArea：算各商圈自己的套数。**只剥这一个**——`district` 留着，
       // 级联正是靠它成立（得到的商圈分布只含当前选中区里有房源的那些）。
       facetsOmitting(['businessArea']),
-      facetsOmitting(['listingType']),
+      // coworking：类型被锁死，不是候选，没有必要也不应该再问「其它类型各有多少
+      // 套」——那个问题在这个频道里没有意义。
+      lockedDimensions.includes('listingType') ? Promise.resolve(null) : facetsOmitting(['listingType']),
       facetsOmitting(['buildingForm']),
       showEmptyFiltered
         ? Promise.all(activeDimensions.map((d) => facetsOmitting([d.dimension])))
         : Promise.resolve([]),
-      showEmptyFiltered ? facetsOmitting(LISTING_CLEARABLE_DIMENSIONS) : Promise.resolve(null),
+      showEmptyFiltered ? facetsOmitting(clearableDimensions) : Promise.resolve(null),
       // 空态①：主按钮要的是「不叠加这一类限制的完整结果集」总数，因此连计价单位
       // 一起剥掉——这一态的出口就是「先看看这个城市/频道到底有什么」。
       showEmptyNoStock
-        ? facetsOmitting([...LISTING_CLEARABLE_DIMENSIONS, 'priceUnit'] as readonly ListingSearchDimension[])
+        ? facetsOmitting([...clearableDimensions, 'priceUnit'] as readonly ListingSearchDimension[])
         : Promise.resolve(null),
     ])
-
-  const unitCounts = toCountMap(unitFacets.rentUnits)
-  const units: readonly PriceUnitOption[] = PRICE_UNIT_ORDER.filter(
-    (unit) => unit === activeUnit || (unitCounts.get(unit) ?? 0) > 0,
-  ).map((unit) => ({ value: unit, label: priceUnitLabel(unit), count: unitCounts.get(unit) ?? 0 }))
-
-  const excludedUnits: readonly ExcludedUnitOption[] = activeUnit
-    ? units.filter((unit) => unit.value !== activeUnit)
-    : []
 
   // 筛选行需要计数，因此排在取数之后；维度清单上面已经算过，两者出自同一个函数。
   const { rows } = buildListingFilterRows({
     input,
     districts,
     districtCounts: toCountMap(districtFacets.districts),
-    typeCounts: toCountMap(typeFacets.listingTypes),
+    typeCounts: toCountMap(typeFacets?.listingTypes ?? []),
     buildingFormCounts: toCountMap(formFacets.buildingForms),
     businessAreaFacets: areaFacets.businessAreas,
     priceRowLabel: copy.priceRowLabel,
     priceDimensionLabel: copy.priceDimensionLabel,
   })
+  // coworking：类型不是一个可选条件，是频道的定义，因此这一行不该出现在筛选条
+  // 或抽屉里——用户在这个频道下没有「换类型」的操作。
+  const visibleRows = lockedDimensions.includes('listingType') ? rows.filter((row) => row.key !== 'type') : rows
 
   // 空态①的标题名词必须说出「哪一类还没有」，否则「上海在租房源还在收录中」会在
   // 页面上其它地方明明写着共 10 套时自相矛盾（comp 稿字面：「上海的共享工位房源
@@ -339,14 +322,6 @@ export default async function CityListingsView({
     activeTypeLabel ?? '',
     copy.noun,
   ].join('')
-
-  // 页头「共 N 套」与单位分段上的「元/㎡/天 M」可以合法地不相等（实测 4 vs 3）：
-  // 前者数的是命中的房源，后者数的是**有报价**的房源——价格面议的那几套属于这个
-  // 单位的结果集，却没有价格可计入单位计数。两个数字都诚实，但同屏摆着又不解释，
-  // 读者只会当成 bug。因此选定单位时把差额说出来，而不是把其中一个数悄悄改掉去
-  // 迁就另一个（那才是真的在撒谎）。
-  const pricedInActiveUnit = activeUnit ? (unitCounts.get(activeUnit) ?? 0) : 0
-  const unpricedCount = activeUnit ? Math.max(0, totalDocs - pricedInActiveUnit) : 0
 
   const rangeStart = totalDocs > 0 ? (page - 1) * input.pageSize + 1 : 0
   const rangeEnd = Math.min(page * input.pageSize, totalDocs)
@@ -371,12 +346,12 @@ export default async function CityListingsView({
   // （用户点了其中一个仍停在零结果页，还看不出为什么）。因此编排层——唯一知道完整
   // 维度清单的那一层——算一次，两处都用它，`FilterFormC` 不再从它收到的 rows 去猜。
   // 保留 priceUnit：comp 稿按钮字面「清除全部条件 · 1,893 套」，1,893 正是某一个
-  // 计价单位下的总数；换单位由分段控件与提示条负责，不归「清除条件」管。
+  // 计价单位下的总数；换单位不归「清除条件」管。
   const clearAllHref = buildDropDimensionHref(
     basePath,
     currentParams,
     allDimensions
-      .filter((d) => LISTING_CLEARABLE_DIMENSIONS.includes(d.dimension))
+      .filter((d) => clearableDimensions.includes(d.dimension))
       .flatMap((d) => d.paramKeys),
   )
 
@@ -392,12 +367,11 @@ export default async function CityListingsView({
   // ——数值型维度的解析层接受的取值域比预设档位宽（`?leasableAreaMin=750` 合法
   // 但不等于任何一档），那种值不会渲染出行 chip，却会被 `activeValue != null`
   // 误判成「已经显示了」而跳过补充 chip，三处一起把生效中的条件藏起来。
-  const rowActiveKeys = new Set(rows.filter(rowShowsActivePick).map((row) => row.key))
+  const rowActiveKeys = new Set(visibleRows.filter(rowShowsActivePick).map((row) => row.key))
   const extraPicks = activeDimensions.flatMap((d) => {
-    // 计价单位不补 chip：它已经被 PriceUnitSegment 完整地显示着，不属于「看不见的
-    // 生效条件」。补一个「租金单位 ×」还会凭空造出一个「清除单位」的入口——那与
-    // Task 7 的裁定相反（单位永远是 set，换单位归分段控件管，不归清除条件管）。
-    if (!LISTING_CLEARABLE_DIMENSIONS.includes(d.dimension)) return []
+    // 计价单位不补 chip：它已由页头副题「按 X 报价的…」完整显示，不是看不见的
+    // 生效条件；且没有任何控件能把它写进 URL，补「×」等于凭空造一个清除入口。
+    if (!clearableDimensions.includes(d.dimension)) return []
     const hidden = d.paramKeys.filter((key) => currentParams.has(key) && !rowActiveKeys.has(key))
     if (hidden.length === 0) return []
     if (d.paramTexts == null) {
@@ -440,40 +414,20 @@ export default async function CityListingsView({
       <header className="ls-container ls-head">
         <h1 className="ls-head__title">{heading}</h1>
         <p className="ls-head__sub">
-          共 <span className="sf-num">{totalDocs}</span>{' '}
+          共 <span className="sf-num">{totalDocs}</span> {copy.countNoun}
           {activeUnit ? (
-            <>
-              {copy.countNoun}按 <span className="ls-head__sub-strong">{priceUnitLabel(activeUnit)}</span> 报价
-              {unpricedCount > 0 ? (
-                <>
-                  ，其中 <span className="sf-num">{unpricedCount}</span> {copy.countNoun}价格面议、未计入上方单位计数
-                </>
-              ) : null}{' '}
-              · {copy.unitNote}
-            </>
+            <>按 <span className="ls-head__sub-strong">{priceUnitLabel(activeUnit)}</span> 报价的{copy.noun}</>
           ) : (
-            <>{copy.countNoun}{copy.noun}</>
+            copy.noun
           )}
         </p>
       </header>
 
-      <div className="ls-container ls-unitband">
-        <PriceUnitSegment
-          units={units}
-          activeUnit={activeUnit}
-          basePath={basePath}
-          currentParams={currentParams}
-          label={copy.unitRowLabel}
-        />
-      </div>
-
       <div className="ls-container ls-filterband">
         <FilterFormC
-          rows={rows}
+          rows={visibleRows}
           basePath={basePath}
           currentParams={currentParams}
-          totalCount={totalDocs}
-          countNoun={copy.countNoun}
           clearAllHref={clearAllHref}
           extraPicks={extraPicks}
         />
@@ -561,15 +515,6 @@ export default async function CityListingsView({
           </>
         )}
 
-        {excludedUnits.length > 0 ? (
-          <ExcludedUnitsBar
-            excluded={excludedUnits}
-            basePath={basePath}
-            currentParams={currentParams}
-            countNoun={copy.countNoun}
-          />
-        ) : null}
-
         {!isOutOfRange && !isEmpty ? (
           <ListPager page={page} totalPages={totalPages} buildPageHref={buildPageHref} />
         ) : null}
@@ -582,7 +527,7 @@ export default async function CityListingsView({
         它是 position:fixed 的移动专属控件，桌面断点由 list.css 隐藏。
       */}
       <MobileFilterShell
-        rows={rows}
+        rows={visibleRows}
         basePath={basePath}
         currentQuery={currentParams.toString()}
         totalDocs={totalDocs}

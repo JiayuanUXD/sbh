@@ -25,7 +25,7 @@ import type { HomepageTypeSummary, MediaViewModel } from '@/domain/public-catalo
 // 前台却完全不生效，页面上看不出任何异常。渲染逻辑不因此改动。
 export const SLOT_TARGETS: Readonly<Record<string, Readonly<{ href: string; type: string | null; event: string }>>> = {
   'traditional-office': { href: '/listings?type=traditional-office', type: 'traditional-office', event: 'home_cat_traditional' },
-  'coworking': { href: '/listings?type=coworking', type: 'coworking', event: 'home_cat_coworking' },
+  'coworking': { href: '/coworking', type: 'coworking', event: 'home_cat_coworking' },
   'full-floor': { href: '/listings?type=full-floor', type: 'full-floor', event: 'home_cat_full_floor' },
   'serviced-office': { href: '/listings?type=serviced-office', type: 'serviced-office', event: 'home_cat_standalone' },
   'creative-park': { href: '/buildings', type: null, event: 'home_cat_creative_park' },

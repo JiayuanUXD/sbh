@@ -45,7 +45,7 @@ export type BuildPageMetadataInput = Readonly<{
   robots?: 'index' | 'noindex'
 }>
 
-export type CityMetadataPageType = 'home' | 'listings' | 'buildings' | 'sale'
+export type CityMetadataPageType = 'home' | 'listings' | 'buildings' | 'sale' | 'coworking'
 
 export type BuildCityPageMetadataInput = Readonly<{
   city: CityContext
@@ -133,6 +133,11 @@ const CITY_PAGE_COPY: Readonly<Record<Exclude<CityMetadataPageType, 'home'>, Rea
   sale: {
     title: (cityName) => `${cityName}写字楼出售 · 商办买卖`,
     description: (cityName) => `${cityName}写字楼、独栋办公与商办物业出售房源。`,
+  },
+  // 共享办公频道（OPT-103）：canonical 指向频道自身，理由同 sale。
+  coworking: {
+    title: (cityName) => `${cityName}共享办公 · 工位与联合办公`,
+    description: (cityName) => `${cityName}共享办公、联合办公与灵活工位在租房源。`,
   },
 }
 

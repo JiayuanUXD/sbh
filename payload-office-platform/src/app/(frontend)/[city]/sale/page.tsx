@@ -82,7 +82,7 @@ export default async function CitySalePage({ params, searchParams }: Props) {
       input={input}
       basePath={saleChannelPath(city.slug)}
       routeMode="prefixed"
-      businessType="sale"
+      channel="sale"
       view={parseListingViewMode(raw.view)}
     />
   )

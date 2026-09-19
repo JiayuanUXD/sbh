@@ -60,7 +60,7 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
         unfilteredTotalDocs: 0,
         page: 1,
         totalPages: 1,
-        facets: { districts: [], grades: [], metros: [] },
+        facets: { districts: [], businessAreas: [], grades: [], metros: [] },
         dimensionHits: {
           district: 0, grade: 0, metro: 0, leasableArea: 0, completedAfter: 0, onlyWithStock: 0,
         },
