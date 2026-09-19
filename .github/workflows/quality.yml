@@ -230,7 +230,7 @@ jobs:
         # NEXT_PUBLIC_），不参与 next build 内联，所以无需重新构建。
         env:
           MULTI_CITY_ROUTING_ENABLED: 'true'
-        run: pnpm exec playwright test tests/e2e/multi-city-routing.spec.ts tests/e2e/multi-city-isolation.spec.ts tests/e2e/multi-city-forms.spec.ts tests/e2e/sale-channel.spec.ts
+        run: pnpm exec playwright test tests/e2e/multi-city-routing.spec.ts tests/e2e/multi-city-isolation.spec.ts tests/e2e/multi-city-forms.spec.ts tests/e2e/sale-channel.spec.ts tests/e2e/coworking-channel.spec.ts
 
   postgres-migrations:
     runs-on: ubuntu-latest
