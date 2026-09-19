@@ -85,9 +85,9 @@ describe('SiteFooter 备案号', () => {
     expect(html).toMatch(
       /<a class="site-footer__icp" href="https:\/\/beian\.miit\.gov\.cn\/" target="_blank" rel="noopener noreferrer">沪ICP备2026037944号<\/a>/,
     )
-    // 顺序：© 版权 → 备案号 → 城市副标题
+    // 顺序：© 版权 → 备案号 → 员工入口（「{城市} · 页脚副标题后缀」一段已于 2026-09-19 整体移除）
     expect(html.indexOf('©')).toBeLessThan(html.indexOf('site-footer__icp'))
-    expect(html.indexOf('site-footer__icp')).toBeLessThan(html.indexOf('商务办公租赁'))
+    expect(html.indexOf('site-footer__icp')).toBeLessThan(html.indexOf('site-footer__staff-link'))
   })
 
   it('无值：整个节点不渲染', () => {

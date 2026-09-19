@@ -1,0 +1,78 @@
+{
+  "url": "/shanghai/listings/media-rich-listing",
+  "sentinel": {
+    "pathname": "/shanghai/listings/media-rich-listing",
+    "status": 200,
+    "statusOk": true,
+    "family": "listing-detail",
+    "missing": [],
+    "ok": true
+  },
+  "steps": [
+    {
+      "where": "image",
+      "pointer": {
+        "x": 518,
+        "y": 599.375
+      },
+      "figHover": true,
+      "btnHover": true,
+      "transform": "matrix(1.04, 0, 0, 1.04, 0, 0)",
+      "expect": {
+        "figHover": true,
+        "btnHover": true,
+        "transform": "matrix(1.04, 0, 0, 1.04, 0, 0)"
+      },
+      "ok": true
+    },
+    {
+      "where": "prev",
+      "pointer": {
+        "x": 82,
+        "y": 599.375
+      },
+      "figHover": true,
+      "btnHover": false,
+      "transform": "matrix(1.04, 0, 0, 1.04, 0, 0)",
+      "expect": {
+        "figHover": true,
+        "btnHover": false,
+        "transform": "matrix(1.04, 0, 0, 1.04, 0, 0)"
+      },
+      "ok": true
+    },
+    {
+      "where": "next",
+      "pointer": {
+        "x": 954,
+        "y": 599.375
+      },
+      "figHover": true,
+      "btnHover": false,
+      "transform": "matrix(1.04, 0, 0, 1.04, 0, 0)",
+      "expect": {
+        "figHover": true,
+        "btnHover": false,
+        "transform": "matrix(1.04, 0, 0, 1.04, 0, 0)"
+      },
+      "ok": true
+    },
+    {
+      "where": "outside",
+      "pointer": {
+        "x": 1068,
+        "y": 599.375
+      },
+      "figHover": false,
+      "btnHover": false,
+      "transform": "none",
+      "expect": {
+        "figHover": false,
+        "btnHover": false,
+        "transform": "none"
+      },
+      "ok": true
+    }
+  ],
+  "ok": true
+}

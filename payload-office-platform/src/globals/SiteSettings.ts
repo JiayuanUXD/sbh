@@ -182,13 +182,6 @@ export const SiteSettings: GlobalConfig = {
                   '按备案通知书原样填（如 沪ICP备2026037944号）。渲染在页脚版权之后，自动链接到工信部备案管理系统；留空不显示。保存后最长 60 秒全站生效。',
               },
             },
-            {
-              name: 'footerTaglineSuffix',
-              label: '页脚副标题后缀',
-              type: 'text',
-              defaultValue: '商务办公租赁',
-              admin: { description: '渲染为「{当前城市} · {后缀}」，城市名自动跟随路由。' },
-            },
           ],
         },
         {

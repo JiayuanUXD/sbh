@@ -41,7 +41,6 @@ export type SiteSettingsView = Readonly<{
   imageDisclaimer: string
   footerBrandBlurb: string
   copyrightHolder: string
-  footerTaglineSuffix: string
   /** ICP 备案号（OPT-097）。已归一化：非法 / 空一律 null，页脚据此决定渲不渲染。 */
   icpRecordNumber: string | null
   valueProps: ReadonlyArray<Readonly<{ name: string; body: string }>>
@@ -94,7 +93,6 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
   footerBrandBlurb:
     '聚合{城市}甲级写字楼、独栋办公、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。',
   copyrightHolder: '商办租赁平台',
-  footerTaglineSuffix: '商务办公租赁',
   // 备案号不能由代码编默认值：兜底就是「没有」
   icpRecordNumber: null,
   valueProps: [
