@@ -95,6 +95,8 @@ describe('city-aware public sitemap', () => {
     expect(urls).not.toContain('https://example.com/suzhou/listings/shanghai-listing')
     expect(urls).toContain('https://example.com/shanghai/buildings/shanghai-building')
     expect(urls).toContain('https://example.com/suzhou/buildings/suzhou-building')
+    expect(urls).toContain('https://example.com/shanghai/coworking')
+    expect(urls).not.toContain('https://example.com/hangzhou/coworking')
     expect(urls.every((url) => !url.includes('?'))).toBe(true)
     expect(sitemapState.listPublicCityProfiles).toHaveBeenCalledTimes(1)
   })
@@ -116,6 +118,7 @@ describe('city-aware public sitemap', () => {
 
     expect(urls).toContain('https://example.com/listings/shanghai-listing')
     expect(urls).toContain('https://example.com/buildings/shanghai-building')
+    expect(urls).toContain('https://example.com/coworking')
     expect(urls).not.toContain('https://example.com/shanghai')
     expect(urls).not.toContain('https://example.com/suzhou')
     expect(urls.some((url) => url.includes('suzhou-listing'))).toBe(false)

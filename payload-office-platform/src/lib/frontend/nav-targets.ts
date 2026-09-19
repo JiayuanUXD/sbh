@@ -68,7 +68,8 @@ const LISTING_TYPE_LABELS: Readonly<Record<(typeof LISTING_TYPES)[number], strin
 
 const TYPE_TARGETS: readonly NavTarget[] = LISTING_TYPES.map((type) => ({
   id: `listings-type-${type}`,
-  href: `/listings?type=${type}`,
+  // OPT-103：共享办公升格为独立频道，目标 id 不变（枚举值进了迁移），只改落点。
+  href: type === 'coworking' ? '/coworking' : `/listings?type=${type}`,
   defaultLabel: LISTING_TYPE_LABELS[type],
 }))
 
