@@ -79,7 +79,12 @@ vi.mock('@/domain/public-catalog', () => ({
   // 新增导出必须在这里补齐，否则 site-settings.ts 的 import 会拿到 undefined。
   SITE_SETTINGS_TAG: 'public:site-settings',
   SITE_SETTINGS_REVALIDATE_SECONDS: 60,
-  buildCanonicalSearchParams: () => new URLSearchParams(),
+  buildCanonicalSearchParams: (input: { listingType?: readonly string[]; district?: readonly string[] }) => {
+    const sp = new URLSearchParams()
+    for (const v of input.district ?? []) sp.append('district', v)
+    for (const v of input.listingType ?? []) sp.append('type', v)
+    return sp
+  },
   buildBuildingCanonicalParams: () => new URLSearchParams(),
   parseBuildingSearchInput: io.parseBuildingSearchInput,
   parseListingSearchInput: io.parseListingSearchInput,
@@ -104,6 +109,8 @@ import CityListingDetailPage, { generateMetadata as generateCityListingDetailMet
 import CityListingsPage, { generateMetadata as generateListingsMetadata } from '@/app/(frontend)/[city]/listings/page'
 import CityBuildingsPage, { dynamic as buildingsDynamic, generateMetadata as generateBuildingsMetadata } from '@/app/(frontend)/[city]/buildings/page'
 import { generateMetadata as generateSaleMetadata } from '@/app/(frontend)/[city]/sale/page'
+import CityCoworkingPage, { generateMetadata as generateCoworkingMetadata } from '@/app/(frontend)/[city]/coworking/page'
+import LegacyCoworkingPage from '@/app/(frontend)/coworking/page'
 import LegacyHomePage from '@/app/(frontend)/page'
 import LegacyListingsPage from '@/app/(frontend)/listings/page'
 import LegacyBuildingsPage from '@/app/(frontend)/buildings/page'
@@ -377,6 +384,52 @@ describe('city route boundaries', () => {
       alternates: { canonical: '/sale' },
       robots: { index: false, follow: true },
     })
+  })
+
+  it('共享办公频道：类型锁定为 coworking、canonical 指向 /[city]/coworking 且不含 type', async () => {
+    process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
+    io.parseListingSearchInput.mockReturnValue({ page: 1, listingType: ['full-floor'], district: ['jingan'] })
+    io.getCachedListingDistrictOptions.mockResolvedValue([{ id: 1, slug: 'jingan', name: '静安' }])
+    io.getCachedSearchListings.mockResolvedValue({ docs: [], pagination: { page: 1, totalPages: 1, totalDocs: 3 } })
+
+    await expect(generateCoworkingMetadata({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({ type: 'full-floor', district: 'jingan' }),
+    })).resolves.toMatchObject({
+      title: '上海共享办公 · 工位与联合办公',
+      alternates: { canonical: '/shanghai/coworking?district=jingan' },
+      robots: { index: true, follow: true },
+    })
+
+    const page = await CityCoworkingPage({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({ type: 'full-floor', district: 'jingan' }),
+    })
+    const props = page.props as { channel: string; basePath: string; input: { listingType?: readonly string[] } }
+    expect(props.channel).toBe('coworking')
+    expect(props.basePath).toBe('/shanghai/coworking')
+    expect(props.input.listingType).toEqual(['coworking'])
+    // 共享办公不是独立的 SearchChannel（只有 'lease' | 'sale'）：它是 lease 扫描内的一个
+    // 类型过滤，路由层不传第 4 个参数，走 getCachedSearchListings 的默认值 'lease'。
+    expect(io.getCachedSearchListings).toHaveBeenCalledWith('shanghai', 'district=jingan', expect.objectContaining({ listingType: ['coworking'] }))
+  })
+
+  it('共享办公频道：开关开启时 legacy /coworking 307 到带前缀的 URL，query 原样透传', async () => {
+    process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
+    await expect(LegacyCoworkingPage({ searchParams: Promise.resolve({ district: 'jingan', page: '2' }) }))
+      .rejects.toThrow('redirect:/shanghai/coworking?district=jingan&page=2')
+  })
+
+  it('共享办公频道：开关关闭时 legacy 渲染，canonical 归还给无前缀 /coworking', async () => {
+    io.parseListingSearchInput.mockReturnValue({ page: 1 })
+    io.getCachedSearchListings.mockResolvedValue({ docs: [], pagination: { page: 1, totalPages: 1, totalDocs: 3 } })
+    const page = await LegacyCoworkingPage({ searchParams: Promise.resolve({}) })
+    const props = page.props as { channel: string; basePath: string; routeMode: string }
+    expect(props).toMatchObject({ channel: 'coworking', basePath: '/coworking', routeMode: 'legacy' })
+    await expect(generateCoworkingMetadata({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({}),
+    })).resolves.toMatchObject({ alternates: { canonical: '/coworking' }, robots: { index: false, follow: true } })
   })
 
   it('uses the first Next.js array query value for legacy and prefixed listings', async () => {

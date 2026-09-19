@@ -141,6 +141,17 @@ describe('city route URL contract', () => {
     expect(cityAwareHref('/buildings?business=sale', 'shanghai', false)).toBe('/buildings?business=sale')
   })
 
+  it('OPT-103：共享办公频道是城市页，与 listings 同一套查询白名单', () => {
+    expect(getCityPageType('/coworking')).toBe('coworking')
+    expect(getCityPageType('/shanghai/coworking')).toBe('coworking')
+    expect(buildCityPath('shanghai', 'coworking')).toBe('/shanghai/coworking')
+    expect(cityAwareHref('/coworking', 'shanghai', true)).toBe('/shanghai/coworking')
+    expect(cityAwareHref('/coworking', 'shanghai', false)).toBe('/coworking')
+    expect(switchCityUrl('/shanghai/coworking?district=jingan&areaMin=100&extra=drop', 'hangzhou')).toBe('/hangzhou/coworking?areaMin=100')
+    expect(prefixedCanonicalPath('/coworking?district=changning&page=2', 'shanghai')).toBe('/shanghai/coworking?district=changning&page=2')
+    expect(legacyCanonicalPath('/shanghai/coworking?district=changning')).toBe('/coworking?district=changning')
+  })
+
   it('switches a building list with only grade and clears geography and page', () => {
     expect(
       switchCityUrl('/shanghai/buildings?district=pudong&grade=grade-a&page=2&sort=name', 'hangzhou'),

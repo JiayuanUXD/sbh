@@ -18,6 +18,8 @@ export type CityPageType =
   | 'listing-detail'
   // 出售频道：与 listings 同构的另一个频道，共用组件与查询，只是作用域不同。
   | 'sale'
+  // 共享办公频道（OPT-103）：与 listings 同构，类型由路由锁死。
+  | 'coworking'
   | 'buildings'
   | 'building-detail'
   | 'news'
@@ -40,6 +42,7 @@ const RESERVED_CITY_ROOT_SEGMENTS = new Set([
   'api',
   'buildings',
   'city-partner',
+  'coworking',
   'dev-story',
   'entrust',
   'listings',
@@ -246,6 +249,7 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
 
   if (segments.length === 1 && segments[0] === 'listings') return route('listings', null)
   if (segments.length === 1 && segments[0] === 'sale') return route('sale', null)
+  if (segments.length === 1 && segments[0] === 'coworking') return route('coworking', null)
   if (segments.length === 2 && segments[0] === 'listings') {
     return canonicalPathSegment(segments[1]) ? route('listing-detail', null, canonicalPathSegment(segments[1])) : route('unknown', null)
   }
@@ -259,6 +263,7 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
   if (!resource) return route('home', citySlug)
   if (resource === 'listings' && !slug) return route('listings', citySlug)
   if (resource === 'sale' && !slug) return route('sale', citySlug)
+  if (resource === 'coworking' && !slug) return route('coworking', citySlug)
   if (resource === 'buildings' && !slug) return route('buildings', citySlug)
   if (resource === 'listings' && slug) {
     const detailSlug = canonicalPathSegment(slug)
@@ -405,6 +410,8 @@ export function buildCityPath(citySlug: string, pageType: CityPageType): string 
       return `/${citySlug}/listings`
     case 'sale':
       return `/${citySlug}/sale`
+    case 'coworking':
+      return `/${citySlug}/coworking`
     case 'buildings':
     case 'building-detail':
       return `/${citySlug}/buildings`
@@ -452,6 +459,12 @@ export function switchCityUrl(sourceUrl: unknown, destinationCitySlug: string): 
       // 与 listings 共用筛选参数白名单：出售频道复用同一套筛选器。
       return withQuery(
         `/${destinationCitySlug}/sale`,
+        selectListingQuery(route.params),
+      )
+    case 'coworking':
+      // 与 listings 共用筛选参数白名单：共享办公频道复用同一套筛选器（类型由路由锁死，不在这份白名单里游走）。
+      return withQuery(
+        `/${destinationCitySlug}/coworking`,
         selectListingQuery(route.params),
       )
     case 'buildings':
@@ -517,6 +530,8 @@ export function legacyCanonicalPath(sourceUrl: unknown): string | null {
       return withQuery('/listings', passThroughQuery(route.params))
     case 'sale':
       return withQuery('/sale', passThroughQuery(route.params))
+    case 'coworking':
+      return withQuery('/coworking', passThroughQuery(route.params))
     case 'listing-detail':
       return route.detailSlug ? `/listings/${route.detailSlug}` : null
     case 'buildings':
@@ -554,6 +569,8 @@ export function prefixedCanonicalPath(sourceUrl: unknown, citySlug: string): str
       return withQuery(`/${citySlug}/listings`, passThroughQuery(route.params))
     case 'sale':
       return withQuery(`/${citySlug}/sale`, passThroughQuery(route.params))
+    case 'coworking':
+      return withQuery(`/${citySlug}/coworking`, passThroughQuery(route.params))
     case 'listing-detail':
       return route.detailSlug ? `/${citySlug}/listings/${route.detailSlug}` : null
     case 'buildings':
@@ -582,7 +599,8 @@ export function cityAwareHref(href: string, citySlug: string, multiCityRoutingEn
   let cityHref = href
   if (pageType === 'home') cityHref = buildCityPath(citySlug, 'home') ?? href
   // OPT-096：出售频道 `/sale` 也是城市页（switchCityUrl 早就认识它），导航子项经此加前缀
-  if (pageType === 'listings' || pageType === 'sale' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
+  // OPT-103：共享办公频道 `/coworking` 同理。
+  if (pageType === 'listings' || pageType === 'sale' || pageType === 'coworking' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
   if (pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner') {
     cityHref = buildCityPath(citySlug, pageType) ?? href
   }
