@@ -55,6 +55,12 @@ export type FilterRow = Readonly<{
 
 type ActivePick = Readonly<{ row: FilterRow; option: FilterRow['options'][number] }>
 
+/**
+ * 「生效了、但没有任何一行能显示出来」的条件（编排层算好交进来）。桌面筛选条底栏与
+ * 移动抽屉（T17）用同一份：两处都只负责摆成可清除的 chip / pill，不推导。
+ */
+export type ExtraPick = Readonly<{ key: string; label: string; href: string }>
+
 /* 单个选项的 href 走 `listing-url.ts` 的 `buildFilterOptionHref`——OPT-099 之前
    本文件与 `MobileFilterSheet.tsx` 各持有一份逐行相同的实现，收敛理由见那边注释。 */
 
@@ -120,11 +126,16 @@ export function rowShowsActivePick(row: FilterRow): boolean {
  *     比 UI 档位宽，`?leasableAreaMin=750` / `?areaMin=750` 合法且真的收窄结果集，
  *     但 750 不等于任何一档，行内不会出现选中项。见 `findActiveOption` 的注释。
  *
- * 落在这两条之外的生效条件由 `FilterFormC.extraPicks` 在桌面筛选条里补 chip 显示，
- * 不进这个计数——这个数说的是「抽屉里你能看见几个选中项」，不是「URL 上有几个参数」。
+ * 落在这两条之外的生效条件由编排层算成 `extraPicks`：桌面筛选条底栏补 chip，抽屉顶部
+ * 「其他条件」一组补选中态 pill（TODOS T17，之前抽屉里根本看不见它们）。它们**计入**
+ * 这个数——这个数说的仍是「抽屉里你能看见几个选中项」，只是从 T17 起抽屉真的能看见它们了。
  */
-export function countActivePicks(rows: readonly FilterRow[]): number {
-  return rows.filter((row) => row.options.length > 0 && rowShowsActivePick(row)).length
+export function countActivePicks(
+  rows: readonly FilterRow[],
+  extraPicks: readonly ExtraPick[] = [],
+): number {
+  const shown = rows.filter((row) => row.options.length > 0 && rowShowsActivePick(row)).length
+  return shown + extraPicks.length
 }
 
 export default function FilterFormC(props: Readonly<{
@@ -158,7 +169,7 @@ export default function FilterFormC(props: Readonly<{
    * 这类条件由编排层——唯一知道完整维度清单的那一层——算出来交进来，本组件
    * 只负责把它们摆成 chip，与 `clearAllHref` 的分工完全一致。
    */
-  extraPicks?: ReadonlyArray<Readonly<{ key: string; label: string; href: string }>>
+  extraPicks?: readonly ExtraPick[]
 }>): React.JSX.Element {
   const { rows, basePath, currentParams, clearAllHref, extraPicks } = props
   const visibleRows = rows.filter((row) => row.options.length > 0)

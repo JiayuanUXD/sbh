@@ -4,7 +4,7 @@ import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { buildFilterOptionHref } from '@/lib/frontend/listing-url'
-import { countActivePicks, type FilterRow } from './FilterFormC'
+import { countActivePicks, type ExtraPick, type FilterRow } from './FilterFormC'
 import FilterPill from './FilterPill'
 
 /**
@@ -120,8 +120,16 @@ export default function MobileFilterSheet(props: Readonly<{
    * **单个选项**的 href（行级作用域，不存在歧义）。
    */
   resetHref: string
+  /**
+   * 没有任何一行能显示的生效条件（TODOS T17）。桌面靠 `FilterFormC` 底栏的补充 chip，
+   * 但 `.ls-filterc` 在 ≤767px 整块隐藏，于是 `?onlyWithStock=1` / `?q=` 这类老链接在
+   * 移动端曾是「生效但不可见不可清」——页头说筛选出 5 个、抽屉说已选 0 项。这里把
+   * 它们渲染成抽屉顶部「其他条件」一组**选中态** pill：点即清除（与行内「再点已选项即
+   * 取消」同一语义），href 由编排层给定，本组件不推导。
+   */
+  extraPicks?: readonly ExtraPick[]
 }>): React.JSX.Element | null {
-  const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef, resetHref } = props
+  const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef, resetHref, extraPicks } = props
   const sheetRef = useRef<HTMLDivElement | null>(null)
   const capturedFocusRef = useRef<HTMLElement | null>(null)
   // 「归还焦点」只有在**真的开过一次**之后才成立，见下方该 effect 的注释。
@@ -200,7 +208,7 @@ export default function MobileFilterSheet(props: Readonly<{
   const visibleRows = rows.filter((row) => row.options.length > 0)
   // 与 `MobileFilterShell` 交给悬浮 pill 的徽标数同一个函数——两处曾各写一份，
   // 判据分叉后同屏出现「徽标 1 / 已选 N 项为空」（OPT-036 终审 I1）。
-  const pickCount = countActivePicks(rows)
+  const pickCount = countActivePicks(rows, extraPicks)
 
   return createPortal(
     <div className="ls-msheet__overlay" onClick={onClose}>
@@ -222,6 +230,16 @@ export default function MobileFilterSheet(props: Readonly<{
         </div>
 
         <div className="ls-msheet__body">
+          {extraPicks && extraPicks.length > 0 ? (
+            <div className="ls-msheet__group">
+              <span className="ls-msheet__group-label">其他条件</span>
+              <div className="ls-msheet__group-opts">
+                {extraPicks.map((pick) => (
+                  <FilterPill key={pick.key} href={pick.href} label={pick.label} active />
+                ))}
+              </div>
+            </div>
+          ) : null}
           {visibleRows.map((row) => (
             <div className="ls-msheet__group" key={row.key}>
               <span className="ls-msheet__group-label">{row.label}</span>

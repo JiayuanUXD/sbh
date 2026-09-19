@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useRef, useState } from 'react'
-import { countActivePicks, type FilterRow } from './FilterFormC'
+import { countActivePicks, type ExtraPick, type FilterRow } from './FilterFormC'
 import MobileFilterSheet from './MobileFilterSheet'
 import MobileFilterTrigger from './MobileFilterTrigger'
 
@@ -54,8 +54,13 @@ export default function MobileFilterShell(props: Readonly<{
    * ——三个出口同义就必须同址，理由见 `MobileFilterSheet.resetHref` 注释。
    */
   resetHref: string
+  /**
+   * 没有任何一行能显示的生效条件（T17）：原样透传给抽屉渲染成可清除 pill，并计入徽标。
+   * 与编排层交给 `FilterFormC.extraPicks` 的是同一个值——桌面底栏能清的，抽屉也能清。
+   */
+  extraPicks?: readonly ExtraPick[]
 }>): React.JSX.Element {
-  const { rows, basePath, currentQuery, totalDocs, countNoun, resetHref } = props
+  const { rows, basePath, currentQuery, totalDocs, countNoun, resetHref, extraPicks } = props
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const currentParams = useMemo(() => new URLSearchParams(currentQuery), [currentQuery])
@@ -64,7 +69,7 @@ export default function MobileFilterShell(props: Readonly<{
   // 两个方向上（少了 `visibleRows` 过滤、且用了更宽松的判据），于是 375 下
   // `?areaMin=750`（楼盘页 `?leasableAreaMin=750`）会出现底栏徽标写 1、抽屉头部
   // 的「已选 N 项」却是空的——正是本注释上一版警告过的那种自相矛盾（OPT-036 终审 I1）。
-  const activeCount = countActivePicks(rows)
+  const activeCount = countActivePicks(rows, extraPicks)
 
   return (
     <div className="ls-mobilefilter" data-mobile-filter-shell data-open={open ? 'true' : 'false'}>
@@ -85,6 +90,7 @@ export default function MobileFilterShell(props: Readonly<{
         countNoun={countNoun}
         triggerRef={triggerRef}
         resetHref={resetHref}
+        {...(extraPicks ? { extraPicks } : {})}
       />
     </div>
   )

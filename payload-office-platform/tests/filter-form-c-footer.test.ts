@@ -41,8 +41,10 @@ describe('FilterFormC 底栏', () => {
     expect(html).toContain('清除全部')
   })
 
-  it('countActivePicks 只按 rows 计数（开关型行已移除）', () => {
+  it('countActivePicks 按可见行 + extraPicks 计数（开关型行已移除；T17 起补充 chip 计入）', () => {
     expect(countActivePicks([{ ...ROWS[0], activeValue: 'jingan' }])).toBe(1)
     expect(countActivePicks(ROWS)).toBe(0)
+    expect(countActivePicks(ROWS, [{ key: 'q', label: '关键词：整层', href: '/x' }])).toBe(1)
+    expect(countActivePicks([{ ...ROWS[0], activeValue: 'jingan' }], [{ key: 'q', label: '关键词：整层', href: '/x' }])).toBe(2)
   })
 })

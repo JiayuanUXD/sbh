@@ -46,7 +46,7 @@ vi.mock('next/navigation', () => ({
 
 import CityListingsView from '@/components/frontend/city/CityListingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
-import { countActivePicks, type FilterRow } from '@/components/frontend/listing/FilterFormC'
+import { countActivePicks, type ExtraPick, type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import ResultToolbar from '@/components/frontend/listing/ResultToolbar'
 import { parseListingSearchInput } from '@/domain/public-catalog'
@@ -149,8 +149,8 @@ function shellBadge(shell: Visited): number {
 }
 
 /** shell 收到的 rows，用于与抽屉共用的口径函数对账。 */
-function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[] }> {
-  return shell.node.props as Readonly<{ rows: readonly FilterRow[] }>
+function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[]; extraPicks?: readonly ExtraPick[] }> {
+  return shell.node.props as Readonly<{ rows: readonly FilterRow[]; extraPicks?: readonly ExtraPick[] }>
 }
 
 function findByDisplayName(tree: ReactElement, name: string): Visited | undefined {
@@ -309,16 +309,18 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
   // `visibleRows` + `findActiveOption` 双向分叉：判据更宽松、且不过滤零候选行。
   // 两个数字在 375 下同屏可见（抽屉打开时徽标仍在底栏），矛盾无处可藏。
 
-  it('落在预设档位之外的数值条件不进徽标：抽屉里根本显示不出来（?areaMin=750）', async () => {
+  it('落在预设档位之外的数值条件：行内显示不出来，但经 extraPicks 进抽屉与徽标（?areaMin=750）', async () => {
     const tree = await renderView('?areaMin=750', { totalDocs: 3 })
     const shell = findByDisplayName(tree, 'MobileFilterShell')!
-    const { rows } = shellRows(shell)
+    const { rows, extraPicks } = shellRows(shell)
     // 前提：这一行确实没有能显示它的选项（否则这条测试没在测该测的东西）
     const areaRow = rows.find((row) => row.key === 'areaMin')!
     expect(areaRow.activeValue).toBe('750')
     expect(areaRow.options.some((option) => option.value === '750')).toBe(false)
-    // 旧实现在这里渲染徽标「1」，而抽屉头部的「已选 N 项」是空字符串
-    expect(shellBadge(shell)).toBe(0)
+    // 旧实现：徽标「1」而抽屉头部「已选 N 项」为空（分叉）；T17 之前修成两处都 0（一致但装瞎）；
+    // 现在它经 extraPicks 在抽屉里可见可清，两处同为 1。
+    expect(extraPicks?.map((p) => p.key)).toEqual(['areaMin'])
+    expect(shellBadge(shell)).toBe(1)
   })
 
   it('缺 priceUnit 的价格区间不进徽标，因为它压根不再是一个生效条件（?priceMax=6）', async () => {
@@ -342,6 +344,12 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     expect(picks?.map((pick) => pick.key) ?? []).not.toContain('price')
   })
 
+  it('T17：没有筛选行的关键词经 extraPicks 进抽屉与徽标（?q=整层 → 徽标 1）', async () => {
+    const shell = findByDisplayName(await renderView('?q=整层', { totalDocs: 3 }), 'MobileFilterShell')!
+    expect(shellRows(shell).extraPicks).toEqual([{ key: 'q', label: '关键词：整层', href: '/shanghai/listings' }])
+    expect(shellBadge(shell)).toBe(1)
+  })
+
   it('抽屉真能显示出来的条件仍然计数（?district=jingan → 徽标 1）', async () => {
     const tree = await renderView('?district=jingan', {
       totalDocs: 3,
@@ -356,8 +364,8 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
         await renderView(query, { totalDocs: 3, districts: [{ slug: 'jingan', name: '静安' }] }),
         'MobileFilterShell',
       )!
-      const { rows } = shellRows(shell)
-      expect(shellBadge(shell), query).toBe(countActivePicks(rows))
+      const { rows, extraPicks } = shellRows(shell)
+      expect(shellBadge(shell), query).toBe(countActivePicks(rows, extraPicks))
     }
   })
 

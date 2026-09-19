@@ -533,6 +533,7 @@ export default async function CityListingsView({
         totalDocs={totalDocs}
         countNoun={copy.countNoun}
         resetHref={clearAllHref}
+        extraPicks={extraPicks}
       />
     </div>
     </ListingNavigationProvider>
