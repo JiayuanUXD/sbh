@@ -47,6 +47,8 @@ const DEFAULT_SORT: BuildingSort = BUILDING_DEFAULT_SORT
 export type BuildingSearchInput = Readonly<{
   city?: string
   district?: readonly string[]
+  /** 商圈（OPT-103）：从属于行政区，口径同房源页 `ListingSearchInput.businessArea`。 */
+  businessArea?: readonly string[]
   grade?: readonly string[]
   metro?: readonly string[]
   leasableAreaMin?: number
@@ -76,7 +78,7 @@ function parseDedupedStringArray(sp: URLSearchParams, key: string): readonly str
   const seen = new Set<string>()
   const out: string[] = []
   for (const raw of sp.getAll(key)) {
-    if (typeof raw !== 'string' || raw.length === 0) continue
+    if (typeof raw !== 'string' || raw.trim().length === 0) continue
     if (seen.has(raw)) continue
     seen.add(raw)
     out.push(raw)
@@ -148,6 +150,7 @@ function parseSort(sp: URLSearchParams): BuildingSort {
 export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInput {
   const city = sp.get('city') || undefined
   const district = parseDedupedStringArray(sp, 'district')
+  const businessArea = parseDedupedStringArray(sp, 'businessArea')
   // 等级是**静态**词表，解析层就能判定合法性（与 search-params.ts 对 type / sort /
   // priceUnit 的处置同一口径：非法参数静默丢弃，canonical 对外规范化）。此前它走
   // 的是无白名单的 `parseDedupedStringArray`，于是 `?grade=<任意字符串>` 既真的把
@@ -174,6 +177,7 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
   return {
     ...(city ? { city } : {}),
     ...(district ? { district } : {}),
+    ...(businessArea ? { businessArea } : {}),
     ...(grade ? { grade } : {}),
     ...(metro ? { metro } : {}),
     ...(leasableAreaMin != null ? { leasableAreaMin } : {}),
@@ -197,6 +201,7 @@ export function buildBuildingCanonicalParams(input: BuildingSearchInput): URLSea
   const sp = new URLSearchParams()
   if (input.city) sp.set('city', input.city)
   if (input.district) for (const v of [...input.district].sort()) sp.append('district', v)
+  if (input.businessArea) for (const v of [...input.businessArea].sort()) sp.append('businessArea', v)
   if (input.grade) for (const v of [...input.grade].sort()) sp.append('grade', v)
   if (input.metro) for (const v of [...input.metro].sort()) sp.append('metro', v)
   if (input.leasableAreaMin != null) sp.set('leasableAreaMin', String(input.leasableAreaMin))
@@ -286,11 +291,13 @@ export function applyBuildingFilters(
   input: BuildingSearchInput,
 ): readonly BuildingSummaryViewModel[] {
   const districtSet = input.district ? new Set(input.district) : null
+  const businessAreaSet = input.businessArea ? new Set(input.businessArea) : null
   const gradeSet = input.grade ? new Set(input.grade) : null
   const metroSet = input.metro ? new Set(input.metro) : null
 
   return docs.filter((doc) => {
     if (districtSet && (!doc.district || !districtSet.has(doc.district.slug))) return false
+    if (businessAreaSet && (!doc.businessDistrict || !businessAreaSet.has(doc.businessDistrict.slug))) return false
     if (gradeSet && (!doc.grade || !gradeSet.has(doc.grade))) return false
     if (metroSet && (!doc.nearestMetro || !metroSet.has(doc.nearestMetro.slug))) return false
 
@@ -386,6 +393,7 @@ export function sortBuildings(
  */
 export type BuildingSearchDimension =
   | 'district'
+  | 'businessArea'
   | 'grade'
   | 'metro'
   | 'leasableArea'
@@ -393,14 +401,15 @@ export type BuildingSearchDimension =
   | 'onlyWithStock'
 
 /**
- * 「清除全部」的作用域：楼盘页六个维度全部可清。
+ * 「清除全部」的作用域：楼盘页七个维度全部可清。
  *
  * 与房源页 `LISTING_CLEARABLE_DIMENSIONS` 刻意不同——那边把 `priceUnit` 排除在外
  * （换单位由分段控件负责，不归「清除条件」管），楼盘页没有这类「看哪一类价格」的
- * 类目型状态，六个维度都是用户自己叠加的收窄条件。
+ * 类目型状态，七个维度都是用户自己叠加的收窄条件。
  */
 export const BUILDING_CLEARABLE_DIMENSIONS: readonly BuildingSearchDimension[] = [
   'district',
+  'businessArea',
   'grade',
   'metro',
   'leasableArea',
@@ -413,6 +422,7 @@ export const BUILDING_DIMENSION_PARAM_KEYS: Readonly<
   Record<BuildingSearchDimension, readonly string[]>
 > = {
   district: ['district'],
+  businessArea: ['businessArea'],
   grade: ['grade'],
   metro: ['metro'],
   leasableArea: ['leasableAreaMin', 'leasableAreaMax'],
@@ -429,7 +439,7 @@ export const BUILDING_DIMENSION_PARAM_KEYS: Readonly<
  *   2. 空态②的逐条退路命中数——「取消『等级：超甲级』这一个条件后有 8 个」。
  *
  * 与 `omitListingSearchDimensions` 同型；那边 `priceUnit` 还要连带剥派生字段，
- * 楼盘这边六个维度彼此独立，只需按 `BUILDING_DIMENSION_PARAM_KEYS` 描述的字段删。
+ * 楼盘这边七个维度彼此独立，只需按 `BUILDING_DIMENSION_PARAM_KEYS` 描述的字段删。
  */
 export function omitBuildingSearchDimensions(
   input: BuildingSearchInput,
@@ -438,6 +448,7 @@ export function omitBuildingSearchDimensions(
   const drop = new Set(dimensions)
   const next: Record<string, unknown> = { ...input }
   if (drop.has('district')) delete next.district
+  if (drop.has('businessArea')) delete next.businessArea
   if (drop.has('grade')) delete next.grade
   if (drop.has('metro')) delete next.metro
   if (drop.has('leasableArea')) {

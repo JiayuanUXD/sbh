@@ -186,6 +186,7 @@ export type BuildingFilteredResult = Readonly<{
   /** 各筛选维度的候选值与命中数，供筛选条渲染与空态退路使用 */
   facets: Readonly<{
     districts: ReadonlyArray<{ slug: string; name: string; count: number }>
+    businessAreas: ReadonlyArray<{ slug: string; name: string; count: number }>
     grades: ReadonlyArray<{ value: string; count: number }>
     metros: ReadonlyArray<{ slug: string; name: string; count: number }>
   }>
@@ -468,6 +469,7 @@ function buildBuildingFacets(
   docs: readonly BuildingSummaryViewModel[],
 ): BuildingFilteredResult['facets'] {
   const districts = new Map<string, { name: string; count: number }>()
+  const businessAreas = new Map<string, { name: string; count: number }>()
   const grades = new Map<string, number>()
   const metros = new Map<string, { name: string; count: number }>()
 
@@ -475,6 +477,10 @@ function buildBuildingFacets(
     if (doc.district) {
       const entry = districts.get(doc.district.slug)
       districts.set(doc.district.slug, { name: doc.district.name, count: (entry?.count ?? 0) + 1 })
+    }
+    if (doc.businessDistrict) {
+      const entry = businessAreas.get(doc.businessDistrict.slug)
+      businessAreas.set(doc.businessDistrict.slug, { name: doc.businessDistrict.name, count: (entry?.count ?? 0) + 1 })
     }
     if (doc.grade) {
       grades.set(doc.grade, (grades.get(doc.grade) ?? 0) + 1)
@@ -487,6 +493,7 @@ function buildBuildingFacets(
 
   return {
     districts: Array.from(districts.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
+    businessAreas: Array.from(businessAreas.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
     grades: Array.from(grades.entries()).map(([value, count]) => ({ value, count })),
     metros: Array.from(metros.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
   }
@@ -547,15 +554,21 @@ export async function searchBuildingsFiltered(
     const counts = new Map(subset.map((entry) => [keyOf(entry), entry.count]))
     return universe.map((entry) => ({ ...entry, count: counts.get(keyOf(entry)) ?? 0 }))
   }
-  const facetsOf = (dimension: 'district' | 'grade' | 'metro') =>
+  const facetsOf = (dimension: 'district' | 'grade' | 'metro' | 'businessArea') =>
     buildBuildingFacets(omitted.get(dimension) ?? allDocs)
+  // ★ 区域候选**连商圈一起剥**（OPT-099 房源页走查实测的同型问题）：只剥 district 的话，
+  // 一旦选了某个商圈，其余区计数全 0（那个商圈只属于当前这个区），「位置」行塌成只剩
+  // 已选的那一个区，用户再也切不走。商圈候选只剥 businessArea——district 留着，级联正是靠它成立。
+  const districtsWithoutArea = applyBuildingFilters(allDocs, omitBuildingSearchDimensions(input, ['district', 'businessArea']))
   const facets = {
-    districts: overlay(allFacets.districts, facetsOf('district').districts, (d) => d.slug),
+    districts: overlay(allFacets.districts, buildBuildingFacets(districtsWithoutArea).districts, (d) => d.slug),
+    businessAreas: overlay(allFacets.businessAreas, facetsOf('businessArea').businessAreas, (a) => a.slug),
     grades: overlay(allFacets.grades, facetsOf('grade').grades, (g) => g.value),
     metros: overlay(allFacets.metros, facetsOf('metro').metros, (m) => m.slug),
   }
   const dimensionHits = {
     district: hitsOf('district'),
+    businessArea: hitsOf('businessArea'),
     grade: hitsOf('grade'),
     metro: hitsOf('metro'),
     leasableArea: hitsOf('leasableArea'),

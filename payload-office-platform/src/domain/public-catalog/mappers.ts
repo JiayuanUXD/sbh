@@ -477,6 +477,7 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
     address: raw.address ?? '',
     grade: raw.grade ?? undefined,
     district: mapDistrict(districtRaw),
+    businessDistrict: mapDistrict(populated?.businessDistrict),
     coverImage: mapMedia(coverRaw, raw.name) ?? undefined,
     summary: raw.summary ?? undefined,
     coordinates: mapCoordinates(raw.latitude, raw.longitude),
