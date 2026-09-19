@@ -4,7 +4,7 @@ import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { buildFilterOptionHref } from '@/lib/frontend/listing-url'
-import { countActivePicks, type FilterRow, type FilterSwitch } from './FilterFormC'
+import { countActivePicks, type FilterRow } from './FilterFormC'
 import FilterPill from './FilterPill'
 
 /**
@@ -106,16 +106,9 @@ export default function MobileFilterSheet(props: Readonly<{
    */
   triggerRef: React.RefObject<HTMLElement | null>
   /**
-   * 开关型筛选行（楼盘页「仅看有在租」），渲染在抽屉最上方——comp 楼盘列表
-   * 「移动 375 · 筛选抽屉」第一段就是它（52 高行 + 44×26 开关）。省略则不渲染。
-   * 桌面 `FilterFormC` 已经有同一个开关，但移动端筛选按 comp 全部收进抽屉，
-   * 少了它抽屉就少一个真实维度（而不是「移动端不支持这个筛选」）。
-   */
-  switchRow?: FilterSwitch
-  /**
    * 头部与底栏两个「重置」的目标地址，**由编排层给定，本组件不自行推导**。
    *
-   * 曾经的实现是内部按 `rows.key`（+ 后来补的 `switchRow.paramKey`）逐个删。
+   * 曾经的实现是内部按 `rows.key` 逐个删。
    * 那是同一个缺陷的第三次出现（OPT-036 Task 12 审查 I1）：一行只对应一个
    * URL 键，而一个**维度**可能占多个键——楼盘页的「在租面积」维度同时占
    * `leasableAreaMin` 与 `leasableAreaMax`，行只建模下限，于是桌面「清除全部」
@@ -128,7 +121,7 @@ export default function MobileFilterSheet(props: Readonly<{
    */
   resetHref: string
 }>): React.JSX.Element | null {
-  const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef, switchRow, resetHref } = props
+  const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef, resetHref } = props
   const sheetRef = useRef<HTMLDivElement | null>(null)
   const capturedFocusRef = useRef<HTMLElement | null>(null)
   // 「归还焦点」只有在**真的开过一次**之后才成立，见下方该 effect 的注释。
@@ -207,7 +200,7 @@ export default function MobileFilterSheet(props: Readonly<{
   const visibleRows = rows.filter((row) => row.options.length > 0)
   // 与 `MobileFilterShell` 交给悬浮 pill 的徽标数同一个函数——两处曾各写一份，
   // 判据分叉后同屏出现「徽标 1 / 已选 N 项为空」（OPT-036 终审 I1）。
-  const pickCount = countActivePicks(rows, switchRow)
+  const pickCount = countActivePicks(rows)
 
   return createPortal(
     <div className="ls-msheet__overlay" onClick={onClose}>
@@ -229,27 +222,6 @@ export default function MobileFilterSheet(props: Readonly<{
         </div>
 
         <div className="ls-msheet__body">
-          {switchRow ? (
-            <div className="ls-msheet__group">
-              <NavLink
-                href={switchRow.href}
-                aria-current={switchRow.active ? 'true' : undefined}
-                className={
-                  switchRow.active ? 'ls-msheet__switch ls-msheet__switch--on' : 'ls-msheet__switch'
-                }
-              >
-                <span className="ls-msheet__switch-text">
-                  <span className="ls-msheet__switch-label">{switchRow.optionLabel}</span>
-                  {switchRow.subLabel ? (
-                    <span className="ls-msheet__switch-sub sf-num">{switchRow.subLabel}</span>
-                  ) : null}
-                </span>
-                <span className="ls-msheet__switch-track" aria-hidden="true">
-                  <span className="ls-msheet__switch-knob" />
-                </span>
-              </NavLink>
-            </div>
-          ) : null}
           {visibleRows.map((row) => (
             <div className="ls-msheet__group" key={row.key}>
               <span className="ls-msheet__group-label">{row.label}</span>

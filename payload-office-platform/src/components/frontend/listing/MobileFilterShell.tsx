@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useRef, useState } from 'react'
-import { countActivePicks, type FilterRow, type FilterSwitch } from './FilterFormC'
+import { countActivePicks, type FilterRow } from './FilterFormC'
 import MobileFilterSheet from './MobileFilterSheet'
 import MobileFilterTrigger from './MobileFilterTrigger'
 
@@ -48,8 +48,6 @@ export default function MobileFilterShell(props: Readonly<{
   totalDocs: number
   /** 计数名词，从调用方的 `CHANNEL_COPY` 取值（租「套」/售「套」/楼盘「个楼盘」）。 */
   countNoun: string
-  /** 开关型筛选行（楼盘页「仅看有在租」），原样透传给抽屉；省略则抽屉不渲染这一段。 */
-  switchRow?: FilterSwitch
   /**
    * 抽屉两个「重置」的目标地址，原样透传。**必须与编排层交给
    * `FilterFormC.clearAllHref` / `EmptyFiltered.clearAllHref` 的是同一个值**
@@ -57,7 +55,7 @@ export default function MobileFilterShell(props: Readonly<{
    */
   resetHref: string
 }>): React.JSX.Element {
-  const { rows, basePath, currentQuery, totalDocs, countNoun, switchRow, resetHref } = props
+  const { rows, basePath, currentQuery, totalDocs, countNoun, resetHref } = props
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const currentParams = useMemo(() => new URLSearchParams(currentQuery), [currentQuery])
@@ -65,9 +63,8 @@ export default function MobileFilterShell(props: Readonly<{
   // 自己数一遍。曾经这里写的是 `activeValue != null` 逐行累加，与抽屉的判据分叉在
   // 两个方向上（少了 `visibleRows` 过滤、且用了更宽松的判据），于是 375 下
   // `?areaMin=750`（楼盘页 `?leasableAreaMin=750`）会出现底栏徽标写 1、抽屉头部
-  // 的「已选 N 项」却是空的——正是本注释上一版警告过的那种自相矛盾，只不过发生在
-  // 行判据而不是开关上（OPT-036 终审 I1）。开关本身仍然算一个条件，由该函数负责。
-  const activeCount = countActivePicks(rows, switchRow)
+  // 的「已选 N 项」却是空的——正是本注释上一版警告过的那种自相矛盾（OPT-036 终审 I1）。
+  const activeCount = countActivePicks(rows)
 
   return (
     <div className="ls-mobilefilter" data-mobile-filter-shell data-open={open ? 'true' : 'false'}>
@@ -88,7 +85,6 @@ export default function MobileFilterShell(props: Readonly<{
         countNoun={countNoun}
         triggerRef={triggerRef}
         resetHref={resetHref}
-        {...(switchRow ? { switchRow } : {})}
       />
     </div>
   )
