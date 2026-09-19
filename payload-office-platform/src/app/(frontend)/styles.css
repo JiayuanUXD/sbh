@@ -2503,9 +2503,8 @@ ol {
 /* hover 反馈（2026-08-30）：此前这个控件唯一的 hover 表现是全局 `a:hover` 给的
  * 下划线，翻转全局默认后必须补一个真实反馈，否则整块面积/单价筛选片会变成
  * hover 无反应的死控件。
- * 非激活态复用 `.ls-filterc__chip:hover` / `.ls-filterc__switch:hover`
- * （list.css）同一个 `--bg-hover`——同样是"静态 `var(--bg)` 白灰底、hover
- * 变深一档"的 pill 手法，不新造颜色。
+ * 非激活态复用 `.ls-filterc__chip:hover`（list.css）同一个 `--bg-hover`——
+ * 同样是"静态 `var(--bg)` 白灰底、hover 变深一档"的 pill 手法，不新造颜色。
  *（本注释原文写的是字面量 `#ececf0`：它当时散落 7 处，OPT-079 收成 token。）
  * 激活态单独一档：它的静态底已经是 `var(--line)`，再叠一次 `--bg-hover` 看不出
  * 变化，所以往同一色阶的下一档 `var(--line-strong)` 走——两个都是既有 token，
