@@ -118,11 +118,9 @@ UNION ALL SELECT 'enum', typname FROM pg_type WHERE typname='<你的枚举名>';
 
 ## P2 — 可观测性与一致性
 
-### T17. 移动端筛选抽屉不显示「无行可显示」的生效条件（extraPicks）
+### T17. ~~移动端筛选抽屉不显示「无行可显示」的生效条件（extraPicks）~~ ✅ 已完成（2026-09-19，分支 fix/t17-mobile-drawer-extra-picks-8f3d）
 
-OPT-103 去掉楼盘页「仅看有在租」开关后，`?onlyWithStock=1` 老链接在桌面由筛选条底栏的补充 chip 显示并可清除，但 `.ls-filterc` 在 ≤767px 整块隐藏、`MobileFilterShell` 不接收 `extraPicks`，于是移动端出现「页头说筛选出 5 个、抽屉说已选 0 项」的自相矛盾。同一缺口早已存在于 `q` / `leasableAreaMax` / `metro` 等无筛选行的维度，只是这次把一个原本在抽屉里可见的条件也归进了这一类。
-
-**要做**：把 `extraPicks` 传进 `MobileFilterShell` → `MobileFilterSheet`，在抽屉顶部按底栏 chip 同款渲染为可清除 chip，并计入「已选 N 项」；补 `opt036-*-view-wiring` 用例。
+抽屉顶部新增「其他条件」一组，`extraPicks` 渲染成选中态 pill（点即清除），并计入「已选 N 项」与悬浮 pill 徽标（`countActivePicks(rows, extraPicks)` 两处共用）。守卫：`tests/mobile-filter-sheet-extra-picks.test.ts` + 两个 `opt036-*-view-wiring` 用例。
 
 ### T16. `shangban.cc` 的免费证书 2026-11-25 到期，未开自动续期
 

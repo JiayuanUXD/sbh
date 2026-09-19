@@ -28,7 +28,7 @@
 | 1e | 点选商圈「虹桥」后 | 「位置」行其余行政区计数均不为 0 | 通过。`位置` 行文本：`静安区2 / 长宁1 / 浦东新区2 / 徐汇1 / 黄浦1`，全部非零 | `buildings-1440-changning-businessarea-selected.png` |
 | 1f | 再点别的行政区（静安） | URL 不再带 `businessArea` | 通过。跳转后 `location.search` 为 `?district=jingan`，`hasBusinessArea=false` | （同上，DOM 断言，未见页面显著变化不再截图） |
 | 2a | `/shanghai/buildings?onlyWithStock=1`（1440） | 底栏出现 chip「在租状态：仅看有在租 ×」，chip 的 `href` 不带 `onlyWithStock` | 通过。`outerHTML` 核实：`<a class="ls-filterc__chip" href="/shanghai/buildings">在租状态：仅看有在租<span class="ls-filterc__chip-x">…</span></a>` | `buildings-1440-onlywithstock-footer.png` |
-| 2b | 同上（375） | 同上，移动版式 | 375 下筛选条整块隐藏（既有规则），chip 不可见；页头仍显示「当前筛选出 N 个」，悬浮筛选 pill 无徽标——老链接在移动端是「生效但不可见不可清」，见 TODOS T17 | `buildings-375-onlywithstock.png` |
+| 2b | 同上（375） | 同上，移动版式 | 375 下筛选条整块隐藏（既有规则）；**T17 已补**：悬浮 pill 徽标计入该条件，抽屉顶部「其他条件」组显示「在租状态：仅看有在租」选中态 pill，点击后 URL 去掉 onlyWithStock、徽标与「已选 N 项」同步减一（2026-09-19 走查，pane 375 仿真 + innerText 核对） | `buildings-375-onlywithstock.png` |
 | 3a | `/shanghai/listings`（1440，无 query） | 无 `.ls-unitband`、无「符合条件」；工具条排序仅 推荐/最新 | 通过。`unitbandPresent=false`；`matchText=false`；`sortLabels=["推荐","最新"]`；工具条文本：「显示第 1–24 套，共 26 套 / 推荐 / 最新」 | `listings-1440-baseline.png` |
 | 3b | `/shanghai/sale`（1440，无 query） | 同上 | 部分通过：无 `.ls-unitband`、无「符合条件」、无「计价单位」均确认；**工具条/排序未渲染**——本地夹具该城市 `/sale` 当前 0 套出售房源，命中空态「上海出售房源还在收录中」，工具条本就不出现（属于「结果为空不渲染工具条」的既有逻辑，不是本次改动引入，也不因本次改动而应该出现），故推荐/最新排序标签无法在 `/sale` 单独取证；已在 `/shanghai/listings` 与 `?priceUnit=` 页完整验证过排序标签口径 | `sale-1440-baseline.png` |
 | 3c | `/shanghai/listings` 与 `/shanghai/sale`（375） | 同上，移动版式 | 通过（截图确认版式正常，无单位分段） | `listings-375-baseline.png`、`sale-375-baseline.png` |
