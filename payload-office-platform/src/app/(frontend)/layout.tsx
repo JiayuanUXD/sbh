@@ -21,6 +21,7 @@ import './styles/detail.css'
 import './styles/recruit.css'
 import './styles/member.css'
 import { MemberProvider } from '@/components/frontend/member/MemberProvider'
+import { ImageInteractionGuard } from '@/components/frontend/ImageInteractionGuard'
 import { getCurrentMemberDto } from '@/domain/member/current-member'
 
 // The shared shell resolves its trusted city options and analytics profiles
@@ -84,6 +85,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
       <body suppressHydrationWarning>
+        <ImageInteractionGuard />
         <MemberProvider initialMember={member}>
           {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
           <a href="#main-content" className="skip-link">跳到主要内容</a>
