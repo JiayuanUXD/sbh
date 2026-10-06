@@ -49,6 +49,7 @@ import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
 import { Notifications } from './collections/Notifications'
 import { SupplyImportBatches } from './collections/SupplyImportBatches'
+import { SourceSyncBatches } from './collections/SourceSyncBatches'
 import { LocationAliases } from './collections/LocationAliases'
 import { Members } from './collections/Members'
 import { MemberSmsCodes } from './collections/MemberSmsCodes'
@@ -73,6 +74,7 @@ import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
 import { createAdminNavigationEndpoint } from './endpoints/admin-navigation-endpoint'
 import { createDashboardStatsEndpoint } from './endpoints/dashboard-stats-endpoint'
 import { createBulkImportEndpoints } from './endpoints/bulk-import-endpoint'
+import { createSourceSyncEndpoints } from './endpoints/source-sync-endpoint'
 import {
   FORM_SUBMISSION_DEFAULT_COLUMNS,
   appendFormSubmissionStatusFields,
@@ -110,6 +112,11 @@ import {
   MEDIA_WATERMARK_QUEUE,
   rebakeWatermarkTask,
 } from './domain/media/watermark-rebake'
+import {
+  SOURCE_SYNC_QUEUE,
+  recoverStaleSourceSyncJobs,
+  sourceSyncTask,
+} from './domain/supply-sync/source-sync-task'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -169,11 +176,13 @@ const configPromise = buildConfig({
       supplyImportTask,
       merchantStopCascadeTask,
       rebakeWatermarkTask,
+      sourceSyncTask,
     ],
     shouldAutoRun: async (payload) => {
       if (process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1') return false
       await recoverStaleCityPartnerNotificationJobs(payload)
       await recoverStaleSupplyImportJobs(payload)
+      await recoverStaleSourceSyncJobs(payload)
       return true
     },
     autoRun: () => [
@@ -225,6 +234,15 @@ const configPromise = buildConfig({
         queue: MEDIA_WATERMARK_QUEUE,
         ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1' ? { disableScheduling: true } : {}),
         limit: 1,
+        silent: JOB_CRON_SILENT,
+      },
+      {
+        // 外部来源同步（OPT-104）：人上传同步包后靠自投游标推进，每段 ≤ 90 秒。
+        // limit 2：楼盘段要拉图建 media（sharp + 水印），并发再高会挤占前台请求的 CPU。
+        cron: '*/10 * * * * *',
+        queue: SOURCE_SYNC_QUEUE,
+        ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1' ? { disableScheduling: true } : {}),
+        limit: 2,
         silent: JOB_CRON_SILENT,
       },
     ],
@@ -330,6 +348,12 @@ const configPromise = buildConfig({
           path: '/import/listings',
           exact: true,
         },
+        // OPT-104 外部数据同步：上传汇租选址同步包、看批次进度、回滚
+        SourceSync: {
+          Component: '/components/admin/source-sync/SourceSyncView',
+          path: '/import/source-sync',
+          exact: true,
+        },
         // OPT-065 数据看板：/admin/analytics。exact 避免前缀匹配吞掉
         // OPT-066/067 之后可能新增的 /analytics/:sub 子路由。
         // 页面可见性由导航的 menuCode 控制，路由始终注册——用 admin.hidden 藏会
@@ -387,6 +411,7 @@ const configPromise = buildConfig({
     Tasks,
     Notifications,
     SupplyImportBatches,
+    SourceSyncBatches,
     LocationAliases,
     Members,
     MemberSmsCodes,
@@ -412,6 +437,7 @@ const configPromise = buildConfig({
     createAdminNavigationEndpoint(),
     // OPT-041 批量导入（预检 / 执行 / 轮询 / 下载）
     ...createBulkImportEndpoints(),
+    ...createSourceSyncEndpoints(),
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [

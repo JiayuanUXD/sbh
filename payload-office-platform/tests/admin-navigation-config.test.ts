@@ -125,6 +125,8 @@ describe('admin navigation config', () => {
           '/admin/collections/supply-import-batches',
           ['listings'],
         ),
+        // OPT-104 外部数据同步（自定义视图，不指向集合）
+        expectedLeaf('source-sync', '外部数据同步', '/admin/import/source-sync', ['listings']),
       ]),
       expectedGroup('crm', '客户与线索', [
         expectedLeaf('leads', '咨询线索', '/admin/collections/leads', ['leads', 'my-leads']),

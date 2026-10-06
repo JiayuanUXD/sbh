@@ -1,5 +1,7 @@
-import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig, Field, Where } from 'payload'
 import { createCollectionAccess } from '@/domain/auth/access'
+import { isStaffRequest } from '@/domain/member/member-access'
+import { getPublicBuildingWhere } from '@/domain/supply/public-building'
 import { DETAIL_MEDIA_KINDS, DETAIL_MEDIA_KIND_LABELS } from '@/domain/review/listing-fields'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
@@ -143,8 +145,18 @@ export const Buildings: CollectionConfig = {
   },
   trash: true,
   access: {
-    // 前台匿名可读——公开站点靠有效供给谓词在查询层收窄，不靠 access.read。
-    read: () => true,
+    /**
+     * OPT-104：员工全读，其余（匿名 REST / GraphQL、会员）只读前台可见的楼盘。
+     *
+     * 此前是 `() => true`，理由是「公开站点靠有效供给谓词在查询层收窄」——那只对前台成立：
+     * 前台走 Local API（默认 overrideAccess），本来就不经过这里。真正经过这里的只有匿名
+     * `/api/buildings`，它会把草稿、已下架、已停用的楼盘原样吐出去。导入数千个草稿楼盘
+     *（只导入不上架）后这就等于公开了。口径与 Listings.access.read 一致。
+     */
+    read: ({ req }) => {
+      if (isStaffRequest(req)) return true
+      return getPublicBuildingWhere() as Where
+    },
     /**
      * OPT-051：删除必须显式收口。
      *

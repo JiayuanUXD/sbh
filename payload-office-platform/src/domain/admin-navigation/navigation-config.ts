@@ -144,6 +144,11 @@ export const ADMIN_NAV_GROUPS = [
       collectionSlug: 'supply-import-batches',
       requiredOperationCode: 'data:import',
     }),
+    // OPT-104 外部数据同步：自定义视图（批次进度就在页面表格里，批次集合不另占导航）。
+    // endpoint 另要求全局范围（cityIds === 'all'）。
+    leaf('source-sync', '外部数据同步', '/admin/import/source-sync', ['listings'], {
+      requiredOperationCode: 'data:import',
+    }),
   ]),
   group('crm', '客户与线索', 'user', [
     leaf('leads', '咨询线索', '/admin/collections/leads', ['leads', 'my-leads'], {

@@ -12,7 +12,10 @@
 import type { Payload, PayloadRequest } from 'payload'
 
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
-import { invalidateSupplyImportPublicCache } from '@/lib/frontend/public-cache-revalidation'
+import {
+  invalidateSupplyImportPublicCache,
+  type SupplyImportCacheInvalidationReason,
+} from '@/lib/frontend/public-cache-revalidation'
 
 /**
  * 按 id 批量查 Locations，取出合法的城市 slug（去重、过滤解析不出来的）。
@@ -54,7 +57,7 @@ export async function invalidateSupplyImportCache(
   payload: Payload,
   req: PayloadRequest | undefined,
   cityIds: ReadonlyArray<number | string>,
-  reason: 'supply_import' | 'supply_import_rollback',
+  reason: SupplyImportCacheInvalidationReason,
 ): Promise<void> {
   const citySlugs = await resolveCitySlugs(payload, req, cityIds)
   invalidateSupplyImportPublicCache(citySlugs, reason)
