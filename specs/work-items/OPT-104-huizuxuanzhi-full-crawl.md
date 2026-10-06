@@ -72,6 +72,12 @@ HZX_DATA_DIR=E:/hzx-data NODE_USE_ENV_PROXY=1 node scripts/import-huizuxuanzhi/c
 
 子命令 `enumerate → buildings → listings → images`，`status` 看进度。每个都能中断重跑，已落盘的跳过。
 
+进度看板（零依赖本地服务，只读数据目录，每 10 秒刷新：运行状态、预计完成时间、分阶段进度、每 10 分钟吞吐、最近报错）：
+
+```bash
+node scripts/import-huizuxuanzhi/progress.mjs --data E:/hzx-data   # http://127.0.0.1:3740
+```
+
 **礼貌约束（不可放宽）**：
 
 - 单线程；请求起点间隔 ≥ 2s + 0~500ms 抖动；图片走另一台主机，间隔 1s。
