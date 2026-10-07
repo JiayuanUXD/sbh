@@ -246,7 +246,7 @@ export function parseHuizuSyncRow(value: unknown): RowParseResult {
       address: r.str('address', { max: 200 }),
       latitude: r.num('latitude', { min: 30, max: 32 }),
       longitude: r.num('longitude', { min: 120, max: 123 }),
-      completionYear: r.num('completionYear', { min: 1900, max: 2100 }),
+      completionYear: r.num('completionYear', { min: 1800, max: 2100 }),
       totalFloors: r.num('totalFloors', { min: 1, max: 200 }),
       grossFloorArea: r.num('grossFloorArea', { min: 0 }),
       standardFloorHeight: r.num('standardFloorHeight', { min: 0, max: 20 }),

@@ -36,8 +36,11 @@ import {
 
 export const SOURCE_SYNC_TASK = 'run-source-sync' as const
 export const SOURCE_SYNC_QUEUE = 'source-sync'
-/** 每段最多处理的行数；楼盘要拉图，单独收紧 */
-const SLICE_MAX_ROWS = { buildings: 15, listings: 400, retire: 400 } as const
+/**
+ * 每段最多处理的行数。真正的刹车是 SLICE_BUDGET_MS：拉图慢的楼盘段会提前收工落游标；
+ * 行数上限只防「全是没图的楼盘」时一段吞太多。楼盘曾设 15，4,442 个楼盘光段间等待就要一小时。
+ */
+const SLICE_MAX_ROWS = { buildings: 100, listings: 400, retire: 400 } as const
 /** 每段耗时上限：到点就收工落游标，留足余量给最后一行与批次落库 */
 const SLICE_BUDGET_MS = 90_000
 /** 陈旧 processing 租约的释放阈值，与 import-task 同口径 */

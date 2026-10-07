@@ -330,3 +330,37 @@ describe('pinyinSlug', () => {
     expect(pinyinSlug('华敏·翰尊国际')).toBe('hua-min-han-zun-guo-ji')
   })
 })
+
+describe('全量实测补充的写法（2026-10-08）', () => {
+  it('装修：简装修、中等装修都归简装', () => {
+    expect(mapDecoration('简装修')).toBe('simple')
+    expect(mapDecoration('中等装修')).toBe('simple')
+  })
+
+  it('使用率不带百分号', () => {
+    expect(parseEfficiency('1823㎡，使用率约80，可容纳工位182~365个')).toBe(80)
+    expect(parseEfficiency('272.66㎡，使用率约，可容纳工位27~55个')).toBeNull()
+  })
+
+  it('物业费写成「天」：大于 3 按月计，≤ 3 丢弃', () => {
+    expect(parseMonthlyFeePerSqm('42元/平米/天')).toBe(42)
+    expect(parseMonthlyFeePerSqm('1.2元/㎡/天')).toBeNull()
+  })
+
+  it('竣工 1898 年的老楼、楼层写成 66F', () => {
+    expect(parseYear('1898年')).toBe(1898)
+    expect(parseYear('9983')).toBeNull()
+    expect(parseAboveGroundFloors('66F')).toBe(66)
+  })
+})
+
+describe('物业费的其它写法', () => {
+  it('不写「元」的按月写法；含「租金」的不是物业费', () => {
+    expect(parseMonthlyFeePerSqm('10.5平方/月')).toBe(10.5)
+    expect(parseMonthlyFeePerSqm('35㎡/月')).toBe(35)
+    expect(parseMonthlyFeePerSqm('24/㎡/月')).toBe(24)
+    expect(parseMonthlyFeePerSqm('21元／平米／天')).toBe(21)
+    expect(parseMonthlyFeePerSqm('租金单价4元/㎡/天,含物业费')).toBeNull()
+    expect(parseMonthlyFeePerSqm('1座:28元/平米月；2座:7元/平米月')).toBe(28)
+  })
+})

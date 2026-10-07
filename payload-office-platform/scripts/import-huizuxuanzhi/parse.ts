@@ -43,12 +43,16 @@ export const SITE_DISTRICTS: Readonly<Record<number, string>> = {
  * 装修原文 → 本站枚举。本站四档：rough 毛坯 / simple 简装 / furnished 精装带家具 / fully_fitted 拎包入住。
  * 「精装修」不带家具语义，但四档里最接近的是 furnished；「豪华装修」同理，不升到「拎包入住」。
  * 2026-08 那轮把「简单装修」也映射成了 furnished，属误映射，本轮对账按此表纠正。
+ * 全量（2026-10-08）实测原文分布：精装修 28,707 / 简装修 13,749 / 中等装修 7,272 / 毛坯 4,606 /
+ * 豪华装修 3,149 / 简单装修 17。「中等装修」介于简装与精装之间，归简装，不往高了报。
  */
 export const DECORATION_MAP: Readonly<Record<string, DecorationStatus>> = {
   毛坯: 'rough',
   毛坯房: 'rough',
   简单装修: 'simple',
+  简装修: 'simple',
   简装: 'simple',
+  中等装修: 'simple',
   标准装修: 'simple',
   精装修: 'furnished',
   精装: 'furnished',
@@ -165,7 +169,8 @@ export function parseYear(s: string | null): number | null {
     if (days < 10000 || days > 80000) return null
     return new Date(Date.UTC(1899, 11, 30) + days * 86_400_000).getUTCFullYear()
   }
-  const m = s.match(/(19|20)\d{2}/)
+  // 外滩一带有 1898 年竣工的老楼（楼盘 928），下限放到 1800
+  const m = s.match(/(18|19|20)\d{2}/)
   return m ? Number(m[0]) : null
 }
 
@@ -174,7 +179,8 @@ export function parseAboveGroundFloors(s: string | null): number | null {
   if (!s) return null
   const above = s.match(/地上\s*(\d+)\s*层/)
   if (above) return Number(above[1])
-  const bare = s.trim().match(/^(\d{1,3})$/)
+  // 「33」「66F」
+  const bare = s.trim().match(/^(\d{1,3})\s*[Ff]?$/)
   if (bare) return Number(bare[1])
   const plain = s.replace(/地下\s*\d+\s*层/g, '').match(/(\d+)\s*层/)
   return plain ? Number(plain[1]) : null
@@ -204,20 +210,27 @@ export function parsePassengerElevators(s: string | null): number | null {
 }
 
 /**
- * 「39元/平方米/月」→ 39；「元/㎡/月」（没填）→ null；「按天」等非月口径→ null。
+ * 「39元/平方米/月」→ 39；「元/㎡/月」（没填）→ null。
  * 取「元」紧前的数字：「1座:28元/平米月；2座:7元/平米月」取第一座的 28，不能取到座号 1。
+ *
+ * 写成「天」的：全量里 48 个楼盘是「42元/平米/天」「15元/平米/天」这种——物业费每平每天十几、
+ * 几十元不可能，是把「月」写成了「天」，数值大于 3 的按月收；≤ 3 的口径说不清，丢弃。
  */
 export function parseMonthlyFeePerSqm(s: string | null): number | null {
   if (!s) return null
-  const m = s.replace(/,/g, '').match(/(\d+(?:\.\d+)?)\s*元/)
+  // 「租金单价4元/㎡/天,含物业费」说的是租金，不是物业费
+  if (/租金/.test(s)) return null
+  // 也有不写「元」的：「10.5平方/月」「35㎡/月」「24/㎡/月」
+  const m = s.replace(/,/g, '').match(/(\d+(?:\.\d+)?)\s*(?:元|\/|／|㎡|平)/)
   if (!m) return null
-  if (/天/.test(s) && !/月/.test(s)) return null
-  return Number(m[1])
+  const v = Number(m[1])
+  if (/天/.test(s) && !/月/.test(s)) return v > 3 ? v : null
+  return v
 }
 
-/** 「400㎡，使用率约70%，可容纳工位40~80个」→ 70 */
+/** 「400㎡，使用率约70%，可容纳工位40~80个」→ 70；全量里多数写成「使用率约80」不带 % */
 export function parseEfficiency(s: string | null): number | null {
-  const m = s?.match(/使用率\D{0,3}(\d+(?:\.\d+)?)\s*%/)
+  const m = s?.match(/使用率约?\s*(\d+(?:\.\d+)?)\s*%?/)
   if (!m) return null
   const v = Number(m[1])
   return v > 0 && v <= 100 ? v : null
@@ -390,6 +403,8 @@ export function parseBuildingPage(
   const propertyFee = parseMonthlyFeePerSqm(feeRaw)
   if (feeRaw && firstNumber(feeRaw) !== null && propertyFee === null)
     issue('propertyFee', feeRaw, '物业费口径不是元/㎡/月')
+  else if (feeRaw && propertyFee !== null && /天/.test(feeRaw) && !/月/.test(feeRaw))
+    issue('propertyFee', feeRaw, '物业费写成「天」，按月计')
 
   const row: ParsedBuilding = {
     kind: 'building',
