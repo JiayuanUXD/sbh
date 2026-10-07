@@ -239,7 +239,8 @@ describe.skipIf(!databaseAvailable)('OPT-104 外部来源同步任务', () => {
   })
 
   it('房源包里的楼盘没同步过：该行失败，其它行照常', async () => {
-    const batch = await runBatch('listings', [listingRow(`6${RUN}`, { buildingExternalId: '1' })])
+    // 楼盘 id 用本次运行独有的值：本地库可能已灌过全量演练数据（对方楼盘 1 等真实存在）
+    const batch = await runBatch('listings', [listingRow(`6${RUN}`, { buildingExternalId: `5${RUN}5` })])
     expect(batch.stats).toMatchObject({ failed: 1, created: 0 })
     expect(batch.writeErrors?.[0]?.message).toContain('尚未同步')
   })

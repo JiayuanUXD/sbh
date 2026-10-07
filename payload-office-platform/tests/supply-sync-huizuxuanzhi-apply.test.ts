@@ -281,3 +281,12 @@ describe('富文本比对', () => {
     expect(listingUpdatePatch(edited, listing, 22, SYNCED).changed).toEqual(['description'])
   })
 })
+
+describe('竣工日期', () => {
+  it('1901 年以前不写进日期字段（上海时区的地方平时偏移会让 Payload 读回时崩溃）', () => {
+    expect(buildingCreateData({ ...building, completionYear: 1898 }, REFS, SYNCED).completionDate).toBeNull()
+    expect(buildingCreateData({ ...building, completionYear: 1901 }, REFS, SYNCED).completionDate).toBe(
+      '1901-01-01T00:00:00.000Z',
+    )
+  })
+})

@@ -103,7 +103,14 @@ export type BuildingRefs = Readonly<{
   businessDistrictId: number | null
 }>
 
-const yearToDate = (year: number | null) => (year === null ? null : new Date(Date.UTC(year, 0, 1)).toISOString())
+/**
+ * 竣工年份 → 日期字段。**1901 年以前不写**：库会话时区是上海时，1901 年以前的 timestamptz 会带
+ * 「地方平时」偏移（+08:05:43），Payload drizzle 读回时 `toISOString` 抛 Invalid time value，
+ * 整条写入失败（2026-10-08 本地演练实测：礼和洋行，1898 年）。原始年份留在同步包里。
+ */
+export const COMPLETION_DATE_MIN_YEAR = 1901
+const yearToDate = (year: number | null) =>
+  year === null || year < COMPLETION_DATE_MIN_YEAR ? null : new Date(Date.UTC(year, 0, 1)).toISOString()
 
 /** 采集事实对应的楼盘字段（不含 slug / 状态 / dataSource / 媒体）。 */
 export function buildingFactFields(row: HuizuBuildingRow, refs: BuildingRefs) {

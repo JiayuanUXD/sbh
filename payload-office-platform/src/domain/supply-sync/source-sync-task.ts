@@ -234,7 +234,9 @@ async function importBuildingImages(
         data: { alt: row.name.slice(0, 160), usage: 'listing-photo' },
         file: { data, mimetype, name: `hzx-b${row.externalId}-${i + 1}.${ext}`, size: data.length },
         overrideAccess: true,
-        req,
+        // 故意不传任务的 req：水印插件在 req.context 上暂存 / 清理母版，Payload 处理缩略图时还会替换
+        // req.file。长期复用同一个 req 连续建几百张图，2026-10-08 本地演练有 3/527 张报「没有上传文件」。
+        // 每张图用独立的 Local API 请求；任务本就没有事务，不丢东西。
       })
       ids.push(media.id as number)
     } catch (e) {
@@ -558,9 +560,22 @@ export const sourceSyncTask: TaskConfig<typeof SOURCE_SYNC_TASK> = {
   inputSchema: [{ name: 'batchId', type: 'number', required: true }],
   // 段内逐行吞错；段级异常（库连不上等）交给重试，游标保证不重复写已处理的行
   retries: { attempts: 3 },
-  handler: async ({ input, req }) => {
+  handler: async ({ input, job, req }) => {
     const payload = req.payload
     const batchId = Number(input.batchId)
+    // 全局并发上限：autoRun 每 10 秒领一轮，上一轮的段还在跑时下一轮照样领，并发没有上界
+    //（本地演练同时跑了 5 个批次）。楼盘段要拉图、压图、打水印，与线上请求抢同一个实例的 CPU。
+    // 满了就延后重排，自己立刻结束；计数与领取之间有竞态，这是软上限，偶尔多一个无妨。
+    const running = await countOtherRunningSourceSyncJobs(payload, job.id)
+    if (running >= SOURCE_SYNC_MAX_CONCURRENT) {
+      await payload.jobs.queue({
+        task: SOURCE_SYNC_TASK,
+        queue: SOURCE_SYNC_QUEUE,
+        input: { batchId },
+        waitUntil: new Date(Date.now() + SOURCE_SYNC_DEFER_MS),
+      })
+      return { output: { batchId, processed: 0, hasMore: true } }
+    }
     // 本任务的所有写入都跳过逐条缓存失效，见 SKIP_SUPPLY_CACHE_INVALIDATION
     req.context = { ...(req.context ?? {}), [SKIP_SUPPLY_CACHE_INVALIDATION]: true }
     const { hasMore, processed } = await runSourceSyncSlice(payload, req, batchId)
@@ -569,6 +584,20 @@ export const sourceSyncTask: TaskConfig<typeof SOURCE_SYNC_TASK> = {
     }
     return { output: { batchId, processed, hasMore } }
   },
+}
+
+/** 同时在跑的同步段上限（跨实例；见 handler 里的说明） */
+export const SOURCE_SYNC_MAX_CONCURRENT = 2
+const SOURCE_SYNC_DEFER_MS = 30_000
+
+/** 除自己以外、正在处理中的同步任务数（跨实例，直接数 payload_jobs）。 */
+export async function countOtherRunningSourceSyncJobs(payload: Payload, selfId: number | string): Promise<number> {
+  const res = await payload.db.pool.query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM payload_jobs
+      WHERE task_slug = $1 AND processing = true AND completed_at IS NULL AND has_error IS NOT TRUE AND id <> $2`,
+    [SOURCE_SYNC_TASK, selfId],
+  )
+  return res.rows[0]?.n ?? 0
 }
 
 /** 实例被回收时遗留的 processing=true job，超过租约就放回队列（同 import-task 的写法）。 */
