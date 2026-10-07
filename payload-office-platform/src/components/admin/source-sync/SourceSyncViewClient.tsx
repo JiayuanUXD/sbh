@@ -228,8 +228,8 @@ export default function SourceSyncViewClient() {
       </Title>
       <Paragraph type="secondary" style={{ marginBottom: 16 }}>
         上传本地生成的汇租选址同步包（<Text code>.ndjson.gz</Text>，每包不超过 1,000 行）。新建的楼盘和房源一律是草稿，
-        前台不可见；已有房源按采集值更新，已有楼盘只补空字段。可以一次选中全部文件，会按「楼盘 → 房源 →
-        下架」顺序依次上传， 房源包会等楼盘包全部写完再传。
+        前台不可见；已有房源按采集值更新，已有楼盘只补空字段。可以一次选中全部文件上传，上传完即可关闭本页——
+        写入在服务器后台进行，房源包会自动排在楼盘包写完之后；楼盘要拉图，全部写完可能需要数小时。
       </Paragraph>
 
       <Space size="medium" style={{ marginBottom: 16 }}>

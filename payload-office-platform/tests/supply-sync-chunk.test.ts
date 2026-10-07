@@ -70,3 +70,14 @@ describe('图片地址只允许对方图床（服务端会去拉取，防 SSRF�
     expect(imageRequestHeaders('https://example.com/a.jpg')).toEqual({})
   })
 })
+
+describe('已有楼盘补图条件', () => {
+  it('封面、图集、媒体条目三者全空才补图（手工楼盘的封面多在旧字段里）', async () => {
+    const { buildingHasNoImages } = await import('@/domain/supply-sync/source-sync-task')
+    expect(buildingHasNoImages({ coverImage: null, gallery: [], mediaItems: [] })).toBe(true)
+    expect(buildingHasNoImages({})).toBe(true)
+    expect(buildingHasNoImages({ coverImage: 12, gallery: [], mediaItems: [] })).toBe(false)
+    expect(buildingHasNoImages({ coverImage: null, gallery: [{ image: 12 }], mediaItems: [] })).toBe(false)
+    expect(buildingHasNoImages({ coverImage: null, gallery: [], mediaItems: [{ resource: 12 }] })).toBe(false)
+  })
+})

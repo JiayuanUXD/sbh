@@ -1,10 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getPayload, type Payload } from 'payload'
+import sharp from 'sharp'
 
 import config from '@/payload.config'
 import type { HuizuBuildingRow, HuizuListingRow, HuizuSyncRow } from '@/domain/supply-sync/huizuxuanzhi-row'
 import { rollbackSourceSyncBatch } from '@/domain/supply-sync/source-sync-rollback'
-import { runSourceSyncSlice } from '@/domain/supply-sync/source-sync-task'
+import { runSourceSyncSlice, shouldWaitForBuildings } from '@/domain/supply-sync/source-sync-task'
 
 /**
  * OPT-104 外部来源同步任务真库测试：直接驱动 `runSourceSyncSlice`，不经 jobs 队列。
@@ -243,5 +244,110 @@ describe.skipIf(!databaseAvailable)('OPT-104 外部来源同步任务', () => {
     const batch = await runBatch('listings', [listingRow(`6${RUN}`, { buildingExternalId: `5${RUN}5` })])
     expect(batch.stats).toMatchObject({ failed: 1, created: 0 })
     expect(batch.writeErrors?.[0]?.message).toContain('尚未同步')
+  })
+  it('房源包排在楼盘包之后：有排队或近期推进的楼盘批次时等待，链条断了的不挡', async () => {
+    const mk = async (kind: 'buildings' | 'listings', status: string) => {
+      const b = await payload.create({
+        collection: 'source-sync-batches',
+        data: {
+          source: 'huizuxuanzhi',
+          kind,
+          status,
+          fileName: `wait-${kind}`,
+          rowCount: 0,
+          rows: [],
+          cursor: 0,
+        } as never,
+        overrideAccess: true,
+      })
+      batchIds.push(b.id as number)
+      return b.id as number
+    }
+    // 先把库里其它楼盘批次的影响排除：本用例只看自己造的两条
+    const others = await payload.db.pool.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM source_sync_batches WHERE kind = 'buildings' AND status IN ('queued','running')`,
+    )
+    if ((others.rows[0]?.n ?? 0) > 0) return // 本地库正有楼盘批次在跑时跳过，避免假失败
+    const listingBatch = await mk('listings', 'queued')
+    expect(await shouldWaitForBuildings(payload, listingBatch)).toBe(false)
+    const buildingBatch = await mk('buildings', 'queued')
+    expect(await shouldWaitForBuildings(payload, listingBatch)).toBe(true)
+    expect(await shouldWaitForBuildings(payload, buildingBatch)).toBe(false) // 楼盘包自己不等
+    await payload.db.pool.query(
+      `UPDATE source_sync_batches SET status = 'running', updated_at = now() - interval '45 minutes' WHERE id = $1`,
+      [buildingBatch],
+    )
+    expect(await shouldWaitForBuildings(payload, listingBatch)).toBe(false) // 半小时没推进视为链条已断
+    await payload.db.pool.query(`UPDATE source_sync_batches SET updated_at = now() WHERE id = $1`, [buildingBatch])
+    expect(await shouldWaitForBuildings(payload, listingBatch)).toBe(true)
+    await payload.db.pool.query(`UPDATE source_sync_batches SET status = 'completed' WHERE id = $1`, [buildingBatch])
+    expect(await shouldWaitForBuildings(payload, listingBatch)).toBe(false)
+  })
+  it('挂靠手工楼盘：补上来源、只填空；已有封面的不拉图、不换封面', async () => {
+    const buffer = await sharp({ create: { width: 16, height: 16, channels: 3, background: { r: 10, g: 20, b: 30 } } })
+      .jpeg({ quality: 60 })
+      .toBuffer()
+    const media = await payload.create({
+      collection: 'media',
+      data: { alt: `opt104-manual-cover-${RUN}`, usage: 'other' },
+      file: { data: buffer, mimetype: 'image/jpeg', name: `opt104-manual-${RUN}.jpg`, size: buffer.length },
+      overrideAccess: true,
+    })
+    const district = await payload.find({
+      collection: 'locations',
+      where: { type: { equals: 'district' }, name: { equals: '静安区' } },
+      depth: 1,
+      limit: 1,
+      overrideAccess: true,
+    })
+    const d = district.docs[0] as unknown as { id: number; parent: { id: number } | number }
+    const cityId = typeof d.parent === 'object' ? d.parent.id : d.parent
+    const manual = await payload.create({
+      collection: 'buildings',
+      data: {
+        name: `OPT104手工楼盘${RUN}`,
+        slug: `opt104-manual-${RUN}`,
+        city: cityId,
+        district: d.id,
+        status: 'published',
+        address: '运营填的地址',
+        coverImage: media.id,
+      } as never,
+      overrideAccess: true,
+      depth: 0,
+    })
+    const ext = `4${RUN}4`
+    try {
+      const batch = await runBatch('buildings', [
+        buildingRow({
+          externalId: ext,
+          sourceUrl: `https://www.huizuxuanzhi.com/loupan/l${ext}`,
+          slug: `opt104-attach-${ext}`,
+          attachToBuildingId: manual.id as number,
+          name: '对方的楼盘名',
+          address: '对方的地址',
+          images: ['https://huizutec.oss-cn-shanghai.aliyuncs.com/uploads/images/building/1/never-fetched.jpg'],
+        }),
+      ])
+      expect(batch.writeErrors ?? []).toEqual([])
+      expect(batch.stats).toMatchObject({ updated: 1, created: 0, imagesCreated: 0 })
+      const b = (await payload.findByID({
+        collection: 'buildings',
+        id: manual.id,
+        depth: 0,
+        overrideAccess: true,
+      })) as unknown as Record<string, unknown>
+      expect(b).toMatchObject({
+        name: `OPT104手工楼盘${RUN}`,
+        address: '运营填的地址',
+        coverImage: media.id,
+        totalFloors: 30,
+        dataSource: { source: 'huizuxuanzhi', externalId: ext },
+      })
+      expect(b.mediaItems ?? []).toEqual([])
+    } finally {
+      await payload.delete({ collection: 'buildings', id: manual.id, overrideAccess: true }).catch(() => undefined)
+      await payload.delete({ collection: 'media', id: media.id, overrideAccess: true }).catch(() => undefined)
+    }
   })
 })

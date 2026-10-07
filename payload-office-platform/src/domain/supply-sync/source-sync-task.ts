@@ -246,6 +246,17 @@ async function importBuildingImages(
   return ids
 }
 
+/**
+ * 已有楼盘只在**封面、图集、媒体条目三者全空**时补图。
+ *
+ * 只看媒体条目不够：生产 63 个手工楼盘里 49 个的封面存在旧式 coverImage / gallery、媒体条目为空
+ *（2026-10-08 只读 SQL）。写进 mediaItems 后封面与图集会按它重新派生，运营自己的封面就被采集图换掉了。
+ */
+export function buildingHasNoImages(existing: Readonly<Record<string, unknown>>): boolean {
+  const nonEmpty = (v: unknown) => Array.isArray(v) && v.length > 0
+  return !existing.coverImage && !nonEmpty(existing.gallery) && !nonEmpty(existing.mediaItems)
+}
+
 const mediaItemsFor = (ids: readonly number[], alt: string) =>
   ids.map((id, i) => ({
     resource: id,
@@ -305,7 +316,7 @@ async function applyBuilding(
     patch.dataSource = ds.source
       ? { ...ds, sourceUrl: row.sourceUrl, syncedAt: ctx.syncedAt }
       : huizuDataSource(row, ctx.syncedAt)
-    if (row.images.length && !(Array.isArray(existing.mediaItems) && existing.mediaItems.length)) {
+    if (row.images.length && buildingHasNoImages(existing)) {
       const mediaIds = await importBuildingImages(payload, req, row, imageErrors)
       stats.imagesCreated += mediaIds.length
       if (mediaIds.length) {
@@ -576,6 +587,16 @@ export const sourceSyncTask: TaskConfig<typeof SOURCE_SYNC_TASK> = {
       })
       return { output: { batchId, processed: 0, hasMore: true } }
     }
+    // 房源包 / 下架包排在楼盘包之后：还有楼盘批次没写完就延后，不占并发名额
+    if (await shouldWaitForBuildings(payload, batchId)) {
+      await payload.jobs.queue({
+        task: SOURCE_SYNC_TASK,
+        queue: SOURCE_SYNC_QUEUE,
+        input: { batchId },
+        waitUntil: new Date(Date.now() + SOURCE_SYNC_WAIT_BUILDINGS_MS),
+      })
+      return { output: { batchId, processed: 0, hasMore: true } }
+    }
     // 本任务的所有写入都跳过逐条缓存失效，见 SKIP_SUPPLY_CACHE_INVALIDATION
     req.context = { ...(req.context ?? {}), [SKIP_SUPPLY_CACHE_INVALIDATION]: true }
     const { hasMore, processed } = await runSourceSyncSlice(payload, req, batchId)
@@ -598,6 +619,30 @@ export async function countOtherRunningSourceSyncJobs(payload: Payload, selfId: 
     [SOURCE_SYNC_TASK, selfId],
   )
   return res.rows[0]?.n ?? 0
+}
+
+const SOURCE_SYNC_WAIT_BUILDINGS_MS = 60_000
+/** 楼盘批次多久没推进就不再挡房源：链条断了的「running」批次不能把房源永远堵在后面 */
+const STALE_BUILDING_BATCH_MINUTES = 30
+
+/**
+ * 这一批是房源 / 下架包，且还有楼盘批次没写完 → true。
+ *
+ * 「没写完」= 排队中，或写入中且 30 分钟内推进过（每段 ≤ 90 秒、段末必落库，活着的批次 updated_at 一定新鲜）。
+ * 写入中但半小时没动静的，视为链条已断，不再阻挡——宁可让个别房源行报「楼盘尚未同步」，也不让全部房源卡死。
+ */
+export async function shouldWaitForBuildings(payload: Payload, batchId: number): Promise<boolean> {
+  const res = await payload.db.pool.query<{ waiting: boolean }>(
+    `SELECT (self.kind <> 'buildings') AND EXISTS (
+       SELECT 1 FROM source_sync_batches b
+        WHERE b.kind = 'buildings' AND b.id <> self.id
+          AND (b.status = 'queued'
+               OR (b.status = 'running' AND b.updated_at > now() - make_interval(mins => $2)))
+     ) AS waiting
+     FROM source_sync_batches self WHERE self.id = $1`,
+    [batchId, STALE_BUILDING_BATCH_MINUTES],
+  )
+  return res.rows[0]?.waiting === true
 }
 
 /** 实例被回收时遗留的 processing=true job，超过租约就放回队列（同 import-task 的写法）。 */

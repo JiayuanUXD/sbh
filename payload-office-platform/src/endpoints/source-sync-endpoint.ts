@@ -81,25 +81,9 @@ export function createSourceSyncEndpoints(): Endpoint[] {
         return Response.json({ ok: false, code: parsed.code, errors: parsed.errors }, { status: 400 })
       }
 
-      // 房源包 / 下架包依赖楼盘已入库：还有没写完的楼盘批次时拒收，免得房源行全部报「楼盘尚未同步」
-      if (parsed.kind !== 'buildings') {
-        const pending = await req.payload.count({
-          collection: BATCH_COLLECTION,
-          where: { kind: { equals: 'buildings' }, status: { in: ['queued', 'running'] } },
-          overrideAccess: true,
-          req,
-        })
-        if (pending.totalDocs > 0) {
-          return Response.json(
-            {
-              ok: false,
-              code: 'BUILDINGS_PENDING',
-              error: `还有 ${pending.totalDocs} 个楼盘包没写完，等它们完成后再传房源包`,
-            },
-            { status: 409 },
-          )
-        }
-      }
+      // 房源包 / 下架包依赖楼盘已入库，但这里不拒收：生产上楼盘阶段要拉图、可能跑几个小时，
+      // 拒收就得有人开着页面守着重传。照收入队，由任务在楼盘批次写完前把房源段延后重排
+      //（source-sync-task.ts 的 shouldWaitForBuildings）。
 
       const batch = await req.payload.create({
         collection: BATCH_COLLECTION,
