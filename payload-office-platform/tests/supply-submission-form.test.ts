@@ -561,7 +561,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     )
     expect(markup).toContain('id="publish-phone"')
     expect(markup).not.toContain('name="commissionMonths"')
-    expect(markup).not.toContain('groupCommission')
+    expect(markup).not.toContain('佣金')
     expect(markup).toContain('aria-describedby="publish-contact-note"')
     expect(markup).not.toContain('publish-card__status')
     expect(markup).toContain('href="/pages/privacy"')
@@ -592,7 +592,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     }
 
     expect(markup).not.toContain('name="commissionMonths"')
-    expect(markup).not.toContain('groupCommission')
+    expect(markup).not.toContain('佣金')
     expect(markup).toContain('<h2 class="publish-card__title">免费投放房源</h2>')
   })
 
