@@ -337,6 +337,21 @@ const OPT_088_NEW_LEAVES: readonly LeafFixture[] = [
   },
 ]
 
+/**
+ * OPT-104 新增「外部数据同步」入口。权限判据单独评审：与「楼盘/房源批量导入」同口径——
+ * menuCodes 沿用 listings，requiredOperationCode 收窄到 data:import；视图内 requireImportAccess
+ * 与 endpoint 的 guardSync 再各判一次（endpoint 另要求全局范围）。
+ */
+const OPT_104_NEW_LEAVES: readonly LeafFixture[] = [
+  {
+    id: 'source-sync',
+    label: '外部数据同步',
+    href: '/admin/import/source-sync',
+    menuCodes: ['listings'],
+    requiredOperationCode: 'data:import',
+  },
+]
+
 /** 允许新增 badgeKey 的两片叶子（Task 3 会补上对应的角标查询）。 */
 const ALLOWED_NEW_BADGE_KEYS: Readonly<Record<string, string>> = {
   'information-corrections': 'informationCorrections',
@@ -359,10 +374,11 @@ function comparable(leaf: LeafFixture | AdminNavLeaf) {
 }
 
 describe('导航重组不得改动叶子的权限判据（G1）', () => {
-  it('叶子集合 = master 的集合减去退出导航的那片 + OPT-088 新增的那片', () => {
+  it('叶子集合 = master 的集合减去退出导航的那片 + OPT-088 / OPT-104 新增的那片', () => {
     const expected = [
       ...MASTER_LEAVES.map((leaf) => leaf.id).filter((id) => !REMOVED_LEAF_IDS.has(id)),
       ...OPT_088_NEW_LEAVES.map((leaf) => leaf.id),
+      ...OPT_104_NEW_LEAVES.map((leaf) => leaf.id),
     ]
 
     expect([...currentLeaves().map((leaf) => leaf.id)].sort()).toEqual([...expected].sort())
@@ -372,6 +388,7 @@ describe('导航重组不得改动叶子的权限判据（G1）', () => {
     const master = new Map([
       ...MASTER_LEAVES.map((leaf) => [leaf.id, leaf] as const),
       ...OPT_088_NEW_LEAVES.map((leaf) => [leaf.id, leaf] as const),
+      ...OPT_104_NEW_LEAVES.map((leaf) => [leaf.id, leaf] as const),
     ])
 
     for (const leaf of currentLeaves()) {

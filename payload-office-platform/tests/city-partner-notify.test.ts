@@ -469,7 +469,8 @@ describe('city partner notification stale processing leases', () => {
     await expect(shouldAutoRun!(payload as never)).resolves.toBe(true)
     // OPT-041 Task 7：shouldAutoRun 里追加了 recoverStaleSupplyImportJobs 的
     // 陈旧租约恢复查询，与本测试原有的城市合伙人通知恢复查询各算一条。
-    expect(queries).toHaveLength(2)
+    // OPT-104：再追加 recoverStaleSourceSyncJobs（外部来源同步任务）一条。
+    expect(queries).toHaveLength(3)
   })
 
   it('disables city scheduling and recovery writes when job autorun is killed', async () => {

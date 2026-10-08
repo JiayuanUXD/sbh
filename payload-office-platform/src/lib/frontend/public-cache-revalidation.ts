@@ -118,7 +118,11 @@ export function invalidateMediaConsumersPublicCache(tags: readonly string[]): vo
 export type SupplyCacheInvalidationReason = 'listing' | 'building'
 
 /** 批量导入 / 批次回滚触发的失效来源（OPT-041 D11）。 */
-export type SupplyImportCacheInvalidationReason = 'supply_import' | 'supply_import_rollback'
+export type SupplyImportCacheInvalidationReason =
+  | 'supply_import'
+  | 'supply_import_rollback'
+  | 'source_sync'
+  | 'source_sync_rollback'
 
 /**
  * 供给相关的「城市级安全失效」。

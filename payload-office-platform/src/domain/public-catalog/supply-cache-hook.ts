@@ -38,6 +38,14 @@ import {
   type SupplyCacheInvalidationReason,
 } from '@/lib/frontend/public-cache-revalidation'
 
+/**
+ * `req.context` 上的开关：批量写入方（外部来源同步任务，OPT-104）在 Local API 的 `context`
+ * 里置 true，本 hook 直接跳过——每次写入都反查楼盘 / 城市再调一个注定在 Job 里失败的
+ * `revalidateTag`，5.7 万次写入就是十几万次白查 + 5.7 万条 warn。调用方负责在请求上下文里
+ * 按城市统一失效一次（见 source-sync-endpoint 的 revalidate）。
+ */
+export const SKIP_SUPPLY_CACHE_INVALIDATION = 'skipSupplyCacheInvalidation'
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -167,6 +175,7 @@ function createAfterChangeHook(
   reason: SupplyCacheInvalidationReason,
 ): CollectionAfterChangeHook {
   return async ({ doc, previousDoc, req }) => {
+    if (req.context?.[SKIP_SUPPLY_CACHE_INVALIDATION] === true) return doc
     await invalidateForDocs(req, resolve, reason, [doc, previousDoc])
     return doc
   }
