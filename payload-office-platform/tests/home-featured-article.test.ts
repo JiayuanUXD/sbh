@@ -50,6 +50,37 @@ describe('getHomepage featuredArticle resolution and fallback', () => {
     expect(hp.featuredArticle).not.toBeNull()
     expect(hp.featuredArticle?.id).toBe(1)
     expect(hp.featuredArticle?.title).toBe('最新文章 1')
+    expect(hp.latestArticles.map((a) => a.id)).toEqual([2])
+  })
+
+  it('latestArticles 不含主推文章，并多取一条补满默认五条', async () => {
+    const featured = makeTestArticle(3, { isHomeFeatured: true })
+    const latest = [1, 2, 3, 4, 5, 6].map((id) => makeTestArticle(id))
+    let requestedLimit: number | undefined
+    const adapter = makeHomepageAdapter({
+      findLatestArticles: async (limit) => {
+        requestedLimit = limit
+        return latest.slice(0, limit)
+      },
+      findHomeFeaturedArticle: async () => featured,
+    })
+
+    const hp = await getHomepage(ctx, {}, adapter)
+    expect(requestedLimit).toBe(6)
+    expect(hp.featuredArticle?.id).toBe(3)
+    expect(hp.latestArticles.map((a) => a.id)).toEqual([1, 2, 4, 5, 6])
+  })
+
+  it('主推不在最新列表里时，latestArticles 仍截回五条', async () => {
+    const featured = makeTestArticle(99, { isHomeFeatured: true })
+    const latest = [1, 2, 3, 4, 5, 6].map((id) => makeTestArticle(id))
+    const adapter = makeHomepageAdapter({
+      findLatestArticles: async () => latest,
+      findHomeFeaturedArticle: async () => featured,
+    })
+
+    const hp = await getHomepage(ctx, {}, adapter)
+    expect(hp.latestArticles.map((a) => a.id)).toEqual([1, 2, 3, 4, 5])
   })
 
   it('returns null when both findHomeFeaturedArticle and latestArticles are empty', async () => {

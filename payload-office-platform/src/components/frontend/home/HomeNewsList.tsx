@@ -6,7 +6,7 @@ import { buildCityPath } from '@/lib/frontend/city-routes'
 import { Media } from '@/components/frontend/ui/Media'
 
 /**
- * 首页「资讯」分区：左侧主推，右侧最新五条文字列表。
+ * 首页「资讯」分区：左侧主推，右侧除主推外最新五条文字列表。
  *
  * 日期格式改用 formatPublishedDate（YYYY.MM.DD），不再用旧 NewsSection 的
  * formatNewsListDate（MM/DD）：
@@ -25,14 +25,17 @@ export default function HomeNewsList({ articles, featuredArticle, citySlug }: Re
   featuredArticle?: ArticleCardViewModel | null
   citySlug?: string
 }>) {
-  const items = [...articles].sort((a, b) => {
+  const sorted = [...articles].sort((a, b) => {
     const aTime = a.publishedAt ? Date.parse(a.publishedAt) : Number.NEGATIVE_INFINITY
     const bTime = b.publishedAt ? Date.parse(b.publishedAt) : Number.NEGATIVE_INFINITY
     return (Number.isNaN(bTime) ? Number.NEGATIVE_INFINITY : bTime)
       - (Number.isNaN(aTime) ? Number.NEGATIVE_INFINITY : aTime)
-  }).slice(0, 5)
-  const featured = featuredArticle ?? items[0]
+  })
+  const featured = featuredArticle ?? sorted[0]
   if (!featured) return null
+  // 右侧列表去掉左侧主推那篇，同一篇不在一屏里出现两次；空位由后一篇补上
+  // （facade 为此多取一条，见 getHomepage 的 articlesLimit）。
+  const items = sorted.filter((a) => a.id !== featured.id).slice(0, 5)
   // 资讯不带城市前缀（city-routes.ts 的 buildCityPath 对 pageType 'news' 恒返回
   // '/news'，不消费 citySlug）——[city]/ 下本来就没有 news 路由，之前在这里手拼
   // `${prefix}/news` 会指向一个不存在的 `/${citySlug}/news`，是本组件绕开了
@@ -55,7 +58,7 @@ export default function HomeNewsList({ articles, featuredArticle, citySlug }: Re
             data-news-id={featured.id}
           >
             <span className="hm-news__featured-media">
-              <Media media={featured.coverImage} ratio="auto" decorative sizes="(max-width: 767px) 100vw, 50vw" />
+              <Media media={featured.coverImage} ratio="auto" decorative compact sizes="(max-width: 767px) 100vw, 50vw" />
             </span>
             <h3 className="hm-news__featured-title">{featured.title}</h3>
             <span className="hm-news__featured-date sf-num">{formatPublishedDate(featured.publishedAt) || '—'}</span>

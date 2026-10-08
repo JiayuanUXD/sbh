@@ -306,7 +306,9 @@
 .hm-news__featured { display: flex; flex-direction: column; height: 100%; min-width: 0; color: inherit; }
 .hm-news__featured-media { display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r-card); background-color: var(--bg-subtle); }
 .hm-news__featured-media > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--focal-x, 50%) var(--focal-y, 50%); }
-.hm-news__featured-media > .media-placeholder { width: 100%; height: 100%; }
+/* 全局 .media-placeholder 是两行 grid，默认 align-content: stretch 会把图标和文案
+   在这块 16:9 高框里撑开到上下两端，这里收拢到中间 */
+.hm-news__featured-media > .media-placeholder { width: 100%; height: 100%; align-content: center; }
 .hm-news__featured-title { margin-top: var(--sp-4); font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
 .hm-news__featured-date { margin-top: auto; padding-top: var(--sp-2); font-size: 14px; color: var(--ink-2); }
 .hm-news__featured:hover .hm-news__featured-title { color: var(--accent); }

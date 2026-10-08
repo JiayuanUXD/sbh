@@ -55,7 +55,7 @@ const makeArticle = (id: number, publishedAt: string | null): ArticleCardViewMod
 })
 
 describe('HomeNewsList 首页资讯布局', () => {
-  it('单独展示后台主推文章，右侧仍保留包含该文章的最新五条并按发布时间倒序', () => {
+  it('单独展示后台主推文章，右侧去掉该文章后取最新五条并按发布时间倒序', () => {
     const latest = Object.freeze([
       makeArticle(3, '2026-08-03T00:00:00.000Z'),
       makeArticle(1, '2026-08-01T00:00:00.000Z'),
@@ -71,8 +71,9 @@ describe('HomeNewsList 首页资讯布局', () => {
 
     expect(html).toMatch(/class="hm-news__featured"[^>]*href="\/news\/news-3"/)
     const rows = [...html.matchAll(/class="hm-news__row"[^>]*href="\/news\/news-(\d+)"/g)]
-    expect(rows.map((match) => Number(match[1]))).toEqual([6, 5, 4, 3, 2])
-    expect(html.match(/data-news-id="3"/g)).toHaveLength(2)
+    // 主推 3 不再出现在右侧，空位由 1 补上
+    expect(rows.map((match) => Number(match[1]))).toEqual([6, 5, 4, 2, 1])
+    expect(html.match(/data-news-id="3"/g)).toHaveLength(1)
     expect(latest.map((article) => article.id)).toEqual([3, 1, 6, 2, 5, 4])
   })
 
@@ -83,8 +84,19 @@ describe('HomeNewsList 首页资讯布局', () => {
     }))
     expect(html).toMatch(/class="hm-news__featured"[^>]*href="\/news\/news-9"/)
     expect(html).toMatch(/<h3 class="hm-news__featured-title">资讯 9<\/h3>/)
+    // 回退出来的主推同样不在右侧重复
+    const rows = [...html.matchAll(/class="hm-news__row"[^>]*href="\/news\/news-(\d+)"/g)]
+    expect(rows.map((match) => Number(match[1]))).toEqual([8])
     expect(html).toContain('data-media-state="missing"')
     expect(html).toContain('>—</span>')
+  })
+
+  it('主推缺封面时占位只写「图片拍摄中」，不带房源专属副文案', () => {
+    const html = renderToStaticMarkup(createElement(HomeNewsList, {
+      articles: [makeArticle(9, '2026-08-09T00:00:00.000Z')],
+    }))
+    expect(html).toContain('图片拍摄中')
+    expect(html).not.toContain('房源')
   })
 
   it('主推可来自列表以外，且保留主推及列表点击埋点', () => {

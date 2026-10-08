@@ -117,7 +117,7 @@ export type HomepageData = Readonly<{
   featuredBuildings: readonly BuildingSummaryViewModel[]
   /** 商圈卡：区域 + 代表楼盘封面（无代表封面的商圈不进入卡片区） */
   districtCards: readonly DistrictCardViewModel[]
-  /** 最新资讯（默认取 5 条，按 publishedAt 倒序） */
+  /** 最新资讯（默认取 5 条，按 publishedAt 倒序，不含 featuredArticle 那篇） */
   latestArticles: readonly ArticleCardViewModel[]
   /** 首页主推资讯（后台指定，无有效指定时回退最新文章；若无文章则为 null） */
   featuredArticle: ArticleCardViewModel | null
@@ -896,7 +896,9 @@ export async function getHomepage(
     adapter.findEffectiveDistricts(ctx),
     adapter.findEffectiveBusinessAreas(ctx),
     adapter.findFeaturedBuildings(ctx, featuredLimit),
-    adapter.findLatestArticles(articlesLimit),
+    // 多取一条：首页右侧列表要去掉左侧主推那篇（HomeNewsList），主推落在最新
+    // 五条里时靠第六条补位，否则右侧只剩四条。
+    adapter.findLatestArticles(articlesLimit + 1),
     adapter.findHomeFeaturedArticle ? adapter.findHomeFeaturedArticle() : Promise.resolve(null),
     // 一次全集**扫描**喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
     // OPT-068：口径与列表页一致（同 scanListings），但只取行不取整棵关系树——
@@ -974,6 +976,10 @@ export async function getHomepage(
   }
   const mappedFeaturedArticle = homeFeaturedArticle ? mapArticleCard(homeFeaturedArticle) : null
   const featuredArticle = mappedFeaturedArticle ?? latestArticleVMs[0] ?? null
+  // 首页右侧列表不含主推那篇，截回 articlesLimit 条（上面多取的一条在这里消化）。
+  const latestArticlesExcludingFeatured = latestArticleVMs
+    .filter((a) => a.id !== featuredArticle?.id)
+    .slice(0, articlesLimit)
 
   // 全集扫描行：喂 stats.listings / typeSummaries / nearbyListings 三个特性，
   // 与列表页共用同一个 scanListings 口径（OPT-068）。
@@ -1052,7 +1058,7 @@ export async function getHomepage(
     districts: districtVMs,
     featuredBuildings: featuredBuildingSlice,
     districtCards,
-    latestArticles: latestArticleVMs,
+    latestArticles: latestArticlesExcludingFeatured,
     featuredArticle,
     stats,
     typeSummaries,
