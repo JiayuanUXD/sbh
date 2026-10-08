@@ -1,0 +1,57 @@
+{
+  "environment": "localhost:3717（本地 PG，迁移至 20261008_091723 + seed + 7 篇测试资讯）",
+  "date": "2026-10-08",
+  "scenario": "文章 4 为现任主推时，以 E2E 管理员经 REST 把文章 2 设为主推，验证 afterChange 互斥 hook 同时取消文章 4",
+  "before_featured": [
+    {
+      "id": 4,
+      "title": "测试资讯 4",
+      "isHomeFeatured": true
+    }
+  ],
+  "request": {
+    "method": "PATCH",
+    "url": "/api/articles/2?depth=0",
+    "body": {
+      "isHomeFeatured": true
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "message": "更新成功。",
+      "doc": {
+        "id": 2,
+        "title": "测试资讯 2",
+        "isHomeFeatured": true
+      }
+    }
+  },
+  "after_refetch": {
+    "featured_query": [
+      {
+        "id": 2,
+        "title": "测试资讯 2",
+        "isHomeFeatured": true
+      }
+    ],
+    "article_2": {
+      "id": 2,
+      "isHomeFeatured": true
+    },
+    "article_4": {
+      "id": 4,
+      "isHomeFeatured": false
+    }
+  },
+  "db_rows_after": [
+    {
+      "id": 2,
+      "is_home_featured": true
+    },
+    {
+      "id": 4,
+      "is_home_featured": false
+    }
+  ]
+}

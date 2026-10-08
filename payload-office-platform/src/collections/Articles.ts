@@ -17,27 +17,29 @@ export const syncHomeFeaturedExclusivity: CollectionAfterChangeHook = async ({
   if (context?.skipHomeFeaturedSync) return
   if (!doc?.isHomeFeatured) return
 
-  try {
-    await req.payload.update({
-      collection: 'articles',
-      where: {
-        and: [
-          { isHomeFeatured: { equals: true } },
-          { id: { not_equals: doc.id } },
-        ],
-      },
-      data: {
-        isHomeFeatured: false,
-      },
-      context: {
-        ...context,
-        skipHomeFeaturedSync: true,
-      },
-    })
-  } catch (err) {
-    req.payload.logger?.error?.(
-      `[articles] failed to unset other homeFeatured articles: ${err instanceof Error ? err.message : String(err)}`,
-    )
+  // 「至多一篇主推」是硬约束：清掉旧主推失败时必须让本次保存一起失败。
+  // 传 req 让批量更新加入外层保存的事务，下面抛错时整笔回滚；批量更新对单条
+  // 失败不抛、只放进 errors，所以要显式检查。
+  const result = await req.payload.update({
+    collection: 'articles',
+    where: {
+      and: [
+        { isHomeFeatured: { equals: true } },
+        { id: { not_equals: doc.id } },
+      ],
+    },
+    data: {
+      isHomeFeatured: false,
+    },
+    req,
+    context: {
+      ...context,
+      skipHomeFeaturedSync: true,
+    },
+  })
+  if (result.errors.length > 0) {
+    const detail = result.errors.map((e) => `#${e.id}: ${e.message}`).join('; ')
+    throw new Error(`取消其他文章的首页主推失败，本次保存未生效（${detail}）`)
   }
 }
 

@@ -1,9 +1,0 @@
-{
-  "environment": "localhost:3717",
-  "request": {
-    "homeFeaturedArticle": 2
-  },
-  "status": 200,
-  "responseArticleId": 2,
-  "note": "独立 HTTP API 验证；浏览器后台选择、保存、重载另行验证。测试后恢复为 null。"
-}
