@@ -11,7 +11,7 @@ import { resolveLeadCityPageSelection } from '../_lib/lead-city-page'
 export const metadata: Metadata = buildPageMetadata({
   title: '投放房源｜免费委托出租',
   description:
-    '业主、物业方与中介可免费提交写字楼房源，平台实勘采集、推广曝光、协助签约成交，可设置佣金悬赏加速出租。',
+    '业主、物业方与中介可免费提交写字楼房源，平台实勘采集、推广曝光、协助签约成交。',
   canonicalPath: '/publish',
 })
 

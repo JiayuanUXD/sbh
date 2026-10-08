@@ -245,7 +245,6 @@ test.describe('/publish 投放房源', () => {
     await page.getByLabel('详细地址').fill(address)
     await page.getByLabel('出租面积').fill('200')
     await page.getByLabel('租金', { exact: true }).fill('6.5')
-    await page.getByRole('radio', { name: '1个月', exact: true }).check()
     await page.getByLabel('手机号').fill(publishPhone)
     await page.getByRole('button', { name: '立即投放' }).click()
 
@@ -261,7 +260,7 @@ test.describe('/publish 投放房源', () => {
       areaSqm: 200,
       rentAmount: 6.5,
       rentUnit: 'rmb-sqm-day',
-      commissionMonths: '1',
+      commissionMonths: 'none',
       contactPhone: publishPhone,
       source: { path: '/publish' },
     })

@@ -27,7 +27,6 @@ const VALID_VALUES: SupplyFormValues = {
   areaSqm: ' 268.5 ',
   rentAmount: ' 7.8 ',
   rentUnit: 'rmb-sqm-day',
-  commissionMonths: '1',
   contactPhone: ' +86 138-0000-1111 ',
 }
 
@@ -132,7 +131,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       areaSqm: 268.5,
       rentAmount: 7.8,
       rentUnit: 'rmb-sqm-day',
-      commissionMonths: '1',
+      commissionMonths: 'none',
       contactPhone: '13800001111',
       consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
       source: { path: '/publish' },
@@ -238,7 +237,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
         props: {
           page_type: 'publish',
           field_completeness: 6,
-          commission_months: '1',
+          commission_months: 'none',
         },
       },
       { name: 'landing_form_success', props: { page_type: 'publish' } },
@@ -417,7 +416,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
         props: {
           page_type: 'publish',
           field_completeness: 5,
-          commission_months: '1',
+          commission_months: 'none',
         },
       },
       {
@@ -442,7 +441,6 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       areaSqm: '',
       rentAmount: '',
       rentUnit: 'rmb-sqm-day',
-      commissionMonths: 'none',
       contactPhone: '',
     })
 
@@ -562,10 +560,8 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       /class="input-suffix"[^>]*>.*id="publish-area".*class="input-suffix__unit"[^>]*aria-hidden="true"[^>]*>㎡<\/span>/,
     )
     expect(markup).toContain('id="publish-phone"')
-    expect(markup).toContain('name="commissionMonths"')
-    expect(markup).toMatch(
-      /<input(?=[^>]*name="commissionMonths")(?=[^>]*value="none")(?=[^>]*checked="")[^>]*>/,
-    )
+    expect(markup).not.toContain('name="commissionMonths"')
+    expect(markup).not.toContain('groupCommission')
     expect(markup).toContain('aria-describedby="publish-contact-note"')
     expect(markup).not.toContain('publish-card__status')
     expect(markup).toContain('href="/pages/privacy"')
@@ -582,9 +578,9 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     expect(markup).not.toContain('继续投放另一套')
   })
 
-  it('keeps the six user-facing field groups in the required order with five commission choices', () => {
+  it('keeps the user-facing field groups in the required order without commission choices', () => {
     const markup = renderToStaticMarkup(React.createElement(SupplySubmissionForm))
-    const orderedLabels = ['楼盘名称', '详细地址', '出租面积', '租金', '佣金', '手机号']
+    const orderedLabels = ['楼盘名称', '详细地址', '出租面积', '租金', '手机号']
     let previousIndex = -1
 
     for (const label of orderedLabels) {
@@ -595,7 +591,8 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       previousIndex = currentIndex
     }
 
-    expect(markup.match(/name="commissionMonths"/g)).toHaveLength(5)
+    expect(markup).not.toContain('name="commissionMonths"')
+    expect(markup).not.toContain('groupCommission')
     expect(markup).toContain('<h2 class="publish-card__title">免费投放房源</h2>')
   })
 
