@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"><style>@keyframes skl{0%{opacity:1}50%{opacity:.45}100%{opacity:1}}body{margin:0;background:#e4e4e7;font-family:"Geist",-apple-system,"PingFang SC","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased}</style></helmet>
+
+<div style="padding:44px 48px 80px;display:flex;flex-direction:column;gap:52px">
+
+<div style="max-width:900px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:baseline;gap:12px">
+<span style="font:600 11px/1 'Geist',ui-monospace,monospace;letter-spacing:.08em;padding:5px 8px;background:#1d1d1f;color:#fff;border-radius:4px">SBH · 小程序</span>
+<h1 style="margin:0;font-size:23px;font-weight:600;color:#1d1d1f;letter-spacing:-.01em">商办租赁小程序 · 全页面画布</h1>
+</div>
+<p style="margin:0;font-size:13px;line-height:1.75;color:#6e6e73;max-width:660px;text-wrap:pretty">按 <span style="color:#1d1d1f">miniprogram-design.md</span> 的 v2 地基执行：灰底 <span style="font-variant-numeric:tabular-nums">#f2f2f4</span> + 白色圆角卡块（radius 8 / 左右 margin 12 / 块间 10 / 内 padding 14），字号阶 15·13·11，中文系统字体、数字 Geist 拉丁子集并全程 tabular-nums。色彩不在 v2 反转范围内：标签零色相，价格用主文字色，蓝色只给可交互元素。</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<span style="font-size:11px;color:#6e6e73;background:#fff;border:1px solid #e5e5e7;border-radius:4px;padding:5px 9px">D1′ 移动优先重做布局</span>
+<span style="font-size:11px;color:#6e6e73;background:#fff;border:1px solid #e5e5e7;border-radius:4px;padding:5px 9px">D2 找房主链路 + 楼盘体系</span>
+<span style="font-size:11px;color:#6e6e73;background:#fff;border:1px solid #e5e5e7;border-radius:4px;padding:5px 9px">D3 纯 C 端</span>
+<span style="font-size:11px;color:#6e6e73;background:#fff;border:1px solid #e5e5e7;border-radius:4px;padding:5px 9px">tabBar 4 项 · 无中央凸起</span>
+<span style="font-size:11px;color:#6e6e73;background:#fff;border:1px solid #e5e5e7;border-radius:4px;padding:5px 9px">图片为占位</span>
+</div>
+<div style="background:#fff;border-radius:8px;padding:16px;max-width:660px">
+<div style="font-size:13px;font-weight:600;color:#1d1d1f">圆角规范 · 三档，按「能不能点」和「在哪里点」分</div>
+<div style="margin-top:12px;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #e5e5e7">
+<span style="flex:none;width:118px;display:flex;justify-content:center"><span style="font-size:12px;font-weight:600;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:4px 8px">标签 3px</span></span>
+<span style="flex:1;font-size:12px;line-height:1.65;color:#6e6e73">只读信息，不可点：房源标签、状态标记、「真实供给」背书。圆角最小，读起来像文字而不像按钮。</span>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #e5e5e7">
+<span style="flex:none;width:118px;display:flex;justify-content:center"><span style="font-size:12px;font-weight:600;color:#fff;background:#0071e3;border-radius:6px;padding:8px 14px">矩形 6px</span></span>
+<span style="flex:1;font-size:12px;line-height:1.65;color:#6e6e73"><span style="color:#1d1d1f">默认档。</span>可点但受容器约束的一切：卡内 CTA、半屏弹层的提交、筛选 chip、面积段与城市格、输入框、搜索按钮。与卡块的 8px 同族，贴着容器边界。</span>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #e5e5e7">
+<span style="flex:none;width:118px;display:flex;justify-content:center"><span style="font-size:12px;font-weight:600;color:#fff;background:#0071e3;border-radius:999px;padding:8px 16px">胶囊 999px</span></span>
+<span style="flex:1;font-size:12px;line-height:1.65;color:#6e6e73"><span style="color:#1d1d1f">只给底部固定操作栏里的主 CTA</span>（预约看房、找顾问问楼、约看这 3 套）。那一栏不是卡块、与图标并排，胶囊让主动作从栏里浮起来。一屏最多一个。</span>
+</div>
+</div>
+<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e5e7;font-size:11px;line-height:1.7;color:#86868b">判据一句话：<span style="color:#6e6e73">不可点 → 3px；在卡里 → 6px；在底部操作栏 → 胶囊。</span>因此留资弹层的「提交」是 6px（它在半屏卡内），详情页的「预约看房」是胶囊（它在固定操作栏里）。图片一律 6px。</div>
+</div>
+<p style="margin:0;font-size:12px;line-height:1.7;color:#86868b;max-width:660px;text-wrap:pretty">未拿到 <span style="color:#6e6e73">.agent/design-system.md</span>：ink 三档、--line、accent 按 Apple 中性色板取值（#1d1d1f / #6e6e73 / #86868b / #e5e5e7 / #0071e3）。若与真实 token 有差，给我文件我全局替换。</p>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font:600 10px/1 'Geist',ui-monospace,monospace;letter-spacing:.1em;color:#86868b">01</span><h2 style="margin:0;font-size:15px;font-weight:600;color:#1d1d1f">找房主链路</h2><span style="font-size:12px;color:#86868b">首页 → 列表 → 筛选 → 详情 → 留资</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">首页</span><span style="font-size:11px;color:#86868b">封面叙事 + 搜索 + 双入口 + 精选好楼 + 推荐流</span></div>
+<div style="width:375px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10)">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;color:#1d1d1f;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:695px;overflow:hidden;background:#f2f2f4">
+<div style="position:relative;height:212px;background:linear-gradient(150deg,#4a4d52 0%,#3b3e43 55%,#33363a 100%);padding:22px 20px 0">
+<span style="position:absolute;right:12px;top:8px;display:flex;align-items:center;border:1px solid rgba(255,255,255,.28);border-radius:14px;height:28px;padding:0 2px;background:rgba(255,255,255,.14)"><span style="width:30px;text-align:center;font-size:13px;color:#fff">···</span><span style="width:1px;height:14px;background:rgba(255,255,255,.28)"></span><span style="width:30px;text-align:center;font-size:11px;color:#fff">◉</span></span>
+<div style="font-size:26px;font-weight:600;line-height:1.25;color:#fff;letter-spacing:-.01em">把每一平米算清楚</div>
+<div style="margin-top:8px;font-size:13px;color:rgba(255,255,255,.72)">上海 · 在租房源实时同步</div>
+<div style="position:absolute;right:16px;bottom:44px;font-size:9px;color:rgba(255,255,255,.4)">封面图占位</div>
+</div>
+<div style="margin:-29px 12px 0;background:#fff;border-radius:8px;padding:0 8px 0 14px;height:58px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,.10);position:relative">
+<span style="font-size:15px;font-weight:600;color:#1d1d1f">上海</span><span style="font-size:9px;color:#86868b">▾</span>
+<span style="width:1px;height:16px;background:#e5e5e7"></span>
+<span style="flex:1;font-size:14px;color:#86868b">商圈 / 楼盘 / 地铁站</span>
+<span style="flex:none;width:42px;height:42px;border-radius:6px;background:#0071e3;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="1.9"><circle cx="9" cy="9" r="5.5"></circle><path d="M13.2 13.2L17 17"></path></svg></span>
+</div>
+<div style="margin:10px 12px 0;display:flex;gap:10px">
+<div style="flex:1;background:#fff;border-radius:8px;padding:14px"><div style="font-size:15px;font-weight:600;color:#1d1d1f">委托找房</div><div style="margin-top:5px;font-size:12px;color:#86868b">说需求，顾问帮你筛</div></div>
+<div style="flex:1;background:#fff;border-radius:8px;padding:14px"><div style="font-size:15px;font-weight:600;color:#1d1d1f">售卖专区</div><div style="margin-top:5px;font-size:12px;color:#86868b;font-variant-numeric:tabular-nums">最低 12,000 元/㎡</div></div>
+</div>
+<div style="margin:10px 12px 0;background:#fff;border-radius:8px;padding:14px">
+<div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:15px;font-weight:600;color:#1d1d1f">精选好楼</span><span style="font-size:12px;color:#0071e3">全部楼盘 ›</span></div>
+<div style="margin-top:12px;display:flex;gap:10px">
+<div style="flex:1;min-width:0"><div style="height:76px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:7px;font-size:13px;font-weight:600;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">恒隆广场</div><div style="margin-top:2px;font-size:11px;color:#6e6e73;font-variant-numeric:tabular-nums">14 套 · 10.2 起</div></div>
+<div style="flex:1;min-width:0"><div style="height:76px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:7px;font-size:13px;font-weight:600;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">越洋国际广场</div><div style="margin-top:2px;font-size:11px;color:#6e6e73;font-variant-numeric:tabular-nums">9 套 · 6.8 起</div></div>
+<div style="flex:1;min-width:0"><div style="height:76px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:7px;font-size:13px;font-weight:600;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">兴业太古汇</div><div style="margin-top:2px;font-size:11px;color:#6e6e73;font-variant-numeric:tabular-nums">7 套 · 11.4 起</div></div>
+</div>
+</div>
+<div style="margin:14px 12px 0;display:flex;align-items:baseline;gap:18px">
+<span style="font-size:17px;font-weight:600;color:#1d1d1f">推荐</span>
+<span style="font-size:15px;color:#86868b">附近</span>
+<span style="font-size:15px;color:#86868b">新上</span>
+</div>
+<div style="background:#fff;border-radius:8px;margin:10px 12px 0;padding:14px">
+<div style="display:flex;gap:10px">
+<div style="position:relative;flex:none;width:112px;height:84px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span><span style="position:absolute;left:0;top:0;padding:2px 5px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;border-radius:6px 0 3px 0">新上</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f;line-height:1.35">静安嘉里中心 T2 整层</div>
+<div style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,860 ㎡ · 28 层 · 甲级</div>
+<div style="font-size:12px;color:#86868b;font-variant-numeric:tabular-nums">静安区 · 距南京西路站 320 m</div>
+<div style="display:flex;align-items:baseline;gap:3px"><span style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">8.50</span><span style="font-size:12px;color:#6e6e73">元/㎡·天</span></div>
+</div>
+</div>
+</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding-top:6px">
+<div style="height:43px;display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.6"><path d="M3 9l7-6 7 6v8H3z"></path></svg><span style="font-size:10px;color:#1d1d1f;font-weight:500">首页</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><circle cx="9" cy="9" r="5.5"></circle><path d="M13 13l4 4"></path></svg><span style="font-size:10px;color:#b0b0b5">找房</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><rect x="4" y="3" width="12" height="14"></rect><path d="M7 6h2M11 6h2M7 9h2M11 9h2M7 12h2M11 12h2"></path></svg><span style="font-size:10px;color:#b0b0b5">楼盘</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><circle cx="10" cy="7" r="3.2"></circle><path d="M4 17c0-3.2 2.7-5 6-5s6 1.8 6 5"></path></svg><span style="font-size:10px;color:#b0b0b5">我的</span></div>
+</div>
+<div style="height:24px;display:flex;align-items:center;justify-content:center"><span style="width:120px;height:4px;border-radius:2px;background:#1d1d1f"></span></div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">找房 · 列表</span><span style="font-size:11px;color:#86868b">吸顶筛选行 + 左图右文卡（一屏 4 张）</span></div>
+<div style="width:375px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10)">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff">
+<span style="font-size:16px;font-weight:600;color:#1d1d1f">找房</span>
+<span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span>
+</div>
+<div style="background:#fff;padding:0 12px 8px"><div style="height:34px;display:flex;align-items:center;gap:6px;background:#f2f2f4;border-radius:6px;padding:0 10px"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="#86868b" stroke-width="1.8"><circle cx="9" cy="9" r="5.5"></circle><path d="M13 13l4 4"></path></svg><span style="font-size:13px;color:#86868b">搜楼盘、商圈或地铁站</span></div></div>
+<div style="height:44px;background:#fff;border-bottom:1px solid #e5e5e7;display:flex;align-items:center;padding:0 12px;gap:2px">
+<span style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;font-size:13px;color:#1d1d1f;white-space:nowrap">静安区<span style="font-size:8px;color:#86868b">▾</span></span>
+<span style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;font-size:13px;color:#1d1d1f;white-space:nowrap">价格<span style="font-size:8px;color:#86868b">▾</span></span>
+<span style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;font-size:13px;color:#0071e3;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums">1–2 千㎡<span style="font-size:8px">▾</span></span>
+<span style="flex:none;display:flex;align-items:center;gap:4px;font-size:13px;color:#1d1d1f;padding-left:8px;white-space:nowrap"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.6"><path d="M3 6h14M3 10h14M3 14h14"></path><circle cx="7" cy="6" r="1.6" fill="#fff"></circle><circle cx="13" cy="10" r="1.6" fill="#fff"></circle><circle cx="8" cy="14" r="1.6" fill="#fff"></circle></svg>筛选<span style="font-size:10px;color:#fff;background:#0071e3;border-radius:7px;min-width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums">3</span></span>
+</div>
+<div style="height:520px;overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 8px"><span style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">168 套符合条件</span><span style="font-size:12px;color:#1d1d1f">单价升序 ▾</span></div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:10px">
+<div style="position:relative;flex:none;width:112px;height:84px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span><span style="position:absolute;left:0;top:0;padding:2px 5px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;border-radius:6px 0 3px 0">新上</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f;line-height:1.35">越洋国际广场 · 12 层整层</div>
+<div style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,240 ㎡ · 12 层 · 得房率 68%</div>
+<div style="font-size:12px;color:#86868b">静安区 · 距南京西路站 450 m</div>
+<div style="display:flex;align-items:baseline;gap:3px"><span style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">6.8</span><span style="font-size:12px;color:#6e6e73">元/㎡·天</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:4px"><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">整层</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">带装修</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">免租 2 月</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">押一付三</span></div>
+</div>
+</div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px">
+<div style="flex:none;width:112px;height:84px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f;line-height:1.35">恒隆广场 · 高区 1,560 ㎡</div>
+<div style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,560 ㎡ · 31 层 · 得房率 74%</div>
+<div style="font-size:12px;color:#86868b">静安区 · 距静安寺站 180 m</div>
+<div style="display:flex;align-items:baseline;gap:3px"><span style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">12.5</span><span style="font-size:12px;color:#6e6e73">元/㎡·天</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:4px"><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">甲级</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">可分割</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">地铁上盖</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">精装交付</span></div>
+</div>
+</div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px">
+<div style="flex:none;width:112px;height:84px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f;line-height:1.35">上海世贸大厦 · 8 层 A 区</div>
+<div style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,080 ㎡ · 8 层 · 得房率 —</div>
+<div style="font-size:12px;color:#86868b">长宁区 · 距娄山关路站 600 m</div>
+<div style="display:flex;align-items:baseline;gap:3px"><span style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">5.2</span><span style="font-size:12px;color:#6e6e73">元/㎡·天</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:4px"><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">可注册</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">中央空调</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:2px 5px">带家具</span></div>
+</div>
+</div>
+</div>
+<div style="text-align:center;font-size:12px;color:#86868b;padding:6px 0">加载中…</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding-top:6px">
+<div style="height:43px;display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><path d="M3 9l7-6 7 6v8H3z"></path></svg><span style="font-size:10px;color:#b0b0b5">首页</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.6"><circle cx="9" cy="9" r="5.5"></circle><path d="M13 13l4 4"></path></svg><span style="font-size:10px;color:#1d1d1f;font-weight:500">找房</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><rect x="4" y="3" width="12" height="14"></rect><path d="M7 6h2M11 6h2M7 9h2M11 9h2M7 12h2M11 12h2"></path></svg><span style="font-size:10px;color:#b0b0b5">楼盘</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><circle cx="10" cy="7" r="3.2"></circle><path d="M4 17c0-3.2 2.7-5 6-5s6 1.8 6 5"></path></svg><span style="font-size:10px;color:#b0b0b5">我的</span></div>
+</div>
+<div style="height:24px;display:flex;align-items:center;justify-content:center"><span style="width:120px;height:4px;border-radius:2px;background:#1d1d1f"></span></div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">筛选面板</span><span style="font-size:11px;color:#86868b">租金单位置顶 · 显式告知结果集变化</span></div>
+<div style="width:375px;height:812px;position:relative;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10)">
+<div style="position:absolute;inset:0;background:#f2f2f4;opacity:.5"></div>
+<div style="position:absolute;inset:0;background:rgba(0,0,0,.4)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#f2f2f4;border-radius:14px 14px 0 0;padding-top:6px">
+<div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;border-radius:14px 14px 0 0"><span style="font-size:17px;font-weight:600;color:#1d1d1f">筛选</span><span style="font-size:13px;color:#0071e3">重置</span></div>
+<div style="max-height:600px;overflow:hidden;background:#f2f2f4;padding-top:10px">
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:13px;font-weight:600;color:#1d1d1f">租金单位</div>
+<div style="margin-top:10px;display:flex;background:#f2f2f4;border-radius:6px;padding:2px">
+<span style="flex:1;text-align:center;font-size:12px;font-weight:600;color:#1d1d1f;background:#fff;border-radius:5px;padding:7px 0;box-shadow:0 1px 2px rgba(0,0,0,.08)">元/㎡·天</span>
+<span style="flex:1;text-align:center;font-size:12px;color:#6e6e73;padding:7px 0">元/㎡·月</span>
+<span style="flex:1;text-align:center;font-size:12px;color:#6e6e73;padding:7px 0">元/月·套</span>
+</div>
+<div style="margin-top:10px;font-size:11px;line-height:1.6;color:#6e6e73;background:#f5f5f7;border-radius:6px;padding:8px 10px">切换单位会改变结果集。另有 <span style="color:#1d1d1f;font-weight:500;font-variant-numeric:tabular-nums">312</span> 套按「元/㎡·月」报价，<span style="color:#1d1d1f;font-weight:500;font-variant-numeric:tabular-nums">86</span> 套按「元/月·套」报价，三者无法互相换算。</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:13px;font-weight:600;color:#1d1d1f">单价区间 <span style="font-weight:400;color:#86868b;font-variant-numeric:tabular-nums">5.0 – 12.0 元/㎡·天</span></div>
+<div style="margin-top:12px;height:3px;background:#e5e5e7;border-radius:2px;position:relative"><span style="position:absolute;left:22%;right:26%;top:0;bottom:0;background:#0071e3;border-radius:2px"></span><span style="position:absolute;left:22%;top:-6px;width:15px;height:15px;margin-left:-7px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)"></span><span style="position:absolute;left:74%;top:-6px;width:15px;height:15px;margin-left:-7px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)"></span></div>
+<div style="margin-top:14px;height:1px;background:#e5e5e7"></div>
+<div style="margin-top:14px;font-size:13px;font-weight:600;color:#1d1d1f">面积段</div>
+<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+<span style="font-size:12px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:7px 11px">&lt; 300 ㎡</span>
+<span style="font-size:12px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:7px 11px">300–1,000</span>
+<span style="font-size:12px;color:#fff;background:#0071e3;border-radius:6px;padding:7px 11px">1,000–2,000</span>
+<span style="font-size:12px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:7px 11px">2,000–5,000</span>
+<span style="font-size:12px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:7px 11px">&gt; 5,000</span>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:13px;font-weight:600;color:#1d1d1f">押付方式</div>
+<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:12px;color:#fff;background:#0071e3;border-radius:6px;padding:7px 11px">押一付三</span><span style="font-size:12px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:7px 11px">押二付三</span><span style="font-size:12px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:7px 11px">押一付一</span></div>
+<div style="margin-top:14px;height:1px;background:#e5e5e7"></div>
+<div style="margin-top:14px;font-size:13px;font-weight:600;color:#1d1d1f">免租期</div>
+<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:12px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:7px 11px">不限</span><span style="font-size:12px;color:#fff;background:#0071e3;border-radius:6px;padding:7px 11px">≥ 1 个月</span><span style="font-size:12px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:7px 11px">≥ 3 个月</span></div>
+<div style="margin-top:14px;height:1px;background:#e5e5e7"></div>
+<div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:13px;font-weight:600;color:#1d1d1f">仅看含物业费报价</div><div style="font-size:11px;color:#86868b;margin-top:2px">避免月租估算失真</div></div><span style="width:44px;height:26px;border-radius:13px;background:#e5e5e7;position:relative"><span style="position:absolute;left:2px;top:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span></div>
+</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding:10px 12px;display:flex;gap:10px;align-items:center">
+<span style="flex:none;font-size:13px;color:#6e6e73;padding:0 8px">清空</span>
+<span style="flex:1;text-align:center;font-size:15px;font-weight:600;color:#fff;background:#0071e3;border-radius:6px;padding:12px 0">查看 <span style="font-variant-numeric:tabular-nums">168</span> 套</span>
+</div>
+<div style="height:34px;background:#fff"></div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">筛选无结果</span><span style="font-size:11px;color:#86868b">带结果数的放宽建议，不是一句道歉</span></div>
+<div style="width:375px;height:812px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10);display:flex;flex-direction:column">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff"><span style="position:absolute;left:14px;font-size:18px;color:#1d1d1f">‹</span><span style="font-size:16px;font-weight:600;color:#1d1d1f">找房</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="height:44px;background:#fff;border-bottom:1px solid #e5e5e7;display:flex;align-items:center;padding:0 12px;gap:2px">
+<span style="flex:1;text-align:center;font-size:13px;color:#0071e3;font-weight:500;white-space:nowrap">陆家嘴 ▾</span>
+<span style="flex:1;text-align:center;font-size:13px;color:#0071e3;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums">≤ 6 元 ▾</span>
+<span style="flex:1;text-align:center;font-size:13px;color:#0071e3;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums">&gt;2 千㎡ ▾</span>
+<span style="flex:none;font-size:13px;color:#1d1d1f;padding-left:8px;white-space:nowrap">筛选 <span style="font-size:10px;color:#fff;background:#0071e3;border-radius:7px;min-width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center">4</span></span>
+</div>
+<div style="flex:1;overflow:hidden">
+<div style="background:#fff;border-radius:8px;margin:10px 12px;padding:18px 14px">
+<div style="font-size:17px;font-weight:600;color:#1d1d1f">没有同时满足这 4 个条件的房源</div>
+<div style="margin-top:6px;font-size:13px;line-height:1.6;color:#6e6e73">陆家嘴 2,000 ㎡ 以上的整层，单价普遍在 8 元以上。放宽任意一条都能出结果：</div>
+<div style="margin-top:14px;display:flex;flex-direction:column;gap:0">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #e5e5e7"><div><div style="font-size:14px;color:#1d1d1f">单价放宽到 <span style="font-weight:600;font-variant-numeric:tabular-nums">10 元/㎡·天</span></div><div style="font-size:11px;color:#86868b;margin-top:2px">其余条件不变</div></div><span style="font-size:13px;color:#0071e3;font-weight:500;font-variant-numeric:tabular-nums">14 套 ›</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #e5e5e7"><div><div style="font-size:14px;color:#1d1d1f">面积放宽到 <span style="font-weight:600;font-variant-numeric:tabular-nums">1,200 ㎡ 以上</span></div><div style="font-size:11px;color:#86868b;margin-top:2px">可分割房源可拼至 2,000 ㎡</div></div><span style="font-size:13px;color:#0071e3;font-weight:500;font-variant-numeric:tabular-nums">7 套 ›</span></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #e5e5e7"><div><div style="font-size:14px;color:#1d1d1f">范围扩到 <span style="font-weight:600">竹园 / 世纪大道</span></div><div style="font-size:11px;color:#86868b;margin-top:2px">同为浦东核心，步行 15 分钟内</div></div><span style="font-size:13px;color:#0071e3;font-weight:500;font-variant-numeric:tabular-nums">23 套 ›</span></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px;padding:14px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f">说需求，让顾问帮你找</div>
+<div style="margin-top:4px;font-size:12px;line-height:1.6;color:#6e6e73">在租未上架的房源约占三成。留个手机号，顾问按你这 4 个条件在库外找。</div>
+<div style="margin-top:12px;text-align:center;font-size:15px;font-weight:600;color:#fff;background:#0071e3;border-radius:6px;padding:12px 0">说需求</div>
+</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding-top:6px">
+<div style="height:43px;display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><path d="M3 9l7-6 7 6v8H3z"></path></svg><span style="font-size:10px;color:#b0b0b5">首页</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.6"><circle cx="9" cy="9" r="5.5"></circle><path d="M13 13l4 4"></path></svg><span style="font-size:10px;color:#1d1d1f;font-weight:500">找房</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><rect x="4" y="3" width="12" height="14"></rect><path d="M7 6h2M11 6h2M7 9h2M11 9h2M7 12h2M11 12h2"></path></svg><span style="font-size:10px;color:#b0b0b5">楼盘</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><circle cx="10" cy="7" r="3.2"></circle><path d="M4 17c0-3.2 2.7-5 6-5s6 1.8 6 5"></path></svg><span style="font-size:10px;color:#b0b0b5">我的</span></div>
+</div>
+<div style="height:24px;display:flex;align-items:center;justify-content:center"><span style="width:120px;height:4px;border-radius:2px;background:#1d1d1f"></span></div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">找房 · 地图</span><span style="font-size:11px;color:#86868b">视图切换，不占 tab 位（R2）</span></div>
+<div style="width:375px;height:812px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10);display:flex;flex-direction:column">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff"><span style="position:absolute;left:14px;font-size:18px;color:#1d1d1f">‹</span><span style="font-size:16px;font-weight:600;color:#1d1d1f">地图找房</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="height:44px;background:#fff;border-bottom:1px solid #e5e5e7;display:flex;align-items:center;padding:0 12px;gap:2px"><span style="flex:1;text-align:center;font-size:13px;color:#1d1d1f;white-space:nowrap">位置 ▾</span><span style="flex:1;text-align:center;font-size:13px;color:#1d1d1f;white-space:nowrap">价格 ▾</span><span style="flex:1;text-align:center;font-size:13px;color:#0071e3;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums">1–2 千㎡ ▾</span><span style="flex:none;font-size:13px;color:#1d1d1f;padding-left:8px;white-space:nowrap">筛选 <span style="font-size:10px;color:#fff;background:#0071e3;border-radius:7px;min-width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center">3</span></span></div>
+<div style="flex:1;position:relative;background:#ececed;overflow:hidden">
+<div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 62px,#e2e2e4 62px 66px),repeating-linear-gradient(0deg,transparent 0 78px,#e2e2e4 78px 82px)"></div>
+<div style="position:absolute;left:-40px;top:180px;width:520px;height:14px;background:#e0e0e3;transform:rotate(-14deg)"></div>
+<div style="position:absolute;left:-40px;top:420px;width:520px;height:10px;background:#dcdce0;transform:rotate(6deg)"></div>
+<div style="position:absolute;left:24px;top:260px;width:120px;height:90px;background:#e5e8e5;border-radius:4px"></div>
+<div style="position:absolute;left:12px;top:12px;font-size:9px;color:#8e8e93;background:rgba(255,255,255,.82);border-radius:3px;padding:3px 6px">地图占位 · 接入腾讯地图</div>
+<div style="position:absolute;left:34px;top:120px;display:flex;flex-direction:column;align-items:center"><span style="background:#1d1d1f;color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:5px 9px;font-variant-numeric:tabular-nums;white-space:nowrap">南京西路 186 套</span><span style="width:0;height:0;border:5px solid transparent;border-top-color:#1d1d1f"></span></div>
+<div style="position:absolute;left:180px;top:230px;display:flex;flex-direction:column;align-items:center"><span style="background:#fff;color:#1d1d1f;font-size:11px;font-weight:600;border-radius:6px;padding:5px 9px;box-shadow:0 1px 5px rgba(0,0,0,.18);font-variant-numeric:tabular-nums;white-space:nowrap">恒隆广场 ¥12.5 起</span><span style="width:0;height:0;border:5px solid transparent;border-top-color:#fff"></span></div>
+<div style="position:absolute;left:70px;top:330px;display:flex;flex-direction:column;align-items:center"><span style="background:#fff;color:#1d1d1f;font-size:11px;font-weight:600;border-radius:6px;padding:5px 9px;box-shadow:0 1px 5px rgba(0,0,0,.18);font-variant-numeric:tabular-nums;white-space:nowrap">越洋 ¥6.8 起</span><span style="width:0;height:0;border:5px solid transparent;border-top-color:#fff"></span></div>
+<div style="position:absolute;right:26px;top:400px;display:flex;flex-direction:column;align-items:center"><span style="background:#fff;color:#6e6e73;font-size:11px;border-radius:6px;padding:5px 9px;box-shadow:0 1px 5px rgba(0,0,0,.18);font-variant-numeric:tabular-nums;white-space:nowrap">竹园 62 套</span><span style="width:0;height:0;border:5px solid transparent;border-top-color:#fff"></span></div>
+<div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:8px"><span style="width:36px;height:36px;border-radius:6px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:12px;color:#0071e3">◎</span><span style="width:36px;height:36px;border-radius:6px;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:11px;color:#1d1d1f">列表</span></div>
+<div style="position:absolute;left:12px;right:12px;bottom:12px;background:#fff;border-radius:8px;padding:14px">
+<div style="display:flex;gap:10px">
+<div style="flex:none;width:112px;height:84px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f">越洋国际广场 · 12 层整层</div>
+<div style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,240 ㎡ · 12 层 · 得房率 68%</div>
+<div style="font-size:12px;color:#86868b">静安区 · 距南京西路站 450 m</div>
+<div style="display:flex;align-items:baseline;gap:3px"><span style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">6.8</span><span style="font-size:12px;color:#6e6e73">元/㎡·天</span></div>
+</div>
+</div>
+<div style="margin-top:10px;font-size:11px;color:#86868b;text-align:center">该点位共 <span style="color:#1d1d1f;font-variant-numeric:tabular-nums">4</span> 套 · 左右滑动</div>
+</div>
+</div>
+<div style="height:34px;background:#fff;display:flex;align-items:center;justify-content:center"><span style="width:120px;height:4px;border-radius:2px;background:#1d1d1f"></span></div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font:600 10px/1 'Geist',ui-monospace,monospace;letter-spacing:.1em;color:#86868b">02</span><h2 style="margin:0;font-size:15px;font-weight:600;color:#1d1d1f">详情与转化</h2><span style="font-size:12px;color:#86868b">整页视图，不裁切</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">房源详情</span><span style="font-size:11px;color:#86868b">规格网格 = 北极星落点 · 底部操作栏常驻</span></div>
+<div style="width:375px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10)">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff;border-bottom:1px solid #e5e5e7"><span style="position:absolute;left:14px;font-size:18px;color:#1d1d1f">‹</span><span style="font-size:16px;font-weight:600;color:#1d1d1f">房源详情</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="position:relative;height:230px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:11px;color:#a1a1a6">画廊占位 · 实拍图 12 张</span><span style="position:absolute;right:12px;bottom:12px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;border-radius:10px;padding:3px 9px;font-variant-numeric:tabular-nums">1 / 12</span><span style="position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;border-radius:3px;padding:3px 7px">户型图 · 平面图</span></div>
+<div style="background:#fff;padding:14px">
+<div style="font-size:19px;font-weight:600;line-height:1.4;color:#1d1d1f">越洋国际广场 · 12 层整层</div>
+<div style="margin-top:8px;display:flex;align-items:baseline;gap:4px"><span style="font-size:26px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums;letter-spacing:-.01em">6.8</span><span style="font-size:13px;color:#6e6e73">元/㎡·天</span><span style="margin-left:auto;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">月租估算 ¥252,960</span></div>
+<div style="margin-top:6px;font-size:11px;color:#86868b;font-variant-numeric:tabular-nums">= 6.8 × 1,240 ㎡ × 30 天，未含物业费 ¥26 /㎡·月</div>
+<div style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:11px;color:#86868b;border-top:1px solid #e5e5e7;padding-top:10px"><span>状态核验于 2 天前</span><span style="width:1px;height:10px;background:#e5e5e7"></span><span style="font-variant-numeric:tabular-nums">编号 SH-020486</span></div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:10px 12px;padding:14px">
+<div style="display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="text-align:center"><div style="font-size:12px;color:#86868b">建筑面积</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">1,240</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">得房率</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">68%</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">层高</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">3.1m</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">工位数</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">—</div></div>
+</div>
+<div style="margin-top:14px;padding-top:14px;border-top:1px solid #e5e5e7;display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="text-align:center"><div style="font-size:12px;color:#86868b">物业费</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">26</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">免租期</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">2 月</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">押付</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f">押一付三</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">起租期</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">2 年</div></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:17px;font-weight:600;color:#1d1d1f">概况</div>
+<div style="margin-top:12px;display:flex;flex-direction:column;gap:0">
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">交付标准</span><span style="font-size:13px;color:#1d1d1f">精装带家具，可直接进驻</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">可分割</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">可，最小 420 ㎡</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">空调</span><span style="font-size:13px;color:#1d1d1f">中央空调，工作日 8–20 时</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">工商注册</span><span style="font-size:13px;color:#1d1d1f">支持</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">车位</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">1 个 / 200 ㎡，¥1,200 /月</span></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:17px;font-weight:600;color:#1d1d1f">房源描述</div>
+<div style="margin-top:8px;font-size:13px;line-height:1.75;color:#6e6e73;text-wrap:pretty">12 层整层，原租户为律所，隔断与会议室保留完整。核心筒居中，四面采光，南向可见延安高架。电梯 6 部（客梯 4、货梯 2），高峰候梯约 40 秒。物业为港资团队，工程响应当日到场。</div>
+<div style="margin-top:10px;font-size:13px;color:#0071e3">展开全部</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:17px;font-weight:600;color:#1d1d1f">所在楼盘</span><span style="font-size:12px;color:#0071e3">楼盘详情 ›</span></div>
+<div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+<div style="flex:none;width:64px;height:64px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div>
+<div style="flex:1;min-width:0">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f">越洋国际广场</div>
+<div style="margin-top:3px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">甲级 · 2008 年竣工 · 42 层 · 在租 9 套</div>
+<div style="margin-top:3px;font-size:12px;color:#86868b">静安区 石门一路 288 号</div>
+</div>
+</div>
+<div style="margin-top:12px;height:100px;border-radius:6px;background:#ececed;position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 44px,#e2e2e4 44px 47px),repeating-linear-gradient(0deg,transparent 0 40px,#e2e2e4 40px 43px)"></div><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#0071e3;box-shadow:0 0 0 4px rgba(0,113,227,.2)"></span><span style="position:absolute;right:8px;bottom:6px;font-size:9px;color:#a1a1a6">地图占位</span></div>
+<div style="margin-top:10px;display:flex;gap:14px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums"><span>地铁 2/12/13 号线 320 m</span><span>延安高架 700 m</span></div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:12px">同楼盘其他房源</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:10px;align-items:center"><div style="flex:none;width:84px;height:64px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:#1d1d1f">18 层 B 区</div><div style="margin-top:3px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">620 ㎡ · 得房率 70%</div><div style="margin-top:3px;display:flex;align-items:baseline;gap:3px"><span style="font-size:15px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">7.2</span><span style="font-size:11px;color:#6e6e73">元/㎡·天</span></div></div></div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px;align-items:center"><div style="flex:none;width:84px;height:64px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:#1d1d1f">26 层整层</div><div style="margin-top:3px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,240 ㎡ · 得房率 68%</div><div style="margin-top:3px;display:flex;align-items:baseline;gap:3px"><span style="font-size:15px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">7.6</span><span style="font-size:11px;color:#6e6e73">元/㎡·天</span></div></div></div>
+</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding:8px 12px;display:flex;align-items:center;gap:14px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:44px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.5"><path d="M10 16S3.5 12 3.5 7.8A3.3 3.3 0 0110 6a3.3 3.3 0 016.5 1.8C16.5 12 10 16 10 16z"></path></svg><span style="font-size:10px;color:#6e6e73">收藏</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:44px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.5"><path d="M4 11v5h12v-5M10 3v9M10 3L6.5 6.5M10 3l3.5 3.5"></path></svg><span style="font-size:10px;color:#6e6e73">分享</span></div>
+<div style="flex:1;text-align:center;font-size:15px;font-weight:600;color:#fff;background:#0071e3;border-radius:999px;padding:13px 0">预约看房</div>
+</div>
+<div style="height:34px;background:#fff"></div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">留资弹层</span><span style="font-size:11px;color:#86868b">摘要预填，只问手机号与期望入驻</span></div>
+<div style="width:375px;height:812px;position:relative;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10)">
+<div style="position:absolute;inset:0;background:#fff"></div>
+<div style="position:absolute;inset:0;background:rgba(0,0,0,.4)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0">
+<div style="height:52px;display:flex;align-items:center;justify-content:center;position:relative"><span style="font-size:17px;font-weight:600;color:#1d1d1f">预约看房</span><span style="position:absolute;right:16px;font-size:16px;color:#86868b">✕</span></div>
+<div style="padding:0 16px 16px">
+<div style="background:#f5f5f7;border-radius:6px;padding:12px 14px">
+<div style="font-size:14px;font-weight:600;color:#1d1d1f">越洋国际广场 · 12 层整层</div>
+<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;row-gap:6px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums"><span>面积 1,240 ㎡</span><span>单价 6.8 元/㎡·天</span><span>月租估算 ¥252,960</span><span>免租 2 个月</span></div>
+<div style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e5e7;font-size:11px;color:#86868b">以上为你正在看的房源，已自动带入</div>
+</div>
+<div style="margin-top:18px;font-size:13px;font-weight:600;color:#1d1d1f">期望入驻时间</div>
+<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:13px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:9px 13px">越快越好</span><span style="font-size:13px;color:#fff;background:#0071e3;border-radius:6px;padding:9px 13px">1 个月内</span><span style="font-size:13px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:9px 13px">1–3 个月</span><span style="font-size:13px;color:#6e6e73;background:#f2f2f4;border-radius:6px;padding:9px 13px">还在看</span></div>
+<div style="margin-top:18px;font-size:13px;font-weight:600;color:#1d1d1f">手机号</div>
+<div style="margin-top:10px;display:flex;align-items:center;height:44px;background:#f2f2f4;border-radius:6px;padding:0 12px;gap:8px"><span style="font-size:14px;color:#6e6e73;font-variant-numeric:tabular-nums">+86</span><span style="width:1px;height:16px;background:#e5e5e7"></span><span style="font-size:15px;color:#1d1d1f;font-variant-numeric:tabular-nums">138 0000 1234</span><span style="margin-left:auto;font-size:12px;color:#0071e3">微信授权</span></div>
+<div style="margin-top:8px;font-size:11px;line-height:1.6;color:#86868b">顾问会在 30 分钟内电话联系（工作日 9–20 时）。其余需求电话里聊，不在这里填表。</div>
+<div style="margin-top:18px;text-align:center;font-size:15px;font-weight:600;color:#fff;background:#0071e3;border-radius:6px;padding:14px 0">提交，等顾问电话</div>
+<div style="margin-top:12px;text-align:center;font-size:11px;color:#86868b">提交即同意《隐私政策》，手机号只用于本次带看沟通</div>
+</div>
+<div style="height:34px"></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font:600 10px/1 'Geist',ui-monospace,monospace;letter-spacing:.1em;color:#86868b">03</span><h2 style="margin:0;font-size:15px;font-weight:600;color:#1d1d1f">楼盘体系与我的</h2><span style="font-size:12px;color:#86868b">差异化资产：先相中楼，再看房源</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">楼盘列表</span><span style="font-size:11px;color:#86868b">「暂无在租」下沉为独立分组，不隐藏不混排</span></div>
+<div style="width:375px;height:812px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10);display:flex;flex-direction:column">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff"><span style="font-size:16px;font-weight:600;color:#1d1d1f">楼盘</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="height:44px;background:#fff;border-bottom:1px solid #e5e5e7;display:flex;align-items:center;padding:0 12px;gap:2px"><span style="flex:1;text-align:center;font-size:13px;color:#1d1d1f;white-space:nowrap">全上海 ▾</span><span style="flex:1;text-align:center;font-size:13px;color:#0071e3;font-weight:500;white-space:nowrap">甲级 ▾</span><span style="flex:1;text-align:center;font-size:13px;color:#1d1d1f;white-space:nowrap">竣工年份 ▾</span><span style="flex:1;text-align:center;font-size:13px;color:#1d1d1f;white-space:nowrap">排序 ▾</span></div>
+<div style="flex:1;overflow:hidden">
+<div style="padding:10px 12px 8px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">收录 613 个 · 其中 486 个有在租房源</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:10px">
+<div style="flex:none;width:96px;height:72px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f">恒隆广场</div>
+<div style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">甲级 · 2001 年 · 66 层 · 得房率 74%</div>
+<div style="font-size:12px;color:#86868b">静安区 · 静安寺站 180 m</div>
+<div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:12px;color:#6e6e73">在租</span><span style="font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">14</span><span style="font-size:12px;color:#6e6e73">套 · 单价</span><span style="font-size:14px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">10.2–13.8</span></div>
+</div>
+</div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px">
+<div style="flex:none;width:96px;height:72px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f">越洋国际广场</div>
+<div style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">甲级 · 2008 年 · 42 层 · 得房率 68%</div>
+<div style="font-size:12px;color:#86868b">静安区 · 南京西路站 320 m</div>
+<div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:12px;color:#6e6e73">在租</span><span style="font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9</span><span style="font-size:12px;color:#6e6e73">套 · 单价</span><span style="font-size:14px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">6.8–7.6</span></div>
+</div>
+</div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px">
+<div style="flex:none;width:96px;height:72px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f">上海世贸大厦</div>
+<div style="font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">乙级 · 1998 年 · 36 层 · 得房率 —</div>
+<div style="font-size:12px;color:#86868b">长宁区 · 娄山关路站 600 m</div>
+<div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:12px;color:#6e6e73">在租</span><span style="font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">6</span><span style="font-size:12px;color:#6e6e73">套 · 单价</span><span style="font-size:14px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">4.9–5.4</span></div>
+</div>
+</div>
+</div>
+<div style="padding:4px 12px 8px"><div style="font-size:13px;font-weight:600;color:#86868b">暂无在租 · 可留资等通知</div><div style="margin-top:2px;font-size:11px;color:#a1a1a6;font-variant-numeric:tabular-nums">127 个楼盘。资料仍可查，有房源时通知你</div></div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px;display:flex;flex-direction:column;gap:14px;opacity:.72">
+<div style="display:flex;gap:10px;align-items:center">
+<div style="flex:none;width:96px;height:72px;border-radius:6px;background:#ececee;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#b0b0b5">图</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#6e6e73">震旦国际大楼</div>
+<div style="font-size:12px;color:#86868b;font-variant-numeric:tabular-nums">甲级 · 2005 年 · 38 层</div>
+<div style="font-size:12px;color:#a1a1a6">浦东新区 · 陆家嘴站 400 m</div>
+</div>
+<span style="flex:none;font-size:12px;color:#0071e3;border:1px solid #d7d7db;border-radius:6px;padding:6px 10px">留资</span>
+</div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px;align-items:center">
+<div style="flex:none;width:96px;height:72px;border-radius:6px;background:#ececee;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#b0b0b5">图</span></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+<div style="font-size:15px;font-weight:600;color:#6e6e73">交银金融大厦</div>
+<div style="font-size:12px;color:#86868b;font-variant-numeric:tabular-nums">甲级 · 2011 年 · 45 层</div>
+<div style="font-size:12px;color:#a1a1a6">浦东新区 · 世纪大道站 260 m</div>
+</div>
+<span style="flex:none;font-size:12px;color:#0071e3;border:1px solid #d7d7db;border-radius:6px;padding:6px 10px">留资</span>
+</div>
+</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding-top:6px">
+<div style="height:43px;display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><path d="M3 9l7-6 7 6v8H3z"></path></svg><span style="font-size:10px;color:#b0b0b5">首页</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><circle cx="9" cy="9" r="5.5"></circle><path d="M13 13l4 4"></path></svg><span style="font-size:10px;color:#b0b0b5">找房</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.6"><rect x="4" y="3" width="12" height="14"></rect><path d="M7 6h2M11 6h2M7 9h2M11 9h2M7 12h2M11 12h2"></path></svg><span style="font-size:10px;color:#1d1d1f;font-weight:500">楼盘</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><circle cx="10" cy="7" r="3.2"></circle><path d="M4 17c0-3.2 2.7-5 6-5s6 1.8 6 5"></path></svg><span style="font-size:10px;color:#b0b0b5">我的</span></div>
+</div>
+<div style="height:24px;display:flex;align-items:center;justify-content:center"><span style="width:120px;height:4px;border-radius:2px;background:#1d1d1f"></span></div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">楼盘详情</span><span style="font-size:11px;color:#86868b">在租房源按面积段分组</span></div>
+<div style="width:375px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10)">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff;border-bottom:1px solid #e5e5e7"><span style="position:absolute;left:14px;font-size:18px;color:#1d1d1f">‹</span><span style="font-size:16px;font-weight:600;color:#1d1d1f">楼盘详情</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="position:relative;height:200px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:11px;color:#a1a1a6">楼体外立面占位</span><span style="position:absolute;right:12px;bottom:12px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;border-radius:10px;padding:3px 9px;font-variant-numeric:tabular-nums">1 / 8</span></div>
+<div style="background:#fff;padding:14px">
+<div style="font-size:19px;font-weight:600;color:#1d1d1f">越洋国际广场</div>
+<div style="margin-top:6px;font-size:13px;color:#6e6e73">静安区 石门一路 288 号 · 南京西路商圈</div>
+<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:4px"><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:3px 6px">甲级</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:3px 6px">地铁 2/12/13 号线</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:3px 6px">LEED 金级</span><span style="font-size:10px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:3px 6px">可注册</span></div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:10px 12px;padding:14px">
+<div style="display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="text-align:center"><div style="font-size:12px;color:#86868b">在租</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9 套</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">单价区间</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">6.8–7.6</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">物业费</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">26</div></div>
+<div style="text-align:center;border-left:1px solid #e5e5e7"><div style="font-size:12px;color:#86868b">空置率</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">8%</div></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:17px;font-weight:600;color:#1d1d1f">在租房源</div>
+<div style="margin-top:12px;font-size:12px;color:#86868b;font-variant-numeric:tabular-nums">1,000 ㎡ 以上 · 4 套</div>
+<div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #e5e5e7"><div style="flex:none;width:72px;height:56px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:#1d1d1f">12 层整层</div><div style="margin-top:2px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,240 ㎡ · 得房率 68% · 免租 2 月</div></div><div style="flex:none;text-align:right"><div style="font-size:15px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">6.8</div><div style="font-size:10px;color:#86868b">元/㎡·天</div></div></div>
+<div style="display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #e5e5e7"><div style="flex:none;width:72px;height:56px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:#1d1d1f">26 层整层</div><div style="margin-top:2px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,240 ㎡ · 得房率 68%</div></div><div style="flex:none;text-align:right"><div style="font-size:15px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">7.6</div><div style="font-size:10px;color:#86868b">元/㎡·天</div></div></div>
+</div>
+<div style="margin-top:16px;font-size:12px;color:#86868b;font-variant-numeric:tabular-nums">300–1,000 ㎡ · 5 套</div>
+<div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #e5e5e7"><div style="flex:none;width:72px;height:56px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:#1d1d1f">18 层 B 区</div><div style="margin-top:2px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">620 ㎡ · 得房率 70%</div></div><div style="flex:none;text-align:right"><div style="font-size:15px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">7.2</div><div style="font-size:10px;color:#86868b">元/㎡·天</div></div></div>
+</div>
+<div style="margin-top:14px;text-align:center;font-size:13px;color:#0071e3;border-top:1px solid #e5e5e7;padding-top:12px">查看全部 9 套</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:17px;font-weight:600;color:#1d1d1f">楼盘参数</div>
+<div style="margin-top:12px;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">竣工年份</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">2008</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">总层数 / 标准层</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">42 层 / 1,240 ㎡</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">电梯</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">客梯 4 / 货梯 2</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">车位</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">320 个</span></div>
+<div style="display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">物业公司</span><span style="font-size:13px;color:#1d1d1f">仲量联行</span></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:17px;font-weight:600;color:#1d1d1f">位置与通勤</div>
+<div style="margin-top:12px;height:140px;border-radius:6px;background:#ececed;position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 48px,#e2e2e4 48px 51px),repeating-linear-gradient(0deg,transparent 0 44px,#e2e2e4 44px 47px)"></div><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#0071e3;box-shadow:0 0 0 4px rgba(0,113,227,.2)"></span><span style="position:absolute;right:8px;bottom:6px;font-size:9px;color:#a1a1a6">地图占位</span></div>
+<div style="margin-top:12px;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">南京西路站</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">步行 5 分钟 · 320 m</span></div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">延安高架入口</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">700 m</span></div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #e5e5e7"><span style="font-size:13px;color:#6e6e73">虹桥枢纽</span><span style="font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">驾车 32 分钟</span></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:12px">同商圈可比楼盘</div>
+<div style="display:flex;gap:10px">
+<div style="flex:1;min-width:0"><div style="height:72px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:6px;font-size:13px;font-weight:600;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">恒隆广场</div><div style="font-size:11px;color:#6e6e73;font-variant-numeric:tabular-nums">14 套 · 10.2 起</div></div>
+<div style="flex:1;min-width:0"><div style="height:72px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:6px;font-size:13px;font-weight:600;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">静安嘉里中心</div><div style="font-size:11px;color:#6e6e73;font-variant-numeric:tabular-nums">11 套 · 9.6 起</div></div>
+<div style="flex:1;min-width:0"><div style="height:72px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:6px;font-size:13px;font-weight:600;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">兴业太古汇</div><div style="font-size:11px;color:#6e6e73;font-variant-numeric:tabular-nums">7 套 · 11.4 起</div></div>
+</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding:8px 12px;display:flex;align-items:center;gap:14px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:44px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.5"><path d="M10 16S3.5 12 3.5 7.8A3.3 3.3 0 0110 6a3.3 3.3 0 016.5 1.8C16.5 12 10 16 10 16z"></path></svg><span style="font-size:10px;color:#6e6e73">收藏</span></div>
+<div style="flex:1;text-align:center;font-size:15px;font-weight:600;color:#1d1d1f;border:1px solid #d7d7db;border-radius:999px;padding:12px 0">看全部 9 套</div>
+<div style="flex:1;text-align:center;font-size:15px;font-weight:600;color:#fff;background:#0071e3;border-radius:999px;padding:13px 0">找顾问问楼</div>
+</div>
+<div style="height:34px;background:#fff"></div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">我的</span><span style="font-size:11px;color:#86868b">无 UGC、无会员、无邀请有奖</span></div>
+<div style="width:375px;height:812px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10);display:flex;flex-direction:column">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff"><span style="font-size:16px;font-weight:600;color:#1d1d1f">我的</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="flex:1;overflow:hidden">
+<div style="background:#fff;padding:16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #e5e5e7">
+<div style="flex:none;width:48px;height:48px;border-radius:50%;background:#e8e8ea"></div>
+<div style="flex:1"><div style="font-size:17px;font-weight:600;color:#1d1d1f">微信用户</div><div style="margin-top:2px;font-size:12px;color:#86868b">上海 · 切换城市</div></div>
+<span style="font-size:14px;color:#86868b">›</span>
+</div>
+<div style="background:#fff;border-radius:8px;margin:10px 12px;padding:14px">
+<div style="display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="text-align:center"><div style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">12</div><div style="margin-top:3px;font-size:11px;color:#6e6e73">收藏房源</div></div>
+<div style="text-align:center"><div style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">5</div><div style="margin-top:3px;font-size:11px;color:#6e6e73">收藏楼盘</div></div>
+<div style="text-align:center"><div style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">38</div><div style="margin-top:3px;font-size:11px;color:#6e6e73">浏览过</div></div>
+<div style="text-align:center"><div style="font-size:19px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">3</div><div style="margin-top:3px;font-size:11px;color:#6e6e73">对比中</div></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:0 14px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0"><span style="font-size:15px;color:#1d1d1f">我的留资</span><span style="display:flex;align-items:center;gap:6px;font-size:13px;color:#86868b"><span style="font-variant-numeric:tabular-nums">2 条待跟进</span>›</span></div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="padding:12px 0;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px"><div style="flex:none;width:56px;height:44px;border-radius:6px;background:#e8e8ea"></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">越洋国际广场 · 12 层整层</div><div style="margin-top:2px;font-size:11px;color:#86868b;font-variant-numeric:tabular-nums">8 月 19 日提交 · 顾问已联系</div></div><span style="flex:none;font-size:11px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:3px 6px">待带看</span></div>
+<div style="display:flex;align-items:center;gap:10px"><div style="flex:none;width:56px;height:44px;border-radius:6px;background:#e8e8ea"></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">陆家嘴 2,000 ㎡ 以上求租</div><div style="margin-top:2px;font-size:11px;color:#86868b;font-variant-numeric:tabular-nums">8 月 20 日提交 · 顾问找房中</div></div><span style="flex:none;font-size:11px;color:#6e6e73;background:#f5f5f7;border-radius:3px;padding:3px 6px">进行中</span></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:0 14px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0"><span style="font-size:15px;color:#1d1d1f">房源对比</span><span style="display:flex;align-items:center;gap:6px;font-size:13px;color:#86868b"><span style="font-variant-numeric:tabular-nums">3 套 · 按月租估算排序</span>›</span></div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0"><span style="font-size:15px;color:#1d1d1f">切换城市</span><span style="display:flex;align-items:center;gap:6px;font-size:13px;color:#86868b">上海 ›</span></div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0"><span style="font-size:15px;color:#1d1d1f">联系顾问</span><span style="display:flex;align-items:center;gap:6px;font-size:13px;color:#86868b">工作日 9–20 时 ›</span></div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0"><span style="font-size:15px;color:#1d1d1f">设置</span><span style="font-size:13px;color:#86868b">›</span></div>
+</div>
+<div style="text-align:center;font-size:11px;color:#a1a1a6;padding:6px 0">SBH 商办 · 版本 <span style="font-variant-numeric:tabular-nums">1.0.0</span></div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding-top:6px">
+<div style="height:43px;display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><path d="M3 9l7-6 7 6v8H3z"></path></svg><span style="font-size:10px;color:#b0b0b5">首页</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><circle cx="9" cy="9" r="5.5"></circle><path d="M13 13l4 4"></path></svg><span style="font-size:10px;color:#b0b0b5">找房</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><rect x="4" y="3" width="12" height="14"></rect><path d="M7 6h2M11 6h2M7 9h2M11 9h2M7 12h2M11 12h2"></path></svg><span style="font-size:10px;color:#b0b0b5">楼盘</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.6"><circle cx="10" cy="7" r="3.2"></circle><path d="M4 17c0-3.2 2.7-5 6-5s6 1.8 6 5"></path></svg><span style="font-size:10px;color:#1d1d1f;font-weight:500">我的</span></div>
+</div>
+<div style="height:24px;display:flex;align-items:center;justify-content:center"><span style="width:120px;height:4px;border-radius:2px;background:#1d1d1f"></span></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font:600 10px/1 'Geist',ui-monospace,monospace;letter-spacing:.1em;color:#86868b">04</span><h2 style="margin:0;font-size:15px;font-weight:600;color:#1d1d1f">补充状态</h2><span style="font-size:12px;color:#86868b">加载 · 失效供给 · 对比 · 城市切换</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">骨架屏</span><span style="font-size:11px;color:#86868b">列表首屏，不用 loading 转圈</span></div>
+<div style="width:375px;height:812px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10);display:flex;flex-direction:column">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff"><span style="font-size:16px;font-weight:600;color:#1d1d1f">找房</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="background:#fff;padding:0 12px 8px"><div style="height:34px;background:#f2f2f4;border-radius:6px"></div></div>
+<div style="height:44px;background:#fff;border-bottom:1px solid #e5e5e7;display:flex;align-items:center;padding:0 12px;gap:10px"><span style="flex:1;height:14px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out infinite"></span><span style="flex:1;height:14px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .1s infinite"></span><span style="flex:1;height:14px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .2s infinite"></span><span style="flex:none;width:52px;height:14px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .3s infinite"></span></div>
+<div style="flex:1;overflow:hidden">
+<div style="padding:10px 12px 8px"><span style="display:block;width:96px;height:12px;border-radius:3px;background:#e5e5e7;animation:skl 1.4s ease-in-out infinite"></span></div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;gap:10px"><div style="flex:none;width:112px;height:84px;border-radius:6px;background:#ececee;animation:skl 1.4s ease-in-out infinite"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;padding-top:2px"><span style="width:82%;height:15px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out infinite"></span><span style="width:66%;height:12px;border-radius:3px;background:#f0f0f2;animation:skl 1.4s ease-in-out .1s infinite"></span><span style="width:74%;height:12px;border-radius:3px;background:#f0f0f2;animation:skl 1.4s ease-in-out .15s infinite"></span><span style="width:40%;height:19px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .2s infinite"></span></div></div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px"><div style="flex:none;width:112px;height:84px;border-radius:6px;background:#ececee;animation:skl 1.4s ease-in-out .1s infinite"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;padding-top:2px"><span style="width:70%;height:15px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .1s infinite"></span><span style="width:78%;height:12px;border-radius:3px;background:#f0f0f2;animation:skl 1.4s ease-in-out .2s infinite"></span><span style="width:58%;height:12px;border-radius:3px;background:#f0f0f2;animation:skl 1.4s ease-in-out .25s infinite"></span><span style="width:36%;height:19px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .3s infinite"></span></div></div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px"><div style="flex:none;width:112px;height:84px;border-radius:6px;background:#ececee;animation:skl 1.4s ease-in-out .2s infinite"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;padding-top:2px"><span style="width:76%;height:15px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .2s infinite"></span><span style="width:62%;height:12px;border-radius:3px;background:#f0f0f2;animation:skl 1.4s ease-in-out .3s infinite"></span><span style="width:70%;height:12px;border-radius:3px;background:#f0f0f2;animation:skl 1.4s ease-in-out .35s infinite"></span><span style="width:42%;height:19px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .4s infinite"></span></div></div>
+<div style="height:1px;background:#e5e5e7"></div>
+<div style="display:flex;gap:10px"><div style="flex:none;width:112px;height:84px;border-radius:6px;background:#ececee;animation:skl 1.4s ease-in-out .3s infinite"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;padding-top:2px"><span style="width:80%;height:15px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .3s infinite"></span><span style="width:56%;height:12px;border-radius:3px;background:#f0f0f2;animation:skl 1.4s ease-in-out .4s infinite"></span><span style="width:72%;height:12px;border-radius:3px;background:#f0f0f2;animation:skl 1.4s ease-in-out .45s infinite"></span><span style="width:38%;height:19px;border-radius:3px;background:#ececee;animation:skl 1.4s ease-in-out .5s infinite"></span></div></div>
+</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding-top:6px">
+<div style="height:43px;display:grid;grid-template-columns:repeat(4,1fr)">
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><path d="M3 9l7-6 7 6v8H3z"></path></svg><span style="font-size:10px;color:#b0b0b5">首页</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#1d1d1f" stroke-width="1.6"><circle cx="9" cy="9" r="5.5"></circle><path d="M13 13l4 4"></path></svg><span style="font-size:10px;color:#1d1d1f;font-weight:500">找房</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><rect x="4" y="3" width="12" height="14"></rect><path d="M7 6h2M11 6h2M7 9h2M11 9h2M7 12h2M11 12h2"></path></svg><span style="font-size:10px;color:#b0b0b5">楼盘</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#b0b0b5" stroke-width="1.6"><circle cx="10" cy="7" r="3.2"></circle><path d="M4 17c0-3.2 2.7-5 6-5s6 1.8 6 5"></path></svg><span style="font-size:10px;color:#b0b0b5">我的</span></div>
+</div>
+<div style="height:24px;display:flex;align-items:center;justify-content:center"><span style="width:120px;height:4px;border-radius:2px;background:#1d1d1f"></span></div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">已租下架</span><span style="font-size:11px;color:#86868b">承认失效，立刻给出下一步</span></div>
+<div style="width:375px;height:812px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10);display:flex;flex-direction:column">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff;border-bottom:1px solid #e5e5e7"><span style="position:absolute;left:14px;font-size:18px;color:#1d1d1f">‹</span><span style="font-size:16px;font-weight:600;color:#1d1d1f">房源详情</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="flex:1;overflow:hidden">
+<div style="position:relative;height:180px;background:#ececee;display:flex;align-items:center;justify-content:center"><span style="font-size:11px;color:#b0b0b5">画廊占位</span><div style="position:absolute;inset:0;background:rgba(242,242,244,.62)"></div><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:15px;font-weight:600;color:#fff;background:rgba(29,29,31,.78);border-radius:6px;padding:8px 14px">已租出 · 已下架</span></div>
+<div style="background:#fff;padding:14px">
+<div style="font-size:19px;font-weight:600;line-height:1.4;color:#6e6e73">越洋国际广场 · 12 层整层</div>
+<div style="margin-top:8px;display:flex;align-items:baseline;gap:4px"><span style="font-size:26px;font-weight:600;color:#86868b;font-variant-numeric:tabular-nums;text-decoration:line-through">6.8</span><span style="font-size:13px;color:#86868b">元/㎡·天</span></div>
+<div style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e5e7;font-size:12px;line-height:1.7;color:#6e6e73">该房源于 <span style="color:#1d1d1f;font-weight:500;font-variant-numeric:tabular-nums">8 月 18 日</span> 成交，成交周期 <span style="color:#1d1d1f;font-weight:500;font-variant-numeric:tabular-nums">23 天</span>。参数与图片保留，供你比价参考。</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:10px 12px;padding:14px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f">同楼盘还有 <span style="font-variant-numeric:tabular-nums">8</span> 套在租</div>
+<div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #e5e5e7"><div style="flex:none;width:84px;height:64px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:#1d1d1f">26 层整层</div><div style="margin-top:3px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">1,240 ㎡ · 同标准层 · 得房率 68%</div></div><div style="flex:none;text-align:right"><div style="font-size:15px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">7.6</div><div style="font-size:10px;color:#86868b">元/㎡·天</div></div></div>
+<div style="display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #e5e5e7"><div style="flex:none;width:84px;height:64px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:#1d1d1f">18 层 B 区</div><div style="margin-top:3px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">620 ㎡ · 可拼 1,240 ㎡</div></div><div style="flex:none;text-align:right"><div style="font-size:15px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">7.2</div><div style="font-size:10px;color:#86868b">元/㎡·天</div></div></div>
+</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:15px;font-weight:600;color:#1d1d1f">同商圈同面积段</div>
+<div style="margin-top:4px;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">南京西路 · 1,000–2,000 ㎡ · 6.5–7.8 元/㎡·天 · 共 12 套</div>
+<div style="margin-top:12px;text-align:center;font-size:15px;font-weight:600;color:#fff;background:#0071e3;border-radius:6px;padding:12px 0">看这 12 套</div>
+</div>
+</div>
+<div style="height:34px;background:#fff;display:flex;align-items:center;justify-content:center"><span style="width:120px;height:4px;border-radius:2px;background:#1d1d1f"></span></div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">对比页</span><span style="font-size:11px;color:#86868b">最多 3 套 · 差异行加底纹，不用颜色</span></div>
+<div style="width:375px;height:812px;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10);display:flex;flex-direction:column">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#fff;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">9:41<span style="font-size:11px;font-weight:500;letter-spacing:.06em">5G ▮</span></div>
+<div style="height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff;border-bottom:1px solid #e5e5e7"><span style="position:absolute;left:14px;font-size:18px;color:#1d1d1f">‹</span><span style="font-size:16px;font-weight:600;color:#1d1d1f">房源对比</span><span style="position:absolute;right:12px;display:flex;align-items:center;border:1px solid #e5e5e7;border-radius:14px;height:28px;padding:0 2px"><span style="width:30px;text-align:center;font-size:13px;color:#6e6e73">···</span><span style="width:1px;height:14px;background:#e5e5e7"></span><span style="width:30px;text-align:center;font-size:11px;color:#6e6e73">◉</span></span></div>
+<div style="flex:1;overflow:hidden">
+<div style="background:#fff;padding:12px 12px 0;display:flex;gap:8px;border-bottom:1px solid #e5e5e7">
+<div style="width:74px;flex:none"></div>
+<div style="flex:1;min-width:0;padding-bottom:10px"><div style="height:52px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:6px;font-size:12px;font-weight:600;color:#1d1d1f;line-height:1.35">越洋 12F</div></div>
+<div style="flex:1;min-width:0;padding-bottom:10px"><div style="height:52px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:6px;font-size:12px;font-weight:600;color:#1d1d1f;line-height:1.35">恒隆 31F</div></div>
+<div style="flex:1;min-width:0;padding-bottom:10px"><div style="height:52px;border-radius:6px;background:#e8e8ea;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;color:#a1a1a6">图</span></div><div style="margin-top:6px;font-size:12px;font-weight:600;color:#1d1d1f;line-height:1.35">世贸 8F</div></div>
+</div>
+<div style="background:#fff">
+<div style="display:flex;gap:8px;padding:11px 12px;background:#f7f7f9"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">月租估算</span><span style="flex:1;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">25.3 万</span><span style="flex:1;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">58.5 万</span><span style="flex:1;font-size:13px;font-weight:600;color:#1d1d1f;font-variant-numeric:tabular-nums">16.8 万</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">单价</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">6.8</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">12.5</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">5.2</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">建筑面积</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">1,240</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">1,560</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">1,080</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7;background:#f7f7f9"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">得房率</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">68%</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">74%</span><span style="flex:1;font-size:13px;color:#1d1d1f">—</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">实用单价</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">10.0</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">16.9</span><span style="flex:1;font-size:13px;color:#1d1d1f">—</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">物业费</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">26</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">34</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">18</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7;background:#f7f7f9"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">免租期</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">2 月</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">1 月</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">3 月</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">押付</span><span style="flex:1;font-size:13px;color:#1d1d1f">押一付三</span><span style="flex:1;font-size:13px;color:#1d1d1f">押二付三</span><span style="flex:1;font-size:13px;color:#1d1d1f">押一付三</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">层高</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">3.1m</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">3.3m</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">2.8m</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7;background:#f7f7f9"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">地铁</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">320 m</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">180 m</span><span style="flex:1;font-size:13px;color:#1d1d1f;font-variant-numeric:tabular-nums">600 m</span></div>
+<div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #e5e5e7"><span style="width:74px;flex:none;font-size:12px;color:#6e6e73">工商注册</span><span style="flex:1;font-size:13px;color:#1d1d1f">支持</span><span style="flex:1;font-size:13px;color:#1d1d1f">支持</span><span style="flex:1;font-size:13px;color:#1d1d1f">支持</span></div>
+</div>
+<div style="margin:10px 12px;font-size:11px;line-height:1.7;color:#86868b">底纹行为三者有差异的项。实用单价 = 单价 ÷ 得房率，得房率缺失时不推算。</div>
+</div>
+<div style="background:#fff;border-top:1px solid #e5e5e7;padding:8px 12px;display:flex;align-items:center;gap:10px">
+<span style="flex:none;font-size:13px;color:#0071e3;padding:0 6px">加一套</span>
+<span style="flex:1;text-align:center;font-size:15px;font-weight:600;color:#fff;background:#0071e3;border-radius:999px;padding:13px 0">约看这 3 套</span>
+</div>
+<div style="height:34px;background:#fff"></div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 10.5px 'Geist',ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.07);color:#1d1d1f;border-radius:5px">城市切换</span><span style="font-size:11px;color:#86868b">半屏 · 只列已开通城市</span></div>
+<div style="width:375px;height:812px;position:relative;background:#f2f2f4;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.10)">
+<div style="position:absolute;inset:0;background:#fff"></div>
+<div style="position:absolute;inset:0;background:rgba(0,0,0,.4)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#f2f2f4;border-radius:14px 14px 0 0;padding-bottom:34px">
+<div style="height:52px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff;border-radius:14px 14px 0 0"><span style="font-size:17px;font-weight:600;color:#1d1d1f">选择城市</span><span style="position:absolute;right:16px;font-size:16px;color:#86868b">✕</span></div>
+<div style="padding-top:10px">
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:12px;color:#86868b">当前城市</div><div style="margin-top:4px;font-size:17px;font-weight:600;color:#1d1d1f">上海</div></div><span style="display:flex;align-items:center;gap:5px;font-size:12px;color:#0071e3"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="#0071e3" stroke-width="1.6"><path d="M10 17s5.5-5 5.5-9.2A5.5 5.5 0 004.5 7.8C4.5 12 10 17 10 17z"></path><circle cx="10" cy="7.8" r="1.9"></circle></svg>定位到上海</span></div>
+<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e5e7;font-size:12px;color:#6e6e73;font-variant-numeric:tabular-nums">切换城市会清空当前筛选条件与地图视野</div>
+</div>
+<div style="background:#fff;border-radius:8px;margin:0 12px 10px;padding:14px">
+<div style="font-size:13px;font-weight:600;color:#1d1d1f">已开通 <span style="font-weight:400;color:#86868b;font-variant-numeric:tabular-nums">6 城</span></div>
+<div style="margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+<span style="text-align:center;font-size:14px;font-weight:600;color:#fff;background:#0071e3;border-radius:6px;padding:11px 0">上海</span>
+<span style="text-align:center;font-size:14px;color:#1d1d1f;background:#f2f2f4;border-radius:6px;padding:11px 0">北京</span>
+<span style="text-align:center;font-size:14px;color:#1d1d1f;background:#f2f2f4;border-radius:6px;padding:11px 0">深圳</span>
+<span style="text-align:center;font-size:14px;color:#1d1d1f;background:#f2f2f4;border-radius:6px;padding:11px 0">广州</span>
+<span style="text-align:center;font-size:14px;color:#1d1d1f;background:#f2f2f4;border-radius:6px;padding:11px 0">杭州</span>
+<span style="text-align:center;font-size:14px;color:#1d1d1f;background:#f2f2f4;border-radius:6px;padding:11px 0">成都</span>
+</div>
+<div style="margin-top:14px;padding-top:14px;border-top:1px solid #e5e5e7;font-size:13px;font-weight:600;color:#86868b">即将开通</div>
+<div style="margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+<span style="text-align:center;font-size:14px;color:#b0b0b5;background:#f7f7f9;border-radius:6px;padding:11px 0">南京</span>
+<span style="text-align:center;font-size:14px;color:#b0b0b5;background:#f7f7f9;border-radius:6px;padding:11px 0">苏州</span>
+<span style="text-align:center;font-size:14px;color:#b0b0b5;background:#f7f7f9;border-radius:6px;padding:11px 0">武汉</span>
+</div>
+<div style="margin-top:10px;font-size:11px;color:#86868b">开通后通知我 · 在「我的 › 设置」里管理</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div style="max-width:660px;display:flex;flex-direction:column;gap:10px;border-top:1px solid #d0d0d4;padding-top:24px">
+<h2 style="margin:0;font-size:13px;font-weight:600;color:#1d1d1f">下一步</h2>
+<ul style="margin:0;padding-left:18px;font-size:12px;line-height:1.85;color:#6e6e73">
+<li>给我 <span style="color:#1d1d1f">.agent/design-system.md</span>，我把 ink 三档、--line、accent 换成真实 token 值。</li>
+<li>缺真实素材：楼体外立面、户型图、房源实拍。现在全是占位块——我不能生成图片，有图我替换。</li>
+<li>可再补的状态：网络失败重试、收藏空态、留资提交成功、地图无覆盖区域。要哪几个我加。</li>
+</ul>
+</div>
+
+</div>
+</x-dc>
+</body>
+</html>
