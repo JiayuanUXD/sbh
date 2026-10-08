@@ -119,6 +119,8 @@ export type HomepageData = Readonly<{
   districtCards: readonly DistrictCardViewModel[]
   /** 最新资讯（默认取 5 条，按 publishedAt 倒序） */
   latestArticles: readonly ArticleCardViewModel[]
+  /** 首页主推资讯（后台指定，无有效指定时回退最新文章；若无文章则为 null） */
+  featuredArticle: ArticleCardViewModel | null
   /** 真实统计计数：有效房源 / 有效楼盘 / 前台可见商圈（与列表页、商圈链接同口径） */
   stats: HomepageStats
   /** 按 listingType 聚合的计数与代表封面 */
@@ -885,6 +887,7 @@ export async function getHomepage(
     businessAreas,
     featuredBuildings,
     latestArticles,
+    homeFeaturedArticle,
     allEffectiveRows,
     allEffectiveBuildings,
     cityCenter,
@@ -894,6 +897,7 @@ export async function getHomepage(
     adapter.findEffectiveBusinessAreas(ctx),
     adapter.findFeaturedBuildings(ctx, featuredLimit),
     adapter.findLatestArticles(articlesLimit),
+    adapter.findHomeFeaturedArticle ? adapter.findHomeFeaturedArticle() : Promise.resolve(null),
     // 一次全集**扫描**喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
     // OPT-068：口径与列表页一致（同 scanListings），但只取行不取整棵关系树——
     // 这条查询此前是首页冷路径最贵的一段，且每次发版缓存清零后必然重跑。
@@ -968,6 +972,8 @@ export async function getHomepage(
     const vm = mapArticleCard(a)
     if (vm) latestArticleVMs.push(vm)
   }
+  const mappedFeaturedArticle = homeFeaturedArticle ? mapArticleCard(homeFeaturedArticle) : null
+  const featuredArticle = mappedFeaturedArticle ?? latestArticleVMs[0] ?? null
 
   // 全集扫描行：喂 stats.listings / typeSummaries / nearbyListings 三个特性，
   // 与列表页共用同一个 scanListings 口径（OPT-068）。
@@ -1047,6 +1053,7 @@ export async function getHomepage(
     featuredBuildings: featuredBuildingSlice,
     districtCards,
     latestArticles: latestArticleVMs,
+    featuredArticle,
     stats,
     typeSummaries,
     nearbyListings,

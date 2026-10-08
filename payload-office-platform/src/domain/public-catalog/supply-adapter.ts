@@ -209,6 +209,14 @@ export interface SupplyAdapter {
   findLatestArticles(limit?: number): Promise<readonly Article[]>
 
   /**
+   * 首页主推资讯（用于「资讯中心」左侧大图）
+   *
+   * 仅返回 status=published、isHomeFeatured=true 且未逻辑删除的资讯。
+   * depth=2 以便 coverImage 填充为 Media。若无主推返回 null。
+   */
+  findHomeFeaturedArticle?(): Promise<Article | null>
+
+  /**
    * 全站资讯列表（用于 /news 列表页，分页）
    *
    * 仅返回 status=published 且未逻辑删除的资讯，按 publishedAt 倒序。
@@ -1242,6 +1250,22 @@ GROUP BY l.building_id
         sort: '-publishedAt',
       })
       return result.docs as readonly Article[]
+    },
+
+    async findHomeFeaturedArticle() {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'articles',
+        where: {
+          status: { equals: 'published' },
+          deletedAt: { exists: false },
+          isHomeFeatured: { equals: true },
+        },
+        depth: 2,
+        limit: 1,
+        sort: '-publishedAt',
+      })
+      return (result.docs[0] as Article | undefined) ?? null
     },
 
     async findPublishedArticles(options = {}) {

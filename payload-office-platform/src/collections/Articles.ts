@@ -9,8 +9,43 @@ import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { invalidateArticlePublicCache as revalidateArticlePublicCache } from '@/lib/frontend/public-cache-revalidation'
 import { createMenuAccess } from '@/domain/auth/access'
 
-const invalidateArticlePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async () => {
+export const syncHomeFeaturedExclusivity: CollectionAfterChangeHook = async ({
+  doc,
+  req,
+  context,
+}) => {
+  if (context?.skipHomeFeaturedSync) return
+  if (!doc?.isHomeFeatured) return
+
+  try {
+    await req.payload.update({
+      collection: 'articles',
+      where: {
+        and: [
+          { isHomeFeatured: { equals: true } },
+          { id: { not_equals: doc.id } },
+        ],
+      },
+      data: {
+        isHomeFeatured: false,
+      },
+      context: {
+        ...context,
+        skipHomeFeaturedSync: true,
+      },
+    })
+  } catch (err) {
+    req.payload.logger?.error?.(
+      `[articles] failed to unset other homeFeatured articles: ${err instanceof Error ? err.message : String(err)}`,
+    )
+  }
+}
+
+const invalidateArticlePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async (args) => {
   revalidateArticlePublicCache()
+  if (args && 'operation' in args) {
+    await syncHomeFeaturedExclusivity(args)
+  }
 }
 
 /**
@@ -45,7 +80,7 @@ export const Articles: CollectionConfig = {
     group: false,
     pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'title',
-    defaultColumns: ['title', 'category', 'status', 'publishedAt'],
+    defaultColumns: ['title', 'category', 'isHomeFeatured', 'status', 'publishedAt'],
     listSearchableFields: ['title', 'slug'],
   },
   trash: true,
@@ -139,6 +174,15 @@ export const Articles: CollectionConfig = {
                   defaultValue: 0,
                   admin: {
                     description: '首页资讯区策展权重，越小越靠前；0 表示按发布时间倒序。',
+                  },
+                },
+                {
+                  name: 'isHomeFeatured',
+                  label: '设为首页主推',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  admin: {
+                    description: '勾选后在首页资讯区左侧作为大图主推展示（全站同时至多一篇生效）。',
                   },
                 },
               ],
