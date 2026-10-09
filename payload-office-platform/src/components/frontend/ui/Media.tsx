@@ -49,6 +49,11 @@ type Props = {
    * OPT-059：首页「按类型浏览」「热门商圈」卡片属此类——图旁边就是类型名/商圈名。
    */
   decorative?: boolean
+  /**
+   * 缺省图只留主文案（同 MediaPlaceholder 的 compact）。非房源图（如资讯封面）
+   * 用它去掉「可先查看房源信息」那句房源专属副文案。
+   */
+  compact?: boolean
 }
 
 /**
@@ -107,7 +112,7 @@ export function CardMediaPlaceholder({ compact = false }: Readonly<{ compact?: b
   )
 }
 
-export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, className, sizes, decorative = false }: Props) {
+export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, className, sizes, decorative = false, compact = false }: Props) {
   const [errored, setErrored] = useState(false)
   const alt = decorative ? '' : media?.alt || fallbackAlt || ''
   const ratioStyle = ratio !== 'auto' ? { aspectRatio: ratio.replace('/', ' / ') } : undefined
@@ -123,7 +128,7 @@ export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, cla
         aria-label={decorative ? undefined : alt || (missing ? '图片拍摄中' : '图片加载失败')}
         data-media-state={missing ? 'missing' : 'errored'}
       >
-        <MediaPlaceholder state={missing ? 'missing' : 'errored'} />
+        <MediaPlaceholder state={missing ? 'missing' : 'errored'} compact={compact} />
       </div>
     )
   }

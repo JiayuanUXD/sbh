@@ -72,6 +72,7 @@ function buildHomepage(
     featuredBuildings: [building],
     districtCards,
     latestArticles: [article],
+    featuredArticle: null,
     stats,
     typeSummaries,
     nearbyListings: [nearbyListing],

@@ -82,7 +82,7 @@ export default function CityHomeView({ city, homepage, routeMode, bandStats, sit
       <HomeListingsRail listings={homepage.featuredListings} citySlug={citySlug} totalCount={linkStats.listings} />
       <HomeValueProps items={siteSettings.valueProps} />
       <HomeNearbyRail listings={homepage.nearbyListings} cityName={city.name} citySlug={citySlug} />
-      <HomeNewsList articles={homepage.latestArticles} citySlug={citySlug} />
+      <HomeNewsList articles={homepage.latestArticles} featuredArticle={homepage.featuredArticle} citySlug={citySlug} />
     </div>
   )
 }

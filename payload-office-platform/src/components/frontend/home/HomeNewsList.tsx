@@ -3,9 +3,10 @@ import React from 'react'
 import type { ArticleCardViewModel } from '@/domain/public-catalog/contracts'
 import { formatPublishedDate } from '@/lib/frontend/format'
 import { buildCityPath } from '@/lib/frontend/city-routes'
+import { Media } from '@/components/frontend/ui/Media'
 
 /**
- * OPT-035 首页「资讯」分区：白底带，无图纯文字列表（行高 76），取前 5 条。
+ * 首页「资讯」分区：左侧主推，右侧除主推外最新五条文字列表。
  *
  * 日期格式改用 formatPublishedDate（YYYY.MM.DD），不再用旧 NewsSection 的
  * formatNewsListDate（MM/DD）：
@@ -19,12 +20,22 @@ import { buildCityPath } from '@/lib/frontend/city-routes'
  *     为同一个字段引入第二种分隔符只会制造不一致。
  * 「更多」链接与逐条点击的埋点名沿用旧 NewsSection（home_news_view_all / home_news_click）。
  */
-export default function HomeNewsList({ articles, citySlug }: Readonly<{
+export default function HomeNewsList({ articles, featuredArticle, citySlug }: Readonly<{
   articles: readonly ArticleCardViewModel[]
+  featuredArticle?: ArticleCardViewModel | null
   citySlug?: string
 }>) {
-  if (articles.length === 0) return null
-  const items = articles.slice(0, 5)
+  const sorted = [...articles].sort((a, b) => {
+    const aTime = a.publishedAt ? Date.parse(a.publishedAt) : Number.NEGATIVE_INFINITY
+    const bTime = b.publishedAt ? Date.parse(b.publishedAt) : Number.NEGATIVE_INFINITY
+    return (Number.isNaN(bTime) ? Number.NEGATIVE_INFINITY : bTime)
+      - (Number.isNaN(aTime) ? Number.NEGATIVE_INFINITY : aTime)
+  })
+  const featured = featuredArticle ?? sorted[0]
+  if (!featured) return null
+  // 右侧列表去掉左侧主推那篇，同一篇不在一屏里出现两次；空位由后一篇补上
+  // （facade 为此多取一条，见 getHomepage 的 articlesLimit）。
+  const items = sorted.filter((a) => a.id !== featured.id).slice(0, 5)
   // 资讯不带城市前缀（city-routes.ts 的 buildCityPath 对 pageType 'news' 恒返回
   // '/news'，不消费 citySlug）——[city]/ 下本来就没有 news 路由，之前在这里手拼
   // `${prefix}/news` 会指向一个不存在的 `/${citySlug}/news`，是本组件绕开了
@@ -38,28 +49,43 @@ export default function HomeNewsList({ articles, citySlug }: Readonly<{
           <h2 className="hm-h2" id="hm-news-title">资讯</h2>
           <Link href={newsListHref} prefetch={false} className="hm-section-link" data-event-name="home_news_view_all">更多资讯 →</Link>
         </div>
-        <ul className="hm-news__list" role="list">
-          {items.map((a) => (
-            <li className="hm-news__item" key={a.id}>
-              <Link
-                // 详情页同理不带城市前缀；city-routes 里 'news-detail' 不接收 slug，
-                // 恒返回 null（没有现成构造器），这里直接拼字面路径，与 city-routes
-                // 的 case 'news' / 'news-detail' 一致（见 legacyCanonicalPath /
-                // prefixedCanonicalPath 对这两个 pageType 的处理）。
-                href={`/news/${a.slug}`}
-                prefetch={false}
-                className="hm-news__row"
-                data-event-name="home_news_click"
-                data-news-id={a.id}
-              >
-                <span className="hm-news__title">{a.title}</span>
-                {/* formatPublishedDate 对 null / 不可解析的值返回 ''，会渲染成一个
-                    空日期格；设计系统硬约束是「数值缺失显示 —」，这里显式兜底。 */}
-                <span className="hm-news__date sf-num">{formatPublishedDate(a.publishedAt) || '—'}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="hm-news__grid">
+          <Link
+            href={`/news/${featured.slug}`}
+            prefetch={false}
+            className="hm-news__featured"
+            data-event-name="home_news_click"
+            data-news-id={featured.id}
+          >
+            <span className="hm-news__featured-media">
+              <Media media={featured.coverImage} ratio="auto" decorative compact sizes="(max-width: 767px) 100vw, 50vw" />
+            </span>
+            <h3 className="hm-news__featured-title">{featured.title}</h3>
+            <span className="hm-news__featured-date sf-num">{formatPublishedDate(featured.publishedAt) || '—'}</span>
+          </Link>
+          <ul className="hm-news__list" role="list">
+            {items.map((a) => (
+              <li className="hm-news__item" key={a.id}>
+                <Link
+                  // 详情页同理不带城市前缀；city-routes 里 'news-detail' 不接收 slug，
+                  // 恒返回 null（没有现成构造器），这里直接拼字面路径，与 city-routes
+                  // 的 case 'news' / 'news-detail' 一致（见 legacyCanonicalPath /
+                  // prefixedCanonicalPath 对这两个 pageType 的处理）。
+                  href={`/news/${a.slug}`}
+                  prefetch={false}
+                  className="hm-news__row"
+                  data-event-name="home_news_click"
+                  data-news-id={a.id}
+                >
+                  <span className="hm-news__title">{a.title}</span>
+                  {/* formatPublishedDate 对 null / 不可解析的值返回 ''，会渲染成一个
+                      空日期格；设计系统硬约束是「数值缺失显示 —」，这里显式兜底。 */}
+                  <span className="hm-news__date sf-num">{formatPublishedDate(a.publishedAt) || '—'}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   )

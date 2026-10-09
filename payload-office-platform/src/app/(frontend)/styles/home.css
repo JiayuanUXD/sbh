@@ -297,15 +297,25 @@
   .hm-value__name { font-size: 19px; line-height: 1.3; }
 }
 
-/* --- 资讯（白底带 padding 88 · 行高 76 · 无图） --------------------------- */
+/* --- 资讯（左侧主推图文 · 右侧五条资讯） --------------------------- */
 .hm-news { padding-block: 88px; }
 .hm-news .hm-h2 { font-size: 28px; line-height: 1.2; }
 /* 资讯是次级分区：设计稿把标题压到 28、右侧链接压到 14（其余 section 是 40 / 17） */
 .hm-news .hm-section-link { font-size: 14px; }
-.hm-news__list { margin-top: 24px; display: flex; flex-direction: column; list-style: none; }
+.hm-news__grid { margin-top: var(--sp-5); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-7); align-items: stretch; }
+.hm-news__featured { display: flex; flex-direction: column; height: 100%; min-width: 0; color: inherit; }
+.hm-news__featured-media { display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r-card); background-color: var(--bg-subtle); }
+.hm-news__featured-media > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--focal-x, 50%) var(--focal-y, 50%); }
+/* 全局 .media-placeholder 是两行 grid，默认 align-content: stretch 会把图标和文案
+   在这块 16:9 高框里撑开到上下两端，这里收拢到中间 */
+.hm-news__featured-media > .media-placeholder { width: 100%; height: 100%; align-content: center; }
+.hm-news__featured-title { margin-top: var(--sp-4); font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.hm-news__featured-date { margin-top: auto; padding-top: var(--sp-2); font-size: 14px; color: var(--ink-2); }
+.hm-news__featured:hover .hm-news__featured-title { color: var(--accent); }
+.hm-news__list { display: flex; flex-direction: column; height: 100%; list-style: none; min-width: 0; }
 /* 行线挂在 <li>（真实 :last-child），.hm-news__row 只管行内 flex 布局，
    避免 border 挂在始终是自己父节点唯一子元素的 <a> 上导致 :last-child 恒真、行线全灭 */
-.hm-news__item { border-bottom: 1px solid var(--line); }
+.hm-news__item { flex: 1; display: flex; flex-direction: column; border-bottom: 1px solid var(--line); }
 .hm-news__item:last-child { border-bottom: 0; }
 /* hover 反馈：改动前这一行**完全没有** hover 态（全局 a:hover 的下划线在
    styles.css 里已被删掉，只给正文容器与 .hm-section-link 保留）。它和 /news 的
@@ -314,7 +324,7 @@
    行不是卡，不该抬升；取「标题变深 + 整行底色微亮」这一档，时长用
    --duration-fast（120ms 交互反馈档），与全站三档动效对齐。
    负外边距 + 等量内边距：让底色块吃到容器留白，行线仍由 <li> 承担、不被覆盖。 */
-.hm-news__row { display: flex; align-items: center; justify-content: space-between; gap: 32px;
+.hm-news__row { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 32px;
   min-height: 76px; color: inherit;
   margin-inline: -12px; padding-inline: 12px; border-radius: 10px;
   transition: background-color var(--duration-fast) var(--ease-standard); }
@@ -325,6 +335,12 @@
 .hm-news__date { font-size: 14px; color: var(--ink-2); flex: none; text-align: right; }
 @media (max-width: 767px) {
   .hm-news { padding-block: 56px; }
-  .hm-news__row { gap: 16px; padding-block: 14px; }
+  .hm-news__grid { grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); }
+  .hm-news__featured { height: auto; }
+  .hm-news__featured-title { margin-top: var(--sp-4); font-size: 17px; }
+  .hm-news__featured-date { margin-top: var(--sp-2); padding-top: 0; }
+  .hm-news__list { height: auto; }
+  .hm-news__item { flex: none; }
+  .hm-news__row { flex: none; gap: 16px; padding-block: 14px; min-height: 0; }
   .hm-news__title { font-size: 17px; }
 }

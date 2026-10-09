@@ -1,0 +1,313 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 migrate:dry-run /Users/liujiayuan/App/sbh/payload-office-platform
+> node --env-file-if-exists=.env.local --import tsx scripts/migrate-dry-run.ts
+
+=== Migration Dry-Run Report ===
+Generated: 2026-10-08T08:10:02.889Z
+Database:  postgres
+Total migrations: 93
+Blocking hits:    0
+Warning hits:     4
+
+- 20260723_160143_init
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260724_080952_add_leads_source
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260725_103653_m0_schema_sync
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260725_125851_m2_5_teams_brokers
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260725_130727_m2_1_locations_geo_node
+    up: true, down: true, json: true
+    [WARN] L6: ALTER COLUMN "type" SET DATA TYPE
+      reason:  修改字段类型可能丢数据；建议新增字段 + 回填 + 双读 + 切换
+      snippet: ALTER TABLE "locations" ALTER COLUMN "type" SET DATA TYPE text;
+    [WARN] L15: ALTER COLUMN "type" SET DATA TYPE "public"."enum_locations_type" USING "type"::"public"."enum_locations_type
+      reason:  修改字段类型可能丢数据；建议新增字段 + 回填 + 双读 + 切换
+      snippet: ALTER TABLE "locations" ALTER COLUMN "type" SET DATA TYPE "public"."enum_locations_type" USING "type"::"public"."enum_lo
+- 20260725_132852_m2_6_display_tags
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260725_135837_m3_1_building_fields
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260725_142333_m3_3_building_merchant_relations
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260725_142500_m3_3_building_merchant_exclude
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260725_181426_m4_2_listing_merchant_relations
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260725_181500_m4_2_listing_merchant_exclude
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260725_185329_m4_4_listing_reviews
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260726_103500_m6_1_listing_reports
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260726_103600_m6_3_domain_events
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260726_103700_m6_4_tasks
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260726_103800_m6_7_notifications
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260726_110000_m5_1_crm_collections
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260726_140000_m5_2_leads_inquiry_context
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260726_150000_opt017_inquiry_rate_limit
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260728_175500_locked_docs_audit_logs_rel
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260728_180000_opt_021_admin_navigation_roles
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260728_181000_opt_021_form_submission_status
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260730_125851_detail_page_fields
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260730_134600_inquiry_detail_context
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260731_110500_fix_tasks_notifications_relationship
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260731_120000_information_corrections
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260731_120838_advisor_service_hours
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260731_120857_lead_viewing_preference
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260803_104120_add_articles
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260805_033418_cos_media_prefix
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260806_080629_locations_cover_image
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260808_224000_articles_menu_for_ops
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260809_142444_supply_submissions_and_entrust_source
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260809_180000_supply_notification_duplicates_preflight
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260809_183327_supply_submission_notification_unique
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260809_203911_supply_submission_notification_jobs
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260810_003111_align_listings_data_source_with_production
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260810_090000_supply_submission_role_permissions
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260810_114857_locations_city_field
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260810_153500_landing_hero_media_assets
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260810_170000_public_page_performance_indexes
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260810_200000_backfill_location_city
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260813_010000_city_site_profiles
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260813_011000_seed_city_site_profiles
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260813_020000_city_partner_applications
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260813_021000_city_partner_permissions
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260813_022000_city_partner_notification_jobs
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260813_060037_city_partner_notification_outbox_reconciler
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260815_140000_converge_shanghai_city_code
+    up: true, down: true, json: false
+    [WARN] L128: DELETE FROM
+      reason:  DELETE 需要白名单条件；不可变历史不得物理删除
+      snippet: DELETE FROM "locations"
+- 20260817_172754_sale_price_one_time
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260817_174500_sale_business_type_index
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260817_175801_sale_terms_fields
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260817_180000_sale_publication_status_sold
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260818_072207_fast_track_review_decision
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260818_232656_opt033_admin_fast_track_audit
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260819_113218_listing_hard_delete_nullable_refs
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260820_055534_drop_listing_merchant_relations
+    up: true, down: true, json: true
+    [WARN] L39: DROP INDEX
+      reason:  删除索引需确认是否影响查询性能；建议先停用再删除
+      snippet: DROP INDEX "payload_locked_documents_rels_listing_merchant_relations_idx";
+    [APPROVED] L38: DROP TABLE —— 见 DESTRUCTIVE_MIGRATION_APPROVALS.json
+      note:    该模式默认禁止，已按批准清单人工核准放行
+      snippet: DROP TABLE "listing_merchant_relations" CASCADE;
+    [APPROVED] L40: DROP COLUMN —— 见 DESTRUCTIVE_MIGRATION_APPROVALS.json
+      note:    该模式默认禁止，已按批准清单人工核准放行
+      snippet: ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "listing_merchant_relations_id";`)
+- 20260820_110024_opt035_city_profile_avg_response_hours
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260821_161534_supply_import_batches
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260822_001600_supply_import_unique_indexes
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260822_001700_supply_import_role_permissions
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260822_010308_supply_import_job_task
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260824_101016_opt048_snapshot_chain_repair
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260824_110612_opt045_import_publishable_fields
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260826_035602_opt_053_site_settings
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260826_065228_opt_054_nav_config
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260826_113343_opt_054_nav_home_target
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260827_113559_media_image_sizes
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260827_233120_site_settings_type_card_cover
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260827_234410_city_profile_type_card_overrides
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260830_164849_opt_063_listing_room_number
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260901_021249_merchant_stop_cascade_job
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260903_084339_opt_067_lead_visitor_ref
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260904_163535_opt_069_media_watermark_fields
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260904_170123_city_profile_type_card_cover_nullable
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260905_025659_opt_069_watermark_rebake_task
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260905_033034_opt_069_site_settings_watermark
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260905_121042_opt069_snapshot_chain_repair
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260905_172526_opt_071_watermark_image_source
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260906_064958_opt_073_featured_district_count
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260908_150000_grant_ops_supply_write_codes
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260909_164334_opt_083_detail_spec_visibility
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260910_141436_opt_086_audit_log_reason
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260910_233152_opt_088_members
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260910_233153_opt_088_grant_ops_member_codes
+    up: true, down: true, json: false
+    no forbidden patterns
+- 20260911_031639_nav_page_target
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260911_072752_opt_088_snapshot_chain_repair
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260912_083722_opt_094_header_service_phone
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260912_144311_opt_096_building_form
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260914_034003_opt_097_icp_record
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20260919_153235_footer_tagline_suffix_removed
+    up: true, down: true, json: true
+    [APPROVED] L5: DROP COLUMN —— 见 DESTRUCTIVE_MIGRATION_APPROVALS.json
+      note:    该模式默认禁止，已按批准清单人工核准放行
+      snippet: ALTER TABLE "site_settings" DROP COLUMN "footer_tagline_suffix";`)
+- 20261006_032507_opt_104_source_sync_batches
+    up: true, down: true, json: true
+    no forbidden patterns
+- 20261008_080915_home_featured_article
+    up: true, down: true, json: true
+    no forbidden patterns
+
+Rollback guidance:
+  每个迁移必须提供 down() 函数；回滚前先在 PG 数据副本验证。高风险回滚（含 DELETE / DROP）需用户明确确认。回滚后立即执行 migrate:verify 校验数据完整性。
+
+⚠️  4 warning(s) — 复核后可继续

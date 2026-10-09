@@ -9,8 +9,45 @@ import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { invalidateArticlePublicCache as revalidateArticlePublicCache } from '@/lib/frontend/public-cache-revalidation'
 import { createMenuAccess } from '@/domain/auth/access'
 
-const invalidateArticlePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async () => {
+export const syncHomeFeaturedExclusivity: CollectionAfterChangeHook = async ({
+  doc,
+  req,
+  context,
+}) => {
+  if (context?.skipHomeFeaturedSync) return
+  if (!doc?.isHomeFeatured) return
+
+  // 「至多一篇主推」是硬约束：清掉旧主推失败时必须让本次保存一起失败。
+  // 传 req 让批量更新加入外层保存的事务，下面抛错时整笔回滚；批量更新对单条
+  // 失败不抛、只放进 errors，所以要显式检查。
+  const result = await req.payload.update({
+    collection: 'articles',
+    where: {
+      and: [
+        { isHomeFeatured: { equals: true } },
+        { id: { not_equals: doc.id } },
+      ],
+    },
+    data: {
+      isHomeFeatured: false,
+    },
+    req,
+    context: {
+      ...context,
+      skipHomeFeaturedSync: true,
+    },
+  })
+  if (result.errors.length > 0) {
+    const detail = result.errors.map((e) => `#${e.id}: ${e.message}`).join('; ')
+    throw new Error(`取消其他文章的首页主推失败，本次保存未生效（${detail}）`)
+  }
+}
+
+const invalidateArticlePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async (args) => {
   revalidateArticlePublicCache()
+  if (args && 'operation' in args) {
+    await syncHomeFeaturedExclusivity(args)
+  }
 }
 
 /**
@@ -45,7 +82,7 @@ export const Articles: CollectionConfig = {
     group: false,
     pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'title',
-    defaultColumns: ['title', 'category', 'status', 'publishedAt'],
+    defaultColumns: ['title', 'category', 'isHomeFeatured', 'status', 'publishedAt'],
     listSearchableFields: ['title', 'slug'],
   },
   trash: true,
@@ -139,6 +176,15 @@ export const Articles: CollectionConfig = {
                   defaultValue: 0,
                   admin: {
                     description: '首页资讯区策展权重，越小越靠前；0 表示按发布时间倒序。',
+                  },
+                },
+                {
+                  name: 'isHomeFeatured',
+                  label: '设为首页主推',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  admin: {
+                    description: '勾选后在首页资讯区左侧作为大图主推展示（全站同时至多一篇生效）。',
                   },
                 },
               ],
