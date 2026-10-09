@@ -1,0 +1,227 @@
+import type { PriceDisplayUnit, PriceViewBasis, PriceViewPeriod } from '@/domain/public-catalog'
+
+export type MiniErrorCode =
+  | 'invalid_request'
+  | 'city_not_found'
+  | 'listing_not_found'
+  | 'building_not_found'
+  | 'login_code_invalid'
+  | 'session_invalid'
+  | 'phone_code_consumed'
+  | 'inquiry_submit_failed'
+  | 'rate_limited'
+  | 'service_unavailable'
+
+export type MiniPrice = Readonly<{
+  amount: number
+  currency: 'CNY'
+  businessType: 'lease' | 'sale'
+  period: PriceViewPeriod
+  basis: PriceViewBasis
+  displayUnit: PriceDisplayUnit
+  text: string
+  monthlyEstimate: number | null
+}>
+
+export type MiniImage = Readonly<{
+  src: string
+  width?: number
+  height?: number
+  alt: string
+  blurDataURL?: string
+}>
+
+export type MiniListingCard = Readonly<{
+  id: string
+  slug: string
+  title: string
+  citySlug: string
+  cityName: string
+  price: MiniPrice | null
+  area: number | null
+  seats: number | null
+  listingType: Readonly<{ value: string; label: string }>
+  availableFrom: string | null
+  building: Readonly<{
+    slug: string
+    name: string
+    address: string
+    district: string | null
+  }> | null
+  coverImage: MiniImage | null
+  highlights: readonly string[]
+}>
+
+export type MiniQuickFilter = Readonly<{
+  id: 'district' | 'listingType' | 'priceUnit'
+  label: string
+  options: readonly Readonly<{ value: string; label: string; count: number }>[]
+}>
+
+export const MINI_BUILDING_GRADES = [
+  'grade-a',
+  'super-grade-a',
+  'creative-park',
+  'serviced-office',
+] as const
+
+export type MiniBuildingGrade = (typeof MINI_BUILDING_GRADES)[number]
+
+export type MiniBuildingCard = Readonly<{
+  id: string
+  slug: string
+  name: string
+  district: string | null
+  address: string
+  grade: MiniBuildingGrade | null
+  completedYear: number | null
+  totalFloors: number | null
+  occupancyRate: number | null
+  activeListingCount: number | null
+  priceRange: Readonly<{
+    min: number
+    max: number
+    unit: string
+    displayUnit: PriceDisplayUnit
+    text: string
+  }> | null
+  coverImage: MiniImage | null
+  nearestMetro: Readonly<{
+    station: string
+    line: string | null
+    distanceMeters: number | null
+  }> | null
+}>
+
+export type MiniBuildingsData = Readonly<{
+  items: readonly MiniBuildingCard[]
+  inactiveItems: readonly MiniBuildingCard[]
+  pagination: Readonly<{
+    page: number
+    pageSize: 24
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }>
+  totalActiveCount: number
+  totalInactiveCount: number
+  districtOptions: readonly Readonly<{ value: string; label: string; count: number }>[]
+  inquiryPolicy: Readonly<{ version: string }>
+}>
+
+export type MiniBuildingDetailData = Readonly<{
+  id: string
+  slug: string
+  name: string
+  address: string
+  district: string | null
+  grade: MiniBuildingGrade | null
+  completedYear: number | null
+  totalFloors: number | null
+  standardFloorArea: number | null
+  elevators: Readonly<{
+    passenger: number | null
+    cargo: number | null
+  }> | null
+  parkingSpaces: number | null
+  propertyManagementCompany: string | null
+  propertyFee: number | null
+  gallery: readonly MiniImage[]
+  activeListingCount: number
+  groupedListings: readonly Readonly<{
+    areaRange: string
+    count: number
+    items: readonly MiniListingCard[]
+  }>[]
+  nearestMetro: Readonly<{
+    station: string
+    line: string | null
+    distanceMeters: number | null
+  }> | null
+  comparableBuildings: readonly MiniBuildingCard[]
+  inquiryPolicy: Readonly<{ version: string }>
+}>
+
+export type MiniBuildingDetailResolution =
+  | Readonly<{ status: 'ok'; snapshot: MiniSnapshot<MiniBuildingDetailData> }>
+  | Readonly<{ status: 'city_not_found' }>
+  | Readonly<{ status: 'building_not_found' }>
+
+export type MiniHomeData = Readonly<{
+  featuredListings: readonly MiniListingCard[]
+  featuredBuildings: readonly MiniBuildingCard[]
+  quickFilters: readonly MiniQuickFilter[]
+  stats: Readonly<{ listings: number; buildings: number; businessAreas: number }>
+  inquiryPolicy: Readonly<{ version: string }>
+}>
+
+export type MiniListingsData = Readonly<{
+  items: readonly MiniListingCard[]
+  pagination: Readonly<{
+    page: number
+    pageSize: 24
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }>
+  canonicalQuery: string
+  currentPriceUnit: PriceDisplayUnit | null
+  filters: readonly MiniQuickFilter[]
+}>
+
+export type MiniFactGroup = Readonly<{
+  id: string
+  title: string
+  facts: readonly Readonly<{
+    label: string
+    value: string | null
+    estimated: boolean
+  }>[]
+}>
+
+export type MiniListingDetailData = Readonly<{
+  listing: MiniListingCard & Readonly<{
+    gallery: readonly MiniImage[]
+    factGroups: readonly MiniFactGroup[]
+    verification: Readonly<{ verifiedAt: string | null; priceVerifiedAt: string | null }>
+  }>
+  monthlyCost: Readonly<{
+    currency: 'CNY'
+    period: 'month'
+    propertyFeeInclusion: 'included' | 'excluded' | 'confirm' | null
+    rent: number | null
+    propertyFee: number | null
+    total: number | null
+    assumptions: readonly string[]
+  }>
+  inquiryPolicy: Readonly<{ version: string }>
+  relatedListings: readonly MiniListingCard[]
+  buildingInfo: MiniBuildingCard | null
+}>
+
+export type MiniApiSuccess<T> = Readonly<{
+  ok: true
+  data: T
+  meta: Readonly<{ requestId: string; asOf: string; maxAgeSeconds: 300 }>
+}>
+
+export type MiniApiFailure = Readonly<{
+  ok: false
+  error: Readonly<{ code: MiniErrorCode; message: string; fields?: readonly string[] }>
+  meta: Readonly<{ requestId: string }>
+}>
+
+export type MiniApiWriteSuccess<T> = Readonly<{
+  ok: true
+  data: T
+  meta: Readonly<{ requestId: string }>
+}>
+
+export type MiniSnapshot<T> = Readonly<{ asOf: string; data: T }>
+
+export type MiniDetailResolution =
+  | Readonly<{ status: 'ok'; snapshot: MiniSnapshot<MiniListingDetailData> }>
+  | Readonly<{ status: 'city-not-found' }>
+  | Readonly<{ status: 'listing-not-found' }>

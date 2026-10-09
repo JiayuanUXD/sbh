@@ -1,0 +1,1003 @@
+{
+  "task": 5,
+  "candidateSha": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+  "preflight": {
+    "status": "PASS",
+    "recordedAt": "2026-09-07T06:09:57.459Z",
+    "commands": [],
+    "postgresVersion": "PostgreSQL 16.14 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.6), 64-bit",
+    "databases": [
+      "sbh_dev_mp108_prod"
+    ],
+    "upgradeState": {
+      "count": 80,
+      "last": "20260906_064958_opt_073_featured_district_count",
+      "assetTable": null
+    },
+    "baselineBefore": {
+      "legacySnapshotRecords": 49,
+      "legacyMeaning": "旧脚本每collection最多3条的有界口径，不是全库总记录",
+      "tables": [
+        {
+          "table": "users",
+          "count": 5
+        },
+        {
+          "table": "roles",
+          "count": 5
+        },
+        {
+          "table": "media",
+          "count": 2
+        },
+        {
+          "table": "locations",
+          "count": 14
+        },
+        {
+          "table": "business_area_extensions",
+          "count": 0
+        },
+        {
+          "table": "city_site_profiles",
+          "count": 7
+        },
+        {
+          "table": "merchants",
+          "count": 3
+        },
+        {
+          "table": "teams",
+          "count": 1
+        },
+        {
+          "table": "brokers",
+          "count": 2
+        },
+        {
+          "table": "amenities",
+          "count": 4
+        },
+        {
+          "table": "buildings",
+          "count": 6
+        },
+        {
+          "table": "building_merchant_relations",
+          "count": 2
+        },
+        {
+          "table": "listings",
+          "count": 11
+        },
+        {
+          "table": "leads",
+          "count": 8
+        },
+        {
+          "table": "customers",
+          "count": 2
+        },
+        {
+          "table": "lead_ownership_history",
+          "count": 2
+        },
+        {
+          "table": "follow_ups",
+          "count": 2
+        },
+        {
+          "table": "pages",
+          "count": 3
+        },
+        {
+          "table": "articles",
+          "count": 0
+        },
+        {
+          "table": "display_tags",
+          "count": 0
+        },
+        {
+          "table": "listing_reviews",
+          "count": 0
+        },
+        {
+          "table": "listing_reports",
+          "count": 0
+        },
+        {
+          "table": "information_corrections",
+          "count": 0
+        },
+        {
+          "table": "supply_submissions",
+          "count": 0
+        },
+        {
+          "table": "city_partner_applications",
+          "count": 0
+        },
+        {
+          "table": "domain_events",
+          "count": 2
+        },
+        {
+          "table": "audit_logs",
+          "count": 0
+        },
+        {
+          "table": "tasks",
+          "count": 0
+        },
+        {
+          "table": "notifications",
+          "count": 0
+        },
+        {
+          "table": "supply_import_batches",
+          "count": 0
+        },
+        {
+          "table": "location_aliases",
+          "count": 0
+        },
+        {
+          "table": "search",
+          "count": 17
+        },
+        {
+          "table": "forms",
+          "count": 0
+        },
+        {
+          "table": "form_submissions",
+          "count": 0
+        },
+        {
+          "table": "exports",
+          "count": 0
+        },
+        {
+          "table": "imports",
+          "count": 0
+        },
+        {
+          "table": "payload_kv",
+          "count": 0
+        },
+        {
+          "table": "payload_jobs",
+          "count": 2
+        },
+        {
+          "table": "payload_locked_documents",
+          "count": 0
+        },
+        {
+          "table": "payload_preferences",
+          "count": 0
+        },
+        {
+          "table": "payload_migrations",
+          "count": 80
+        }
+      ],
+      "boundedSameTables": 53,
+      "trueSameTablesTotal": 180
+    },
+    "port3717": "free",
+    "devtoolsCliExists": true,
+    "node": "v22.23.2",
+    "pnpm": "8.6.1"
+  },
+  "upgrade": {
+    "status": "PASS",
+    "recordedAt": "2026-09-07T06:10:16.566Z",
+    "commands": [
+      {
+        "command": "pnpm exec payload migrate",
+        "startedAt": "2026-09-07T06:10:16.983Z",
+        "finishedAt": "2026-09-07T06:10:19.635Z",
+        "exitCode": 0,
+        "output": "[14:10:19] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:10:19] INFO: Reading migration files from payload-office-platform/src/migrations\n[14:10:19] INFO: Migrating: 20260907_050043_mp108_mini_user_assets\n[14:10:19] INFO: Migrated:  20260907_050043_mp108_mini_user_assets (76ms)\n[14:10:19] INFO: Done.\n[site-config] NEXT_PUBLIC_SITE_URL 缺失，开发环境使用 fallback：http://localhost:3717\n"
+      },
+      {
+        "command": "pnpm migrate:assert-applied",
+        "startedAt": "2026-09-07T06:10:19.635Z",
+        "finishedAt": "2026-09-07T06:10:21.809Z",
+        "exitCode": 0,
+        "output": "\n> payload-office-platform@0.1.0 migrate:assert-applied payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/migrate-status.ts --assert-applied\n\n[14:10:21] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n=== Migration Status ===\nGenerated: 2026-09-07T06:10:21.788Z\nDatabase:  postgres\n  URL: [REDACTED_DATABASE_URL]\n\nCode migrations:   81\nApplied migrations: 81\nPending migrations: 0\n\nCode migrations:\n  [✓ applied] 20260723_160143_init\n  [✓ applied] 20260724_080952_add_leads_source\n  [✓ applied] 20260725_103653_m0_schema_sync\n  [✓ applied] 20260725_125851_m2_5_teams_brokers\n  [✓ applied] 20260725_130727_m2_1_locations_geo_node\n  [✓ applied] 20260725_132852_m2_6_display_tags\n  [✓ applied] 20260725_135837_m3_1_building_fields\n  [✓ applied] 20260725_142333_m3_3_building_merchant_relations\n  [✓ applied] 20260725_142500_m3_3_building_merchant_exclude\n  [✓ applied] 20260725_181426_m4_2_listing_merchant_relations\n  [✓ applied] 20260725_181500_m4_2_listing_merchant_exclude\n  [✓ applied] 20260725_185329_m4_4_listing_reviews\n  [✓ applied] 20260726_103500_m6_1_listing_reports\n  [✓ applied] 20260726_103600_m6_3_domain_events\n  [✓ applied] 20260726_103700_m6_4_tasks\n  [✓ applied] 20260726_103800_m6_7_notifications\n  [✓ applied] 20260726_110000_m5_1_crm_collections\n  [✓ applied] 20260726_140000_m5_2_leads_inquiry_context\n  [✓ applied] 20260726_150000_opt017_inquiry_rate_limit\n  [✓ applied] 20260728_175500_locked_docs_audit_logs_rel\n  [✓ applied] 20260728_180000_opt_021_admin_navigation_roles\n  [✓ applied] 20260728_181000_opt_021_form_submission_status\n  [✓ applied] 20260730_125851_detail_page_fields\n  [✓ applied] 20260730_134600_inquiry_detail_context\n  [✓ applied] 20260731_110500_fix_tasks_notifications_relationship\n  [✓ applied] 20260731_120000_information_corrections\n  [✓ applied] 20260731_120838_advisor_service_hours\n  [✓ applied] 20260731_120857_lead_viewing_preference\n  [✓ applied] 20260803_104120_add_articles\n  [✓ applied] 20260805_033418_cos_media_prefix\n  [✓ applied] 20260806_080629_locations_cover_image\n  [✓ applied] 20260808_224000_articles_menu_for_ops\n  [✓ applied] 20260809_142444_supply_submissions_and_entrust_source\n  [✓ applied] 20260809_180000_supply_notification_duplicates_preflight\n  [✓ applied] 20260809_183327_supply_submission_notification_unique\n  [✓ applied] 20260809_203911_supply_submission_notification_jobs\n  [✓ applied] 20260810_003111_align_listings_data_source_with_production\n  [✓ applied] 20260810_090000_supply_submission_role_permissions\n  [✓ applied] 20260810_114857_locations_city_field\n  [✓ applied] 20260810_153500_landing_hero_media_assets\n  [✓ applied] 20260810_170000_public_page_performance_indexes\n  [✓ applied] 20260810_200000_backfill_location_city\n  [✓ applied] 20260813_010000_city_site_profiles\n  [✓ applied] 20260813_011000_seed_city_site_profiles\n  [✓ applied] 20260813_020000_city_partner_applications\n  [✓ applied] 20260813_021000_city_partner_permissions\n  [✓ applied] 20260813_022000_city_partner_notification_jobs\n  [✓ applied] 20260813_060037_city_partner_notification_outbox_reconciler\n  [✓ applied] 20260815_140000_converge_shanghai_city_code\n  [✓ applied] 20260817_172754_sale_price_one_time\n  [✓ applied] 20260817_174500_sale_business_type_index\n  [✓ applied] 20260817_175801_sale_terms_fields\n  [✓ applied] 20260817_180000_sale_publication_status_sold\n  [✓ applied] 20260818_072207_fast_track_review_decision\n  [✓ applied] 20260818_232656_opt033_admin_fast_track_audit\n  [✓ applied] 20260819_113218_listing_hard_delete_nullable_refs\n  [✓ applied] 20260820_055534_drop_listing_merchant_relations\n  [✓ applied] 20260820_110024_opt035_city_profile_avg_response_hours\n  [✓ applied] 20260821_161534_supply_import_batches\n  [✓ applied] 20260822_001600_supply_import_unique_indexes\n  [✓ applied] 20260822_001700_supply_import_role_permissions\n  [✓ applied] 20260822_010308_supply_import_job_task\n  [✓ applied] 20260824_101016_opt048_snapshot_chain_repair\n  [✓ applied] 20260824_110612_opt045_import_publishable_fields\n  [✓ applied] 20260826_035602_opt_053_site_settings\n  [✓ applied] 20260826_065228_opt_054_nav_config\n  [✓ applied] 20260826_113343_opt_054_nav_home_target\n  [✓ applied] 20260827_113559_media_image_sizes\n  [✓ applied] 20260827_233120_site_settings_type_card_cover\n  [✓ applied] 20260827_234410_city_profile_type_card_overrides\n  [✓ applied] 20260830_164849_opt_063_listing_room_number\n  [✓ applied] 20260901_021249_merchant_stop_cascade_job\n  [✓ applied] 20260903_084339_opt_067_lead_visitor_ref\n  [✓ applied] 20260904_163535_opt_069_media_watermark_fields\n  [✓ applied] 20260904_170123_city_profile_type_card_cover_nullable\n  [✓ applied] 20260905_025659_opt_069_watermark_rebake_task\n  [✓ applied] 20260905_033034_opt_069_site_settings_watermark\n  [✓ applied] 20260905_121042_opt069_snapshot_chain_repair\n  [✓ applied] 20260905_172526_opt_071_watermark_image_source\n  [✓ applied] 20260906_064958_opt_073_featured_district_count\n  [✓ applied] 20260907_050043_mp108_mini_user_assets\n\n[migrate:assert-applied] OK：81 条已应用，0 条待应用\n.env.local not found. Continuing without it.\n[site-config] NEXT_PUBLIC_SITE_URL 缺失，开发环境使用 fallback：http://localhost:3717\n"
+      },
+      {
+        "command": "pnpm migrate:verify",
+        "startedAt": "2026-09-07T06:10:21.809Z",
+        "finishedAt": "2026-09-07T06:10:23.969Z",
+        "exitCode": 0,
+        "output": "\n> payload-office-platform@0.1.0 migrate:verify payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/migrate-verify.ts\n\n=== Migration Verify ===\nGenerated: 2026-09-07T06:10:22.065Z\nDatabase:  postgres\n  URL: [REDACTED_DATABASE_URL]\n\n[14:10:23] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n✓ [PASS] migration:20260723_160143_init:up\n    迁移 20260723_160143_init 包含 up 函数\n✓ [PASS] migration:20260723_160143_init:down\n    迁移 20260723_160143_init 包含 down 回滚入口\n✓ [PASS] migration:20260724_080952_add_leads_source:up\n    迁移 20260724_080952_add_leads_source 包含 up 函数\n✓ [PASS] migration:20260724_080952_add_leads_source:down\n    迁移 20260724_080952_add_leads_source 包含 down 回滚入口\n✓ [PASS] migration:20260725_103653_m0_schema_sync:up\n    迁移 20260725_103653_m0_schema_sync 包含 up 函数\n✓ [PASS] migration:20260725_103653_m0_schema_sync:down\n    迁移 20260725_103653_m0_schema_sync 包含 down 回滚入口\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:up\n    迁移 20260725_125851_m2_5_teams_brokers 包含 up 函数\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:down\n    迁移 20260725_125851_m2_5_teams_brokers 包含 down 回滚入口\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:up\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 up 函数\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:down\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 down 回滚入口\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:up\n    迁移 20260725_132852_m2_6_display_tags 包含 up 函数\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:down\n    迁移 20260725_132852_m2_6_display_tags 包含 down 回滚入口\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:up\n    迁移 20260725_135837_m3_1_building_fields 包含 up 函数\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:down\n    迁移 20260725_135837_m3_1_building_fields 包含 down 回滚入口\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:up\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:down\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260725_142500_m3_3_building_merchant_exclude:up\n    迁移 20260725_142500_m3_3_building_merchant_exclude 包含 up 函数\n✓ [PASS] migration:20260725_142500_m3_3_building_merchant_exclude:down\n    迁移 20260725_142500_m3_3_building_merchant_exclude 包含 down 回滚入口\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:up\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:down\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260725_181500_m4_2_listing_merchant_exclude:up\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 包含 up 函数\n✓ [PASS] migration:20260725_181500_m4_2_listing_merchant_exclude:down\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 包含 down 回滚入口\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:up\n    迁移 20260725_185329_m4_4_listing_reviews 包含 up 函数\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:down\n    迁移 20260725_185329_m4_4_listing_reviews 包含 down 回滚入口\n✓ [PASS] migration:20260726_103500_m6_1_listing_reports:up\n    迁移 20260726_103500_m6_1_listing_reports 包含 up 函数\n✓ [PASS] migration:20260726_103500_m6_1_listing_reports:down\n    迁移 20260726_103500_m6_1_listing_reports 包含 down 回滚入口\n✓ [PASS] migration:20260726_103600_m6_3_domain_events:up\n    迁移 20260726_103600_m6_3_domain_events 包含 up 函数\n✓ [PASS] migration:20260726_103600_m6_3_domain_events:down\n    迁移 20260726_103600_m6_3_domain_events 包含 down 回滚入口\n✓ [PASS] migration:20260726_103700_m6_4_tasks:up\n    迁移 20260726_103700_m6_4_tasks 包含 up 函数\n✓ [PASS] migration:20260726_103700_m6_4_tasks:down\n    迁移 20260726_103700_m6_4_tasks 包含 down 回滚入口\n✓ [PASS] migration:20260726_103800_m6_7_notifications:up\n    迁移 20260726_103800_m6_7_notifications 包含 up 函数\n✓ [PASS] migration:20260726_103800_m6_7_notifications:down\n    迁移 20260726_103800_m6_7_notifications 包含 down 回滚入口\n✓ [PASS] migration:20260726_110000_m5_1_crm_collections:up\n    迁移 20260726_110000_m5_1_crm_collections 包含 up 函数\n✓ [PASS] migration:20260726_110000_m5_1_crm_collections:down\n    迁移 20260726_110000_m5_1_crm_collections 包含 down 回滚入口\n✓ [PASS] migration:20260726_140000_m5_2_leads_inquiry_context:up\n    迁移 20260726_140000_m5_2_leads_inquiry_context 包含 up 函数\n✓ [PASS] migration:20260726_140000_m5_2_leads_inquiry_context:down\n    迁移 20260726_140000_m5_2_leads_inquiry_context 包含 down 回滚入口\n✓ [PASS] migration:20260726_150000_opt017_inquiry_rate_limit:up\n    迁移 20260726_150000_opt017_inquiry_rate_limit 包含 up 函数\n✓ [PASS] migration:20260726_150000_opt017_inquiry_rate_limit:down\n    迁移 20260726_150000_opt017_inquiry_rate_limit 包含 down 回滚入口\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:up\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 up 函数\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:down\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 down 回滚入口\n✓ [PASS] migration:20260728_180000_opt_021_admin_navigation_roles:up\n    迁移 20260728_180000_opt_021_admin_navigation_roles 包含 up 函数\n✓ [PASS] migration:20260728_180000_opt_021_admin_navigation_roles:down\n    迁移 20260728_180000_opt_021_admin_navigation_roles 包含 down 回滚入口\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:up\n    迁移 20260728_181000_opt_021_form_submission_status 包含 up 函数\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:down\n    迁移 20260728_181000_opt_021_form_submission_status 包含 down 回滚入口\n✓ [PASS] migration:20260730_125851_detail_page_fields:up\n    迁移 20260730_125851_detail_page_fields 包含 up 函数\n✓ [PASS] migration:20260730_125851_detail_page_fields:down\n    迁移 20260730_125851_detail_page_fields 包含 down 回滚入口\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:up\n    迁移 20260730_134600_inquiry_detail_context 包含 up 函数\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:down\n    迁移 20260730_134600_inquiry_detail_context 包含 down 回滚入口\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:up\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 up 函数\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:down\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 down 回滚入口\n✓ [PASS] migration:20260731_120000_information_corrections:up\n    迁移 20260731_120000_information_corrections 包含 up 函数\n✓ [PASS] migration:20260731_120000_information_corrections:down\n    迁移 20260731_120000_information_corrections 包含 down 回滚入口\n✓ [PASS] migration:20260731_120838_advisor_service_hours:up\n    迁移 20260731_120838_advisor_service_hours 包含 up 函数\n✓ [PASS] migration:20260731_120838_advisor_service_hours:down\n    迁移 20260731_120838_advisor_service_hours 包含 down 回滚入口\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:up\n    迁移 20260731_120857_lead_viewing_preference 包含 up 函数\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:down\n    迁移 20260731_120857_lead_viewing_preference 包含 down 回滚入口\n✓ [PASS] migration:20260803_104120_add_articles:up\n    迁移 20260803_104120_add_articles 包含 up 函数\n✓ [PASS] migration:20260803_104120_add_articles:down\n    迁移 20260803_104120_add_articles 包含 down 回滚入口\n✓ [PASS] migration:20260805_033418_cos_media_prefix:up\n    迁移 20260805_033418_cos_media_prefix 包含 up 函数\n✓ [PASS] migration:20260805_033418_cos_media_prefix:down\n    迁移 20260805_033418_cos_media_prefix 包含 down 回滚入口\n✓ [PASS] migration:20260806_080629_locations_cover_image:up\n    迁移 20260806_080629_locations_cover_image 包含 up 函数\n✓ [PASS] migration:20260806_080629_locations_cover_image:down\n    迁移 20260806_080629_locations_cover_image 包含 down 回滚入口\n✓ [PASS] migration:20260808_224000_articles_menu_for_ops:up\n    迁移 20260808_224000_articles_menu_for_ops 包含 up 函数\n✓ [PASS] migration:20260808_224000_articles_menu_for_ops:down\n    迁移 20260808_224000_articles_menu_for_ops 包含 down 回滚入口\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:up\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 up 函数\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:down\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 down 回滚入口\n✓ [PASS] migration:20260809_180000_supply_notification_duplicates_preflight:up\n    迁移 20260809_180000_supply_notification_duplicates_preflight 包含 up 函数\n✓ [PASS] migration:20260809_180000_supply_notification_duplicates_preflight:down\n    迁移 20260809_180000_supply_notification_duplicates_preflight 包含 down 回滚入口\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:up\n    迁移 20260809_183327_supply_submission_notification_unique 包含 up 函数\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:down\n    迁移 20260809_183327_supply_submission_notification_unique 包含 down 回滚入口\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:up\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 up 函数\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:down\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 down 回滚入口\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:up\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 up 函数\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:down\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 down 回滚入口\n✓ [PASS] migration:20260810_090000_supply_submission_role_permissions:up\n    迁移 20260810_090000_supply_submission_role_permissions 包含 up 函数\n✓ [PASS] migration:20260810_090000_supply_submission_role_permissions:down\n    迁移 20260810_090000_supply_submission_role_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260810_114857_locations_city_field:up\n    迁移 20260810_114857_locations_city_field 包含 up 函数\n✓ [PASS] migration:20260810_114857_locations_city_field:down\n    迁移 20260810_114857_locations_city_field 包含 down 回滚入口\n✓ [PASS] migration:20260810_153500_landing_hero_media_assets:up\n    迁移 20260810_153500_landing_hero_media_assets 包含 up 函数\n✓ [PASS] migration:20260810_153500_landing_hero_media_assets:down\n    迁移 20260810_153500_landing_hero_media_assets 包含 down 回滚入口\n✓ [PASS] migration:20260810_170000_public_page_performance_indexes:up\n    迁移 20260810_170000_public_page_performance_indexes 包含 up 函数\n✓ [PASS] migration:20260810_170000_public_page_performance_indexes:down\n    迁移 20260810_170000_public_page_performance_indexes 包含 down 回滚入口\n✓ [PASS] migration:20260810_200000_backfill_location_city:up\n    迁移 20260810_200000_backfill_location_city 包含 up 函数\n✓ [PASS] migration:20260810_200000_backfill_location_city:down\n    迁移 20260810_200000_backfill_location_city 包含 down 回滚入口\n✓ [PASS] migration:20260813_010000_city_site_profiles:up\n    迁移 20260813_010000_city_site_profiles 包含 up 函数\n✓ [PASS] migration:20260813_010000_city_site_profiles:down\n    迁移 20260813_010000_city_site_profiles 包含 down 回滚入口\n✓ [PASS] migration:20260813_011000_seed_city_site_profiles:up\n    迁移 20260813_011000_seed_city_site_profiles 包含 up 函数\n✓ [PASS] migration:20260813_011000_seed_city_site_profiles:down\n    迁移 20260813_011000_seed_city_site_profiles 包含 down 回滚入口\n✓ [PASS] migration:20260813_020000_city_partner_applications:up\n    迁移 20260813_020000_city_partner_applications 包含 up 函数\n✓ [PASS] migration:20260813_020000_city_partner_applications:down\n    迁移 20260813_020000_city_partner_applications 包含 down 回滚入口\n✓ [PASS] migration:20260813_021000_city_partner_permissions:up\n    迁移 20260813_021000_city_partner_permissions 包含 up 函数\n✓ [PASS] migration:20260813_021000_city_partner_permissions:down\n    迁移 20260813_021000_city_partner_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260813_022000_city_partner_notification_jobs:up\n    迁移 20260813_022000_city_partner_notification_jobs 包含 up 函数\n✓ [PASS] migration:20260813_022000_city_partner_notification_jobs:down\n    迁移 20260813_022000_city_partner_notification_jobs 包含 down 回滚入口\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:up\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 up 函数\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:down\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 down 回滚入口\n✓ [PASS] migration:20260815_140000_converge_shanghai_city_code:up\n    迁移 20260815_140000_converge_shanghai_city_code 包含 up 函数\n✓ [PASS] migration:20260815_140000_converge_shanghai_city_code:down\n    迁移 20260815_140000_converge_shanghai_city_code 包含 down 回滚入口\n✓ [PASS] migration:20260817_172754_sale_price_one_time:up\n    迁移 20260817_172754_sale_price_one_time 包含 up 函数\n✓ [PASS] migration:20260817_172754_sale_price_one_time:down\n    迁移 20260817_172754_sale_price_one_time 包含 down 回滚入口\n✓ [PASS] migration:20260817_174500_sale_business_type_index:up\n    迁移 20260817_174500_sale_business_type_index 包含 up 函数\n✓ [PASS] migration:20260817_174500_sale_business_type_index:down\n    迁移 20260817_174500_sale_business_type_index 包含 down 回滚入口\n✓ [PASS] migration:20260817_175801_sale_terms_fields:up\n    迁移 20260817_175801_sale_terms_fields 包含 up 函数\n✓ [PASS] migration:20260817_175801_sale_terms_fields:down\n    迁移 20260817_175801_sale_terms_fields 包含 down 回滚入口\n✓ [PASS] migration:20260817_180000_sale_publication_status_sold:up\n    迁移 20260817_180000_sale_publication_status_sold 包含 up 函数\n✓ [PASS] migration:20260817_180000_sale_publication_status_sold:down\n    迁移 20260817_180000_sale_publication_status_sold 包含 down 回滚入口\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:up\n    迁移 20260818_072207_fast_track_review_decision 包含 up 函数\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:down\n    迁移 20260818_072207_fast_track_review_decision 包含 down 回滚入口\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:up\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 up 函数\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:down\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 down 回滚入口\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:up\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 up 函数\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:down\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 down 回滚入口\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:up\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:down\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:up\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 up 函数\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:down\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 down 回滚入口\n✓ [PASS] migration:20260821_161534_supply_import_batches:up\n    迁移 20260821_161534_supply_import_batches 包含 up 函数\n✓ [PASS] migration:20260821_161534_supply_import_batches:down\n    迁移 20260821_161534_supply_import_batches 包含 down 回滚入口\n✓ [PASS] migration:20260822_001600_supply_import_unique_indexes:up\n    迁移 20260822_001600_supply_import_unique_indexes 包含 up 函数\n✓ [PASS] migration:20260822_001600_supply_import_unique_indexes:down\n    迁移 20260822_001600_supply_import_unique_indexes 包含 down 回滚入口\n✓ [PASS] migration:20260822_001700_supply_import_role_permissions:up\n    迁移 20260822_001700_supply_import_role_permissions 包含 up 函数\n✓ [PASS] migration:20260822_001700_supply_import_role_permissions:down\n    迁移 20260822_001700_supply_import_role_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260822_010308_supply_import_job_task:up\n    迁移 20260822_010308_supply_import_job_task 包含 up 函数\n✓ [PASS] migration:20260822_010308_supply_import_job_task:down\n    迁移 20260822_010308_supply_import_job_task 包含 down 回滚入口\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:up\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 up 函数\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:down\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 down 回滚入口\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:up\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 up 函数\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:down\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 down 回滚入口\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:up\n    迁移 20260826_035602_opt_053_site_settings 包含 up 函数\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:down\n    迁移 20260826_035602_opt_053_site_settings 包含 down 回滚入口\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:up\n    迁移 20260826_065228_opt_054_nav_config 包含 up 函数\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:down\n    迁移 20260826_065228_opt_054_nav_config 包含 down 回滚入口\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:up\n    迁移 20260826_113343_opt_054_nav_home_target 包含 up 函数\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:down\n    迁移 20260826_113343_opt_054_nav_home_target 包含 down 回滚入口\n✓ [PASS] migration:20260827_113559_media_image_sizes:up\n    迁移 20260827_113559_media_image_sizes 包含 up 函数\n✓ [PASS] migration:20260827_113559_media_image_sizes:down\n    迁移 20260827_113559_media_image_sizes 包含 down 回滚入口\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:up\n    迁移 20260827_233120_site_settings_type_card_cover 包含 up 函数\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:down\n    迁移 20260827_233120_site_settings_type_card_cover 包含 down 回滚入口\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:up\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 up 函数\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:down\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 down 回滚入口\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:up\n    迁移 20260830_164849_opt_063_listing_room_number 包含 up 函数\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:down\n    迁移 20260830_164849_opt_063_listing_room_number 包含 down 回滚入口\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:up\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 up 函数\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:down\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 down 回滚入口\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:up\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 up 函数\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:down\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 down 回滚入口\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:up\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 up 函数\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:down\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 down 回滚入口\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:up\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 up 函数\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:down\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 down 回滚入口\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:up\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 up 函数\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:down\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 down 回滚入口\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:up\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 up 函数\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:down\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 down 回滚入口\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:up\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 up 函数\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:down\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 down 回滚入口\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:up\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 up 函数\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:down\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 down 回滚入口\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:up\n    迁移 20260906_064958_opt_073_featured_district_count 包含 up 函数\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:down\n    迁移 20260906_064958_opt_073_featured_district_count 包含 down 回滚入口\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:up\n    迁移 20260907_050043_mp108_mini_user_assets 包含 up 函数\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:down\n    迁移 20260907_050043_mp108_mini_user_assets 包含 down 回滚入口\n✓ [PASS] migration:20260723_160143_init:json\n    迁移 20260723_160143_init 包含 schema JSON\n✓ [PASS] migration:20260724_080952_add_leads_source:json\n    迁移 20260724_080952_add_leads_source 包含 schema JSON\n✓ [PASS] migration:20260725_103653_m0_schema_sync:json\n    迁移 20260725_103653_m0_schema_sync 包含 schema JSON\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:json\n    迁移 20260725_125851_m2_5_teams_brokers 包含 schema JSON\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:json\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 schema JSON\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:json\n    迁移 20260725_132852_m2_6_display_tags 包含 schema JSON\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:json\n    迁移 20260725_135837_m3_1_building_fields 包含 schema JSON\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:json\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 schema JSON\n⚠ [WARN] migration:20260725_142500_m3_3_building_merchant_exclude:json\n    迁移 20260725_142500_m3_3_building_merchant_exclude 缺少 20260725_142500_m3_3_building_merchant_exclude.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:json\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 schema JSON\n⚠ [WARN] migration:20260725_181500_m4_2_listing_merchant_exclude:json\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 缺少 20260725_181500_m4_2_listing_merchant_exclude.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:json\n    迁移 20260725_185329_m4_4_listing_reviews 包含 schema JSON\n⚠ [WARN] migration:20260726_103500_m6_1_listing_reports:json\n    迁移 20260726_103500_m6_1_listing_reports 缺少 20260726_103500_m6_1_listing_reports.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103600_m6_3_domain_events:json\n    迁移 20260726_103600_m6_3_domain_events 缺少 20260726_103600_m6_3_domain_events.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103700_m6_4_tasks:json\n    迁移 20260726_103700_m6_4_tasks 缺少 20260726_103700_m6_4_tasks.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103800_m6_7_notifications:json\n    迁移 20260726_103800_m6_7_notifications 缺少 20260726_103800_m6_7_notifications.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_110000_m5_1_crm_collections:json\n    迁移 20260726_110000_m5_1_crm_collections 缺少 20260726_110000_m5_1_crm_collections.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_140000_m5_2_leads_inquiry_context:json\n    迁移 20260726_140000_m5_2_leads_inquiry_context 缺少 20260726_140000_m5_2_leads_inquiry_context.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_150000_opt017_inquiry_rate_limit:json\n    迁移 20260726_150000_opt017_inquiry_rate_limit 缺少 20260726_150000_opt017_inquiry_rate_limit.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:json\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 schema JSON\n⚠ [WARN] migration:20260728_180000_opt_021_admin_navigation_roles:json\n    迁移 20260728_180000_opt_021_admin_navigation_roles 缺少 20260728_180000_opt_021_admin_navigation_roles.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:json\n    迁移 20260728_181000_opt_021_form_submission_status 包含 schema JSON\n✓ [PASS] migration:20260730_125851_detail_page_fields:json\n    迁移 20260730_125851_detail_page_fields 包含 schema JSON\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:json\n    迁移 20260730_134600_inquiry_detail_context 包含 schema JSON\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:json\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 schema JSON\n✓ [PASS] migration:20260731_120000_information_corrections:json\n    迁移 20260731_120000_information_corrections 包含 schema JSON\n✓ [PASS] migration:20260731_120838_advisor_service_hours:json\n    迁移 20260731_120838_advisor_service_hours 包含 schema JSON\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:json\n    迁移 20260731_120857_lead_viewing_preference 包含 schema JSON\n✓ [PASS] migration:20260803_104120_add_articles:json\n    迁移 20260803_104120_add_articles 包含 schema JSON\n✓ [PASS] migration:20260805_033418_cos_media_prefix:json\n    迁移 20260805_033418_cos_media_prefix 包含 schema JSON\n✓ [PASS] migration:20260806_080629_locations_cover_image:json\n    迁移 20260806_080629_locations_cover_image 包含 schema JSON\n⚠ [WARN] migration:20260808_224000_articles_menu_for_ops:json\n    迁移 20260808_224000_articles_menu_for_ops 缺少 20260808_224000_articles_menu_for_ops.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:json\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 schema JSON\n⚠ [WARN] migration:20260809_180000_supply_notification_duplicates_preflight:json\n    迁移 20260809_180000_supply_notification_duplicates_preflight 缺少 20260809_180000_supply_notification_duplicates_preflight.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:json\n    迁移 20260809_183327_supply_submission_notification_unique 包含 schema JSON\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:json\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 schema JSON\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:json\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 schema JSON\n⚠ [WARN] migration:20260810_090000_supply_submission_role_permissions:json\n    迁移 20260810_090000_supply_submission_role_permissions 缺少 20260810_090000_supply_submission_role_permissions.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260810_114857_locations_city_field:json\n    迁移 20260810_114857_locations_city_field 包含 schema JSON\n⚠ [WARN] migration:20260810_153500_landing_hero_media_assets:json\n    迁移 20260810_153500_landing_hero_media_assets 缺少 20260810_153500_landing_hero_media_assets.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260810_170000_public_page_performance_indexes:json\n    迁移 20260810_170000_public_page_performance_indexes 缺少 20260810_170000_public_page_performance_indexes.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260810_200000_backfill_location_city:json\n    迁移 20260810_200000_backfill_location_city 缺少 20260810_200000_backfill_location_city.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_010000_city_site_profiles:json\n    迁移 20260813_010000_city_site_profiles 包含 schema JSON\n⚠ [WARN] migration:20260813_011000_seed_city_site_profiles:json\n    迁移 20260813_011000_seed_city_site_profiles 缺少 20260813_011000_seed_city_site_profiles.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_020000_city_partner_applications:json\n    迁移 20260813_020000_city_partner_applications 包含 schema JSON\n⚠ [WARN] migration:20260813_021000_city_partner_permissions:json\n    迁移 20260813_021000_city_partner_permissions 缺少 20260813_021000_city_partner_permissions.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260813_022000_city_partner_notification_jobs:json\n    迁移 20260813_022000_city_partner_notification_jobs 缺少 20260813_022000_city_partner_notification_jobs.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:json\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 schema JSON\n⚠ [WARN] migration:20260815_140000_converge_shanghai_city_code:json\n    迁移 20260815_140000_converge_shanghai_city_code 缺少 20260815_140000_converge_shanghai_city_code.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260817_172754_sale_price_one_time:json\n    迁移 20260817_172754_sale_price_one_time 包含 schema JSON\n⚠ [WARN] migration:20260817_174500_sale_business_type_index:json\n    迁移 20260817_174500_sale_business_type_index 缺少 20260817_174500_sale_business_type_index.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260817_175801_sale_terms_fields:json\n    迁移 20260817_175801_sale_terms_fields 包含 schema JSON\n⚠ [WARN] migration:20260817_180000_sale_publication_status_sold:json\n    迁移 20260817_180000_sale_publication_status_sold 缺少 20260817_180000_sale_publication_status_sold.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:json\n    迁移 20260818_072207_fast_track_review_decision 包含 schema JSON\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:json\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 schema JSON\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:json\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 schema JSON\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:json\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 schema JSON\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:json\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 schema JSON\n✓ [PASS] migration:20260821_161534_supply_import_batches:json\n    迁移 20260821_161534_supply_import_batches 包含 schema JSON\n⚠ [WARN] migration:20260822_001600_supply_import_unique_indexes:json\n    迁移 20260822_001600_supply_import_unique_indexes 缺少 20260822_001600_supply_import_unique_indexes.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260822_001700_supply_import_role_permissions:json\n    迁移 20260822_001700_supply_import_role_permissions 缺少 20260822_001700_supply_import_role_permissions.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260822_010308_supply_import_job_task:json\n    迁移 20260822_010308_supply_import_job_task 包含 schema JSON\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:json\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 schema JSON\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:json\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 schema JSON\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:json\n    迁移 20260826_035602_opt_053_site_settings 包含 schema JSON\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:json\n    迁移 20260826_065228_opt_054_nav_config 包含 schema JSON\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:json\n    迁移 20260826_113343_opt_054_nav_home_target 包含 schema JSON\n✓ [PASS] migration:20260827_113559_media_image_sizes:json\n    迁移 20260827_113559_media_image_sizes 包含 schema JSON\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:json\n    迁移 20260827_233120_site_settings_type_card_cover 包含 schema JSON\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:json\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 schema JSON\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:json\n    迁移 20260830_164849_opt_063_listing_room_number 包含 schema JSON\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:json\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 schema JSON\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:json\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 schema JSON\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:json\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 schema JSON\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:json\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 schema JSON\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:json\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 schema JSON\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:json\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 schema JSON\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:json\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 schema JSON\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:json\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 schema JSON\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:json\n    迁移 20260906_064958_opt_073_featured_district_count 包含 schema JSON\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:json\n    迁移 20260907_050043_mp108_mini_user_assets 包含 schema JSON\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:forbidden:DROP TABLE\n    迁移 20260820_055534_drop_listing_merchant_relations 的 up() 包含 DROP TABLE，已获批准（见 DESTRUCTIVE_MIGRATION_APPROVALS.json）\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:forbidden:DROP COLUMN\n    迁移 20260820_055534_drop_listing_merchant_relations 的 up() 包含 DROP COLUMN，已获批准（见 DESTRUCTIVE_MIGRATION_APPROVALS.json）\n✓ [PASS] pg:payload_migrations:readable\n    payload_migrations 表可读，已应用 81 条\n✓ [PASS] db:collection:users\n    users 表存在，行数 5\n✓ [PASS] db:collection:roles\n    roles 表存在，行数 5\n✓ [PASS] db:collection:media\n    media 表存在，行数 2\n✓ [PASS] db:collection:locations\n    locations 表存在，行数 14\n✓ [PASS] db:collection:business-area-extensions\n    business-area-extensions 表存在，行数 0\n✓ [PASS] db:collection:city-site-profiles\n    city-site-profiles 表存在，行数 7\n✓ [PASS] db:collection:merchants\n    merchants 表存在，行数 3\n✓ [PASS] db:collection:teams\n    teams 表存在，行数 1\n✓ [PASS] db:collection:brokers\n    brokers 表存在，行数 2\n✓ [PASS] db:collection:amenities\n    amenities 表存在，行数 4\n✓ [PASS] db:collection:buildings\n    buildings 表存在，行数 6\n✓ [PASS] db:collection:building-merchant-relations\n    building-merchant-relations 表存在，行数 2\n✓ [PASS] db:collection:listings\n    listings 表存在，行数 11\n✓ [PASS] db:collection:leads\n    leads 表存在，行数 8\n✓ [PASS] db:collection:customers\n    customers 表存在，行数 2\n✓ [PASS] db:collection:lead-ownership-history\n    lead-ownership-history 表存在，行数 2\n✓ [PASS] db:collection:follow-ups\n    follow-ups 表存在，行数 2\n✓ [PASS] db:collection:pages\n    pages 表存在，行数 3\n✓ [PASS] db:collection:articles\n    articles 表存在，行数 0\n✓ [PASS] db:collection:display-tags\n    display-tags 表存在，行数 0\n✓ [PASS] db:collection:listing-reviews\n    listing-reviews 表存在，行数 0\n✓ [PASS] db:collection:listing-reports\n    listing-reports 表存在，行数 0\n✓ [PASS] db:collection:information-corrections\n    information-corrections 表存在，行数 0\n✓ [PASS] db:collection:supply-submissions\n    supply-submissions 表存在，行数 0\n✓ [PASS] db:collection:city-partner-applications\n    city-partner-applications 表存在，行数 0\n✓ [PASS] db:collection:domain-events\n    domain-events 表存在，行数 2\n✓ [PASS] db:collection:audit-logs\n    audit-logs 表存在，行数 0\n✓ [PASS] db:collection:tasks\n    tasks 表存在，行数 0\n✓ [PASS] db:collection:notifications\n    notifications 表存在，行数 0\n✓ [PASS] db:collection:supply-import-batches\n    supply-import-batches 表存在，行数 0\n✓ [PASS] db:collection:location-aliases\n    location-aliases 表存在，行数 0\n✓ [PASS] db:collection:mini-user-assets\n    mini-user-assets 表存在，行数 0\n✓ [PASS] db:collection:search\n    search 表存在，行数 17\n✓ [PASS] db:collection:forms\n    forms 表存在，行数 0\n✓ [PASS] db:collection:form-submissions\n    form-submissions 表存在，行数 0\n✓ [PASS] db:collection:exports\n    exports 表存在，行数 0\n✓ [PASS] db:collection:imports\n    imports 表存在，行数 0\n✓ [PASS] db:collection:payload-kv\n    payload-kv 表存在，行数 0\n✓ [PASS] db:collection:payload-jobs\n    payload-jobs 表存在，行数 2\n✓ [PASS] db:collection:payload-locked-documents\n    payload-locked-documents 表存在，行数 0\n✓ [PASS] db:collection:payload-preferences\n    payload-preferences 表存在，行数 0\n✓ [PASS] db:collection:payload-migrations\n    payload-migrations 表存在，行数 81\n○ [SKIP] pg:supply-validity-exclude-constraint\n    M3.3 引入 Building 商户有效期关系时添加 EXCLUDE 约束验证\n\nTotal: 289 checks | 0 fail | 24 warn\n\n⚠️  24 warning(s) — 复核后可继续\n.env.local not found. Continuing without it.\n[site-config] NEXT_PUBLIC_SITE_URL 缺失，开发环境使用 fallback：http://localhost:3717\n"
+      },
+      {
+        "command": "pnpm exec payload migrate",
+        "startedAt": "2026-09-07T06:10:23.970Z",
+        "finishedAt": "2026-09-07T06:10:25.857Z",
+        "exitCode": 0,
+        "output": "[14:10:25] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:10:25] INFO: Reading migration files from payload-office-platform/src/migrations\n[14:10:25] INFO: Done.\n[site-config] NEXT_PUBLIC_SITE_URL 缺失，开发环境使用 fallback：http://localhost:3717\n"
+      }
+    ],
+    "before": {
+      "legacySnapshotRecords": 49,
+      "legacyMeaning": "旧脚本每collection最多3条的有界口径，不是全库总记录",
+      "tables": [
+        {
+          "table": "users",
+          "count": 5
+        },
+        {
+          "table": "roles",
+          "count": 5
+        },
+        {
+          "table": "media",
+          "count": 2
+        },
+        {
+          "table": "locations",
+          "count": 14
+        },
+        {
+          "table": "business_area_extensions",
+          "count": 0
+        },
+        {
+          "table": "city_site_profiles",
+          "count": 7
+        },
+        {
+          "table": "merchants",
+          "count": 3
+        },
+        {
+          "table": "teams",
+          "count": 1
+        },
+        {
+          "table": "brokers",
+          "count": 2
+        },
+        {
+          "table": "amenities",
+          "count": 4
+        },
+        {
+          "table": "buildings",
+          "count": 6
+        },
+        {
+          "table": "building_merchant_relations",
+          "count": 2
+        },
+        {
+          "table": "listings",
+          "count": 11
+        },
+        {
+          "table": "leads",
+          "count": 8
+        },
+        {
+          "table": "customers",
+          "count": 2
+        },
+        {
+          "table": "lead_ownership_history",
+          "count": 2
+        },
+        {
+          "table": "follow_ups",
+          "count": 2
+        },
+        {
+          "table": "pages",
+          "count": 3
+        },
+        {
+          "table": "articles",
+          "count": 0
+        },
+        {
+          "table": "display_tags",
+          "count": 0
+        },
+        {
+          "table": "listing_reviews",
+          "count": 0
+        },
+        {
+          "table": "listing_reports",
+          "count": 0
+        },
+        {
+          "table": "information_corrections",
+          "count": 0
+        },
+        {
+          "table": "supply_submissions",
+          "count": 0
+        },
+        {
+          "table": "city_partner_applications",
+          "count": 0
+        },
+        {
+          "table": "domain_events",
+          "count": 2
+        },
+        {
+          "table": "audit_logs",
+          "count": 0
+        },
+        {
+          "table": "tasks",
+          "count": 0
+        },
+        {
+          "table": "notifications",
+          "count": 0
+        },
+        {
+          "table": "supply_import_batches",
+          "count": 0
+        },
+        {
+          "table": "location_aliases",
+          "count": 0
+        },
+        {
+          "table": "search",
+          "count": 17
+        },
+        {
+          "table": "forms",
+          "count": 0
+        },
+        {
+          "table": "form_submissions",
+          "count": 0
+        },
+        {
+          "table": "exports",
+          "count": 0
+        },
+        {
+          "table": "imports",
+          "count": 0
+        },
+        {
+          "table": "payload_kv",
+          "count": 0
+        },
+        {
+          "table": "payload_jobs",
+          "count": 2
+        },
+        {
+          "table": "payload_locked_documents",
+          "count": 0
+        },
+        {
+          "table": "payload_preferences",
+          "count": 0
+        },
+        {
+          "table": "payload_migrations",
+          "count": 80
+        }
+      ],
+      "boundedSameTables": 53,
+      "trueSameTablesTotal": 180
+    },
+    "afterState": {
+      "count": 81,
+      "last": "20260907_050043_mp108_mini_user_assets",
+      "assetTable": "mini_user_assets"
+    },
+    "after": {
+      "legacySnapshotRecords": 49,
+      "legacyMeaning": "旧脚本每collection最多3条的有界口径，不是全库总记录",
+      "tables": [
+        {
+          "table": "users",
+          "count": 5
+        },
+        {
+          "table": "roles",
+          "count": 5
+        },
+        {
+          "table": "media",
+          "count": 2
+        },
+        {
+          "table": "locations",
+          "count": 14
+        },
+        {
+          "table": "business_area_extensions",
+          "count": 0
+        },
+        {
+          "table": "city_site_profiles",
+          "count": 7
+        },
+        {
+          "table": "merchants",
+          "count": 3
+        },
+        {
+          "table": "teams",
+          "count": 1
+        },
+        {
+          "table": "brokers",
+          "count": 2
+        },
+        {
+          "table": "amenities",
+          "count": 4
+        },
+        {
+          "table": "buildings",
+          "count": 6
+        },
+        {
+          "table": "building_merchant_relations",
+          "count": 2
+        },
+        {
+          "table": "listings",
+          "count": 11
+        },
+        {
+          "table": "leads",
+          "count": 8
+        },
+        {
+          "table": "customers",
+          "count": 2
+        },
+        {
+          "table": "lead_ownership_history",
+          "count": 2
+        },
+        {
+          "table": "follow_ups",
+          "count": 2
+        },
+        {
+          "table": "pages",
+          "count": 3
+        },
+        {
+          "table": "articles",
+          "count": 0
+        },
+        {
+          "table": "display_tags",
+          "count": 0
+        },
+        {
+          "table": "listing_reviews",
+          "count": 0
+        },
+        {
+          "table": "listing_reports",
+          "count": 0
+        },
+        {
+          "table": "information_corrections",
+          "count": 0
+        },
+        {
+          "table": "supply_submissions",
+          "count": 0
+        },
+        {
+          "table": "city_partner_applications",
+          "count": 0
+        },
+        {
+          "table": "domain_events",
+          "count": 2
+        },
+        {
+          "table": "audit_logs",
+          "count": 0
+        },
+        {
+          "table": "tasks",
+          "count": 0
+        },
+        {
+          "table": "notifications",
+          "count": 0
+        },
+        {
+          "table": "supply_import_batches",
+          "count": 0
+        },
+        {
+          "table": "location_aliases",
+          "count": 0
+        },
+        {
+          "table": "search",
+          "count": 17
+        },
+        {
+          "table": "forms",
+          "count": 0
+        },
+        {
+          "table": "form_submissions",
+          "count": 0
+        },
+        {
+          "table": "exports",
+          "count": 0
+        },
+        {
+          "table": "imports",
+          "count": 0
+        },
+        {
+          "table": "payload_kv",
+          "count": 0
+        },
+        {
+          "table": "payload_jobs",
+          "count": 2
+        },
+        {
+          "table": "payload_locked_documents",
+          "count": 0
+        },
+        {
+          "table": "payload_preferences",
+          "count": 0
+        },
+        {
+          "table": "payload_migrations",
+          "count": 81
+        }
+      ],
+      "boundedSameTables": 53,
+      "trueSameTablesTotal": 181
+    }
+  },
+  "fresh": {
+    "status": "PASS",
+    "recordedAt": "2026-09-07T06:10:54.644Z",
+    "commands": [
+      {
+        "command": "pnpm exec payload migrate",
+        "startedAt": "2026-09-07T06:10:55.163Z",
+        "finishedAt": "2026-09-07T06:10:58.383Z",
+        "exitCode": 0,
+        "output": "[14:10:57] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:10:57] INFO: Reading migration files from payload-office-platform/src/migrations\n[14:10:57] INFO: Migrating: 20260723_160143_init\n[14:10:57] INFO: Migrated:  20260723_160143_init (140ms)\n[14:10:57] INFO: Migrating: 20260724_080952_add_leads_source\n[14:10:57] INFO: Migrated:  20260724_080952_add_leads_source (2ms)\n[14:10:57] INFO: Migrating: 20260725_103653_m0_schema_sync\n[14:10:57] INFO: Migrated:  20260725_103653_m0_schema_sync (85ms)\n[14:10:57] INFO: Migrating: 20260725_125851_m2_5_teams_brokers\n[14:10:57] INFO: Migrated:  20260725_125851_m2_5_teams_brokers (38ms)\n[14:10:57] INFO: Migrating: 20260725_130727_m2_1_locations_geo_node\n[14:10:57] INFO: Migrated:  20260725_130727_m2_1_locations_geo_node (10ms)\n[14:10:57] INFO: Migrating: 20260725_132852_m2_6_display_tags\n[14:10:57] INFO: Migrated:  20260725_132852_m2_6_display_tags (8ms)\n[14:10:57] INFO: Migrating: 20260725_135837_m3_1_building_fields\n[14:10:57] INFO: Migrated:  20260725_135837_m3_1_building_fields (4ms)\n[14:10:57] INFO: Migrating: 20260725_142333_m3_3_building_merchant_relations\n[14:10:57] INFO: Migrated:  20260725_142333_m3_3_building_merchant_relations (10ms)\n[14:10:57] INFO: Migrating: 20260725_142500_m3_3_building_merchant_exclude\n[14:10:57] INFO: Migrated:  20260725_142500_m3_3_building_merchant_exclude (36ms)\n[14:10:57] INFO: Migrating: 20260725_181426_m4_2_listing_merchant_relations\n[14:10:57] INFO: Migrated:  20260725_181426_m4_2_listing_merchant_relations (17ms)\n[14:10:57] INFO: Migrating: 20260725_181500_m4_2_listing_merchant_exclude\n[14:10:57] INFO: Migrated:  20260725_181500_m4_2_listing_merchant_exclude (1ms)\n[14:10:57] INFO: Migrating: 20260725_185329_m4_4_listing_reviews\n[14:10:57] INFO: Migrated:  20260725_185329_m4_4_listing_reviews (10ms)\n[14:10:57] INFO: Migrating: 20260726_103500_m6_1_listing_reports\n[14:10:57] INFO: Migrated:  20260726_103500_m6_1_listing_reports (16ms)\n[14:10:57] INFO: Migrating: 20260726_103600_m6_3_domain_events\n[14:10:57] INFO: Migrated:  20260726_103600_m6_3_domain_events (9ms)\n[14:10:57] INFO: Migrating: 20260726_103700_m6_4_tasks\n[14:10:57] INFO: Migrated:  20260726_103700_m6_4_tasks (12ms)\n[14:10:57] INFO: Migrating: 20260726_103800_m6_7_notifications\n[14:10:57] INFO: Migrated:  20260726_103800_m6_7_notifications (12ms)\n[14:10:57] INFO: Migrating: 20260726_110000_m5_1_crm_collections\n[14:10:58] INFO: Migrated:  20260726_110000_m5_1_crm_collections (26ms)\n[14:10:58] INFO: Migrating: 20260726_140000_m5_2_leads_inquiry_context\n[14:10:58] INFO: Migrated:  20260726_140000_m5_2_leads_inquiry_context (5ms)\n[14:10:58] INFO: Migrating: 20260726_150000_opt017_inquiry_rate_limit\n[14:10:58] INFO: Migrated:  20260726_150000_opt017_inquiry_rate_limit (3ms)\n[14:10:58] INFO: Migrating: 20260728_175500_locked_docs_audit_logs_rel\n[14:10:58] INFO: Migrated:  20260728_175500_locked_docs_audit_logs_rel (10ms)\n[14:10:58] INFO: Migrating: 20260728_180000_opt_021_admin_navigation_roles\n[14:10:58] INFO: Migrated:  20260728_180000_opt_021_admin_navigation_roles (2ms)\n[14:10:58] INFO: Migrating: 20260728_181000_opt_021_form_submission_status\n[14:10:58] INFO: Migrated:  20260728_181000_opt_021_form_submission_status (2ms)\n[14:10:58] INFO: Migrating: 20260730_125851_detail_page_fields\n[14:10:58] INFO: Migrated:  20260730_125851_detail_page_fields (11ms)\n[14:10:58] INFO: Migrating: 20260730_134600_inquiry_detail_context\n[14:10:58] INFO: Migrated:  20260730_134600_inquiry_detail_context (1ms)\n[14:10:58] INFO: Migrating: 20260731_110500_fix_tasks_notifications_relationship\n[14:10:58] INFO: Migrated:  20260731_110500_fix_tasks_notifications_relationship (3ms)\n[14:10:58] INFO: Migrating: 20260731_120000_information_corrections\n[14:10:58] INFO: Migrated:  20260731_120000_information_corrections (5ms)\n[14:10:58] INFO: Migrating: 20260731_120838_advisor_service_hours\n[14:10:58] INFO: Migrated:  20260731_120838_advisor_service_hours (11ms)\n[14:10:58] INFO: Migrating: 20260731_120857_lead_viewing_preference\n[14:10:58] INFO: Migrated:  20260731_120857_lead_viewing_preference (2ms)\n[14:10:58] INFO: Migrating: 20260803_104120_add_articles\n[14:10:58] INFO: Migrated:  20260803_104120_add_articles (38ms)\n[14:10:58] INFO: Migrating: 20260805_033418_cos_media_prefix\n[14:10:58] INFO: Migrated:  20260805_033418_cos_media_prefix (1ms)\n[14:10:58] INFO: Migrating: 20260806_080629_locations_cover_image\n[14:10:58] INFO: Migrated:  20260806_080629_locations_cover_image (2ms)\n[14:10:58] INFO: Migrating: 20260808_224000_articles_menu_for_ops\n[14:10:58] INFO: Migrated:  20260808_224000_articles_menu_for_ops (1ms)\n[14:10:58] INFO: Migrating: 20260809_142444_supply_submissions_and_entrust_source\n[14:10:58] INFO: Migrated:  20260809_142444_supply_submissions_and_entrust_source (19ms)\n[14:10:58] INFO: Migrating: 20260809_180000_supply_notification_duplicates_preflight\n[14:10:58] INFO: Migrated:  20260809_180000_supply_notification_duplicates_preflight (2ms)\n[14:10:58] INFO: Migrating: 20260809_183327_supply_submission_notification_unique\n[14:10:58] INFO: Migrated:  20260809_183327_supply_submission_notification_unique (1ms)\n[14:10:58] INFO: Migrating: 20260809_203911_supply_submission_notification_jobs\n[14:10:58] INFO: Migrated:  20260809_203911_supply_submission_notification_jobs (1ms)\n[14:10:58] INFO: Migrating: 20260810_003111_align_listings_data_source_with_production\n[14:10:58] INFO: Migrated:  20260810_003111_align_listings_data_source_with_production (9ms)\n[14:10:58] INFO: Migrating: 20260810_090000_supply_submission_role_permissions\n[14:10:58] WARN: [migration] supply_submission role permissions not applied to missing built-in role(s): OPS, MGR\n[14:10:58] INFO: Migrated:  20260810_090000_supply_submission_role_permissions (2ms)\n[14:10:58] INFO: Migrating: 20260810_114857_locations_city_field\n[14:10:58] INFO: Migrated:  20260810_114857_locations_city_field (2ms)\n[14:10:58] INFO: Migrating: 20260810_153500_landing_hero_media_assets\n[14:10:58] INFO: Migrated:  20260810_153500_landing_hero_media_assets (1ms)\n[14:10:58] INFO: Migrating: 20260810_170000_public_page_performance_indexes\n[14:10:58] INFO: Migrated:  20260810_170000_public_page_performance_indexes (4ms)\n[14:10:58] INFO: Migrating: 20260810_200000_backfill_location_city\n[14:10:58] INFO: Migrated:  20260810_200000_backfill_location_city (3ms)\n[14:10:58] INFO: Migrating: 20260813_010000_city_site_profiles\n[14:10:58] INFO: Migrated:  20260813_010000_city_site_profiles (12ms)\n[14:10:58] INFO: Migrating: 20260813_011000_seed_city_site_profiles\n[14:10:58] INFO: Migrated:  20260813_011000_seed_city_site_profiles (1ms)\n[14:10:58] INFO: Migrating: 20260813_020000_city_partner_applications\n[14:10:58] INFO: Migrated:  20260813_020000_city_partner_applications (28ms)\n[14:10:58] INFO: Migrating: 20260813_021000_city_partner_permissions\n[14:10:58] INFO: Migrated:  20260813_021000_city_partner_permissions (5ms)\n[14:10:58] INFO: Migrating: 20260813_022000_city_partner_notification_jobs\n[14:10:58] INFO: Migrated:  20260813_022000_city_partner_notification_jobs (0ms)\n[14:10:58] INFO: Migrating: 20260813_060037_city_partner_notification_outbox_reconciler\n[14:10:58] INFO: Migrated:  20260813_060037_city_partner_notification_outbox_reconciler (3ms)\n[14:10:58] INFO: Migrating: 20260815_140000_converge_shanghai_city_code\n[14:10:58] INFO: Migrated:  20260815_140000_converge_shanghai_city_code (1ms)\n[14:10:58] INFO: Migrating: 20260817_172754_sale_price_one_time\n[14:10:58] INFO: Migrated:  20260817_172754_sale_price_one_time (1ms)\n[14:10:58] INFO: Migrating: 20260817_174500_sale_business_type_index\n[14:10:58] INFO: Migrated:  20260817_174500_sale_business_type_index (1ms)\n[14:10:58] INFO: Migrating: 20260817_175801_sale_terms_fields\n[14:10:58] INFO: Migrated:  20260817_175801_sale_terms_fields (0ms)\n[14:10:58] INFO: Migrating: 20260817_180000_sale_publication_status_sold\n[14:10:58] INFO: Migrated:  20260817_180000_sale_publication_status_sold (0ms)\n[14:10:58] INFO: Migrating: 20260818_072207_fast_track_review_decision\n[14:10:58] INFO: Migrated:  20260818_072207_fast_track_review_decision (1ms)\n[14:10:58] INFO: Migrating: 20260818_232656_opt033_admin_fast_track_audit\n[14:10:58] INFO: Migrated:  20260818_232656_opt033_admin_fast_track_audit (0ms)\n[14:10:58] INFO: Migrating: 20260819_113218_listing_hard_delete_nullable_refs\n[14:10:58] INFO: Migrated:  20260819_113218_listing_hard_delete_nullable_refs (0ms)\n[14:10:58] INFO: Migrating: 20260820_055534_drop_listing_merchant_relations\n[14:10:58] INFO: Migrated:  20260820_055534_drop_listing_merchant_relations (3ms)\n[14:10:58] INFO: Migrating: 20260820_110024_opt035_city_profile_avg_response_hours\n[14:10:58] INFO: Migrated:  20260820_110024_opt035_city_profile_avg_response_hours (1ms)\n[14:10:58] INFO: Migrating: 20260821_161534_supply_import_batches\n[14:10:58] INFO: Migrated:  20260821_161534_supply_import_batches (12ms)\n[14:10:58] INFO: Migrating: 20260822_001600_supply_import_unique_indexes\n[14:10:58] INFO: Migrated:  20260822_001600_supply_import_unique_indexes (2ms)\n[14:10:58] INFO: Migrating: 20260822_001700_supply_import_role_permissions\n[14:10:58] INFO: Migrated:  20260822_001700_supply_import_role_permissions (1ms)\n[14:10:58] INFO: Migrating: 20260822_010308_supply_import_job_task\n[14:10:58] INFO: Migrated:  20260822_010308_supply_import_job_task (0ms)\n[14:10:58] INFO: Migrating: 20260824_101016_opt048_snapshot_chain_repair\n[14:10:58] INFO: Migrated:  20260824_101016_opt048_snapshot_chain_repair (1ms)\n[14:10:58] INFO: Migrating: 20260824_110612_opt045_import_publishable_fields\n[14:10:58] INFO: Migrated:  20260824_110612_opt045_import_publishable_fields (1ms)\n[14:10:58] INFO: Migrating: 20260826_035602_opt_053_site_settings\n[14:10:58] INFO: Migrated:  20260826_035602_opt_053_site_settings (16ms)\n[14:10:58] INFO: Migrating: 20260826_065228_opt_054_nav_config\n[14:10:58] INFO: Migrated:  20260826_065228_opt_054_nav_config (8ms)\n[14:10:58] INFO: Migrating: 20260826_113343_opt_054_nav_home_target\n[14:10:58] INFO: Migrated:  20260826_113343_opt_054_nav_home_target (0ms)\n[14:10:58] INFO: Migrating: 20260827_113559_media_image_sizes\n[14:10:58] INFO: Migrated:  20260827_113559_media_image_sizes (4ms)\n[14:10:58] INFO: Migrating: 20260827_233120_site_settings_type_card_cover\n[14:10:58] INFO: Migrated:  20260827_233120_site_settings_type_card_cover (3ms)\n[14:10:58] INFO: Migrating: 20260827_234410_city_profile_type_card_overrides\n[14:10:58] INFO: Migrated:  20260827_234410_city_profile_type_card_overrides (3ms)\n[14:10:58] INFO: Migrating: 20260830_164849_opt_063_listing_room_number\n[14:10:58] INFO: Migrated:  20260830_164849_opt_063_listing_room_number (1ms)\n[14:10:58] INFO: Migrating: 20260901_021249_merchant_stop_cascade_job\n[14:10:58] INFO: Migrated:  20260901_021249_merchant_stop_cascade_job (1ms)\n[14:10:58] INFO: Migrating: 20260903_084339_opt_067_lead_visitor_ref\n[14:10:58] INFO: Migrated:  20260903_084339_opt_067_lead_visitor_ref (1ms)\n[14:10:58] INFO: Migrating: 20260904_163535_opt_069_media_watermark_fields\n[14:10:58] INFO: Migrated:  20260904_163535_opt_069_media_watermark_fields (1ms)\n[14:10:58] INFO: Migrating: 20260904_170123_city_profile_type_card_cover_nullable\n[14:10:58] INFO: Migrated:  20260904_170123_city_profile_type_card_cover_nullable (0ms)\n[14:10:58] INFO: Migrating: 20260905_025659_opt_069_watermark_rebake_task\n[14:10:58] INFO: Migrated:  20260905_025659_opt_069_watermark_rebake_task (0ms)\n[14:10:58] INFO: Migrating: 20260905_033034_opt_069_site_settings_watermark\n[14:10:58] INFO: Migrated:  20260905_033034_opt_069_site_settings_watermark (2ms)\n[14:10:58] INFO: Migrating: 20260905_121042_opt069_snapshot_chain_repair\n[14:10:58] INFO: Migrated:  20260905_121042_opt069_snapshot_chain_repair (1ms)\n[14:10:58] INFO: Migrating: 20260905_172526_opt_071_watermark_image_source\n[14:10:58] INFO: Migrated:  20260905_172526_opt_071_watermark_image_source (3ms)\n[14:10:58] INFO: Migrating: 20260906_064958_opt_073_featured_district_count\n[14:10:58] INFO: Migrated:  20260906_064958_opt_073_featured_district_count (0ms)\n[14:10:58] INFO: Migrating: 20260907_050043_mp108_mini_user_assets\n[14:10:58] INFO: Migrated:  20260907_050043_mp108_mini_user_assets (11ms)\n[14:10:58] INFO: Done.\n[city_site_profile_seed] locations 表中没有任何 city 记录，判定为全新环境，跳过站点档案播种；城市数据由 seed 脚本在迁移之后写入。\n[converge_shanghai_city_code] 未发现 LEGACY_LOC_1，无可收敛对象，跳过。\n"
+      },
+      {
+        "command": "pnpm migrate:assert-applied",
+        "startedAt": "2026-09-07T06:10:58.384Z",
+        "finishedAt": "2026-09-07T06:11:00.522Z",
+        "exitCode": 0,
+        "output": "\n> payload-office-platform@0.1.0 migrate:assert-applied payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/migrate-status.ts --assert-applied\n\n[14:11:00] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n=== Migration Status ===\nGenerated: 2026-09-07T06:11:00.501Z\nDatabase:  postgres\n  URL: [REDACTED_DATABASE_URL]\n\nCode migrations:   81\nApplied migrations: 81\nPending migrations: 0\n\nCode migrations:\n  [✓ applied] 20260723_160143_init\n  [✓ applied] 20260724_080952_add_leads_source\n  [✓ applied] 20260725_103653_m0_schema_sync\n  [✓ applied] 20260725_125851_m2_5_teams_brokers\n  [✓ applied] 20260725_130727_m2_1_locations_geo_node\n  [✓ applied] 20260725_132852_m2_6_display_tags\n  [✓ applied] 20260725_135837_m3_1_building_fields\n  [✓ applied] 20260725_142333_m3_3_building_merchant_relations\n  [✓ applied] 20260725_142500_m3_3_building_merchant_exclude\n  [✓ applied] 20260725_181426_m4_2_listing_merchant_relations\n  [✓ applied] 20260725_181500_m4_2_listing_merchant_exclude\n  [✓ applied] 20260725_185329_m4_4_listing_reviews\n  [✓ applied] 20260726_103500_m6_1_listing_reports\n  [✓ applied] 20260726_103600_m6_3_domain_events\n  [✓ applied] 20260726_103700_m6_4_tasks\n  [✓ applied] 20260726_103800_m6_7_notifications\n  [✓ applied] 20260726_110000_m5_1_crm_collections\n  [✓ applied] 20260726_140000_m5_2_leads_inquiry_context\n  [✓ applied] 20260726_150000_opt017_inquiry_rate_limit\n  [✓ applied] 20260728_175500_locked_docs_audit_logs_rel\n  [✓ applied] 20260728_180000_opt_021_admin_navigation_roles\n  [✓ applied] 20260728_181000_opt_021_form_submission_status\n  [✓ applied] 20260730_125851_detail_page_fields\n  [✓ applied] 20260730_134600_inquiry_detail_context\n  [✓ applied] 20260731_110500_fix_tasks_notifications_relationship\n  [✓ applied] 20260731_120000_information_corrections\n  [✓ applied] 20260731_120838_advisor_service_hours\n  [✓ applied] 20260731_120857_lead_viewing_preference\n  [✓ applied] 20260803_104120_add_articles\n  [✓ applied] 20260805_033418_cos_media_prefix\n  [✓ applied] 20260806_080629_locations_cover_image\n  [✓ applied] 20260808_224000_articles_menu_for_ops\n  [✓ applied] 20260809_142444_supply_submissions_and_entrust_source\n  [✓ applied] 20260809_180000_supply_notification_duplicates_preflight\n  [✓ applied] 20260809_183327_supply_submission_notification_unique\n  [✓ applied] 20260809_203911_supply_submission_notification_jobs\n  [✓ applied] 20260810_003111_align_listings_data_source_with_production\n  [✓ applied] 20260810_090000_supply_submission_role_permissions\n  [✓ applied] 20260810_114857_locations_city_field\n  [✓ applied] 20260810_153500_landing_hero_media_assets\n  [✓ applied] 20260810_170000_public_page_performance_indexes\n  [✓ applied] 20260810_200000_backfill_location_city\n  [✓ applied] 20260813_010000_city_site_profiles\n  [✓ applied] 20260813_011000_seed_city_site_profiles\n  [✓ applied] 20260813_020000_city_partner_applications\n  [✓ applied] 20260813_021000_city_partner_permissions\n  [✓ applied] 20260813_022000_city_partner_notification_jobs\n  [✓ applied] 20260813_060037_city_partner_notification_outbox_reconciler\n  [✓ applied] 20260815_140000_converge_shanghai_city_code\n  [✓ applied] 20260817_172754_sale_price_one_time\n  [✓ applied] 20260817_174500_sale_business_type_index\n  [✓ applied] 20260817_175801_sale_terms_fields\n  [✓ applied] 20260817_180000_sale_publication_status_sold\n  [✓ applied] 20260818_072207_fast_track_review_decision\n  [✓ applied] 20260818_232656_opt033_admin_fast_track_audit\n  [✓ applied] 20260819_113218_listing_hard_delete_nullable_refs\n  [✓ applied] 20260820_055534_drop_listing_merchant_relations\n  [✓ applied] 20260820_110024_opt035_city_profile_avg_response_hours\n  [✓ applied] 20260821_161534_supply_import_batches\n  [✓ applied] 20260822_001600_supply_import_unique_indexes\n  [✓ applied] 20260822_001700_supply_import_role_permissions\n  [✓ applied] 20260822_010308_supply_import_job_task\n  [✓ applied] 20260824_101016_opt048_snapshot_chain_repair\n  [✓ applied] 20260824_110612_opt045_import_publishable_fields\n  [✓ applied] 20260826_035602_opt_053_site_settings\n  [✓ applied] 20260826_065228_opt_054_nav_config\n  [✓ applied] 20260826_113343_opt_054_nav_home_target\n  [✓ applied] 20260827_113559_media_image_sizes\n  [✓ applied] 20260827_233120_site_settings_type_card_cover\n  [✓ applied] 20260827_234410_city_profile_type_card_overrides\n  [✓ applied] 20260830_164849_opt_063_listing_room_number\n  [✓ applied] 20260901_021249_merchant_stop_cascade_job\n  [✓ applied] 20260903_084339_opt_067_lead_visitor_ref\n  [✓ applied] 20260904_163535_opt_069_media_watermark_fields\n  [✓ applied] 20260904_170123_city_profile_type_card_cover_nullable\n  [✓ applied] 20260905_025659_opt_069_watermark_rebake_task\n  [✓ applied] 20260905_033034_opt_069_site_settings_watermark\n  [✓ applied] 20260905_121042_opt069_snapshot_chain_repair\n  [✓ applied] 20260905_172526_opt_071_watermark_image_source\n  [✓ applied] 20260906_064958_opt_073_featured_district_count\n  [✓ applied] 20260907_050043_mp108_mini_user_assets\n\n[migrate:assert-applied] OK：81 条已应用，0 条待应用\n.env.local not found. Continuing without it.\n"
+      },
+      {
+        "command": "pnpm migrate:verify",
+        "startedAt": "2026-09-07T06:11:00.522Z",
+        "finishedAt": "2026-09-07T06:11:02.744Z",
+        "exitCode": 0,
+        "output": "\n> payload-office-platform@0.1.0 migrate:verify payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/migrate-verify.ts\n\n=== Migration Verify ===\nGenerated: 2026-09-07T06:11:00.784Z\nDatabase:  postgres\n  URL: [REDACTED_DATABASE_URL]\n\n[14:11:02] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n✓ [PASS] migration:20260723_160143_init:up\n    迁移 20260723_160143_init 包含 up 函数\n✓ [PASS] migration:20260723_160143_init:down\n    迁移 20260723_160143_init 包含 down 回滚入口\n✓ [PASS] migration:20260724_080952_add_leads_source:up\n    迁移 20260724_080952_add_leads_source 包含 up 函数\n✓ [PASS] migration:20260724_080952_add_leads_source:down\n    迁移 20260724_080952_add_leads_source 包含 down 回滚入口\n✓ [PASS] migration:20260725_103653_m0_schema_sync:up\n    迁移 20260725_103653_m0_schema_sync 包含 up 函数\n✓ [PASS] migration:20260725_103653_m0_schema_sync:down\n    迁移 20260725_103653_m0_schema_sync 包含 down 回滚入口\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:up\n    迁移 20260725_125851_m2_5_teams_brokers 包含 up 函数\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:down\n    迁移 20260725_125851_m2_5_teams_brokers 包含 down 回滚入口\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:up\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 up 函数\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:down\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 down 回滚入口\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:up\n    迁移 20260725_132852_m2_6_display_tags 包含 up 函数\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:down\n    迁移 20260725_132852_m2_6_display_tags 包含 down 回滚入口\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:up\n    迁移 20260725_135837_m3_1_building_fields 包含 up 函数\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:down\n    迁移 20260725_135837_m3_1_building_fields 包含 down 回滚入口\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:up\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:down\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260725_142500_m3_3_building_merchant_exclude:up\n    迁移 20260725_142500_m3_3_building_merchant_exclude 包含 up 函数\n✓ [PASS] migration:20260725_142500_m3_3_building_merchant_exclude:down\n    迁移 20260725_142500_m3_3_building_merchant_exclude 包含 down 回滚入口\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:up\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:down\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260725_181500_m4_2_listing_merchant_exclude:up\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 包含 up 函数\n✓ [PASS] migration:20260725_181500_m4_2_listing_merchant_exclude:down\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 包含 down 回滚入口\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:up\n    迁移 20260725_185329_m4_4_listing_reviews 包含 up 函数\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:down\n    迁移 20260725_185329_m4_4_listing_reviews 包含 down 回滚入口\n✓ [PASS] migration:20260726_103500_m6_1_listing_reports:up\n    迁移 20260726_103500_m6_1_listing_reports 包含 up 函数\n✓ [PASS] migration:20260726_103500_m6_1_listing_reports:down\n    迁移 20260726_103500_m6_1_listing_reports 包含 down 回滚入口\n✓ [PASS] migration:20260726_103600_m6_3_domain_events:up\n    迁移 20260726_103600_m6_3_domain_events 包含 up 函数\n✓ [PASS] migration:20260726_103600_m6_3_domain_events:down\n    迁移 20260726_103600_m6_3_domain_events 包含 down 回滚入口\n✓ [PASS] migration:20260726_103700_m6_4_tasks:up\n    迁移 20260726_103700_m6_4_tasks 包含 up 函数\n✓ [PASS] migration:20260726_103700_m6_4_tasks:down\n    迁移 20260726_103700_m6_4_tasks 包含 down 回滚入口\n✓ [PASS] migration:20260726_103800_m6_7_notifications:up\n    迁移 20260726_103800_m6_7_notifications 包含 up 函数\n✓ [PASS] migration:20260726_103800_m6_7_notifications:down\n    迁移 20260726_103800_m6_7_notifications 包含 down 回滚入口\n✓ [PASS] migration:20260726_110000_m5_1_crm_collections:up\n    迁移 20260726_110000_m5_1_crm_collections 包含 up 函数\n✓ [PASS] migration:20260726_110000_m5_1_crm_collections:down\n    迁移 20260726_110000_m5_1_crm_collections 包含 down 回滚入口\n✓ [PASS] migration:20260726_140000_m5_2_leads_inquiry_context:up\n    迁移 20260726_140000_m5_2_leads_inquiry_context 包含 up 函数\n✓ [PASS] migration:20260726_140000_m5_2_leads_inquiry_context:down\n    迁移 20260726_140000_m5_2_leads_inquiry_context 包含 down 回滚入口\n✓ [PASS] migration:20260726_150000_opt017_inquiry_rate_limit:up\n    迁移 20260726_150000_opt017_inquiry_rate_limit 包含 up 函数\n✓ [PASS] migration:20260726_150000_opt017_inquiry_rate_limit:down\n    迁移 20260726_150000_opt017_inquiry_rate_limit 包含 down 回滚入口\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:up\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 up 函数\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:down\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 down 回滚入口\n✓ [PASS] migration:20260728_180000_opt_021_admin_navigation_roles:up\n    迁移 20260728_180000_opt_021_admin_navigation_roles 包含 up 函数\n✓ [PASS] migration:20260728_180000_opt_021_admin_navigation_roles:down\n    迁移 20260728_180000_opt_021_admin_navigation_roles 包含 down 回滚入口\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:up\n    迁移 20260728_181000_opt_021_form_submission_status 包含 up 函数\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:down\n    迁移 20260728_181000_opt_021_form_submission_status 包含 down 回滚入口\n✓ [PASS] migration:20260730_125851_detail_page_fields:up\n    迁移 20260730_125851_detail_page_fields 包含 up 函数\n✓ [PASS] migration:20260730_125851_detail_page_fields:down\n    迁移 20260730_125851_detail_page_fields 包含 down 回滚入口\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:up\n    迁移 20260730_134600_inquiry_detail_context 包含 up 函数\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:down\n    迁移 20260730_134600_inquiry_detail_context 包含 down 回滚入口\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:up\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 up 函数\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:down\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 down 回滚入口\n✓ [PASS] migration:20260731_120000_information_corrections:up\n    迁移 20260731_120000_information_corrections 包含 up 函数\n✓ [PASS] migration:20260731_120000_information_corrections:down\n    迁移 20260731_120000_information_corrections 包含 down 回滚入口\n✓ [PASS] migration:20260731_120838_advisor_service_hours:up\n    迁移 20260731_120838_advisor_service_hours 包含 up 函数\n✓ [PASS] migration:20260731_120838_advisor_service_hours:down\n    迁移 20260731_120838_advisor_service_hours 包含 down 回滚入口\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:up\n    迁移 20260731_120857_lead_viewing_preference 包含 up 函数\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:down\n    迁移 20260731_120857_lead_viewing_preference 包含 down 回滚入口\n✓ [PASS] migration:20260803_104120_add_articles:up\n    迁移 20260803_104120_add_articles 包含 up 函数\n✓ [PASS] migration:20260803_104120_add_articles:down\n    迁移 20260803_104120_add_articles 包含 down 回滚入口\n✓ [PASS] migration:20260805_033418_cos_media_prefix:up\n    迁移 20260805_033418_cos_media_prefix 包含 up 函数\n✓ [PASS] migration:20260805_033418_cos_media_prefix:down\n    迁移 20260805_033418_cos_media_prefix 包含 down 回滚入口\n✓ [PASS] migration:20260806_080629_locations_cover_image:up\n    迁移 20260806_080629_locations_cover_image 包含 up 函数\n✓ [PASS] migration:20260806_080629_locations_cover_image:down\n    迁移 20260806_080629_locations_cover_image 包含 down 回滚入口\n✓ [PASS] migration:20260808_224000_articles_menu_for_ops:up\n    迁移 20260808_224000_articles_menu_for_ops 包含 up 函数\n✓ [PASS] migration:20260808_224000_articles_menu_for_ops:down\n    迁移 20260808_224000_articles_menu_for_ops 包含 down 回滚入口\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:up\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 up 函数\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:down\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 down 回滚入口\n✓ [PASS] migration:20260809_180000_supply_notification_duplicates_preflight:up\n    迁移 20260809_180000_supply_notification_duplicates_preflight 包含 up 函数\n✓ [PASS] migration:20260809_180000_supply_notification_duplicates_preflight:down\n    迁移 20260809_180000_supply_notification_duplicates_preflight 包含 down 回滚入口\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:up\n    迁移 20260809_183327_supply_submission_notification_unique 包含 up 函数\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:down\n    迁移 20260809_183327_supply_submission_notification_unique 包含 down 回滚入口\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:up\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 up 函数\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:down\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 down 回滚入口\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:up\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 up 函数\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:down\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 down 回滚入口\n✓ [PASS] migration:20260810_090000_supply_submission_role_permissions:up\n    迁移 20260810_090000_supply_submission_role_permissions 包含 up 函数\n✓ [PASS] migration:20260810_090000_supply_submission_role_permissions:down\n    迁移 20260810_090000_supply_submission_role_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260810_114857_locations_city_field:up\n    迁移 20260810_114857_locations_city_field 包含 up 函数\n✓ [PASS] migration:20260810_114857_locations_city_field:down\n    迁移 20260810_114857_locations_city_field 包含 down 回滚入口\n✓ [PASS] migration:20260810_153500_landing_hero_media_assets:up\n    迁移 20260810_153500_landing_hero_media_assets 包含 up 函数\n✓ [PASS] migration:20260810_153500_landing_hero_media_assets:down\n    迁移 20260810_153500_landing_hero_media_assets 包含 down 回滚入口\n✓ [PASS] migration:20260810_170000_public_page_performance_indexes:up\n    迁移 20260810_170000_public_page_performance_indexes 包含 up 函数\n✓ [PASS] migration:20260810_170000_public_page_performance_indexes:down\n    迁移 20260810_170000_public_page_performance_indexes 包含 down 回滚入口\n✓ [PASS] migration:20260810_200000_backfill_location_city:up\n    迁移 20260810_200000_backfill_location_city 包含 up 函数\n✓ [PASS] migration:20260810_200000_backfill_location_city:down\n    迁移 20260810_200000_backfill_location_city 包含 down 回滚入口\n✓ [PASS] migration:20260813_010000_city_site_profiles:up\n    迁移 20260813_010000_city_site_profiles 包含 up 函数\n✓ [PASS] migration:20260813_010000_city_site_profiles:down\n    迁移 20260813_010000_city_site_profiles 包含 down 回滚入口\n✓ [PASS] migration:20260813_011000_seed_city_site_profiles:up\n    迁移 20260813_011000_seed_city_site_profiles 包含 up 函数\n✓ [PASS] migration:20260813_011000_seed_city_site_profiles:down\n    迁移 20260813_011000_seed_city_site_profiles 包含 down 回滚入口\n✓ [PASS] migration:20260813_020000_city_partner_applications:up\n    迁移 20260813_020000_city_partner_applications 包含 up 函数\n✓ [PASS] migration:20260813_020000_city_partner_applications:down\n    迁移 20260813_020000_city_partner_applications 包含 down 回滚入口\n✓ [PASS] migration:20260813_021000_city_partner_permissions:up\n    迁移 20260813_021000_city_partner_permissions 包含 up 函数\n✓ [PASS] migration:20260813_021000_city_partner_permissions:down\n    迁移 20260813_021000_city_partner_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260813_022000_city_partner_notification_jobs:up\n    迁移 20260813_022000_city_partner_notification_jobs 包含 up 函数\n✓ [PASS] migration:20260813_022000_city_partner_notification_jobs:down\n    迁移 20260813_022000_city_partner_notification_jobs 包含 down 回滚入口\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:up\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 up 函数\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:down\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 down 回滚入口\n✓ [PASS] migration:20260815_140000_converge_shanghai_city_code:up\n    迁移 20260815_140000_converge_shanghai_city_code 包含 up 函数\n✓ [PASS] migration:20260815_140000_converge_shanghai_city_code:down\n    迁移 20260815_140000_converge_shanghai_city_code 包含 down 回滚入口\n✓ [PASS] migration:20260817_172754_sale_price_one_time:up\n    迁移 20260817_172754_sale_price_one_time 包含 up 函数\n✓ [PASS] migration:20260817_172754_sale_price_one_time:down\n    迁移 20260817_172754_sale_price_one_time 包含 down 回滚入口\n✓ [PASS] migration:20260817_174500_sale_business_type_index:up\n    迁移 20260817_174500_sale_business_type_index 包含 up 函数\n✓ [PASS] migration:20260817_174500_sale_business_type_index:down\n    迁移 20260817_174500_sale_business_type_index 包含 down 回滚入口\n✓ [PASS] migration:20260817_175801_sale_terms_fields:up\n    迁移 20260817_175801_sale_terms_fields 包含 up 函数\n✓ [PASS] migration:20260817_175801_sale_terms_fields:down\n    迁移 20260817_175801_sale_terms_fields 包含 down 回滚入口\n✓ [PASS] migration:20260817_180000_sale_publication_status_sold:up\n    迁移 20260817_180000_sale_publication_status_sold 包含 up 函数\n✓ [PASS] migration:20260817_180000_sale_publication_status_sold:down\n    迁移 20260817_180000_sale_publication_status_sold 包含 down 回滚入口\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:up\n    迁移 20260818_072207_fast_track_review_decision 包含 up 函数\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:down\n    迁移 20260818_072207_fast_track_review_decision 包含 down 回滚入口\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:up\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 up 函数\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:down\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 down 回滚入口\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:up\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 up 函数\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:down\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 down 回滚入口\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:up\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:down\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:up\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 up 函数\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:down\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 down 回滚入口\n✓ [PASS] migration:20260821_161534_supply_import_batches:up\n    迁移 20260821_161534_supply_import_batches 包含 up 函数\n✓ [PASS] migration:20260821_161534_supply_import_batches:down\n    迁移 20260821_161534_supply_import_batches 包含 down 回滚入口\n✓ [PASS] migration:20260822_001600_supply_import_unique_indexes:up\n    迁移 20260822_001600_supply_import_unique_indexes 包含 up 函数\n✓ [PASS] migration:20260822_001600_supply_import_unique_indexes:down\n    迁移 20260822_001600_supply_import_unique_indexes 包含 down 回滚入口\n✓ [PASS] migration:20260822_001700_supply_import_role_permissions:up\n    迁移 20260822_001700_supply_import_role_permissions 包含 up 函数\n✓ [PASS] migration:20260822_001700_supply_import_role_permissions:down\n    迁移 20260822_001700_supply_import_role_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260822_010308_supply_import_job_task:up\n    迁移 20260822_010308_supply_import_job_task 包含 up 函数\n✓ [PASS] migration:20260822_010308_supply_import_job_task:down\n    迁移 20260822_010308_supply_import_job_task 包含 down 回滚入口\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:up\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 up 函数\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:down\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 down 回滚入口\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:up\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 up 函数\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:down\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 down 回滚入口\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:up\n    迁移 20260826_035602_opt_053_site_settings 包含 up 函数\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:down\n    迁移 20260826_035602_opt_053_site_settings 包含 down 回滚入口\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:up\n    迁移 20260826_065228_opt_054_nav_config 包含 up 函数\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:down\n    迁移 20260826_065228_opt_054_nav_config 包含 down 回滚入口\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:up\n    迁移 20260826_113343_opt_054_nav_home_target 包含 up 函数\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:down\n    迁移 20260826_113343_opt_054_nav_home_target 包含 down 回滚入口\n✓ [PASS] migration:20260827_113559_media_image_sizes:up\n    迁移 20260827_113559_media_image_sizes 包含 up 函数\n✓ [PASS] migration:20260827_113559_media_image_sizes:down\n    迁移 20260827_113559_media_image_sizes 包含 down 回滚入口\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:up\n    迁移 20260827_233120_site_settings_type_card_cover 包含 up 函数\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:down\n    迁移 20260827_233120_site_settings_type_card_cover 包含 down 回滚入口\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:up\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 up 函数\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:down\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 down 回滚入口\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:up\n    迁移 20260830_164849_opt_063_listing_room_number 包含 up 函数\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:down\n    迁移 20260830_164849_opt_063_listing_room_number 包含 down 回滚入口\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:up\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 up 函数\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:down\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 down 回滚入口\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:up\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 up 函数\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:down\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 down 回滚入口\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:up\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 up 函数\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:down\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 down 回滚入口\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:up\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 up 函数\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:down\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 down 回滚入口\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:up\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 up 函数\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:down\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 down 回滚入口\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:up\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 up 函数\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:down\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 down 回滚入口\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:up\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 up 函数\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:down\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 down 回滚入口\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:up\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 up 函数\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:down\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 down 回滚入口\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:up\n    迁移 20260906_064958_opt_073_featured_district_count 包含 up 函数\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:down\n    迁移 20260906_064958_opt_073_featured_district_count 包含 down 回滚入口\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:up\n    迁移 20260907_050043_mp108_mini_user_assets 包含 up 函数\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:down\n    迁移 20260907_050043_mp108_mini_user_assets 包含 down 回滚入口\n✓ [PASS] migration:20260723_160143_init:json\n    迁移 20260723_160143_init 包含 schema JSON\n✓ [PASS] migration:20260724_080952_add_leads_source:json\n    迁移 20260724_080952_add_leads_source 包含 schema JSON\n✓ [PASS] migration:20260725_103653_m0_schema_sync:json\n    迁移 20260725_103653_m0_schema_sync 包含 schema JSON\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:json\n    迁移 20260725_125851_m2_5_teams_brokers 包含 schema JSON\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:json\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 schema JSON\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:json\n    迁移 20260725_132852_m2_6_display_tags 包含 schema JSON\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:json\n    迁移 20260725_135837_m3_1_building_fields 包含 schema JSON\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:json\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 schema JSON\n⚠ [WARN] migration:20260725_142500_m3_3_building_merchant_exclude:json\n    迁移 20260725_142500_m3_3_building_merchant_exclude 缺少 20260725_142500_m3_3_building_merchant_exclude.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:json\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 schema JSON\n⚠ [WARN] migration:20260725_181500_m4_2_listing_merchant_exclude:json\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 缺少 20260725_181500_m4_2_listing_merchant_exclude.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:json\n    迁移 20260725_185329_m4_4_listing_reviews 包含 schema JSON\n⚠ [WARN] migration:20260726_103500_m6_1_listing_reports:json\n    迁移 20260726_103500_m6_1_listing_reports 缺少 20260726_103500_m6_1_listing_reports.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103600_m6_3_domain_events:json\n    迁移 20260726_103600_m6_3_domain_events 缺少 20260726_103600_m6_3_domain_events.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103700_m6_4_tasks:json\n    迁移 20260726_103700_m6_4_tasks 缺少 20260726_103700_m6_4_tasks.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103800_m6_7_notifications:json\n    迁移 20260726_103800_m6_7_notifications 缺少 20260726_103800_m6_7_notifications.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_110000_m5_1_crm_collections:json\n    迁移 20260726_110000_m5_1_crm_collections 缺少 20260726_110000_m5_1_crm_collections.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_140000_m5_2_leads_inquiry_context:json\n    迁移 20260726_140000_m5_2_leads_inquiry_context 缺少 20260726_140000_m5_2_leads_inquiry_context.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_150000_opt017_inquiry_rate_limit:json\n    迁移 20260726_150000_opt017_inquiry_rate_limit 缺少 20260726_150000_opt017_inquiry_rate_limit.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:json\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 schema JSON\n⚠ [WARN] migration:20260728_180000_opt_021_admin_navigation_roles:json\n    迁移 20260728_180000_opt_021_admin_navigation_roles 缺少 20260728_180000_opt_021_admin_navigation_roles.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:json\n    迁移 20260728_181000_opt_021_form_submission_status 包含 schema JSON\n✓ [PASS] migration:20260730_125851_detail_page_fields:json\n    迁移 20260730_125851_detail_page_fields 包含 schema JSON\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:json\n    迁移 20260730_134600_inquiry_detail_context 包含 schema JSON\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:json\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 schema JSON\n✓ [PASS] migration:20260731_120000_information_corrections:json\n    迁移 20260731_120000_information_corrections 包含 schema JSON\n✓ [PASS] migration:20260731_120838_advisor_service_hours:json\n    迁移 20260731_120838_advisor_service_hours 包含 schema JSON\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:json\n    迁移 20260731_120857_lead_viewing_preference 包含 schema JSON\n✓ [PASS] migration:20260803_104120_add_articles:json\n    迁移 20260803_104120_add_articles 包含 schema JSON\n✓ [PASS] migration:20260805_033418_cos_media_prefix:json\n    迁移 20260805_033418_cos_media_prefix 包含 schema JSON\n✓ [PASS] migration:20260806_080629_locations_cover_image:json\n    迁移 20260806_080629_locations_cover_image 包含 schema JSON\n⚠ [WARN] migration:20260808_224000_articles_menu_for_ops:json\n    迁移 20260808_224000_articles_menu_for_ops 缺少 20260808_224000_articles_menu_for_ops.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:json\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 schema JSON\n⚠ [WARN] migration:20260809_180000_supply_notification_duplicates_preflight:json\n    迁移 20260809_180000_supply_notification_duplicates_preflight 缺少 20260809_180000_supply_notification_duplicates_preflight.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:json\n    迁移 20260809_183327_supply_submission_notification_unique 包含 schema JSON\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:json\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 schema JSON\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:json\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 schema JSON\n⚠ [WARN] migration:20260810_090000_supply_submission_role_permissions:json\n    迁移 20260810_090000_supply_submission_role_permissions 缺少 20260810_090000_supply_submission_role_permissions.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260810_114857_locations_city_field:json\n    迁移 20260810_114857_locations_city_field 包含 schema JSON\n⚠ [WARN] migration:20260810_153500_landing_hero_media_assets:json\n    迁移 20260810_153500_landing_hero_media_assets 缺少 20260810_153500_landing_hero_media_assets.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260810_170000_public_page_performance_indexes:json\n    迁移 20260810_170000_public_page_performance_indexes 缺少 20260810_170000_public_page_performance_indexes.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260810_200000_backfill_location_city:json\n    迁移 20260810_200000_backfill_location_city 缺少 20260810_200000_backfill_location_city.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_010000_city_site_profiles:json\n    迁移 20260813_010000_city_site_profiles 包含 schema JSON\n⚠ [WARN] migration:20260813_011000_seed_city_site_profiles:json\n    迁移 20260813_011000_seed_city_site_profiles 缺少 20260813_011000_seed_city_site_profiles.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_020000_city_partner_applications:json\n    迁移 20260813_020000_city_partner_applications 包含 schema JSON\n⚠ [WARN] migration:20260813_021000_city_partner_permissions:json\n    迁移 20260813_021000_city_partner_permissions 缺少 20260813_021000_city_partner_permissions.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260813_022000_city_partner_notification_jobs:json\n    迁移 20260813_022000_city_partner_notification_jobs 缺少 20260813_022000_city_partner_notification_jobs.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:json\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 schema JSON\n⚠ [WARN] migration:20260815_140000_converge_shanghai_city_code:json\n    迁移 20260815_140000_converge_shanghai_city_code 缺少 20260815_140000_converge_shanghai_city_code.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260817_172754_sale_price_one_time:json\n    迁移 20260817_172754_sale_price_one_time 包含 schema JSON\n⚠ [WARN] migration:20260817_174500_sale_business_type_index:json\n    迁移 20260817_174500_sale_business_type_index 缺少 20260817_174500_sale_business_type_index.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260817_175801_sale_terms_fields:json\n    迁移 20260817_175801_sale_terms_fields 包含 schema JSON\n⚠ [WARN] migration:20260817_180000_sale_publication_status_sold:json\n    迁移 20260817_180000_sale_publication_status_sold 缺少 20260817_180000_sale_publication_status_sold.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:json\n    迁移 20260818_072207_fast_track_review_decision 包含 schema JSON\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:json\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 schema JSON\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:json\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 schema JSON\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:json\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 schema JSON\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:json\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 schema JSON\n✓ [PASS] migration:20260821_161534_supply_import_batches:json\n    迁移 20260821_161534_supply_import_batches 包含 schema JSON\n⚠ [WARN] migration:20260822_001600_supply_import_unique_indexes:json\n    迁移 20260822_001600_supply_import_unique_indexes 缺少 20260822_001600_supply_import_unique_indexes.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260822_001700_supply_import_role_permissions:json\n    迁移 20260822_001700_supply_import_role_permissions 缺少 20260822_001700_supply_import_role_permissions.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260822_010308_supply_import_job_task:json\n    迁移 20260822_010308_supply_import_job_task 包含 schema JSON\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:json\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 schema JSON\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:json\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 schema JSON\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:json\n    迁移 20260826_035602_opt_053_site_settings 包含 schema JSON\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:json\n    迁移 20260826_065228_opt_054_nav_config 包含 schema JSON\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:json\n    迁移 20260826_113343_opt_054_nav_home_target 包含 schema JSON\n✓ [PASS] migration:20260827_113559_media_image_sizes:json\n    迁移 20260827_113559_media_image_sizes 包含 schema JSON\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:json\n    迁移 20260827_233120_site_settings_type_card_cover 包含 schema JSON\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:json\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 schema JSON\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:json\n    迁移 20260830_164849_opt_063_listing_room_number 包含 schema JSON\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:json\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 schema JSON\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:json\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 schema JSON\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:json\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 schema JSON\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:json\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 schema JSON\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:json\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 schema JSON\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:json\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 schema JSON\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:json\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 schema JSON\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:json\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 schema JSON\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:json\n    迁移 20260906_064958_opt_073_featured_district_count 包含 schema JSON\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:json\n    迁移 20260907_050043_mp108_mini_user_assets 包含 schema JSON\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:forbidden:DROP TABLE\n    迁移 20260820_055534_drop_listing_merchant_relations 的 up() 包含 DROP TABLE，已获批准（见 DESTRUCTIVE_MIGRATION_APPROVALS.json）\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:forbidden:DROP COLUMN\n    迁移 20260820_055534_drop_listing_merchant_relations 的 up() 包含 DROP COLUMN，已获批准（见 DESTRUCTIVE_MIGRATION_APPROVALS.json）\n✓ [PASS] pg:payload_migrations:readable\n    payload_migrations 表可读，已应用 81 条\n✓ [PASS] db:collection:users\n    users 表存在，行数 0\n✓ [PASS] db:collection:roles\n    roles 表存在，行数 5\n✓ [PASS] db:collection:media\n    media 表存在，行数 2\n✓ [PASS] db:collection:locations\n    locations 表存在，行数 0\n✓ [PASS] db:collection:business-area-extensions\n    business-area-extensions 表存在，行数 0\n✓ [PASS] db:collection:city-site-profiles\n    city-site-profiles 表存在，行数 0\n✓ [PASS] db:collection:merchants\n    merchants 表存在，行数 0\n✓ [PASS] db:collection:teams\n    teams 表存在，行数 0\n✓ [PASS] db:collection:brokers\n    brokers 表存在，行数 0\n✓ [PASS] db:collection:amenities\n    amenities 表存在，行数 0\n✓ [PASS] db:collection:buildings\n    buildings 表存在，行数 0\n✓ [PASS] db:collection:building-merchant-relations\n    building-merchant-relations 表存在，行数 0\n✓ [PASS] db:collection:listings\n    listings 表存在，行数 0\n✓ [PASS] db:collection:leads\n    leads 表存在，行数 0\n✓ [PASS] db:collection:customers\n    customers 表存在，行数 0\n✓ [PASS] db:collection:lead-ownership-history\n    lead-ownership-history 表存在，行数 0\n✓ [PASS] db:collection:follow-ups\n    follow-ups 表存在，行数 0\n✓ [PASS] db:collection:pages\n    pages 表存在，行数 0\n✓ [PASS] db:collection:articles\n    articles 表存在，行数 0\n✓ [PASS] db:collection:display-tags\n    display-tags 表存在，行数 0\n✓ [PASS] db:collection:listing-reviews\n    listing-reviews 表存在，行数 0\n✓ [PASS] db:collection:listing-reports\n    listing-reports 表存在，行数 0\n✓ [PASS] db:collection:information-corrections\n    information-corrections 表存在，行数 0\n✓ [PASS] db:collection:supply-submissions\n    supply-submissions 表存在，行数 0\n✓ [PASS] db:collection:city-partner-applications\n    city-partner-applications 表存在，行数 0\n✓ [PASS] db:collection:domain-events\n    domain-events 表存在，行数 0\n✓ [PASS] db:collection:audit-logs\n    audit-logs 表存在，行数 0\n✓ [PASS] db:collection:tasks\n    tasks 表存在，行数 0\n✓ [PASS] db:collection:notifications\n    notifications 表存在，行数 0\n✓ [PASS] db:collection:supply-import-batches\n    supply-import-batches 表存在，行数 0\n✓ [PASS] db:collection:location-aliases\n    location-aliases 表存在，行数 0\n✓ [PASS] db:collection:mini-user-assets\n    mini-user-assets 表存在，行数 0\n✓ [PASS] db:collection:search\n    search 表存在，行数 0\n✓ [PASS] db:collection:forms\n    forms 表存在，行数 0\n✓ [PASS] db:collection:form-submissions\n    form-submissions 表存在，行数 0\n✓ [PASS] db:collection:exports\n    exports 表存在，行数 0\n✓ [PASS] db:collection:imports\n    imports 表存在，行数 0\n✓ [PASS] db:collection:payload-kv\n    payload-kv 表存在，行数 0\n✓ [PASS] db:collection:payload-jobs\n    payload-jobs 表存在，行数 0\n✓ [PASS] db:collection:payload-locked-documents\n    payload-locked-documents 表存在，行数 0\n✓ [PASS] db:collection:payload-preferences\n    payload-preferences 表存在，行数 0\n✓ [PASS] db:collection:payload-migrations\n    payload-migrations 表存在，行数 81\n○ [SKIP] pg:supply-validity-exclude-constraint\n    M3.3 引入 Building 商户有效期关系时添加 EXCLUDE 约束验证\n\nTotal: 289 checks | 0 fail | 24 warn\n\n⚠️  24 warning(s) — 复核后可继续\n.env.local not found. Continuing without it.\n"
+      },
+      {
+        "command": "pnpm seed",
+        "startedAt": "2026-09-07T06:11:02.746Z",
+        "finishedAt": "2026-09-07T06:11:06.633Z",
+        "exitCode": 0,
+        "output": "\n> payload-office-platform@0.1.0 seed payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/seed.ts\n\n--- Starting seed ---\nInitializing payload...\n[14:11:04] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\nPayload initialized!\nSyncing builtin roles...\n[14:11:04] INFO: 角色 ADM 已存在，已更新 fixture 权限\n[14:11:04] INFO: 角色 OPS 已存在，已更新 fixture 权限\n[14:11:04] INFO: 角色 MGR 已存在，已更新 fixture 权限\n[14:11:04] INFO: 角色 BRK 已存在，已更新 fixture 权限\n[14:11:04] INFO: 角色 CSR 已存在，已更新 fixture 权限\nBuiltin roles synced!\n[14:11:04] INFO: E2E 用户 [REDACTED_EMAIL] 创建完成\n[14:11:04] INFO: E2E 用户 [REDACTED_EMAIL] 创建完成\n[14:11:05] INFO: E2E 用户 [REDACTED_EMAIL] 创建完成\n[14:11:05] INFO: E2E 用户 [REDACTED_EMAIL] 创建完成\n[14:11:05] INFO: E2E 用户 [REDACTED_EMAIL] 创建完成\nE2E Users synced!\nUpserting locations...\nUpserting city site profiles...\nCity site profiles seeded!\nLocations and buildings seeded!\nUpserting listings...\nListings seeded!\nPages seeded!\nSeeding leads...\nLeads seeded! Seeding core mock data (teams, brokers, merchants)...\n[14:11:06] INFO: Seed data completed.\n.env.local not found. Continuing without it.\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'location', tagCount: 7 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n(node:17194) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'page', tagCount: 2 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'page', tagCount: 2 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'page', tagCount: 2 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n"
+      },
+      {
+        "command": "pnpm seed:media",
+        "startedAt": "2026-09-07T06:11:06.634Z",
+        "finishedAt": "2026-09-07T06:11:10.649Z",
+        "exitCode": 0,
+        "output": "\n> payload-office-platform@0.1.0 seed:media payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/seed-media.ts\n\n[14:11:08] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:08] INFO: 已清理旧 media: 2 条\n[14:11:08] INFO: 开始上传楼盘封面图（sharp 本地生成）...\n[14:11:08] INFO: 封面: 上海南京西路高端商务中心外景 (seed=shanghai-nanjing-west-road-tower)\n[14:11:08] INFO: 封面: 上海陆家嘴江景甲级写字楼外景 (seed=shanghai-lujiazui-skyscraper-river)\n[14:11:08] INFO: 封面: 上海外滩源大厦历史建筑外景 (seed=shanghai-bund-historic-architecture)\n[14:11:08] INFO: 封面: 上海徐家汇国际大厦外景 (seed=shanghai-xujiahui-office-tower)\n[14:11:09] INFO: 封面: 上海虹桥国际商务中心外景 (seed=shanghai-hongqiao-business-center)\n[14:11:09] INFO: 开始上传室内细节图（sharp 本地生成）...\n[14:11:09] INFO: 细节图: 现代办公楼开放式办公区 (seed=modern-open-plan-workspace)\n[14:11:09] INFO: 细节图: 精装会议室与城市景观 (seed=premium-meeting-room-city-view)\n[14:11:09] INFO: 细节图: 共享办公休闲区 (seed=coworking-lounge-natural-light)\n[14:11:09] INFO: 平面图: 楼层平面示意图\n[14:11:09] INFO: 将图片挂载到楼盘...\n[14:11:09] INFO: 已挂载: west-nanjing-premium-center\n[14:11:09] INFO: 已挂载: lujiazui-grade-a-river-view\n[14:11:09] INFO: 已挂载: huangpu-bund\n[14:11:09] INFO: 已挂载: xuhui-xujiahui\n[14:11:09] INFO: 已挂载: changning-hongqiao\n[14:11:09] INFO: 将封面与 gallery 同步到所有 listings...\n[14:11:09] INFO: 已挂载房源媒体: huangpu-bund-traditional\n[14:11:09] INFO: 已挂载房源媒体: jingan-published-pending-recheck\n[14:11:09] INFO: 已挂载房源媒体: jingan-price-on-request-300sqm\n[14:11:10] INFO: 已挂载房源媒体: jingan-center-fullfloor\n[14:11:10] INFO: 已挂载房源媒体: changning-hongqiao-serviced\n[14:11:10] INFO: 已挂载房源媒体: xuhui-xujiahui-traditional\n[14:11:10] INFO: 已挂载房源媒体: pudong-lujiazui-fullfloor\n[14:11:10] INFO: 已挂载房源媒体: huangpu-bund-coworking\n[14:11:10] INFO: 已挂载房源媒体: lujiazui-grade-a-780sqm\n[14:11:10] INFO: 已挂载房源媒体: media-rich-listing\n[14:11:10] INFO: 已挂载房源媒体: jingan-serviced-office-42-seats\n[14:11:10] INFO: 为内容页 about 挂载 hero 图...\n[14:11:10] INFO: 已挂载 about 页 hero 图\n[14:11:10] INFO: 上传落地页 hero 背景图（sharp 本地生成）...\n[14:11:10] INFO: hero: 高端写字楼空置空间与城市天际线背景\n[14:11:10] INFO: hero: 商务选址顾问会议桌与上海天际线背景\n[14:11:10] INFO: 上传首页 hero 背景视频 hero-bg.mp4...\n[14:11:10] INFO: 媒体数据挂载完成。\n.env.local not found. Continuing without it.\n(node:17344) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'page', tagCount: 2 }\n"
+      },
+      {
+        "command": "pnpm exec payload migrate",
+        "startedAt": "2026-09-07T06:11:10.650Z",
+        "finishedAt": "2026-09-07T06:11:12.598Z",
+        "exitCode": 0,
+        "output": "[14:11:12] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:12] INFO: Reading migration files from payload-office-platform/src/migrations\n[14:11:12] INFO: Done.\n"
+      },
+      {
+        "command": "pnpm migrate:verify",
+        "startedAt": "2026-09-07T06:11:12.598Z",
+        "finishedAt": "2026-09-07T06:11:14.820Z",
+        "exitCode": 0,
+        "output": "\n> payload-office-platform@0.1.0 migrate:verify payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/migrate-verify.ts\n\n=== Migration Verify ===\nGenerated: 2026-09-07T06:11:12.853Z\nDatabase:  postgres\n  URL: [REDACTED_DATABASE_URL]\n\n[14:11:14] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n✓ [PASS] migration:20260723_160143_init:up\n    迁移 20260723_160143_init 包含 up 函数\n✓ [PASS] migration:20260723_160143_init:down\n    迁移 20260723_160143_init 包含 down 回滚入口\n✓ [PASS] migration:20260724_080952_add_leads_source:up\n    迁移 20260724_080952_add_leads_source 包含 up 函数\n✓ [PASS] migration:20260724_080952_add_leads_source:down\n    迁移 20260724_080952_add_leads_source 包含 down 回滚入口\n✓ [PASS] migration:20260725_103653_m0_schema_sync:up\n    迁移 20260725_103653_m0_schema_sync 包含 up 函数\n✓ [PASS] migration:20260725_103653_m0_schema_sync:down\n    迁移 20260725_103653_m0_schema_sync 包含 down 回滚入口\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:up\n    迁移 20260725_125851_m2_5_teams_brokers 包含 up 函数\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:down\n    迁移 20260725_125851_m2_5_teams_brokers 包含 down 回滚入口\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:up\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 up 函数\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:down\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 down 回滚入口\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:up\n    迁移 20260725_132852_m2_6_display_tags 包含 up 函数\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:down\n    迁移 20260725_132852_m2_6_display_tags 包含 down 回滚入口\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:up\n    迁移 20260725_135837_m3_1_building_fields 包含 up 函数\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:down\n    迁移 20260725_135837_m3_1_building_fields 包含 down 回滚入口\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:up\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:down\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260725_142500_m3_3_building_merchant_exclude:up\n    迁移 20260725_142500_m3_3_building_merchant_exclude 包含 up 函数\n✓ [PASS] migration:20260725_142500_m3_3_building_merchant_exclude:down\n    迁移 20260725_142500_m3_3_building_merchant_exclude 包含 down 回滚入口\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:up\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:down\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260725_181500_m4_2_listing_merchant_exclude:up\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 包含 up 函数\n✓ [PASS] migration:20260725_181500_m4_2_listing_merchant_exclude:down\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 包含 down 回滚入口\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:up\n    迁移 20260725_185329_m4_4_listing_reviews 包含 up 函数\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:down\n    迁移 20260725_185329_m4_4_listing_reviews 包含 down 回滚入口\n✓ [PASS] migration:20260726_103500_m6_1_listing_reports:up\n    迁移 20260726_103500_m6_1_listing_reports 包含 up 函数\n✓ [PASS] migration:20260726_103500_m6_1_listing_reports:down\n    迁移 20260726_103500_m6_1_listing_reports 包含 down 回滚入口\n✓ [PASS] migration:20260726_103600_m6_3_domain_events:up\n    迁移 20260726_103600_m6_3_domain_events 包含 up 函数\n✓ [PASS] migration:20260726_103600_m6_3_domain_events:down\n    迁移 20260726_103600_m6_3_domain_events 包含 down 回滚入口\n✓ [PASS] migration:20260726_103700_m6_4_tasks:up\n    迁移 20260726_103700_m6_4_tasks 包含 up 函数\n✓ [PASS] migration:20260726_103700_m6_4_tasks:down\n    迁移 20260726_103700_m6_4_tasks 包含 down 回滚入口\n✓ [PASS] migration:20260726_103800_m6_7_notifications:up\n    迁移 20260726_103800_m6_7_notifications 包含 up 函数\n✓ [PASS] migration:20260726_103800_m6_7_notifications:down\n    迁移 20260726_103800_m6_7_notifications 包含 down 回滚入口\n✓ [PASS] migration:20260726_110000_m5_1_crm_collections:up\n    迁移 20260726_110000_m5_1_crm_collections 包含 up 函数\n✓ [PASS] migration:20260726_110000_m5_1_crm_collections:down\n    迁移 20260726_110000_m5_1_crm_collections 包含 down 回滚入口\n✓ [PASS] migration:20260726_140000_m5_2_leads_inquiry_context:up\n    迁移 20260726_140000_m5_2_leads_inquiry_context 包含 up 函数\n✓ [PASS] migration:20260726_140000_m5_2_leads_inquiry_context:down\n    迁移 20260726_140000_m5_2_leads_inquiry_context 包含 down 回滚入口\n✓ [PASS] migration:20260726_150000_opt017_inquiry_rate_limit:up\n    迁移 20260726_150000_opt017_inquiry_rate_limit 包含 up 函数\n✓ [PASS] migration:20260726_150000_opt017_inquiry_rate_limit:down\n    迁移 20260726_150000_opt017_inquiry_rate_limit 包含 down 回滚入口\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:up\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 up 函数\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:down\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 down 回滚入口\n✓ [PASS] migration:20260728_180000_opt_021_admin_navigation_roles:up\n    迁移 20260728_180000_opt_021_admin_navigation_roles 包含 up 函数\n✓ [PASS] migration:20260728_180000_opt_021_admin_navigation_roles:down\n    迁移 20260728_180000_opt_021_admin_navigation_roles 包含 down 回滚入口\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:up\n    迁移 20260728_181000_opt_021_form_submission_status 包含 up 函数\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:down\n    迁移 20260728_181000_opt_021_form_submission_status 包含 down 回滚入口\n✓ [PASS] migration:20260730_125851_detail_page_fields:up\n    迁移 20260730_125851_detail_page_fields 包含 up 函数\n✓ [PASS] migration:20260730_125851_detail_page_fields:down\n    迁移 20260730_125851_detail_page_fields 包含 down 回滚入口\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:up\n    迁移 20260730_134600_inquiry_detail_context 包含 up 函数\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:down\n    迁移 20260730_134600_inquiry_detail_context 包含 down 回滚入口\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:up\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 up 函数\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:down\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 down 回滚入口\n✓ [PASS] migration:20260731_120000_information_corrections:up\n    迁移 20260731_120000_information_corrections 包含 up 函数\n✓ [PASS] migration:20260731_120000_information_corrections:down\n    迁移 20260731_120000_information_corrections 包含 down 回滚入口\n✓ [PASS] migration:20260731_120838_advisor_service_hours:up\n    迁移 20260731_120838_advisor_service_hours 包含 up 函数\n✓ [PASS] migration:20260731_120838_advisor_service_hours:down\n    迁移 20260731_120838_advisor_service_hours 包含 down 回滚入口\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:up\n    迁移 20260731_120857_lead_viewing_preference 包含 up 函数\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:down\n    迁移 20260731_120857_lead_viewing_preference 包含 down 回滚入口\n✓ [PASS] migration:20260803_104120_add_articles:up\n    迁移 20260803_104120_add_articles 包含 up 函数\n✓ [PASS] migration:20260803_104120_add_articles:down\n    迁移 20260803_104120_add_articles 包含 down 回滚入口\n✓ [PASS] migration:20260805_033418_cos_media_prefix:up\n    迁移 20260805_033418_cos_media_prefix 包含 up 函数\n✓ [PASS] migration:20260805_033418_cos_media_prefix:down\n    迁移 20260805_033418_cos_media_prefix 包含 down 回滚入口\n✓ [PASS] migration:20260806_080629_locations_cover_image:up\n    迁移 20260806_080629_locations_cover_image 包含 up 函数\n✓ [PASS] migration:20260806_080629_locations_cover_image:down\n    迁移 20260806_080629_locations_cover_image 包含 down 回滚入口\n✓ [PASS] migration:20260808_224000_articles_menu_for_ops:up\n    迁移 20260808_224000_articles_menu_for_ops 包含 up 函数\n✓ [PASS] migration:20260808_224000_articles_menu_for_ops:down\n    迁移 20260808_224000_articles_menu_for_ops 包含 down 回滚入口\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:up\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 up 函数\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:down\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 down 回滚入口\n✓ [PASS] migration:20260809_180000_supply_notification_duplicates_preflight:up\n    迁移 20260809_180000_supply_notification_duplicates_preflight 包含 up 函数\n✓ [PASS] migration:20260809_180000_supply_notification_duplicates_preflight:down\n    迁移 20260809_180000_supply_notification_duplicates_preflight 包含 down 回滚入口\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:up\n    迁移 20260809_183327_supply_submission_notification_unique 包含 up 函数\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:down\n    迁移 20260809_183327_supply_submission_notification_unique 包含 down 回滚入口\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:up\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 up 函数\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:down\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 down 回滚入口\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:up\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 up 函数\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:down\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 down 回滚入口\n✓ [PASS] migration:20260810_090000_supply_submission_role_permissions:up\n    迁移 20260810_090000_supply_submission_role_permissions 包含 up 函数\n✓ [PASS] migration:20260810_090000_supply_submission_role_permissions:down\n    迁移 20260810_090000_supply_submission_role_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260810_114857_locations_city_field:up\n    迁移 20260810_114857_locations_city_field 包含 up 函数\n✓ [PASS] migration:20260810_114857_locations_city_field:down\n    迁移 20260810_114857_locations_city_field 包含 down 回滚入口\n✓ [PASS] migration:20260810_153500_landing_hero_media_assets:up\n    迁移 20260810_153500_landing_hero_media_assets 包含 up 函数\n✓ [PASS] migration:20260810_153500_landing_hero_media_assets:down\n    迁移 20260810_153500_landing_hero_media_assets 包含 down 回滚入口\n✓ [PASS] migration:20260810_170000_public_page_performance_indexes:up\n    迁移 20260810_170000_public_page_performance_indexes 包含 up 函数\n✓ [PASS] migration:20260810_170000_public_page_performance_indexes:down\n    迁移 20260810_170000_public_page_performance_indexes 包含 down 回滚入口\n✓ [PASS] migration:20260810_200000_backfill_location_city:up\n    迁移 20260810_200000_backfill_location_city 包含 up 函数\n✓ [PASS] migration:20260810_200000_backfill_location_city:down\n    迁移 20260810_200000_backfill_location_city 包含 down 回滚入口\n✓ [PASS] migration:20260813_010000_city_site_profiles:up\n    迁移 20260813_010000_city_site_profiles 包含 up 函数\n✓ [PASS] migration:20260813_010000_city_site_profiles:down\n    迁移 20260813_010000_city_site_profiles 包含 down 回滚入口\n✓ [PASS] migration:20260813_011000_seed_city_site_profiles:up\n    迁移 20260813_011000_seed_city_site_profiles 包含 up 函数\n✓ [PASS] migration:20260813_011000_seed_city_site_profiles:down\n    迁移 20260813_011000_seed_city_site_profiles 包含 down 回滚入口\n✓ [PASS] migration:20260813_020000_city_partner_applications:up\n    迁移 20260813_020000_city_partner_applications 包含 up 函数\n✓ [PASS] migration:20260813_020000_city_partner_applications:down\n    迁移 20260813_020000_city_partner_applications 包含 down 回滚入口\n✓ [PASS] migration:20260813_021000_city_partner_permissions:up\n    迁移 20260813_021000_city_partner_permissions 包含 up 函数\n✓ [PASS] migration:20260813_021000_city_partner_permissions:down\n    迁移 20260813_021000_city_partner_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260813_022000_city_partner_notification_jobs:up\n    迁移 20260813_022000_city_partner_notification_jobs 包含 up 函数\n✓ [PASS] migration:20260813_022000_city_partner_notification_jobs:down\n    迁移 20260813_022000_city_partner_notification_jobs 包含 down 回滚入口\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:up\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 up 函数\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:down\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 down 回滚入口\n✓ [PASS] migration:20260815_140000_converge_shanghai_city_code:up\n    迁移 20260815_140000_converge_shanghai_city_code 包含 up 函数\n✓ [PASS] migration:20260815_140000_converge_shanghai_city_code:down\n    迁移 20260815_140000_converge_shanghai_city_code 包含 down 回滚入口\n✓ [PASS] migration:20260817_172754_sale_price_one_time:up\n    迁移 20260817_172754_sale_price_one_time 包含 up 函数\n✓ [PASS] migration:20260817_172754_sale_price_one_time:down\n    迁移 20260817_172754_sale_price_one_time 包含 down 回滚入口\n✓ [PASS] migration:20260817_174500_sale_business_type_index:up\n    迁移 20260817_174500_sale_business_type_index 包含 up 函数\n✓ [PASS] migration:20260817_174500_sale_business_type_index:down\n    迁移 20260817_174500_sale_business_type_index 包含 down 回滚入口\n✓ [PASS] migration:20260817_175801_sale_terms_fields:up\n    迁移 20260817_175801_sale_terms_fields 包含 up 函数\n✓ [PASS] migration:20260817_175801_sale_terms_fields:down\n    迁移 20260817_175801_sale_terms_fields 包含 down 回滚入口\n✓ [PASS] migration:20260817_180000_sale_publication_status_sold:up\n    迁移 20260817_180000_sale_publication_status_sold 包含 up 函数\n✓ [PASS] migration:20260817_180000_sale_publication_status_sold:down\n    迁移 20260817_180000_sale_publication_status_sold 包含 down 回滚入口\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:up\n    迁移 20260818_072207_fast_track_review_decision 包含 up 函数\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:down\n    迁移 20260818_072207_fast_track_review_decision 包含 down 回滚入口\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:up\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 up 函数\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:down\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 down 回滚入口\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:up\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 up 函数\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:down\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 down 回滚入口\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:up\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 up 函数\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:down\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 down 回滚入口\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:up\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 up 函数\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:down\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 down 回滚入口\n✓ [PASS] migration:20260821_161534_supply_import_batches:up\n    迁移 20260821_161534_supply_import_batches 包含 up 函数\n✓ [PASS] migration:20260821_161534_supply_import_batches:down\n    迁移 20260821_161534_supply_import_batches 包含 down 回滚入口\n✓ [PASS] migration:20260822_001600_supply_import_unique_indexes:up\n    迁移 20260822_001600_supply_import_unique_indexes 包含 up 函数\n✓ [PASS] migration:20260822_001600_supply_import_unique_indexes:down\n    迁移 20260822_001600_supply_import_unique_indexes 包含 down 回滚入口\n✓ [PASS] migration:20260822_001700_supply_import_role_permissions:up\n    迁移 20260822_001700_supply_import_role_permissions 包含 up 函数\n✓ [PASS] migration:20260822_001700_supply_import_role_permissions:down\n    迁移 20260822_001700_supply_import_role_permissions 包含 down 回滚入口\n✓ [PASS] migration:20260822_010308_supply_import_job_task:up\n    迁移 20260822_010308_supply_import_job_task 包含 up 函数\n✓ [PASS] migration:20260822_010308_supply_import_job_task:down\n    迁移 20260822_010308_supply_import_job_task 包含 down 回滚入口\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:up\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 up 函数\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:down\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 down 回滚入口\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:up\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 up 函数\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:down\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 down 回滚入口\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:up\n    迁移 20260826_035602_opt_053_site_settings 包含 up 函数\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:down\n    迁移 20260826_035602_opt_053_site_settings 包含 down 回滚入口\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:up\n    迁移 20260826_065228_opt_054_nav_config 包含 up 函数\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:down\n    迁移 20260826_065228_opt_054_nav_config 包含 down 回滚入口\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:up\n    迁移 20260826_113343_opt_054_nav_home_target 包含 up 函数\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:down\n    迁移 20260826_113343_opt_054_nav_home_target 包含 down 回滚入口\n✓ [PASS] migration:20260827_113559_media_image_sizes:up\n    迁移 20260827_113559_media_image_sizes 包含 up 函数\n✓ [PASS] migration:20260827_113559_media_image_sizes:down\n    迁移 20260827_113559_media_image_sizes 包含 down 回滚入口\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:up\n    迁移 20260827_233120_site_settings_type_card_cover 包含 up 函数\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:down\n    迁移 20260827_233120_site_settings_type_card_cover 包含 down 回滚入口\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:up\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 up 函数\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:down\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 down 回滚入口\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:up\n    迁移 20260830_164849_opt_063_listing_room_number 包含 up 函数\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:down\n    迁移 20260830_164849_opt_063_listing_room_number 包含 down 回滚入口\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:up\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 up 函数\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:down\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 down 回滚入口\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:up\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 up 函数\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:down\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 down 回滚入口\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:up\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 up 函数\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:down\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 down 回滚入口\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:up\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 up 函数\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:down\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 down 回滚入口\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:up\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 up 函数\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:down\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 down 回滚入口\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:up\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 up 函数\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:down\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 down 回滚入口\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:up\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 up 函数\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:down\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 down 回滚入口\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:up\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 up 函数\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:down\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 down 回滚入口\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:up\n    迁移 20260906_064958_opt_073_featured_district_count 包含 up 函数\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:down\n    迁移 20260906_064958_opt_073_featured_district_count 包含 down 回滚入口\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:up\n    迁移 20260907_050043_mp108_mini_user_assets 包含 up 函数\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:down\n    迁移 20260907_050043_mp108_mini_user_assets 包含 down 回滚入口\n✓ [PASS] migration:20260723_160143_init:json\n    迁移 20260723_160143_init 包含 schema JSON\n✓ [PASS] migration:20260724_080952_add_leads_source:json\n    迁移 20260724_080952_add_leads_source 包含 schema JSON\n✓ [PASS] migration:20260725_103653_m0_schema_sync:json\n    迁移 20260725_103653_m0_schema_sync 包含 schema JSON\n✓ [PASS] migration:20260725_125851_m2_5_teams_brokers:json\n    迁移 20260725_125851_m2_5_teams_brokers 包含 schema JSON\n✓ [PASS] migration:20260725_130727_m2_1_locations_geo_node:json\n    迁移 20260725_130727_m2_1_locations_geo_node 包含 schema JSON\n✓ [PASS] migration:20260725_132852_m2_6_display_tags:json\n    迁移 20260725_132852_m2_6_display_tags 包含 schema JSON\n✓ [PASS] migration:20260725_135837_m3_1_building_fields:json\n    迁移 20260725_135837_m3_1_building_fields 包含 schema JSON\n✓ [PASS] migration:20260725_142333_m3_3_building_merchant_relations:json\n    迁移 20260725_142333_m3_3_building_merchant_relations 包含 schema JSON\n⚠ [WARN] migration:20260725_142500_m3_3_building_merchant_exclude:json\n    迁移 20260725_142500_m3_3_building_merchant_exclude 缺少 20260725_142500_m3_3_building_merchant_exclude.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260725_181426_m4_2_listing_merchant_relations:json\n    迁移 20260725_181426_m4_2_listing_merchant_relations 包含 schema JSON\n⚠ [WARN] migration:20260725_181500_m4_2_listing_merchant_exclude:json\n    迁移 20260725_181500_m4_2_listing_merchant_exclude 缺少 20260725_181500_m4_2_listing_merchant_exclude.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260725_185329_m4_4_listing_reviews:json\n    迁移 20260725_185329_m4_4_listing_reviews 包含 schema JSON\n⚠ [WARN] migration:20260726_103500_m6_1_listing_reports:json\n    迁移 20260726_103500_m6_1_listing_reports 缺少 20260726_103500_m6_1_listing_reports.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103600_m6_3_domain_events:json\n    迁移 20260726_103600_m6_3_domain_events 缺少 20260726_103600_m6_3_domain_events.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103700_m6_4_tasks:json\n    迁移 20260726_103700_m6_4_tasks 缺少 20260726_103700_m6_4_tasks.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_103800_m6_7_notifications:json\n    迁移 20260726_103800_m6_7_notifications 缺少 20260726_103800_m6_7_notifications.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_110000_m5_1_crm_collections:json\n    迁移 20260726_110000_m5_1_crm_collections 缺少 20260726_110000_m5_1_crm_collections.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_140000_m5_2_leads_inquiry_context:json\n    迁移 20260726_140000_m5_2_leads_inquiry_context 缺少 20260726_140000_m5_2_leads_inquiry_context.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260726_150000_opt017_inquiry_rate_limit:json\n    迁移 20260726_150000_opt017_inquiry_rate_limit 缺少 20260726_150000_opt017_inquiry_rate_limit.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260728_175500_locked_docs_audit_logs_rel:json\n    迁移 20260728_175500_locked_docs_audit_logs_rel 包含 schema JSON\n⚠ [WARN] migration:20260728_180000_opt_021_admin_navigation_roles:json\n    迁移 20260728_180000_opt_021_admin_navigation_roles 缺少 20260728_180000_opt_021_admin_navigation_roles.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260728_181000_opt_021_form_submission_status:json\n    迁移 20260728_181000_opt_021_form_submission_status 包含 schema JSON\n✓ [PASS] migration:20260730_125851_detail_page_fields:json\n    迁移 20260730_125851_detail_page_fields 包含 schema JSON\n✓ [PASS] migration:20260730_134600_inquiry_detail_context:json\n    迁移 20260730_134600_inquiry_detail_context 包含 schema JSON\n✓ [PASS] migration:20260731_110500_fix_tasks_notifications_relationship:json\n    迁移 20260731_110500_fix_tasks_notifications_relationship 包含 schema JSON\n✓ [PASS] migration:20260731_120000_information_corrections:json\n    迁移 20260731_120000_information_corrections 包含 schema JSON\n✓ [PASS] migration:20260731_120838_advisor_service_hours:json\n    迁移 20260731_120838_advisor_service_hours 包含 schema JSON\n✓ [PASS] migration:20260731_120857_lead_viewing_preference:json\n    迁移 20260731_120857_lead_viewing_preference 包含 schema JSON\n✓ [PASS] migration:20260803_104120_add_articles:json\n    迁移 20260803_104120_add_articles 包含 schema JSON\n✓ [PASS] migration:20260805_033418_cos_media_prefix:json\n    迁移 20260805_033418_cos_media_prefix 包含 schema JSON\n✓ [PASS] migration:20260806_080629_locations_cover_image:json\n    迁移 20260806_080629_locations_cover_image 包含 schema JSON\n⚠ [WARN] migration:20260808_224000_articles_menu_for_ops:json\n    迁移 20260808_224000_articles_menu_for_ops 缺少 20260808_224000_articles_menu_for_ops.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260809_142444_supply_submissions_and_entrust_source:json\n    迁移 20260809_142444_supply_submissions_and_entrust_source 包含 schema JSON\n⚠ [WARN] migration:20260809_180000_supply_notification_duplicates_preflight:json\n    迁移 20260809_180000_supply_notification_duplicates_preflight 缺少 20260809_180000_supply_notification_duplicates_preflight.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260809_183327_supply_submission_notification_unique:json\n    迁移 20260809_183327_supply_submission_notification_unique 包含 schema JSON\n✓ [PASS] migration:20260809_203911_supply_submission_notification_jobs:json\n    迁移 20260809_203911_supply_submission_notification_jobs 包含 schema JSON\n✓ [PASS] migration:20260810_003111_align_listings_data_source_with_production:json\n    迁移 20260810_003111_align_listings_data_source_with_production 包含 schema JSON\n⚠ [WARN] migration:20260810_090000_supply_submission_role_permissions:json\n    迁移 20260810_090000_supply_submission_role_permissions 缺少 20260810_090000_supply_submission_role_permissions.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260810_114857_locations_city_field:json\n    迁移 20260810_114857_locations_city_field 包含 schema JSON\n⚠ [WARN] migration:20260810_153500_landing_hero_media_assets:json\n    迁移 20260810_153500_landing_hero_media_assets 缺少 20260810_153500_landing_hero_media_assets.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260810_170000_public_page_performance_indexes:json\n    迁移 20260810_170000_public_page_performance_indexes 缺少 20260810_170000_public_page_performance_indexes.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260810_200000_backfill_location_city:json\n    迁移 20260810_200000_backfill_location_city 缺少 20260810_200000_backfill_location_city.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_010000_city_site_profiles:json\n    迁移 20260813_010000_city_site_profiles 包含 schema JSON\n⚠ [WARN] migration:20260813_011000_seed_city_site_profiles:json\n    迁移 20260813_011000_seed_city_site_profiles 缺少 20260813_011000_seed_city_site_profiles.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_020000_city_partner_applications:json\n    迁移 20260813_020000_city_partner_applications 包含 schema JSON\n⚠ [WARN] migration:20260813_021000_city_partner_permissions:json\n    迁移 20260813_021000_city_partner_permissions 缺少 20260813_021000_city_partner_permissions.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260813_022000_city_partner_notification_jobs:json\n    迁移 20260813_022000_city_partner_notification_jobs 缺少 20260813_022000_city_partner_notification_jobs.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260813_060037_city_partner_notification_outbox_reconciler:json\n    迁移 20260813_060037_city_partner_notification_outbox_reconciler 包含 schema JSON\n⚠ [WARN] migration:20260815_140000_converge_shanghai_city_code:json\n    迁移 20260815_140000_converge_shanghai_city_code 缺少 20260815_140000_converge_shanghai_city_code.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260817_172754_sale_price_one_time:json\n    迁移 20260817_172754_sale_price_one_time 包含 schema JSON\n⚠ [WARN] migration:20260817_174500_sale_business_type_index:json\n    迁移 20260817_174500_sale_business_type_index 缺少 20260817_174500_sale_business_type_index.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260817_175801_sale_terms_fields:json\n    迁移 20260817_175801_sale_terms_fields 包含 schema JSON\n⚠ [WARN] migration:20260817_180000_sale_publication_status_sold:json\n    迁移 20260817_180000_sale_publication_status_sold 缺少 20260817_180000_sale_publication_status_sold.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260818_072207_fast_track_review_decision:json\n    迁移 20260818_072207_fast_track_review_decision 包含 schema JSON\n✓ [PASS] migration:20260818_232656_opt033_admin_fast_track_audit:json\n    迁移 20260818_232656_opt033_admin_fast_track_audit 包含 schema JSON\n✓ [PASS] migration:20260819_113218_listing_hard_delete_nullable_refs:json\n    迁移 20260819_113218_listing_hard_delete_nullable_refs 包含 schema JSON\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:json\n    迁移 20260820_055534_drop_listing_merchant_relations 包含 schema JSON\n✓ [PASS] migration:20260820_110024_opt035_city_profile_avg_response_hours:json\n    迁移 20260820_110024_opt035_city_profile_avg_response_hours 包含 schema JSON\n✓ [PASS] migration:20260821_161534_supply_import_batches:json\n    迁移 20260821_161534_supply_import_batches 包含 schema JSON\n⚠ [WARN] migration:20260822_001600_supply_import_unique_indexes:json\n    迁移 20260822_001600_supply_import_unique_indexes 缺少 20260822_001600_supply_import_unique_indexes.json（Payload 用于跟踪已应用状态）\n⚠ [WARN] migration:20260822_001700_supply_import_role_permissions:json\n    迁移 20260822_001700_supply_import_role_permissions 缺少 20260822_001700_supply_import_role_permissions.json（Payload 用于跟踪已应用状态）\n✓ [PASS] migration:20260822_010308_supply_import_job_task:json\n    迁移 20260822_010308_supply_import_job_task 包含 schema JSON\n✓ [PASS] migration:20260824_101016_opt048_snapshot_chain_repair:json\n    迁移 20260824_101016_opt048_snapshot_chain_repair 包含 schema JSON\n✓ [PASS] migration:20260824_110612_opt045_import_publishable_fields:json\n    迁移 20260824_110612_opt045_import_publishable_fields 包含 schema JSON\n✓ [PASS] migration:20260826_035602_opt_053_site_settings:json\n    迁移 20260826_035602_opt_053_site_settings 包含 schema JSON\n✓ [PASS] migration:20260826_065228_opt_054_nav_config:json\n    迁移 20260826_065228_opt_054_nav_config 包含 schema JSON\n✓ [PASS] migration:20260826_113343_opt_054_nav_home_target:json\n    迁移 20260826_113343_opt_054_nav_home_target 包含 schema JSON\n✓ [PASS] migration:20260827_113559_media_image_sizes:json\n    迁移 20260827_113559_media_image_sizes 包含 schema JSON\n✓ [PASS] migration:20260827_233120_site_settings_type_card_cover:json\n    迁移 20260827_233120_site_settings_type_card_cover 包含 schema JSON\n✓ [PASS] migration:20260827_234410_city_profile_type_card_overrides:json\n    迁移 20260827_234410_city_profile_type_card_overrides 包含 schema JSON\n✓ [PASS] migration:20260830_164849_opt_063_listing_room_number:json\n    迁移 20260830_164849_opt_063_listing_room_number 包含 schema JSON\n✓ [PASS] migration:20260901_021249_merchant_stop_cascade_job:json\n    迁移 20260901_021249_merchant_stop_cascade_job 包含 schema JSON\n✓ [PASS] migration:20260903_084339_opt_067_lead_visitor_ref:json\n    迁移 20260903_084339_opt_067_lead_visitor_ref 包含 schema JSON\n✓ [PASS] migration:20260904_163535_opt_069_media_watermark_fields:json\n    迁移 20260904_163535_opt_069_media_watermark_fields 包含 schema JSON\n✓ [PASS] migration:20260904_170123_city_profile_type_card_cover_nullable:json\n    迁移 20260904_170123_city_profile_type_card_cover_nullable 包含 schema JSON\n✓ [PASS] migration:20260905_025659_opt_069_watermark_rebake_task:json\n    迁移 20260905_025659_opt_069_watermark_rebake_task 包含 schema JSON\n✓ [PASS] migration:20260905_033034_opt_069_site_settings_watermark:json\n    迁移 20260905_033034_opt_069_site_settings_watermark 包含 schema JSON\n✓ [PASS] migration:20260905_121042_opt069_snapshot_chain_repair:json\n    迁移 20260905_121042_opt069_snapshot_chain_repair 包含 schema JSON\n✓ [PASS] migration:20260905_172526_opt_071_watermark_image_source:json\n    迁移 20260905_172526_opt_071_watermark_image_source 包含 schema JSON\n✓ [PASS] migration:20260906_064958_opt_073_featured_district_count:json\n    迁移 20260906_064958_opt_073_featured_district_count 包含 schema JSON\n✓ [PASS] migration:20260907_050043_mp108_mini_user_assets:json\n    迁移 20260907_050043_mp108_mini_user_assets 包含 schema JSON\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:forbidden:DROP TABLE\n    迁移 20260820_055534_drop_listing_merchant_relations 的 up() 包含 DROP TABLE，已获批准（见 DESTRUCTIVE_MIGRATION_APPROVALS.json）\n✓ [PASS] migration:20260820_055534_drop_listing_merchant_relations:forbidden:DROP COLUMN\n    迁移 20260820_055534_drop_listing_merchant_relations 的 up() 包含 DROP COLUMN，已获批准（见 DESTRUCTIVE_MIGRATION_APPROVALS.json）\n✓ [PASS] pg:payload_migrations:readable\n    payload_migrations 表可读，已应用 81 条\n✓ [PASS] db:collection:users\n    users 表存在，行数 5\n✓ [PASS] db:collection:roles\n    roles 表存在，行数 5\n✓ [PASS] db:collection:media\n    media 表存在，行数 14\n✓ [PASS] db:collection:locations\n    locations 表存在，行数 14\n✓ [PASS] db:collection:business-area-extensions\n    business-area-extensions 表存在，行数 0\n✓ [PASS] db:collection:city-site-profiles\n    city-site-profiles 表存在，行数 7\n✓ [PASS] db:collection:merchants\n    merchants 表存在，行数 3\n✓ [PASS] db:collection:teams\n    teams 表存在，行数 1\n✓ [PASS] db:collection:brokers\n    brokers 表存在，行数 2\n✓ [PASS] db:collection:amenities\n    amenities 表存在，行数 4\n✓ [PASS] db:collection:buildings\n    buildings 表存在，行数 6\n✓ [PASS] db:collection:building-merchant-relations\n    building-merchant-relations 表存在，行数 2\n✓ [PASS] db:collection:listings\n    listings 表存在，行数 11\n✓ [PASS] db:collection:leads\n    leads 表存在，行数 8\n✓ [PASS] db:collection:customers\n    customers 表存在，行数 2\n✓ [PASS] db:collection:lead-ownership-history\n    lead-ownership-history 表存在，行数 2\n✓ [PASS] db:collection:follow-ups\n    follow-ups 表存在，行数 2\n✓ [PASS] db:collection:pages\n    pages 表存在，行数 3\n✓ [PASS] db:collection:articles\n    articles 表存在，行数 0\n✓ [PASS] db:collection:display-tags\n    display-tags 表存在，行数 0\n✓ [PASS] db:collection:listing-reviews\n    listing-reviews 表存在，行数 0\n✓ [PASS] db:collection:listing-reports\n    listing-reports 表存在，行数 0\n✓ [PASS] db:collection:information-corrections\n    information-corrections 表存在，行数 0\n✓ [PASS] db:collection:supply-submissions\n    supply-submissions 表存在，行数 0\n✓ [PASS] db:collection:city-partner-applications\n    city-partner-applications 表存在，行数 0\n✓ [PASS] db:collection:domain-events\n    domain-events 表存在，行数 0\n✓ [PASS] db:collection:audit-logs\n    audit-logs 表存在，行数 0\n✓ [PASS] db:collection:tasks\n    tasks 表存在，行数 0\n✓ [PASS] db:collection:notifications\n    notifications 表存在，行数 0\n✓ [PASS] db:collection:supply-import-batches\n    supply-import-batches 表存在，行数 0\n✓ [PASS] db:collection:location-aliases\n    location-aliases 表存在，行数 0\n✓ [PASS] db:collection:mini-user-assets\n    mini-user-assets 表存在，行数 0\n✓ [PASS] db:collection:search\n    search 表存在，行数 17\n✓ [PASS] db:collection:forms\n    forms 表存在，行数 0\n✓ [PASS] db:collection:form-submissions\n    form-submissions 表存在，行数 0\n✓ [PASS] db:collection:exports\n    exports 表存在，行数 0\n✓ [PASS] db:collection:imports\n    imports 表存在，行数 0\n✓ [PASS] db:collection:payload-kv\n    payload-kv 表存在，行数 0\n✓ [PASS] db:collection:payload-jobs\n    payload-jobs 表存在，行数 0\n✓ [PASS] db:collection:payload-locked-documents\n    payload-locked-documents 表存在，行数 0\n✓ [PASS] db:collection:payload-preferences\n    payload-preferences 表存在，行数 0\n✓ [PASS] db:collection:payload-migrations\n    payload-migrations 表存在，行数 81\n○ [SKIP] pg:supply-validity-exclude-constraint\n    M3.3 引入 Building 商户有效期关系时添加 EXCLUDE 约束验证\n\nTotal: 289 checks | 0 fail | 24 warn\n\n⚠️  24 warning(s) — 复核后可继续\n.env.local not found. Continuing without it.\n"
+      },
+      {
+        "command": "pnpm baseline:capture",
+        "startedAt": "2026-09-07T06:11:14.821Z",
+        "finishedAt": "2026-09-07T06:11:16.986Z",
+        "exitCode": 0,
+        "output": "\n> payload-office-platform@0.1.0 baseline:capture payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/baseline-snapshot.ts\n\n[14:11:16] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[baseline] snapshot saved → payload-office-platform/.baseline/snapshot.json\n[baseline] tables=42 records=50 db=postgres\n.env.local not found. Continuing without it.\n"
+      },
+      {
+        "command": "pnpm exec vitest run tests/building-delete-postgres.test.ts tests/city-partner-details-postgres.test.ts tests/city-partner-notify-postgres.test.ts tests/media-delete-cache-postgres.test.ts tests/media-delete-listing-building-postgres.test.ts tests/media-delete-type-card-override-postgres.test.ts tests/supply-import-rollback-postgres.test.ts tests/supply-import-task-postgres.test.ts",
+        "startedAt": "2026-09-07T06:11:17.136Z",
+        "finishedAt": "2026-09-07T06:11:24.730Z",
+        "exitCode": 0,
+        "output": "\n RUN  v4.1.10 payload-office-platform\n\n[14:11:20] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:20] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:20] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:20] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:20] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:20] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:20] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n[14:11:20] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\n ✓ tests/media-delete-type-card-override-postgres.test.ts (2 tests) 3842ms\n     ✓ 删除被覆盖行引用的媒体不再 500——这一步才真正穿过 SET NULL + NOT NULL 死结  2364ms\n ✓ tests/city-partner-notify-postgres.test.ts (2 tests) 3846ms\n     ✓ recovers a durable committed event and concurrent scans persist exactly one active notify job  3492ms\n ✓ tests/city-partner-details-postgres.test.ts (2 tests) 3840ms\n     ✓ allows exactly one of two independent conflicting completions and persists its versioned markers  3167ms\n ✓ tests/building-delete-postgres.test.ts (3 tests) 3979ms\n     ✓ 没有房源的楼盘可以正常删除  974ms\n ✓ tests/supply-import-rollback-postgres.test.ts (4 tests) 4070ms\n[14:11:24] INFO: Running 1 jobs.\n    new: 1\n    retrying: 0\n ✓ tests/media-delete-cache-postgres.test.ts (8 tests) 4293ms\n     ✓ 六条反查 where 子句在真实 schema 上都合法（嵌套路径写错只在运行时暴露）  753ms\n[14:11:24] INFO: Running 1 jobs.\n    new: 1\n    retrying: 0\n[14:11:24] INFO: Running 1 jobs.\n    new: 1\n    retrying: 0\n ✓ tests/media-delete-listing-building-postgres.test.ts (6 tests) 4503ms\n     ✓ 被房源媒体工作台（及其派生图集）引用的媒体可以删除，且两张子表的对应行都被摘掉  2527ms\n ✓ tests/supply-import-task-postgres.test.ts (14 tests) 4640ms\n\n Test Files  8 passed (8)\n      Tests  41 passed (41)\n   Start at  14:11:17\n   Duration  7.16s (transform 5.03s, setup 0ms, import 19.11s, tests 33.01s, environment 1ms)\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 被房源媒体工作台（及其派生图集）引用的媒体可以删除，且两张子表的对应行都被摘掉\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-type-card-override-postgres.test.ts > 媒体删除：被单城「按类型浏览」封面覆盖引用时 > 删除被覆盖行引用的媒体不再 500——这一步才真正穿过 SET NULL + NOT NULL 死结\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n\nstderr | tests/building-delete-postgres.test.ts > OPT-050 楼盘删除 > 没有房源的楼盘可以正常删除\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 被房源媒体工作台（及其派生图集）引用的媒体可以删除，且两张子表的对应行都被摘掉\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/building-delete-postgres.test.ts > OPT-050 楼盘删除 > 没有房源的楼盘可以正常删除\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 第一次跑全部新建，第二次跑全部更新——重传不翻倍\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-type-card-override-postgres.test.ts > 媒体删除：被单城「按类型浏览」封面覆盖引用时 > 删除被覆盖行引用的媒体不再 500——这一步才真正穿过 SET NULL + NOT NULL 死结\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 4 }\n\nstderr | tests/building-delete-postgres.test.ts > OPT-050 楼盘删除 > 楼盘的商户关系会被一并清掉，不留垃圾行\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除 media 的公开缓存失效（真库） > 删 media 后父文档外键被置空、updatedAt 不变 —— 父文档没走 Payload 写入路径\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n\nstderr | tests/media-delete-type-card-override-postgres.test.ts > 媒体删除：被单城「按类型浏览」封面覆盖引用时 > 媒体删掉后覆盖行仍在，封面被置空——由读侧逐行丢弃并回落，而不是整份 profile 失效\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚 > 把本批房源打回下架，而不是删除\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 被房源媒体工作台（及其派生图集）引用的媒体可以删除，且两张子表的对应行都被摘掉\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除 media 的公开缓存失效（真库） > 删 media 后父文档外键被置空、updatedAt 不变 —— 父文档没走 Payload 写入路径\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 4 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 只被 legacy 图集引用（没有 mediaItems）的媒体也能删除——本地库多数存量房源是这个形态\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 第一次跑全部新建，第二次跑全部更新——重传不翻倍\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-type-card-override-postgres.test.ts > 媒体删除：被单城「按类型浏览」封面覆盖引用时 > 媒体删掉后覆盖行仍在，封面被置空——由读侧逐行丢弃并回落，而不是整份 profile 失效\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 4 }\n\nstderr | tests/building-delete-postgres.test.ts > OPT-050 楼盘删除 > 楼盘的商户关系会被一并清掉，不留垃圾行\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除 media 的公开缓存失效（真库） > 删除后按 media id 反查恒空 —— 所以反查只能放在 beforeDelete\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n\nstderr | tests/media-delete-type-card-override-postgres.test.ts > 媒体删除：被单城「按类型浏览」封面覆盖引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n\nstderr | tests/building-delete-postgres.test.ts > OPT-050 楼盘删除 > 有房源时被拦，且楼盘仍在；删掉房源后能真正删成功\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > D10 兜底守卫：楼盘没有生效商户关系时，房源行写入失败（failed），不阻断同批其它行\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚 > affectedIds 混入已软删 / 不存在的 id 时，其余条目仍然全部被下架，不中断整批\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 只被 legacy 图集引用（没有 mediaItems）的媒体也能删除——本地库多数存量房源是这个形态\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/building-delete-postgres.test.ts > OPT-050 楼盘删除 > 有房源时被拦，且楼盘仍在；删掉房源后能真正删成功\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除 media 的公开缓存失效（真库） > 删除后按 media id 反查恒空 —— 所以反查只能放在 beforeDelete\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 4 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚 > affectedIds 混入已软删 / 不存在的 id 时，其余条目仍然全部被下架，不中断整批\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 更新时不改 slug——改 slug 会断掉已有前台 URL\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚 > affectedIds 混入已软删 / 不存在的 id 时，其余条目仍然全部被下架，不中断整批\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/building-delete-postgres.test.ts > OPT-050 楼盘删除 > 有房源时被拦，且楼盘仍在；删掉房源后能真正删成功\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\n(node:18005) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 只被 legacy 图集引用（没有 mediaItems）的媒体也能删除——本地库多数存量房源是这个形态\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 重传不撤销其它机制设置的房源状态（leased 不会被打回 published），但业务字段照常更新\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除 media 的公开缓存失效（真库） > 楼盘封面引用这张图 → 反查经真实关系解析出该楼盘所在城市\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 被楼盘媒体工作台引用的媒体可以删除，派生的楼盘图集行一并清掉\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/building-delete-postgres.test.ts > OPT-050 楼盘删除 > 有房源时被拦，且楼盘仍在；删掉房源后能真正删成功\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚 > affectedIds 混入已软删 / 不存在的 id 时，其余条目仍然全部被下架，不中断整批\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 重传不撤销其它机制设置的房源状态（leased 不会被打回 published），但业务字段照常更新\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 被楼盘媒体工作台引用的媒体可以删除，派生的楼盘图集行一并清掉\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除 media 的公开缓存失效（真库） > 接在 Media 上的钩子在 payload.delete 时真的跑了，且算出了非空 tag 集合\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 重传不撤销其它机制设置的房源状态（leased 不会被打回 published），但业务字段照常更新\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 被楼盘媒体工作台引用的媒体可以删除，派生的楼盘图集行一并清掉\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除 media 的公开缓存失效（真库）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'city_site_profile', tagCount: 4 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 重传不撤销楼盘 operationalStatus 的运营启停开关，但业务字段照常更新\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 只摘被删的那张：同一房源剩下的图顺序不乱（_order 留空档后仍按序读出）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 重传不撤销楼盘 operationalStatus 的运营启停开关，但业务字段照常更新\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除 media 的公开缓存失效（真库）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-rollback-postgres.test.ts > OPT-041 按批次回滚\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 重传不撤销楼盘 operationalStatus 的运营启停开关，但业务字段照常更新\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 软删房源重传：计入 failed 且给可操作文案，不抛裸 23505 错误，也不复活软删文档\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 只摘被删的那张：同一房源剩下的图顺序不乱（_order 留空档后仍按序读出）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 软删房源重传：计入 failed 且给可操作文案，不抛裸 23505 错误，也不复活软删文档\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除被媒体工作台引用的 media（OPT-070 摘除之后） > 只经媒体工作台 / 图集引用的 media 现在删得掉，且反查算出了该城市的 tag\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 只摘被删的那张：同一房源剩下的图顺序不乱（_order 留空档后仍按序读出）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除被媒体工作台引用的 media（OPT-070 摘除之后） > 只经媒体工作台 / 图集引用的 media 现在删得掉，且反查算出了该城市的 tag\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 删除不该动到没引用这张图的房源\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 单行失败不阻断后续行，也不回滚已成功的行\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除被媒体工作台引用的 media（OPT-070 摘除之后） > 顺序反了会部分静默漏：先摘除再反查，这座城市的缓存一个 tag 都不失效\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 删除不该动到没引用这张图的房源\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 删除不该动到没引用这张图的房源\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > ADM 与 OPS 两种操作者导出的落地状态一致\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 删除不该动到没引用这张图的房源\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'media', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 媒体删除失败时子表行不消失——摘除必须与删除同事务\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 楼盘写入路径：第一次新建，第二次更新——幂等 + 落地状态 + update 不改 slug（评审 Task 7 第 1 轮 Important 4）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除被媒体工作台引用的 media（OPT-070 摘除之后） > 顺序反了会部分静默漏：先摘除再反查，这座城市的缓存一个 tag 都不失效\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 楼盘写入路径：第一次新建，第二次更新——幂等 + 落地状态 + update 不改 slug（评审 Task 7 第 1 轮 Important 4）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时 > 媒体删除失败时子表行不消失——摘除必须与删除同事务\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 楼盘写入路径：第一次新建，第二次更新——幂等 + 落地状态 + update 不改 slug（评审 Task 7 第 1 轮 Important 4）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-cache-postgres.test.ts > 删除被媒体工作台引用的 media（OPT-070 摘除之后）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 崩溃重跑不丢已持久化的 affectedIds——重跑时某行转失败也不能把它的锚点冲掉（评审 Task 7 第 1 轮 Critical 1）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 崩溃重跑不丢已持久化的 affectedIds——重跑时某行转失败也不能把它的锚点冲掉（评审 Task 7 第 1 轮 Critical 1）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/media-delete-listing-building-postgres.test.ts > 媒体删除：被房源图集 / 媒体工作台引用时\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层 > 崩溃重跑不丢已持久化的 affectedIds——重跑时某行转失败也不能把它的锚点冲掉（评审 Task 7 第 1 轮 Critical 1）\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'listing', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\nstderr | tests/supply-import-task-postgres.test.ts > OPT-041 导入写入层\n[public-cache-revalidation] skipped_outside_request_scope { reason: 'building', tagCount: 5 }\n\n"
+      }
+    ],
+    "provedAbsentBeforeCreate": true,
+    "created": true,
+    "beforeTests": {
+      "legacySnapshotRecords": 50,
+      "legacyMeaning": "旧脚本每collection最多3条的有界口径，不是全库总记录",
+      "tables": [
+        {
+          "table": "users",
+          "count": 5
+        },
+        {
+          "table": "roles",
+          "count": 5
+        },
+        {
+          "table": "media",
+          "count": 14
+        },
+        {
+          "table": "locations",
+          "count": 14
+        },
+        {
+          "table": "business_area_extensions",
+          "count": 0
+        },
+        {
+          "table": "city_site_profiles",
+          "count": 7
+        },
+        {
+          "table": "merchants",
+          "count": 3
+        },
+        {
+          "table": "teams",
+          "count": 1
+        },
+        {
+          "table": "brokers",
+          "count": 2
+        },
+        {
+          "table": "amenities",
+          "count": 4
+        },
+        {
+          "table": "buildings",
+          "count": 6
+        },
+        {
+          "table": "building_merchant_relations",
+          "count": 2
+        },
+        {
+          "table": "listings",
+          "count": 11
+        },
+        {
+          "table": "leads",
+          "count": 8
+        },
+        {
+          "table": "customers",
+          "count": 2
+        },
+        {
+          "table": "lead_ownership_history",
+          "count": 2
+        },
+        {
+          "table": "follow_ups",
+          "count": 2
+        },
+        {
+          "table": "pages",
+          "count": 3
+        },
+        {
+          "table": "articles",
+          "count": 0
+        },
+        {
+          "table": "display_tags",
+          "count": 0
+        },
+        {
+          "table": "listing_reviews",
+          "count": 0
+        },
+        {
+          "table": "listing_reports",
+          "count": 0
+        },
+        {
+          "table": "information_corrections",
+          "count": 0
+        },
+        {
+          "table": "supply_submissions",
+          "count": 0
+        },
+        {
+          "table": "city_partner_applications",
+          "count": 0
+        },
+        {
+          "table": "domain_events",
+          "count": 0
+        },
+        {
+          "table": "audit_logs",
+          "count": 0
+        },
+        {
+          "table": "tasks",
+          "count": 0
+        },
+        {
+          "table": "notifications",
+          "count": 0
+        },
+        {
+          "table": "supply_import_batches",
+          "count": 0
+        },
+        {
+          "table": "location_aliases",
+          "count": 0
+        },
+        {
+          "table": "search",
+          "count": 17
+        },
+        {
+          "table": "forms",
+          "count": 0
+        },
+        {
+          "table": "form_submissions",
+          "count": 0
+        },
+        {
+          "table": "exports",
+          "count": 0
+        },
+        {
+          "table": "imports",
+          "count": 0
+        },
+        {
+          "table": "payload_kv",
+          "count": 0
+        },
+        {
+          "table": "payload_jobs",
+          "count": 0
+        },
+        {
+          "table": "payload_locked_documents",
+          "count": 0
+        },
+        {
+          "table": "payload_preferences",
+          "count": 0
+        },
+        {
+          "table": "payload_migrations",
+          "count": 81
+        }
+      ],
+      "boundedSameTables": 50,
+      "trueSameTablesTotal": 189
+    },
+    "tests": {
+      "filesPassed": 8,
+      "passed": 41,
+      "skipped": 0,
+      "failed": 0
+    },
+    "afterState": {
+      "count": 81,
+      "last": "20260907_050043_mp108_mini_user_assets",
+      "assetTable": "mini_user_assets"
+    },
+    "afterTests": {
+      "legacySnapshotRecords": 50,
+      "legacyMeaning": "旧脚本每collection最多3条的有界口径，不是全库总记录",
+      "tables": [
+        {
+          "table": "users",
+          "count": 5
+        },
+        {
+          "table": "roles",
+          "count": 5
+        },
+        {
+          "table": "media",
+          "count": 14
+        },
+        {
+          "table": "locations",
+          "count": 14
+        },
+        {
+          "table": "business_area_extensions",
+          "count": 0
+        },
+        {
+          "table": "city_site_profiles",
+          "count": 7
+        },
+        {
+          "table": "merchants",
+          "count": 3
+        },
+        {
+          "table": "teams",
+          "count": 1
+        },
+        {
+          "table": "brokers",
+          "count": 2
+        },
+        {
+          "table": "amenities",
+          "count": 4
+        },
+        {
+          "table": "buildings",
+          "count": 6
+        },
+        {
+          "table": "building_merchant_relations",
+          "count": 2
+        },
+        {
+          "table": "listings",
+          "count": 11
+        },
+        {
+          "table": "leads",
+          "count": 8
+        },
+        {
+          "table": "customers",
+          "count": 2
+        },
+        {
+          "table": "lead_ownership_history",
+          "count": 2
+        },
+        {
+          "table": "follow_ups",
+          "count": 2
+        },
+        {
+          "table": "pages",
+          "count": 3
+        },
+        {
+          "table": "articles",
+          "count": 0
+        },
+        {
+          "table": "display_tags",
+          "count": 0
+        },
+        {
+          "table": "listing_reviews",
+          "count": 0
+        },
+        {
+          "table": "listing_reports",
+          "count": 0
+        },
+        {
+          "table": "information_corrections",
+          "count": 0
+        },
+        {
+          "table": "supply_submissions",
+          "count": 0
+        },
+        {
+          "table": "city_partner_applications",
+          "count": 0
+        },
+        {
+          "table": "domain_events",
+          "count": 2
+        },
+        {
+          "table": "audit_logs",
+          "count": 0
+        },
+        {
+          "table": "tasks",
+          "count": 0
+        },
+        {
+          "table": "notifications",
+          "count": 0
+        },
+        {
+          "table": "supply_import_batches",
+          "count": 0
+        },
+        {
+          "table": "location_aliases",
+          "count": 0
+        },
+        {
+          "table": "search",
+          "count": 17
+        },
+        {
+          "table": "forms",
+          "count": 0
+        },
+        {
+          "table": "form_submissions",
+          "count": 0
+        },
+        {
+          "table": "exports",
+          "count": 0
+        },
+        {
+          "table": "imports",
+          "count": 0
+        },
+        {
+          "table": "payload_kv",
+          "count": 0
+        },
+        {
+          "table": "payload_jobs",
+          "count": 2
+        },
+        {
+          "table": "payload_locked_documents",
+          "count": 0
+        },
+        {
+          "table": "payload_preferences",
+          "count": 0
+        },
+        {
+          "table": "payload_migrations",
+          "count": 81
+        }
+      ],
+      "boundedSameTables": 54,
+      "trueSameTablesTotal": 193
+    }
+  }
+}

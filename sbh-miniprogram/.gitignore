@@ -1,0 +1,6 @@
+node_modules/
+project.private.config.json
+*.key
+*.pem
+*.p12
+.DS_Store

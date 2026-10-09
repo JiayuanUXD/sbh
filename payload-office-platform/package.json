@@ -27,6 +27,7 @@
     "rollback:supply:preflight": "node --env-file-if-exists=.env.local --import tsx scripts/preflight-supply-rollback.ts",
     "test": "vitest run",
     "test:changed": "node scripts/test-changed.mjs",
+    "test:postgres": "vitest run tests/*-postgres.test.ts --no-file-parallelism",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "setup:hooks": "git config core.hooksPath .githooks",

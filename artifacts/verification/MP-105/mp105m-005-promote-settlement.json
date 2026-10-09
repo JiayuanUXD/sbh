@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "observedDate": "2026-09-02",
+  "target": {
+    "environment": "sbhmini-gateway-d3fbrmn8097478b8",
+    "service": "sbhmini",
+    "version": "sbhmini-005",
+    "commit": "8eab1a17cfe5800d1778fbad2d47cf4c54542d87",
+    "taskId": 2054487,
+    "releaseId": 2542417
+  },
+  "promotion": {
+    "preflightCode": "PROMOTE_005_PREFLIGHT_PASSED",
+    "commandCode": "PROMOTE_005_SETTLED",
+    "writeInvocationCount": 1,
+    "replayed": false
+  },
+  "independentSettlement": {
+    "code": "PROMOTE_005_SETTLED",
+    "verification": "independent-read-only",
+    "onlineTraffic": {
+      "sbhmini-005": 100,
+      "sbhmini-003": 0,
+      "sbhmini-004": 0
+    },
+    "candidateRecord": {
+      "status": "normal",
+      "flowRatio": 100,
+      "hasTraffic": true
+    },
+    "old019BaselineUnchanged": true
+  },
+  "runtime": {
+    "apiHost": "sbhmini-305971-11-1253925058.sh.run.tcloudbase.com",
+    "initialStrictFetch": "transient_transport_failure",
+    "initialFailureReproduced": false,
+    "laterTransportChecksPassed": 2,
+    "healthCode": "HEALTH_005_BUILD_INFO_VERIFIED",
+    "httpStatus": 200,
+    "statusOk": true,
+    "databaseOk": true,
+    "payloadOk": true,
+    "buildCommitMatched": true
+  },
+  "attestation": {
+    "code": "ATTESTATION_005_VERIFIED",
+    "staging": true,
+    "acceptanceReady": true,
+    "commitMatched": true,
+    "revisionMatched": true,
+    "databaseFingerprintAllowlisted": true,
+    "sensitiveValuesArchived": false
+  },
+  "writeBudgetMarker": {
+    "path": "/Users/liujiayuan/App/sbh/.git/codex-state/mp105m-cloudrun-005-promote.write-consumed",
+    "inode": 267595269,
+    "size": 201,
+    "mode": "0600",
+    "mtime": "2026-09-02 15:09:01 +0800",
+    "sha256": "e951f111ee829490f5c97290f66977e7c91eb142096d89052109acfde35835d7",
+    "unchangedAfterAcceptance": true
+  },
+  "safety": {
+    "promotionMustNotBeReplayed": true,
+    "markerMustNotBeChanged": true,
+    "automaticRollbackOrCompensationExecuted": false,
+    "productionTouched": false
+  }
+}

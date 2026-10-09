@@ -14,6 +14,11 @@ dist
 .tmp-login.json
 **/.tmp-login.json
 
+# 私钥与证书凭据
+*.key
+*.pem
+*.p12
+
 # 本地开发工具产物（不入库）
 .claude/
 .agents/

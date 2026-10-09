@@ -337,7 +337,7 @@ describe('quality.yml 的真库回归步骤', () => {
   it('postgres-migrations 作业带 DATABASE_URL，步骤显式 --passWithNoTests=false 并按同一模式点名', () => {
     const job = jobBlock('postgres-migrations')
     expect(job).toMatch(/^\s+DATABASE_URL: postgres:\/\//m)
-    expect(job).toContain(`run: pnpm exec vitest run --pool=forks --passWithNoTests=false ${POSTGRES_GLOB}`)
+    expect(job).toContain(`run: pnpm exec vitest run --pool=forks --passWithNoTests=false --no-file-parallelism ${POSTGRES_GLOB}`)
     // 排除模式的字面量在 vitest.config 里也必须是同一个，两处才指向同一批文件
     expect(read('vitest.config.ts')).toContain(`'${POSTGRES_GLOB}'`)
   })

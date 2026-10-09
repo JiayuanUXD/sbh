@@ -1,0 +1,12 @@
+@import "./styles/tokens.wxss";
+
+page {
+  min-height: 100%;
+  background: var(--sbh-page-background);
+  color: var(--sbh-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,45 @@
+.foundation-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: var(--sbh-layout-content-gap) var(--sbh-layout-page-gutter);
+}
+
+.foundation-header {
+  padding: var(--sbh-layout-space-md) var(--sbh-layout-space-xs);
+}
+
+.foundation-title {
+  font-size: var(--sbh-type-hero-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.foundation-status {
+  margin-top: var(--sbh-layout-space-xs);
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-body-size);
+}
+
+.foundation-card {
+  margin-top: var(--sbh-layout-content-gap);
+}
+
+.foundation-section-title {
+  margin-bottom: var(--sbh-layout-space-md);
+  font-size: var(--sbh-type-card-title-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.foundation-button {
+  margin-top: var(--sbh-layout-space-sm);
+}
+
+.foundation-button--first {
+  margin-top: var(--sbh-layout-space-none);
+}
+
+.foundation-retry-feedback {
+  margin-top: var(--sbh-layout-space-md);
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-metadata-size);
+  text-align: center;
+}

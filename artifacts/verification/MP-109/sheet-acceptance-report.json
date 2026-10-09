@@ -1,0 +1,3664 @@
+{
+  "status": "incomplete",
+  "timestamp": "2026-09-07T02:36:37.760Z",
+  "environment": "local-wechat-devtools-develop-with-controlled-mock",
+  "evidenceRevision": "9097f583e8078af4",
+  "profileReports": {
+    "small": "sheet-acceptance-small.json",
+    "large": "sheet-acceptance-large.json"
+  },
+  "viewportProfiles": {
+    "small": {
+      "status": "failed",
+      "timestamp": "2026-09-07T02:34:58.603Z",
+      "environment": "local-wechat-devtools-develop-with-controlled-mock",
+      "evidenceRevision": "9097f583e8078af4",
+      "viewportProfile": {
+        "name": "small",
+        "passed": false
+      },
+      "systemInfo": {
+        "SDKVersion": "3.17.2",
+        "platform": "devtools",
+        "version": "8.0.5",
+        "windowWidth": 375,
+        "windowHeight": 642,
+        "filterPageWidth": 375,
+        "filterPageHeight": 724,
+        "inquiryPageWidth": 375,
+        "inquiryPageHeight": 724,
+        "safeAreaBottomInset": 34
+      },
+      "states": {
+        "filterPrice": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 344.5,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 360.5,
+              "right": 375,
+              "bottom": 411
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 360.5,
+              "right": 363,
+              "bottom": 404.5
+            },
+            "body": {
+              "left": 0,
+              "top": 411,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 133,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "price-units",
+                "container": {
+                  "left": 26,
+                  "top": 460,
+                  "right": 349,
+                  "bottom": 504
+                },
+                "section": {
+                  "left": 12,
+                  "top": 419,
+                  "right": 363,
+                  "bottom": 518
+                },
+                "items": [
+                  {
+                    "left": 26,
+                    "top": 460,
+                    "right": 185.5,
+                    "bottom": 504
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 460,
+                    "right": 349,
+                    "bottom": 504
+                  }
+                ]
+              }
+            ]
+          },
+          "resultCount": 4,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 375,
+              "height": 724
+            },
+            "expandedViewport": {
+              "width": 375,
+              "height": 724
+            },
+            "visibleViewport": {
+              "width": 375,
+              "height": 642
+            }
+          },
+          "filterBarGeometry": {
+            "passed": true,
+            "failures": [],
+            "internalGroups": [
+              {
+                "name": "filter-bar-items",
+                "container": {
+                  "left": 0,
+                  "top": 44,
+                  "right": 375,
+                  "bottom": 97
+                },
+                "section": {
+                  "left": 0,
+                  "top": 44,
+                  "right": 375,
+                  "bottom": 97
+                },
+                "items": [
+                  {
+                    "left": 12,
+                    "top": 48,
+                    "right": 96.75,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 100.75,
+                    "top": 48,
+                    "right": 185.5,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 48,
+                    "right": 274.25,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 278.25,
+                    "top": 48,
+                    "right": 363,
+                    "bottom": 92
+                  }
+                ]
+              }
+            ]
+          },
+          "screenshot": "small/filter-price-open.png"
+        },
+        "filterAll": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 80,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 96,
+              "right": 375,
+              "bottom": 146.5
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 96,
+              "right": 363,
+              "bottom": 140
+            },
+            "body": {
+              "left": 0,
+              "top": 146.5,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 133,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "all-price-units",
+                "container": {
+                  "left": 26,
+                  "top": 195.5,
+                  "right": 349,
+                  "bottom": 239.5
+                },
+                "section": {
+                  "left": 12,
+                  "top": 154.5,
+                  "right": 363,
+                  "bottom": 253.5
+                },
+                "items": [
+                  {
+                    "left": 26,
+                    "top": 195.5,
+                    "right": 185.5,
+                    "bottom": 239.5
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 195.5,
+                    "right": 349,
+                    "bottom": 239.5
+                  }
+                ]
+              },
+              {
+                "name": "all-districts",
+                "container": {
+                  "left": 26,
+                  "top": 409.5,
+                  "right": 349,
+                  "bottom": 501.5
+                },
+                "section": {
+                  "left": 12,
+                  "top": 368.5,
+                  "right": 363,
+                  "bottom": 515.5
+                },
+                "items": [
+                  {
+                    "left": 26,
+                    "top": 409.5,
+                    "right": 185.5,
+                    "bottom": 453.5
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 409.5,
+                    "right": 349,
+                    "bottom": 453.5
+                  },
+                  {
+                    "left": 26,
+                    "top": 457.5,
+                    "right": 185.5,
+                    "bottom": 501.5
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 457.5,
+                    "right": 349,
+                    "bottom": 501.5
+                  }
+                ]
+              }
+            ]
+          },
+          "scrollHeight": 746,
+          "footerFixed": true,
+          "filterBarGeometry": {
+            "passed": true,
+            "failures": [],
+            "internalGroups": [
+              {
+                "name": "filter-bar-items",
+                "container": {
+                  "left": 0,
+                  "top": 44,
+                  "right": 375,
+                  "bottom": 97
+                },
+                "section": {
+                  "left": 0,
+                  "top": 44,
+                  "right": 375,
+                  "bottom": 97
+                },
+                "items": [
+                  {
+                    "left": 12,
+                    "top": 48,
+                    "right": 96.75,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 100.75,
+                    "top": 48,
+                    "right": 185.5,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 48,
+                    "right": 274.25,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 278.25,
+                    "top": 48,
+                    "right": 363,
+                    "bottom": 92
+                  }
+                ]
+              }
+            ]
+          },
+          "screenshot": "small/filter-all-open.png"
+        },
+        "homeInquiry": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 471.3203125,
+                  "right": 349,
+                  "bottom": 523.3203125
+                },
+                "section": {
+                  "left": 12,
+                  "top": 359.3203125,
+                  "right": 363,
+                  "bottom": 661.3203125
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 475.3203125,
+                    "right": 187.5,
+                    "bottom": 519.3203125
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 475.3203125,
+                    "right": 345,
+                    "bottom": 519.3203125
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 375,
+              "height": 724
+            },
+            "expandedViewport": {
+              "width": 375,
+              "height": 724
+            },
+            "visibleViewport": {
+              "width": 375,
+              "height": 642
+            }
+          },
+          "screenshot": "small/home-inquiry-open.png"
+        },
+        "buildingsInquiry": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 471.3203125,
+                  "right": 349,
+                  "bottom": 523.3203125
+                },
+                "section": {
+                  "left": 12,
+                  "top": 359.3203125,
+                  "right": 363,
+                  "bottom": 661.3203125
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 475.3203125,
+                    "right": 187.5,
+                    "bottom": 519.3203125
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 475.3203125,
+                    "right": 345,
+                    "bottom": 519.3203125
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 375,
+              "height": 724
+            },
+            "expandedViewport": {
+              "width": 375,
+              "height": 724
+            },
+            "visibleViewport": {
+              "width": 375,
+              "height": 642
+            }
+          },
+          "screenshot": "small/buildings-inquiry-open.png"
+        },
+        "inquiryWechat": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 495.1171875,
+                  "right": 349,
+                  "bottom": 547.1171875
+                },
+                "section": {
+                  "left": 12,
+                  "top": 383.1171875,
+                  "right": 363,
+                  "bottom": 685.1171875
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 499.1171875,
+                    "right": 187.5,
+                    "bottom": 543.1171875
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 499.1171875,
+                    "right": 345,
+                    "bottom": 543.1171875
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "actualOpenState": "recoverable-error",
+          "evidenceMode": "real-tap-open-with-local-devtools-visual-fixture",
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 375,
+              "height": 724
+            },
+            "expandedViewport": {
+              "width": 375,
+              "height": 724
+            },
+            "visibleViewport": null
+          },
+          "screenshot": "small/inquiry-wechat.png"
+        },
+        "inquiryManual": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 495.1171875,
+                  "right": 349,
+                  "bottom": 547.1171875
+                },
+                "section": {
+                  "left": 12,
+                  "top": 383.1171875,
+                  "right": 363,
+                  "bottom": 711.1171875
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 499.1171875,
+                    "right": 187.5,
+                    "bottom": 543.1171875
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 499.1171875,
+                    "right": 345,
+                    "bottom": 543.1171875
+                  }
+                ]
+              }
+            ]
+          },
+          "phoneMode": "manual",
+          "openedByRealTap": true,
+          "evidenceMode": "real-mode-tap-with-local-devtools-visual-fixture",
+          "screenshot": "small/inquiry-manual.png"
+        },
+        "inquiryKeyboard": {
+          "passed": false,
+          "failures": [
+            "keyboard did not materially shrink viewport or focused controls are obscured"
+          ],
+          "focusedField": "",
+          "focusedByRealTap": false,
+          "inputVisibleBeforeTap": true,
+          "preFocusViewport": {
+            "width": 375,
+            "height": 724
+          },
+          "viewport": {
+            "width": 375,
+            "height": 724
+          },
+          "keyboardViewportDelta": 0,
+          "input": {
+            "left": 26,
+            "top": 551.1171875,
+            "right": 349,
+            "bottom": 595.1171875
+          },
+          "footer": {
+            "left": 0,
+            "top": 633,
+            "right": 375,
+            "bottom": 724
+          },
+          "screenshot": "small/inquiry-keyboard-focus.png"
+        },
+        "inquiryError": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 387.6171875,
+                  "right": 349,
+                  "bottom": 439.6171875
+                },
+                "section": {
+                  "left": 12,
+                  "top": 275.6171875,
+                  "right": 363,
+                  "bottom": 633.1171875
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 391.6171875,
+                    "right": 187.5,
+                    "bottom": 435.6171875
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 391.6171875,
+                    "right": 345,
+                    "bottom": 435.6171875
+                  }
+                ]
+              }
+            ]
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "visibleError": {
+            "text": "网络连接失败，请检查网络后重试",
+            "rect": {
+              "left": 26,
+              "top": 599.6171875,
+              "right": 349,
+              "bottom": 619.1171875
+            },
+            "visiblyRendered": true
+          },
+          "screenshot": "small/inquiry-error.png"
+        },
+        "inquirySubmitting": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 417.1171875,
+                  "right": 349,
+                  "bottom": 469.1171875
+                },
+                "section": {
+                  "left": 12,
+                  "top": 305.1171875,
+                  "right": 363,
+                  "bottom": 633.1171875
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 421.1171875,
+                    "right": 187.5,
+                    "bottom": 465.1171875
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 421.1171875,
+                    "right": 345,
+                    "bottom": 465.1171875
+                  }
+                ]
+              }
+            ]
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "screenshot": "small/inquiry-submitting.png"
+        },
+        "inquirySuccess": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": []
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "screenshot": "small/inquiry-success.png"
+        }
+      },
+      "limitations": [
+        "首页、楼盘和房源详情咨询均通过真实页面点击打开；微信、手填、错误、提交中和成功展示随后使用本地受控视觉状态夹具",
+        "键盘态已尝试真实点击输入框，但没有可审计焦点信号且 DevTools 可视区未收缩（delta=0px），键盘遮挡仍未验证",
+        "未执行真实咨询服务写入、trial、隐私后台、iOS/Android 真机或生产验收"
+      ],
+      "reason": "Error: MP-109 抽屉验收失败或缺失：inquiryKeyboard\n    at assertMp109SheetAcceptance (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:232:13)\n    at main (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:1061:5)\n    at async file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:1087:3"
+    },
+    "large": {
+      "status": "failed",
+      "timestamp": "2026-09-07T02:36:37.758Z",
+      "environment": "local-wechat-devtools-develop-with-controlled-mock",
+      "evidenceRevision": "9097f583e8078af4",
+      "viewportProfile": {
+        "name": "large",
+        "passed": false
+      },
+      "systemInfo": {
+        "SDKVersion": "3.17.2",
+        "platform": "devtools",
+        "version": "8.0.5",
+        "windowWidth": 430,
+        "windowHeight": 752,
+        "filterPageWidth": 430,
+        "filterPageHeight": 834,
+        "inquiryPageWidth": 430,
+        "inquiryPageHeight": 834,
+        "safeAreaBottomInset": 34
+      },
+      "states": {
+        "filterPrice": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 412,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 430,
+              "right": 430,
+              "bottom": 486
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 430,
+              "right": 417,
+              "bottom": 480
+            },
+            "body": {
+              "left": 0,
+              "top": 486,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 151.6640625,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "price-units",
+                "container": {
+                  "left": 29,
+                  "top": 541,
+                  "right": 401,
+                  "bottom": 591
+                },
+                "section": {
+                  "left": 13,
+                  "top": 495,
+                  "right": 417,
+                  "bottom": 607
+                },
+                "items": [
+                  {
+                    "left": 29,
+                    "top": 541,
+                    "right": 213,
+                    "bottom": 591
+                  },
+                  {
+                    "left": 217,
+                    "top": 541,
+                    "right": 401,
+                    "bottom": 591
+                  }
+                ]
+              }
+            ]
+          },
+          "resultCount": 4,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 430,
+              "height": 834
+            },
+            "expandedViewport": {
+              "width": 430,
+              "height": 834
+            },
+            "visibleViewport": {
+              "width": 430,
+              "height": 752
+            }
+          },
+          "filterBarGeometry": {
+            "passed": true,
+            "failures": [],
+            "internalGroups": [
+              {
+                "name": "filter-bar-items",
+                "container": {
+                  "left": 0,
+                  "top": 48,
+                  "right": 430,
+                  "bottom": 107
+                },
+                "section": {
+                  "left": 0,
+                  "top": 48,
+                  "right": 430,
+                  "bottom": 107
+                },
+                "items": [
+                  {
+                    "left": 13,
+                    "top": 52,
+                    "right": 111,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 115,
+                    "top": 52,
+                    "right": 213,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 217,
+                    "top": 52,
+                    "right": 315,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 319,
+                    "top": 52,
+                    "right": 417,
+                    "bottom": 102
+                  }
+                ]
+              }
+            ]
+          },
+          "screenshot": "large/filter-price-open.png"
+        },
+        "filterAll": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 91,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 109,
+              "right": 430,
+              "bottom": 165
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 109,
+              "right": 417,
+              "bottom": 159
+            },
+            "body": {
+              "left": 0,
+              "top": 165,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 151.6640625,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "all-price-units",
+                "container": {
+                  "left": 29,
+                  "top": 220,
+                  "right": 401,
+                  "bottom": 270
+                },
+                "section": {
+                  "left": 13,
+                  "top": 174,
+                  "right": 417,
+                  "bottom": 286
+                },
+                "items": [
+                  {
+                    "left": 29,
+                    "top": 220,
+                    "right": 213,
+                    "bottom": 270
+                  },
+                  {
+                    "left": 217,
+                    "top": 220,
+                    "right": 401,
+                    "bottom": 270
+                  }
+                ]
+              },
+              {
+                "name": "all-districts",
+                "container": {
+                  "left": 29,
+                  "top": 462,
+                  "right": 401,
+                  "bottom": 566
+                },
+                "section": {
+                  "left": 13,
+                  "top": 416,
+                  "right": 417,
+                  "bottom": 582
+                },
+                "items": [
+                  {
+                    "left": 29,
+                    "top": 462,
+                    "right": 213,
+                    "bottom": 512
+                  },
+                  {
+                    "left": 217,
+                    "top": 462,
+                    "right": 401,
+                    "bottom": 512
+                  },
+                  {
+                    "left": 29,
+                    "top": 516,
+                    "right": 213,
+                    "bottom": 566
+                  },
+                  {
+                    "left": 217,
+                    "top": 516,
+                    "right": 401,
+                    "bottom": 566
+                  }
+                ]
+              }
+            ]
+          },
+          "scrollHeight": 843,
+          "footerFixed": true,
+          "filterBarGeometry": {
+            "passed": true,
+            "failures": [],
+            "internalGroups": [
+              {
+                "name": "filter-bar-items",
+                "container": {
+                  "left": 0,
+                  "top": 48,
+                  "right": 430,
+                  "bottom": 107
+                },
+                "section": {
+                  "left": 0,
+                  "top": 48,
+                  "right": 430,
+                  "bottom": 107
+                },
+                "items": [
+                  {
+                    "left": 13,
+                    "top": 52,
+                    "right": 111,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 115,
+                    "top": 52,
+                    "right": 213,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 217,
+                    "top": 52,
+                    "right": 315,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 319,
+                    "top": 52,
+                    "right": 417,
+                    "bottom": 102
+                  }
+                ]
+              }
+            ]
+          },
+          "screenshot": "large/filter-all-open.png"
+        },
+        "homeInquiry": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 532.6171875,
+                  "right": 401,
+                  "bottom": 590.6171875
+                },
+                "section": {
+                  "left": 13,
+                  "top": 408.6171875,
+                  "right": 417,
+                  "bottom": 745.1171875
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 536.6171875,
+                    "right": 215,
+                    "bottom": 586.6171875
+                  },
+                  {
+                    "left": 215,
+                    "top": 536.6171875,
+                    "right": 397,
+                    "bottom": 586.6171875
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 430,
+              "height": 834
+            },
+            "expandedViewport": {
+              "width": 430,
+              "height": 834
+            },
+            "visibleViewport": {
+              "width": 430,
+              "height": 752
+            }
+          },
+          "screenshot": "large/home-inquiry-open.png"
+        },
+        "buildingsInquiry": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 532.6171875,
+                  "right": 401,
+                  "bottom": 590.6171875
+                },
+                "section": {
+                  "left": 13,
+                  "top": 408.6171875,
+                  "right": 417,
+                  "bottom": 745.1171875
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 536.6171875,
+                    "right": 215,
+                    "bottom": 586.6171875
+                  },
+                  {
+                    "left": 215,
+                    "top": 536.6171875,
+                    "right": 397,
+                    "bottom": 586.6171875
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 430,
+              "height": 834
+            },
+            "expandedViewport": {
+              "width": 430,
+              "height": 834
+            },
+            "visibleViewport": {
+              "width": 430,
+              "height": 752
+            }
+          },
+          "screenshot": "large/buildings-inquiry-open.png"
+        },
+        "inquiryWechat": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 559.2109375,
+                  "right": 401,
+                  "bottom": 617.2109375
+                },
+                "section": {
+                  "left": 13,
+                  "top": 435.2109375,
+                  "right": 417,
+                  "bottom": 771.7109375
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 563.2109375,
+                    "right": 215,
+                    "bottom": 613.2109375
+                  },
+                  {
+                    "left": 215,
+                    "top": 563.2109375,
+                    "right": 397,
+                    "bottom": 613.2109375
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "actualOpenState": "recoverable-error",
+          "evidenceMode": "real-tap-open-with-local-devtools-visual-fixture",
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 430,
+              "height": 834
+            },
+            "expandedViewport": {
+              "width": 430,
+              "height": 834
+            },
+            "visibleViewport": null
+          },
+          "screenshot": "large/inquiry-wechat.png"
+        },
+        "inquiryManual": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 559.2109375,
+                  "right": 401,
+                  "bottom": 617.2109375
+                },
+                "section": {
+                  "left": 13,
+                  "top": 435.2109375,
+                  "right": 417,
+                  "bottom": 802.2109375
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 563.2109375,
+                    "right": 215,
+                    "bottom": 613.2109375
+                  },
+                  {
+                    "left": 215,
+                    "top": 563.2109375,
+                    "right": 397,
+                    "bottom": 613.2109375
+                  }
+                ]
+              }
+            ]
+          },
+          "phoneMode": "manual",
+          "openedByRealTap": true,
+          "evidenceMode": "real-mode-tap-with-local-devtools-visual-fixture",
+          "screenshot": "large/inquiry-manual.png"
+        },
+        "inquiryKeyboard": {
+          "passed": false,
+          "failures": [
+            "keyboard did not materially shrink viewport or focused controls are obscured"
+          ],
+          "focusedField": "",
+          "focusedByRealTap": false,
+          "inputVisibleBeforeTap": true,
+          "preFocusViewport": {
+            "width": 430,
+            "height": 834
+          },
+          "viewport": {
+            "width": 430,
+            "height": 834
+          },
+          "keyboardViewportDelta": 0,
+          "input": {
+            "left": 29,
+            "top": 621.2109375,
+            "right": 401,
+            "bottom": 671.2109375
+          },
+          "footer": {
+            "left": 0,
+            "top": 737,
+            "right": 430,
+            "bottom": 834
+          },
+          "screenshot": "large/inquiry-keyboard-focus.png"
+        },
+        "inquiryError": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 462.2109375,
+                  "right": 401,
+                  "bottom": 520.2109375
+                },
+                "section": {
+                  "left": 13,
+                  "top": 338.2109375,
+                  "right": 417,
+                  "bottom": 737.2109375
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 466.2109375,
+                    "right": 215,
+                    "bottom": 516.2109375
+                  },
+                  {
+                    "left": 215,
+                    "top": 466.2109375,
+                    "right": 397,
+                    "bottom": 516.2109375
+                  }
+                ]
+              }
+            ]
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "visibleError": {
+            "text": "网络连接失败，请检查网络后重试",
+            "rect": {
+              "left": 29,
+              "top": 700.2109375,
+              "right": 401,
+              "bottom": 721.2109375
+            },
+            "visiblyRendered": true
+          },
+          "screenshot": "large/inquiry-error.png"
+        },
+        "inquirySubmitting": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 494.2109375,
+                  "right": 401,
+                  "bottom": 552.2109375
+                },
+                "section": {
+                  "left": 13,
+                  "top": 370.2109375,
+                  "right": 417,
+                  "bottom": 737.2109375
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 498.2109375,
+                    "right": 215,
+                    "bottom": 548.2109375
+                  },
+                  {
+                    "left": 215,
+                    "top": 498.2109375,
+                    "right": 397,
+                    "bottom": 548.2109375
+                  }
+                ]
+              }
+            ]
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "screenshot": "large/inquiry-submitting.png"
+        },
+        "inquirySuccess": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": []
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "screenshot": "large/inquiry-success.png"
+        }
+      },
+      "limitations": [
+        "首页、楼盘和房源详情咨询均通过真实页面点击打开；微信、手填、错误、提交中和成功展示随后使用本地受控视觉状态夹具",
+        "键盘态已尝试真实点击输入框，但没有可审计焦点信号且 DevTools 可视区未收缩（delta=0px），键盘遮挡仍未验证",
+        "未执行真实咨询服务写入、trial、隐私后台、iOS/Android 真机或生产验收"
+      ],
+      "reason": "Error: MP-109 抽屉验收失败或缺失：inquiryKeyboard\n    at assertMp109SheetAcceptance (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:232:13)\n    at main (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:1061:5)\n    at async file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:1087:3"
+    }
+  },
+  "states": {
+    "filterPrice": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 344.5,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 360.5,
+              "right": 375,
+              "bottom": 411
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 360.5,
+              "right": 363,
+              "bottom": 404.5
+            },
+            "body": {
+              "left": 0,
+              "top": 411,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 133,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "price-units",
+                "container": {
+                  "left": 26,
+                  "top": 460,
+                  "right": 349,
+                  "bottom": 504
+                },
+                "section": {
+                  "left": 12,
+                  "top": 419,
+                  "right": 363,
+                  "bottom": 518
+                },
+                "items": [
+                  {
+                    "left": 26,
+                    "top": 460,
+                    "right": 185.5,
+                    "bottom": 504
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 460,
+                    "right": 349,
+                    "bottom": 504
+                  }
+                ]
+              }
+            ]
+          },
+          "resultCount": 4,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 375,
+              "height": 724
+            },
+            "expandedViewport": {
+              "width": 375,
+              "height": 724
+            },
+            "visibleViewport": {
+              "width": 375,
+              "height": 642
+            }
+          },
+          "filterBarGeometry": {
+            "passed": true,
+            "failures": [],
+            "internalGroups": [
+              {
+                "name": "filter-bar-items",
+                "container": {
+                  "left": 0,
+                  "top": 44,
+                  "right": 375,
+                  "bottom": 97
+                },
+                "section": {
+                  "left": 0,
+                  "top": 44,
+                  "right": 375,
+                  "bottom": 97
+                },
+                "items": [
+                  {
+                    "left": 12,
+                    "top": 48,
+                    "right": 96.75,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 100.75,
+                    "top": 48,
+                    "right": 185.5,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 48,
+                    "right": 274.25,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 278.25,
+                    "top": 48,
+                    "right": 363,
+                    "bottom": 92
+                  }
+                ]
+              }
+            ]
+          },
+          "screenshot": "small/filter-price-open.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 412,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 430,
+              "right": 430,
+              "bottom": 486
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 430,
+              "right": 417,
+              "bottom": 480
+            },
+            "body": {
+              "left": 0,
+              "top": 486,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 151.6640625,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "price-units",
+                "container": {
+                  "left": 29,
+                  "top": 541,
+                  "right": 401,
+                  "bottom": 591
+                },
+                "section": {
+                  "left": 13,
+                  "top": 495,
+                  "right": 417,
+                  "bottom": 607
+                },
+                "items": [
+                  {
+                    "left": 29,
+                    "top": 541,
+                    "right": 213,
+                    "bottom": 591
+                  },
+                  {
+                    "left": 217,
+                    "top": 541,
+                    "right": 401,
+                    "bottom": 591
+                  }
+                ]
+              }
+            ]
+          },
+          "resultCount": 4,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 430,
+              "height": 834
+            },
+            "expandedViewport": {
+              "width": 430,
+              "height": 834
+            },
+            "visibleViewport": {
+              "width": 430,
+              "height": 752
+            }
+          },
+          "filterBarGeometry": {
+            "passed": true,
+            "failures": [],
+            "internalGroups": [
+              {
+                "name": "filter-bar-items",
+                "container": {
+                  "left": 0,
+                  "top": 48,
+                  "right": 430,
+                  "bottom": 107
+                },
+                "section": {
+                  "left": 0,
+                  "top": 48,
+                  "right": 430,
+                  "bottom": 107
+                },
+                "items": [
+                  {
+                    "left": 13,
+                    "top": 52,
+                    "right": 111,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 115,
+                    "top": 52,
+                    "right": 213,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 217,
+                    "top": 52,
+                    "right": 315,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 319,
+                    "top": 52,
+                    "right": 417,
+                    "bottom": 102
+                  }
+                ]
+              }
+            ]
+          },
+          "screenshot": "large/filter-price-open.png"
+        }
+      }
+    },
+    "filterAll": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 80,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 96,
+              "right": 375,
+              "bottom": 146.5
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 96,
+              "right": 363,
+              "bottom": 140
+            },
+            "body": {
+              "left": 0,
+              "top": 146.5,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 133,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "all-price-units",
+                "container": {
+                  "left": 26,
+                  "top": 195.5,
+                  "right": 349,
+                  "bottom": 239.5
+                },
+                "section": {
+                  "left": 12,
+                  "top": 154.5,
+                  "right": 363,
+                  "bottom": 253.5
+                },
+                "items": [
+                  {
+                    "left": 26,
+                    "top": 195.5,
+                    "right": 185.5,
+                    "bottom": 239.5
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 195.5,
+                    "right": 349,
+                    "bottom": 239.5
+                  }
+                ]
+              },
+              {
+                "name": "all-districts",
+                "container": {
+                  "left": 26,
+                  "top": 409.5,
+                  "right": 349,
+                  "bottom": 501.5
+                },
+                "section": {
+                  "left": 12,
+                  "top": 368.5,
+                  "right": 363,
+                  "bottom": 515.5
+                },
+                "items": [
+                  {
+                    "left": 26,
+                    "top": 409.5,
+                    "right": 185.5,
+                    "bottom": 453.5
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 409.5,
+                    "right": 349,
+                    "bottom": 453.5
+                  },
+                  {
+                    "left": 26,
+                    "top": 457.5,
+                    "right": 185.5,
+                    "bottom": 501.5
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 457.5,
+                    "right": 349,
+                    "bottom": 501.5
+                  }
+                ]
+              }
+            ]
+          },
+          "scrollHeight": 746,
+          "footerFixed": true,
+          "filterBarGeometry": {
+            "passed": true,
+            "failures": [],
+            "internalGroups": [
+              {
+                "name": "filter-bar-items",
+                "container": {
+                  "left": 0,
+                  "top": 44,
+                  "right": 375,
+                  "bottom": 97
+                },
+                "section": {
+                  "left": 0,
+                  "top": 44,
+                  "right": 375,
+                  "bottom": 97
+                },
+                "items": [
+                  {
+                    "left": 12,
+                    "top": 48,
+                    "right": 96.75,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 100.75,
+                    "top": 48,
+                    "right": 185.5,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 189.5,
+                    "top": 48,
+                    "right": 274.25,
+                    "bottom": 92
+                  },
+                  {
+                    "left": 278.25,
+                    "top": 48,
+                    "right": 363,
+                    "bottom": 92
+                  }
+                ]
+              }
+            ]
+          },
+          "screenshot": "small/filter-all-open.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 91,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 109,
+              "right": 430,
+              "bottom": 165
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 109,
+              "right": 417,
+              "bottom": 159
+            },
+            "body": {
+              "left": 0,
+              "top": 165,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 151.6640625,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "all-price-units",
+                "container": {
+                  "left": 29,
+                  "top": 220,
+                  "right": 401,
+                  "bottom": 270
+                },
+                "section": {
+                  "left": 13,
+                  "top": 174,
+                  "right": 417,
+                  "bottom": 286
+                },
+                "items": [
+                  {
+                    "left": 29,
+                    "top": 220,
+                    "right": 213,
+                    "bottom": 270
+                  },
+                  {
+                    "left": 217,
+                    "top": 220,
+                    "right": 401,
+                    "bottom": 270
+                  }
+                ]
+              },
+              {
+                "name": "all-districts",
+                "container": {
+                  "left": 29,
+                  "top": 462,
+                  "right": 401,
+                  "bottom": 566
+                },
+                "section": {
+                  "left": 13,
+                  "top": 416,
+                  "right": 417,
+                  "bottom": 582
+                },
+                "items": [
+                  {
+                    "left": 29,
+                    "top": 462,
+                    "right": 213,
+                    "bottom": 512
+                  },
+                  {
+                    "left": 217,
+                    "top": 462,
+                    "right": 401,
+                    "bottom": 512
+                  },
+                  {
+                    "left": 29,
+                    "top": 516,
+                    "right": 213,
+                    "bottom": 566
+                  },
+                  {
+                    "left": 217,
+                    "top": 516,
+                    "right": 401,
+                    "bottom": 566
+                  }
+                ]
+              }
+            ]
+          },
+          "scrollHeight": 843,
+          "footerFixed": true,
+          "filterBarGeometry": {
+            "passed": true,
+            "failures": [],
+            "internalGroups": [
+              {
+                "name": "filter-bar-items",
+                "container": {
+                  "left": 0,
+                  "top": 48,
+                  "right": 430,
+                  "bottom": 107
+                },
+                "section": {
+                  "left": 0,
+                  "top": 48,
+                  "right": 430,
+                  "bottom": 107
+                },
+                "items": [
+                  {
+                    "left": 13,
+                    "top": 52,
+                    "right": 111,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 115,
+                    "top": 52,
+                    "right": 213,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 217,
+                    "top": 52,
+                    "right": 315,
+                    "bottom": 102
+                  },
+                  {
+                    "left": 319,
+                    "top": 52,
+                    "right": 417,
+                    "bottom": 102
+                  }
+                ]
+              }
+            ]
+          },
+          "screenshot": "large/filter-all-open.png"
+        }
+      }
+    },
+    "homeInquiry": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 471.3203125,
+                  "right": 349,
+                  "bottom": 523.3203125
+                },
+                "section": {
+                  "left": 12,
+                  "top": 359.3203125,
+                  "right": 363,
+                  "bottom": 661.3203125
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 475.3203125,
+                    "right": 187.5,
+                    "bottom": 519.3203125
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 475.3203125,
+                    "right": 345,
+                    "bottom": 519.3203125
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 375,
+              "height": 724
+            },
+            "expandedViewport": {
+              "width": 375,
+              "height": 724
+            },
+            "visibleViewport": {
+              "width": 375,
+              "height": 642
+            }
+          },
+          "screenshot": "small/home-inquiry-open.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 532.6171875,
+                  "right": 401,
+                  "bottom": 590.6171875
+                },
+                "section": {
+                  "left": 13,
+                  "top": 408.6171875,
+                  "right": 417,
+                  "bottom": 745.1171875
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 536.6171875,
+                    "right": 215,
+                    "bottom": 586.6171875
+                  },
+                  {
+                    "left": 215,
+                    "top": 536.6171875,
+                    "right": 397,
+                    "bottom": 586.6171875
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 430,
+              "height": 834
+            },
+            "expandedViewport": {
+              "width": 430,
+              "height": 834
+            },
+            "visibleViewport": {
+              "width": 430,
+              "height": 752
+            }
+          },
+          "screenshot": "large/home-inquiry-open.png"
+        }
+      }
+    },
+    "buildingsInquiry": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 471.3203125,
+                  "right": 349,
+                  "bottom": 523.3203125
+                },
+                "section": {
+                  "left": 12,
+                  "top": 359.3203125,
+                  "right": 363,
+                  "bottom": 661.3203125
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 475.3203125,
+                    "right": 187.5,
+                    "bottom": 519.3203125
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 475.3203125,
+                    "right": 345,
+                    "bottom": 519.3203125
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 375,
+              "height": 724
+            },
+            "expandedViewport": {
+              "width": 375,
+              "height": 724
+            },
+            "visibleViewport": {
+              "width": 375,
+              "height": 642
+            }
+          },
+          "screenshot": "small/buildings-inquiry-open.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 532.6171875,
+                  "right": 401,
+                  "bottom": 590.6171875
+                },
+                "section": {
+                  "left": 13,
+                  "top": 408.6171875,
+                  "right": 417,
+                  "bottom": 745.1171875
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 536.6171875,
+                    "right": 215,
+                    "bottom": 586.6171875
+                  },
+                  {
+                    "left": 215,
+                    "top": 536.6171875,
+                    "right": 397,
+                    "bottom": 586.6171875
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 430,
+              "height": 834
+            },
+            "expandedViewport": {
+              "width": 430,
+              "height": 834
+            },
+            "visibleViewport": {
+              "width": 430,
+              "height": 752
+            }
+          },
+          "screenshot": "large/buildings-inquiry-open.png"
+        }
+      }
+    },
+    "inquiryWechat": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 495.1171875,
+                  "right": 349,
+                  "bottom": 547.1171875
+                },
+                "section": {
+                  "left": 12,
+                  "top": 383.1171875,
+                  "right": 363,
+                  "bottom": 685.1171875
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 499.1171875,
+                    "right": 187.5,
+                    "bottom": 543.1171875
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 499.1171875,
+                    "right": 345,
+                    "bottom": 543.1171875
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "actualOpenState": "recoverable-error",
+          "evidenceMode": "real-tap-open-with-local-devtools-visual-fixture",
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 375,
+              "height": 724
+            },
+            "expandedViewport": {
+              "width": 375,
+              "height": 724
+            },
+            "visibleViewport": null
+          },
+          "screenshot": "small/inquiry-wechat.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 559.2109375,
+                  "right": 401,
+                  "bottom": 617.2109375
+                },
+                "section": {
+                  "left": 13,
+                  "top": 435.2109375,
+                  "right": 417,
+                  "bottom": 771.7109375
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 563.2109375,
+                    "right": 215,
+                    "bottom": 613.2109375
+                  },
+                  {
+                    "left": 215,
+                    "top": 563.2109375,
+                    "right": 397,
+                    "bottom": 613.2109375
+                  }
+                ]
+              }
+            ]
+          },
+          "openedByRealTap": true,
+          "actualOpenState": "recoverable-error",
+          "evidenceMode": "real-tap-open-with-local-devtools-visual-fixture",
+          "nativeTabBar": {
+            "tabBarVisible": false,
+            "current": {
+              "width": 430,
+              "height": 834
+            },
+            "expandedViewport": {
+              "width": 430,
+              "height": 834
+            },
+            "visibleViewport": null
+          },
+          "screenshot": "large/inquiry-wechat.png"
+        }
+      }
+    },
+    "inquiryManual": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 495.1171875,
+                  "right": 349,
+                  "bottom": 547.1171875
+                },
+                "section": {
+                  "left": 12,
+                  "top": 383.1171875,
+                  "right": 363,
+                  "bottom": 711.1171875
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 499.1171875,
+                    "right": 187.5,
+                    "bottom": 543.1171875
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 499.1171875,
+                    "right": 345,
+                    "bottom": 543.1171875
+                  }
+                ]
+              }
+            ]
+          },
+          "phoneMode": "manual",
+          "openedByRealTap": true,
+          "evidenceMode": "real-mode-tap-with-local-devtools-visual-fixture",
+          "screenshot": "small/inquiry-manual.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 559.2109375,
+                  "right": 401,
+                  "bottom": 617.2109375
+                },
+                "section": {
+                  "left": 13,
+                  "top": 435.2109375,
+                  "right": 417,
+                  "bottom": 802.2109375
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 563.2109375,
+                    "right": 215,
+                    "bottom": 613.2109375
+                  },
+                  {
+                    "left": 215,
+                    "top": 563.2109375,
+                    "right": 397,
+                    "bottom": 613.2109375
+                  }
+                ]
+              }
+            ]
+          },
+          "phoneMode": "manual",
+          "openedByRealTap": true,
+          "evidenceMode": "real-mode-tap-with-local-devtools-visual-fixture",
+          "screenshot": "large/inquiry-manual.png"
+        }
+      }
+    },
+    "inquiryKeyboard": {
+      "passed": false,
+      "profiles": {
+        "small": {
+          "passed": false,
+          "failures": [
+            "keyboard did not materially shrink viewport or focused controls are obscured"
+          ],
+          "focusedField": "",
+          "focusedByRealTap": false,
+          "inputVisibleBeforeTap": true,
+          "preFocusViewport": {
+            "width": 375,
+            "height": 724
+          },
+          "viewport": {
+            "width": 375,
+            "height": 724
+          },
+          "keyboardViewportDelta": 0,
+          "input": {
+            "left": 26,
+            "top": 551.1171875,
+            "right": 349,
+            "bottom": 595.1171875
+          },
+          "footer": {
+            "left": 0,
+            "top": 633,
+            "right": 375,
+            "bottom": 724
+          },
+          "screenshot": "small/inquiry-keyboard-focus.png"
+        },
+        "large": {
+          "passed": false,
+          "failures": [
+            "keyboard did not materially shrink viewport or focused controls are obscured"
+          ],
+          "focusedField": "",
+          "focusedByRealTap": false,
+          "inputVisibleBeforeTap": true,
+          "preFocusViewport": {
+            "width": 430,
+            "height": 834
+          },
+          "viewport": {
+            "width": 430,
+            "height": 834
+          },
+          "keyboardViewportDelta": 0,
+          "input": {
+            "left": 29,
+            "top": 621.2109375,
+            "right": 401,
+            "bottom": 671.2109375
+          },
+          "footer": {
+            "left": 0,
+            "top": 737,
+            "right": 430,
+            "bottom": 834
+          },
+          "screenshot": "large/inquiry-keyboard-focus.png"
+        }
+      }
+    },
+    "inquiryError": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 387.6171875,
+                  "right": 349,
+                  "bottom": 439.6171875
+                },
+                "section": {
+                  "left": 12,
+                  "top": 275.6171875,
+                  "right": 363,
+                  "bottom": 633.1171875
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 391.6171875,
+                    "right": 187.5,
+                    "bottom": 435.6171875
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 391.6171875,
+                    "right": 345,
+                    "bottom": 435.6171875
+                  }
+                ]
+              }
+            ]
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "visibleError": {
+            "text": "网络连接失败，请检查网络后重试",
+            "rect": {
+              "left": 26,
+              "top": 599.6171875,
+              "right": 349,
+              "bottom": 619.1171875
+            },
+            "visiblyRendered": true
+          },
+          "screenshot": "small/inquiry-error.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 462.2109375,
+                  "right": 401,
+                  "bottom": 520.2109375
+                },
+                "section": {
+                  "left": 13,
+                  "top": 338.2109375,
+                  "right": 417,
+                  "bottom": 737.2109375
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 466.2109375,
+                    "right": 215,
+                    "bottom": 516.2109375
+                  },
+                  {
+                    "left": 215,
+                    "top": 466.2109375,
+                    "right": 397,
+                    "bottom": 516.2109375
+                  }
+                ]
+              }
+            ]
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "visibleError": {
+            "text": "网络连接失败，请检查网络后重试",
+            "rect": {
+              "left": 29,
+              "top": 700.2109375,
+              "right": 401,
+              "bottom": 721.2109375
+            },
+            "visiblyRendered": true
+          },
+          "screenshot": "large/inquiry-error.png"
+        }
+      }
+    },
+    "inquirySubmitting": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 26,
+                  "top": 417.1171875,
+                  "right": 349,
+                  "bottom": 469.1171875
+                },
+                "section": {
+                  "left": 12,
+                  "top": 305.1171875,
+                  "right": 363,
+                  "bottom": 633.1171875
+                },
+                "items": [
+                  {
+                    "left": 30,
+                    "top": 421.1171875,
+                    "right": 187.5,
+                    "bottom": 465.1171875
+                  },
+                  {
+                    "left": 187.5,
+                    "top": 421.1171875,
+                    "right": 345,
+                    "bottom": 465.1171875
+                  }
+                ]
+              }
+            ]
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "screenshot": "small/inquiry-submitting.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": [
+              {
+                "name": "phone-segment",
+                "container": {
+                  "left": 29,
+                  "top": 494.2109375,
+                  "right": 401,
+                  "bottom": 552.2109375
+                },
+                "section": {
+                  "left": 13,
+                  "top": 370.2109375,
+                  "right": 417,
+                  "bottom": 737.2109375
+                },
+                "items": [
+                  {
+                    "left": 33,
+                    "top": 498.2109375,
+                    "right": 215,
+                    "bottom": 548.2109375
+                  },
+                  {
+                    "left": 215,
+                    "top": 498.2109375,
+                    "right": 397,
+                    "bottom": 548.2109375
+                  }
+                ]
+              }
+            ]
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "screenshot": "large/inquiry-submitting.png"
+        }
+      }
+    },
+    "inquirySuccess": {
+      "passed": true,
+      "profiles": {
+        "small": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 202.7265625,
+              "right": 375,
+              "bottom": 724
+            },
+            "header": {
+              "left": 0,
+              "top": 218.7265625,
+              "right": 375,
+              "bottom": 269.0234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 633,
+              "right": 375,
+              "bottom": 724
+            },
+            "close": {
+              "left": 319,
+              "top": 218.7265625,
+              "right": 363,
+              "bottom": 262.7265625
+            },
+            "body": {
+              "left": 0,
+              "top": 269.0234375,
+              "right": 375,
+              "bottom": 633
+            },
+            "primaryAction": {
+              "left": 12,
+              "top": 640,
+              "right": 363,
+              "bottom": 684
+            },
+            "internalGroups": []
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "screenshot": "small/inquiry-success.png"
+        },
+        "large": {
+          "passed": true,
+          "failures": [],
+          "geometry": {
+            "panel": {
+              "left": 0,
+              "top": 233.5234375,
+              "right": 430,
+              "bottom": 834
+            },
+            "header": {
+              "left": 0,
+              "top": 251.5234375,
+              "right": 430,
+              "bottom": 307.5234375
+            },
+            "footer": {
+              "left": 0,
+              "top": 737,
+              "right": 430,
+              "bottom": 834
+            },
+            "close": {
+              "left": 367,
+              "top": 251.5234375,
+              "right": 417,
+              "bottom": 301.5234375
+            },
+            "body": {
+              "left": 0,
+              "top": 307.5234375,
+              "right": 430,
+              "bottom": 737
+            },
+            "primaryAction": {
+              "left": 13,
+              "top": 744,
+              "right": 417,
+              "bottom": 794
+            },
+            "internalGroups": []
+          },
+          "evidenceMode": "local-devtools-visual-fixture",
+          "screenshot": "large/inquiry-success.png"
+        }
+      }
+    }
+  },
+  "failures": [
+    "small: MP-109 抽屉验收状态不是 passed",
+    "large: MP-109 抽屉验收状态不是 passed"
+  ],
+  "limitations": [
+    "两档证据均来自微信开发者工具 develop 模式与受控 Mock；不等同于 trial、隐私后台、iOS/Android 真机或生产验收",
+    "咨询展示状态使用真实点击打开后的本地视觉夹具，未执行真实业务写入"
+  ]
+}

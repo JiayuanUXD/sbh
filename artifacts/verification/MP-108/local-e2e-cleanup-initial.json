@@ -1,0 +1,91 @@
+{
+  "status": "PASS",
+  "phase": "initial",
+  "recordedAt": "2026-09-07T06:32:35.138Z",
+  "database": "sbh_dev_mp108_fresh",
+  "before": {
+    "recordedAt": "2026-09-07T06:32:26.997Z",
+    "counts": {
+      "leads": 14,
+      "supply_submissions": 0,
+      "city_partner_applications": 0,
+      "locations": 14,
+      "location_aliases": 0,
+      "business_area_extensions": 0,
+      "forms": 0,
+      "listings": 17,
+      "domain_events": 3,
+      "notifications": 0,
+      "payload_jobs": 1,
+      "users": 5
+    },
+    "markers": {
+      "leadRequestIds": [
+        "1ae214e8-b100-47b9-9ed8-af7462d4681a",
+        "58aa1df3-1034-45dc-9ad4-05b4b1a0bff1",
+        "66d49b88-142c-441c-870e-5b7d2031bb4a",
+        "74f22942-2d66-4233-b729-8c0423b8c7f4",
+        "b6e20a39-efae-4ff3-a23e-d30bcca926dc",
+        "e2e-idempotent-1788762461640-81fesm"
+      ],
+      "supplyRequestIds": [],
+      "partnerRequestIds": [],
+      "locationSlugs": [],
+      "formTitles": [],
+      "listingRooms": []
+    }
+  },
+  "exactMarkers": {
+    "requests": [
+      "1ae214e8-b100-47b9-9ed8-af7462d4681a",
+      "58aa1df3-1034-45dc-9ad4-05b4b1a0bff1",
+      "66d49b88-142c-441c-870e-5b7d2031bb4a",
+      "74f22942-2d66-4233-b729-8c0423b8c7f4",
+      "b6e20a39-efae-4ff3-a23e-d30bcca926dc",
+      "e2e-idempotent-1788762461640-81fesm"
+    ],
+    "externalIds": [
+      "E2E-OPT041-mtquvbpe-1",
+      "E2E-OPT041-mtquvbpe-2",
+      "E2E-OPT041-mtquw4xm-1",
+      "E2E-OPT041-mtquw4xm-2",
+      "E2E-OPT041-mtquxebv-1",
+      "E2E-OPT041-mtquxebv-2"
+    ],
+    "files": [
+      "bulk-import-listings-mtquvbpe.xlsx",
+      "bulk-import-listings-mtquw4xm.xlsx",
+      "bulk-import-listings-mtquxebv.xlsx",
+      "bulk-import-listings-reimport-mtquvbpe.xlsx",
+      "bulk-import-listings-reimport-mtquw4xm.xlsx",
+      "bulk-import-listings-reimport-mtquxebv.xlsx"
+    ]
+  },
+  "output": "BEGIN\nDELETE 6\nDELETE 6\nDELETE 6\nDELETE 0\nDELETE 0\nDELETE 6\nCOMMIT",
+  "after": {
+    "recordedAt": "2026-09-07T06:32:32.857Z",
+    "counts": {
+      "leads": 8,
+      "supply_submissions": 0,
+      "city_partner_applications": 0,
+      "locations": 14,
+      "location_aliases": 0,
+      "business_area_extensions": 0,
+      "forms": 0,
+      "listings": 11,
+      "domain_events": 3,
+      "notifications": 0,
+      "payload_jobs": 1,
+      "users": 5
+    },
+    "markers": {
+      "leadRequestIds": [],
+      "supplyRequestIds": [],
+      "partnerRequestIds": [],
+      "locationSlugs": [],
+      "formTitles": [],
+      "listingRooms": []
+    }
+  },
+  "concern": "剩余供给事件只有submissionId、无requestId且源记录已由测试删除；没有可复核唯一标记归属，未擅自删除。"
+}

@@ -1,0 +1,138 @@
+{
+  "status": "PASS",
+  "candidateSha": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+  "recordedAt": "2026-09-07T06:48:47.998Z",
+  "environment": "develop",
+  "database": "sbh_dev_mp108_prod",
+  "cli": "/Applications/wechatwebdevtools.app/Contents/MacOS/cli",
+  "commands": [
+    {
+      "command": "pnpm devtools:smoke",
+      "startedAt": "2026-09-07T06:48:48.066Z",
+      "finishedAt": "2026-09-07T06:49:13.234Z",
+      "exitCode": 0,
+      "output": "\n> sbh-miniprogram@0.0.0 devtools:smoke sbh-miniprogram\n> node scripts/devtools-smoke.mjs\n\n微信开发者工具首页/找房/详情冒烟检查通过\n"
+    }
+  ],
+  "markers": {
+    "home": true,
+    "listings": true,
+    "detail": true
+  },
+  "priorAttempts": [
+    {
+      "status": "FAILED",
+      "candidateSha": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+      "recordedAt": "2026-09-07T06:42:20.877Z",
+      "environment": "develop",
+      "database": "sbh_dev_mp108_prod",
+      "cli": "/Applications/wechatwebdevtools.app/Contents/MacOS/cli",
+      "commands": [
+        {
+          "command": "pnpm devtools:smoke",
+          "startedAt": "2026-09-07T06:42:21.193Z",
+          "finishedAt": "2026-09-07T06:42:33.397Z",
+          "exitCode": 1,
+          "output": "\n> sbh-miniprogram@0.0.0 devtools:smoke sbh-miniprogram\n> node scripts/devtools-smoke.mjs\n\n ELIFECYCLE  Command failed with exit code 1.\n开发者工具冒烟检查失败：请检查 CLI、登录状态、自动化端口与工程编译结果\n"
+        }
+      ],
+      "markers": {
+        "home": false,
+        "listings": false,
+        "detail": false
+      },
+      "health": {
+        "status": "ok",
+        "checks": {
+          "payload": "ok",
+          "db": "ok"
+        },
+        "timestamp": "2026-09-07T06:42:21.187Z",
+        "version": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+        "env": "production"
+      },
+      "failure": "命令失败：pnpm devtools:smoke\n\n1 !== 0\n",
+      "access": [
+        {
+          "at": "2026-09-07T06:42:21.190Z",
+          "method": "GET",
+          "path": "/api/health",
+          "status": 200,
+          "requestId": null
+        }
+      ],
+      "diagnostic": {
+        "recordedAt": "2026-09-07T06:44:46.637Z",
+        "command": "Node 调用原 runDevtoolsSmoke 只输出其原始异常消息（不改测试）",
+        "exitCode": 1,
+        "output": "DIAGNOSTIC_SMOKE_ERROR: Failed to launch wechat web devTools, please make sure http port is open\n",
+        "cliReadOnlyChecks": "cli --help exit0；cli islogin exit0且login=true；原Launcher将CLI stdout设为ignore，所以常规失败消息缺失细节。"
+      },
+      "connectDiagnostic": {
+        "recordedAt": "2026-09-07T06:47:19.713Z",
+        "command": "CLI auto 已显式打开本项目后，仅连接本机9420，先断言develop再运行原三页检查",
+        "exitCode": 0,
+        "output": "CONFIRMED_ENV: develop\nDIAGNOSTIC_SMOKE_PASS\n",
+        "cliReadOnlyChecks": "cli --help exit0；cli islogin exit0且login=true；原Launcher将CLI stdout设为ignore，所以常规失败消息缺失细节。CLI auto --project 当前小程序目录 --auto-port 9420 --trust-project exit0。"
+      }
+    }
+  ],
+  "health": {
+    "status": "ok",
+    "checks": {
+      "payload": "ok",
+      "db": "ok"
+    },
+    "timestamp": "2026-09-07T06:48:48.061Z",
+    "version": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+    "env": "production"
+  },
+  "markerEvidence": "既有 devtools-smoke.mjs 对三个 ready marker、路由及真实详情 slug 均显式断言后才输出成功。",
+  "access": [
+    {
+      "at": "2026-09-07T06:48:54.478Z",
+      "method": "GET",
+      "path": "/api/mini/v1/home",
+      "status": 200,
+      "requestId": [
+        "711f0604-407f-4d91-8f9a-911e8142a07d"
+      ]
+    },
+    {
+      "at": "2026-09-07T06:48:57.910Z",
+      "method": "GET",
+      "path": "/api/mini/v1/home",
+      "status": 200,
+      "requestId": [
+        "b3510519-0954-4364-ae31-ce99f01094eb"
+      ]
+    },
+    {
+      "at": "2026-09-07T06:49:02.875Z",
+      "method": "GET",
+      "path": "/api/mini/v1/listings",
+      "status": 200,
+      "requestId": [
+        "c98db4db-d9e4-4e38-ae2f-4121a332551d"
+      ]
+    },
+    {
+      "at": "2026-09-07T06:49:07.787Z",
+      "method": "GET",
+      "path": "/api/mini/v1/listings/huangpu-bund-coworking",
+      "status": 200,
+      "requestId": [
+        "c1768188-ad19-45f5-95e8-e62f0a78a3b5"
+      ]
+    },
+    {
+      "at": "2026-09-07T06:49:07.789Z",
+      "method": "POST",
+      "path": "/api/mini/v1/session",
+      "status": 503,
+      "requestId": [
+        "affdd5a4-247c-4bc6-a59f-36f5b0256e8c"
+      ]
+    }
+  ]
+}

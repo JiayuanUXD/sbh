@@ -1,0 +1,55 @@
+{"phase":"http","database":"sbh_dev_mp108_prod","candidateSha":"e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f","startedAt":"2026-09-07T06:18:39.590Z","instrumentation":"Node HTTP finish observer; no bodies or query logged"}
+▲ Next.js 16.2.10
+- Local:         http://127.0.0.1:3717
+- Network:       http://127.0.0.1:3717
+✓ Ready in 98ms
+[14:18:58] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.
+[MP108_ACCESS] {"at":"2026-09-07T06:18:58.264Z","method":"GET","path":"/api/health","status":503,"requestId":null}
+[14:18:58] ERROR: Error running onInit function
+    err: {
+      "type": "Error",
+      "message": "[config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：\n  - COS_STORAGE: 生产环境必须配置 COS，禁止将媒体写入 CloudRun 临时磁盘",
+      "stack":
+          Error: [config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：
+            - COS_STORAGE: 生产环境必须配置 COS，禁止将媒体写入 CloudRun 临时磁盘
+              at a (payload-office-platform/.next/server/chunks/_1kk-lm4._.js:329:225768)
+              at Object.onInit (payload-office-platform/.next/server/chunks/_1kk-lm4._.js:330:12968)
+              at eV.init (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:12442)
+              at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+              at async ez (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:14104)
+              at async l (payload-office-platform/.next/server/chunks/[root-of-the-server]__1i9rblf._.js:1:6756)
+              at async rJ.do (payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:25785)
+              at async d (payload-office-platform/.next/server/chunks/[root-of-the-server]__1i9rblf._.js:1:10882)
+              at async rJ.handleResponse (payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:1:119701)
+              at async i (payload-office-platform/.next/server/chunks/[root-of-the-server]__1i9rblf._.js:1:11923)
+              at async Module.P [as handler] (payload-office-platform/.next/server/chunks/[root-of-the-server]__1i9rblf._.js:1:13030)
+              at async NextNodeServer.renderToResponseWithComponentsImpl (payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1462:9)
+              at async NextNodeServer.renderPageComponent (payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1514:24)
+              at async NextNodeServer.renderToResponseImpl (payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1564:32)
+              at async NextNodeServer.pipeImpl (payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1044:25)
+    }
+[14:18:58] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.
+[MP108_ACCESS] {"at":"2026-09-07T06:18:58.558Z","method":"GET","path":"/api/mini/v1/listings","status":200,"requestId":["f856b2ca-c17f-43a7-9da6-39aacd81eb9d"]}
+{"stoppedAt":"2026-09-07T06:19:59.893Z","exitCode":130,"signal":null}
+{"phase":"http","database":"sbh_dev_mp108_prod","candidateSha":"e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f","startedAt":"2026-09-07T06:20:00.712Z","ci":true,"instrumentation":"Node HTTP finish observer; no bodies or query logged"}
+▲ Next.js 16.2.10
+- Local:         http://127.0.0.1:3717
+- Network:       http://127.0.0.1:3717
+✓ Ready in 127ms
+[14:20:31] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.
+[MP108_ACCESS] {"at":"2026-09-07T06:20:31.414Z","method":"GET","path":"/api/health","status":200,"requestId":null}
+[MP108_ACCESS] {"at":"2026-09-07T06:20:31.671Z","method":"GET","path":"/api/mini/v1/home","status":200,"requestId":["104daa10-ba0e-4bbb-984d-aa75dad7cb32"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:20:31.778Z","method":"GET","path":"/api/mini/v1/listings","status":200,"requestId":["5c32d7ea-54fb-4715-9865-f61b7518251c"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:20:31.855Z","method":"GET","path":"/api/mini/v1/listings/lujiazui-grade-a-780sqm","status":200,"requestId":["3172a312-515e-436b-b777-e40d7e892c8e"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:20:31.861Z","method":"GET","path":"/api/mini/v1/home","status":404,"requestId":["4eb31fc4-fff5-4092-80ce-c8504df5d3a3"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:20:31.879Z","method":"GET","path":"/api/mini/v1/listings/not-a-real-listing","status":404,"requestId":["45e262d7-9619-41a3-b0a0-addbfce25106"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:20:31.890Z","method":"GET","path":"/api/mini/v1/listings","status":200,"requestId":["f96ec11a-0455-40f5-949a-293fa3e10b09"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:21:45.054Z","method":"GET","path":"/api/health","status":200,"requestId":null}
+[MP108_ACCESS] {"at":"2026-09-07T06:21:45.101Z","method":"GET","path":"/api/mini/v1/home","status":200,"requestId":["9a809093-52fa-4efd-a95d-f6f9ab33ca65"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:21:45.110Z","method":"GET","path":"/api/mini/v1/listings","status":200,"requestId":["2947c0ee-e4e6-4786-ac83-c6fb04a60749"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:21:45.112Z","method":"GET","path":"/api/mini/v1/listings/lujiazui-grade-a-780sqm","status":200,"requestId":["21c6caec-df59-4aa8-b523-472930444107"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:21:45.115Z","method":"GET","path":"/api/mini/v1/home","status":404,"requestId":["e0c6d640-bc30-461a-a2e5-0d5c447ff196"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:21:45.118Z","method":"GET","path":"/api/mini/v1/listings/not-a-real-listing","status":404,"requestId":["cfe6f3ef-6de5-4d32-9c13-d806f6d6ca7d"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:21:45.135Z","method":"GET","path":"/api/mini/v1/listings","status":200,"requestId":["c7cf1cb3-d853-4b1e-a815-9b6c9daf72b4"]}
+{"stoppedAt":"2026-09-07T06:21:45.153Z","exitCode":130,"signal":null}

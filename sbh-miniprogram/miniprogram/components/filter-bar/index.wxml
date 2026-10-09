@@ -1,0 +1,25 @@
+<view class="filter-bar" aria-label="房源筛选">
+  <button
+    class="filter-bar__item {{locationActive ? 'filter-bar__item--active' : ''}}"
+    data-section="location"
+    bindtap="handleOpen"
+  >位置</button>
+  <button
+    class="filter-bar__item {{priceActive ? 'filter-bar__item--active' : ''}}"
+    data-section="price"
+    bindtap="handleOpen"
+  >价格</button>
+  <button
+    class="filter-bar__item {{areaActive ? 'filter-bar__item--active' : ''}}"
+    data-section="area"
+    bindtap="handleOpen"
+  >面积</button>
+  <button
+    class="filter-bar__item {{allActive ? 'filter-bar__item--active' : ''}}"
+    data-section="all"
+    bindtap="handleOpen"
+  >
+    <text>筛选</text>
+    <text wx:if="{{activeCount > 0}}" class="filter-bar__badge num">{{activeCount}}</text>
+  </button>
+</view>

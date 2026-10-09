@@ -1,0 +1,6 @@
+<view class="sbh-skeleton" aria-role="status" aria-label="内容加载中">
+  <view wx:if="{{withMedia}}" class="sbh-skeleton__media" />
+  <view class="sbh-skeleton__rows">
+    <view wx:for="{{rowItems}}" wx:key="*this" class="sbh-skeleton__row" />
+  </view>
+</view>

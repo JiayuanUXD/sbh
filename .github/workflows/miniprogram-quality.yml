@@ -1,0 +1,42 @@
+name: 小程序质量门
+
+on:
+  push:
+    paths:
+      - 'sbh-miniprogram/**'
+      - '.github/workflows/miniprogram-quality.yml'
+  pull_request:
+    paths:
+      - 'sbh-miniprogram/**'
+      - '.github/workflows/miniprogram-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sbh-miniprogram
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.6.1
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: sbh-miniprogram/pnpm-lock.yaml
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+      - name: 运行测试
+        run: pnpm test
+      - name: 运行类型检查
+        run: pnpm typecheck
+      - name: 运行工程静态检查
+        run: pnpm project:check

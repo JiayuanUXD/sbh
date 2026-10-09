@@ -1,0 +1,29 @@
+<view class="monthly-cost-card">
+  <view class="monthly-cost-card__header">
+    <view class="monthly-cost-card__title">预计月度成本</view>
+    <text wx:if="{{displayCost.inclusionLabel}}" class="monthly-cost-card__inclusion">
+      {{displayCost.inclusionLabel}}
+    </text>
+  </view>
+  <view class="monthly-cost-card__amounts">
+    <view class="monthly-cost-card__item">
+      <text class="monthly-cost-card__label">月租</text>
+      <text class="monthly-cost-card__value monthly-cost-card__rent num">{{displayCost.rent}}</text>
+    </view>
+    <view class="monthly-cost-card__item">
+      <text class="monthly-cost-card__label">物业费</text>
+      <text class="monthly-cost-card__value monthly-cost-card__property-fee num">{{displayCost.propertyFee}}</text>
+    </view>
+    <view class="monthly-cost-card__item monthly-cost-card__item--total">
+      <text class="monthly-cost-card__label">合计</text>
+      <text class="monthly-cost-card__value monthly-cost-card__total num">{{displayCost.total}}</text>
+    </view>
+  </view>
+  <view wx:if="{{displayCost.assumptions.length}}" class="monthly-cost-card__assumptions">
+    <view
+      wx:for="{{displayCost.assumptions}}"
+      wx:key="*this"
+      class="monthly-cost-card__assumption"
+    >{{item}}</view>
+  </view>
+</view>
