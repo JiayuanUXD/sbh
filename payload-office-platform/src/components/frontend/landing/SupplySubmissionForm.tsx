@@ -1,16 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import React, { useEffect, useId, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ProcessSteps from '@/components/frontend/landing/ProcessSteps'
 import { Button, Field, Input, Select } from '@/components/frontend/ui'
 import type { InquiryPriceUnit } from '@/domain/inquiry/schema'
 import { isValidCnMobile, normalizePhone } from '@/domain/shared/phone'
-import {
-  COMMISSION_MONTHS,
-  COMMISSION_MONTHS_LABELS,
-  type CommissionMonths,
-} from '@/domain/supply-submission/schema'
+import type { CommissionMonths } from '@/domain/supply-submission/schema'
 import { PUBLISH_COPY, PUBLISH_STEPS } from '@/lib/frontend/landing-config'
 import { track } from '@/lib/frontend/analytics'
 import {
@@ -42,7 +38,6 @@ export type SupplyFormValues = Readonly<{
   areaSqm: string
   rentAmount: string
   rentUnit: InquiryPriceUnit
-  commissionMonths: CommissionMonths
   contactPhone: string
 }>
 
@@ -119,7 +114,6 @@ const INITIAL_VALUES: SupplyFormValues = {
   areaSqm: '',
   rentAmount: '',
   rentUnit: 'rmb-sqm-day',
-  commissionMonths: 'none',
   contactPhone: '',
 }
 
@@ -165,7 +159,7 @@ export function buildSupplySubmissionBody(
     ...(hasRentAmount
       ? { rentAmount: Number(values.rentAmount), rentUnit: values.rentUnit }
       : {}),
-    commissionMonths: values.commissionMonths,
+    commissionMonths: 'none',
     contactPhone: normalizePhone(values.contactPhone.trim()),
     consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
     source: { path: '/publish' },
@@ -307,7 +301,7 @@ export function createSupplySubmissionCoordinator(
     safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
       page_type: 'publish',
       field_completeness: filledCount,
-      commission_months: values.commissionMonths,
+      commission_months: 'none',
     })
 
     const clientErrors = getSupplyFieldErrors(values)
@@ -456,7 +450,6 @@ export default function SupplySubmissionForm({
   cities?: readonly LeadCityOption[]
   cityError?: string
 }>) {
-  const commissionId = useId()
   const contactNoteId = 'publish-contact-note'
   const successRef = useRef<HTMLDivElement>(null)
   const buildingNameRef = useRef<HTMLInputElement>(null)
@@ -614,29 +607,6 @@ export default function SupplySubmissionForm({
           </Field>
         </div>
       </div>
-
-      <fieldset className="publish-card__group">
-        <legend className="publish-card__group-title">{PUBLISH_COPY.groupCommission}</legend>
-        <p className="publish-card__group-note">{PUBLISH_COPY.commissionNote}</p>
-        <div className="commission-options">
-          {COMMISSION_MONTHS.map((value) => (
-            <span key={value} className="commission-options__item">
-              <input
-                className="commission-options__input"
-                type="radio"
-                id={`${commissionId}-${value}`}
-                name="commissionMonths"
-                value={value}
-                checked={values.commissionMonths === value}
-                onChange={() => updateValue('commissionMonths', value)}
-              />
-              <label className="commission-options__label" htmlFor={`${commissionId}-${value}`}>
-                {COMMISSION_MONTHS_LABELS[value]}
-              </label>
-            </span>
-          ))}
-        </div>
-      </fieldset>
 
       <div className="publish-card__group">
         <h3 className="publish-card__group-title">{PUBLISH_COPY.groupContact}</h3>

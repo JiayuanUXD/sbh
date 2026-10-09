@@ -217,12 +217,13 @@ test.describe('/publish 投放房源', () => {
     await expect(page.getByLabel('楼盘名称')).toHaveValue('E2E 测试楼盘')
   })
 
-  test('佣金默认无且可切换', async ({ page }) => {
+  test('表单不再展示佣金选项', async ({ page }) => {
     await page.goto('/publish')
 
-    await expect(page.getByRole('radio', { name: '无', exact: true })).toBeChecked()
-    await page.getByRole('radio', { name: '1个月', exact: true }).check()
-    await expect(page.getByRole('radio', { name: '1个月', exact: true })).toBeChecked()
+    const card = page.locator('.publish-card')
+    await expect(card.getByLabel('手机号')).toBeVisible()
+    await expect(card.getByRole('radio')).toHaveCount(0)
+    await expect(card).not.toContainText('佣金')
   })
 
   test('合法提交后卡片变为成功态且埋点不含 PII', async ({ page }) => {
@@ -245,7 +246,6 @@ test.describe('/publish 投放房源', () => {
     await page.getByLabel('详细地址').fill(address)
     await page.getByLabel('出租面积').fill('200')
     await page.getByLabel('租金', { exact: true }).fill('6.5')
-    await page.getByRole('radio', { name: '1个月', exact: true }).check()
     await page.getByLabel('手机号').fill(publishPhone)
     await page.getByRole('button', { name: '立即投放' }).click()
 
@@ -261,7 +261,7 @@ test.describe('/publish 投放房源', () => {
       areaSqm: 200,
       rentAmount: 6.5,
       rentUnit: 'rmb-sqm-day',
-      commissionMonths: '1',
+      commissionMonths: 'none',
       contactPhone: publishPhone,
       source: { path: '/publish' },
     })
