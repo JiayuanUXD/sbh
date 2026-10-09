@@ -1,0 +1,96 @@
+:host {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.monthly-cost-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: var(--sbh-layout-surface-padding);
+  color: var(--sbh-text-primary);
+  background: var(--sbh-surface-background);
+  border-radius: var(--sbh-shape-surface-radius);
+}
+
+.monthly-cost-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sbh-layout-space-md);
+  min-width: 0;
+}
+
+.monthly-cost-card__title {
+  min-width: 0;
+  font-size: var(--sbh-type-card-title-size);
+  font-weight: var(--sbh-type-semibold-weight);
+  line-height: var(--sbh-type-control-line-height);
+  overflow-wrap: anywhere;
+}
+
+.monthly-cost-card__inclusion {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: var(--sbh-layout-space-xs) var(--sbh-layout-space-sm);
+  color: var(--sbh-text-secondary);
+  background: var(--sbh-surface-pressed);
+  border-radius: var(--sbh-shape-label-radius);
+  font-size: var(--sbh-type-tag-size);
+  line-height: var(--sbh-type-control-line-height);
+  overflow-wrap: anywhere;
+}
+
+.monthly-cost-card__amounts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sbh-layout-space-sm);
+  margin-top: var(--sbh-layout-content-gap);
+  min-width: 0;
+}
+
+.monthly-cost-card__item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: var(--sbh-layout-space-xs);
+}
+
+.monthly-cost-card__label {
+  color: var(--sbh-text-tertiary);
+  font-size: var(--sbh-type-auxiliary-size);
+  line-height: var(--sbh-type-body-line-height);
+}
+
+.monthly-cost-card__value {
+  min-width: 0;
+  color: var(--sbh-text-primary);
+  font-size: var(--sbh-type-label-size);
+  font-weight: var(--sbh-type-semibold-weight);
+  line-height: var(--sbh-type-control-line-height);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.monthly-cost-card__assumptions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sbh-layout-space-xs);
+  margin-top: var(--sbh-layout-content-gap);
+}
+
+.monthly-cost-card__assumption {
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-auxiliary-size);
+  line-height: var(--sbh-type-body-line-height);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}

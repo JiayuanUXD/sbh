@@ -54,6 +54,7 @@ import { LocationAliases } from './collections/LocationAliases'
 import { Members } from './collections/Members'
 import { MemberSmsCodes } from './collections/MemberSmsCodes'
 import { MemberFavorites } from './collections/MemberFavorites'
+import { MiniUserAssets } from './collections/MiniUserAssets'
 import { AdvisorServiceHours } from './globals/AdvisorServiceHours'
 import { SiteSettings } from './globals/SiteSettings'
 import {
@@ -416,6 +417,7 @@ const configPromise = buildConfig({
     Members,
     MemberSmsCodes,
     MemberFavorites,
+    MiniUserAssets,
   ],
   globals: [AdvisorServiceHours, SiteSettings],
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）

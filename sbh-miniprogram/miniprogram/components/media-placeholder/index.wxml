@@ -1,0 +1,12 @@
+<view
+  class="media-placeholder media-placeholder--{{resolvedMode}}"
+  aria-role="img"
+  aria-label="{{label}}"
+>
+  <view class="media-placeholder__skyline" aria-hidden="true">
+    <view class="media-placeholder__tower media-placeholder__tower--short"></view>
+    <view class="media-placeholder__tower media-placeholder__tower--tall"></view>
+    <view class="media-placeholder__tower media-placeholder__tower--medium"></view>
+  </view>
+  <text wx:if="{{resolvedMode !== 'compact'}}" class="media-placeholder__label">{{label}}</text>
+</view>

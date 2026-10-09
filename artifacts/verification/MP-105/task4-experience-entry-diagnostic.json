@@ -1,0 +1,52 @@
+{
+  "date": "2026-09-03",
+  "scope": "read-only experience entry diagnostic",
+  "source": {
+    "qrImage": "/var/folders/mq/11bqp2151g90mv3h1l1l6dk0kw45fy/T/codex-clipboard-753cd35e-76e0-4e59-a610-156b6f039f1b.png",
+    "permissionScreenshot": "/var/folders/mq/11bqp2151g90mv3h1l1l6dk0kw45fy/T/codex-clipboard-da485b2d-1230-48b5-ae01-4827fcab71e7.png",
+    "version": "0.0.1.202411041554",
+    "versionProvenance": "用户在 2026-09-03 消息中提供；二维码图片本身不包含可验证的版本字段"
+  },
+  "qrDecode": {
+    "appId": "wx5eeb7f9e3a092204",
+    "path": "pages/home/home.html",
+    "tokenSha256": "a0c24393b213bd22a5bbae3480023303d398b34f9d96d0d429202b21169e2b7a",
+    "rawTokenStored": false,
+    "decoder": "macOS Vision VNDetectBarcodesRequest"
+  },
+  "localAppIdMatch": true,
+  "target": {
+    "gitCommitSha": "8eab1a17cfe5800d1778fbad2d47cf4c54542d87",
+    "commitDate": "2026-09-02",
+    "cloudEnvId": "sbhmini-gateway-d3fbrmn8097478b",
+    "cloudServiceName": "sbhmini",
+    "serverDeploymentRevision": "sbhmini-005"
+  },
+  "assessment": {
+    "qrAppIdMatchesLocalPrivateConfig": true,
+    "versionTimestamp": "2024-11-04 15:54",
+    "versionTimestampPrecedesTargetCommit": true,
+    "targetTrialPackageIdentityConfirmed": false,
+    "reason": "二维码可确认 AppID 与入口 path，且 DevTools 登录后真实运行时仍为 develop；尚未把手机微信体验版加载到本机 DevTools，因此不能证明体验包包含目标 commit 或 sbhmini-005。"
+  },
+  "actionsNotTaken": [
+    "未提交、推送、创建 PR、上传、预览或部署",
+    "未执行 CloudBase mutation 或咨询写入",
+    "未 mock wx.getAccountInfoSync().miniProgram.envVersion",
+    "未将二维码 token 写入仓库或证据正文"
+  ],
+  "devtoolsLogin": {
+    "checkedAt": "2026-09-03",
+    "cliPath": "/Applications/wechatwebdevtools.app/Contents/MacOS/cli",
+    "islogin": true,
+    "realRuntimeProbe": {
+      "appId": "wx5eeb7f9e3a092204",
+      "envVersion": "develop",
+      "systemPlatform": "devtools",
+      "systemInfoVersion": "8.0.5",
+      "SDKVersion": "3.17.2",
+      "initialPage": "pages/home/index"
+    },
+    "interpretation": "开发者工具登录成功，但打开的是本地工程 develop；登录态不会把本地工程自动切换为手机微信体验版。"
+  }
+}

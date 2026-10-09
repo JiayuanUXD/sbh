@@ -32,6 +32,7 @@
  */
 
 export * from './contracts'
+export { estimateMonthlyRent } from './monthly-estimate'
 export {
   buildBuildingSupplySnapshot,
   emptyBuildingSupplySnapshot,
