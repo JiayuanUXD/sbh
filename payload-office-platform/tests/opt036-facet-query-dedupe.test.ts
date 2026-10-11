@@ -45,9 +45,9 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
-    scanListings: vi.fn(async (input: unknown, ctx: { city: string; businessType?: string }) => {
+    scanListingsPage: vi.fn(async (input: unknown, ctx: { city: string; businessType?: string }) => {
       facetCalls.push(`${ctx.city}|${ctx.businessType ?? 'all'}|${actual.buildCanonicalSearchParams(input as never).toString()}`)
-      return []
+      return { rows: [], nextPage: null }
     }),
     searchBuildingsFiltered: vi.fn(async (input: unknown, ctx: { city: string }) => {
       buildingSearchCalls.push(`${ctx.city}|${actual.buildBuildingCanonicalParams(input as never).toString()}`)

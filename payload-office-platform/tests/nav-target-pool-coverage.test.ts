@@ -39,6 +39,8 @@ const EXEMPT: Readonly<Record<string, string>> = {
   'dev-story': '开发演示页，不对外',
   'login': '会员登录与重置密码（OPT-088），由顶栏登录入口直达，noindex，不作为内容导航目标',
   'pages': '动态 CMS 页（/pages/[slug]），slug 由内容决定进不了固定池；已由 target=page + 同行 page 关联覆盖（见 nav-page-target.test.ts）',
+  'sitemap.xml': '搜索引擎抓取的 XML 站点地图索引，不面向用户导航',
+  'sitemaps': '搜索引擎抓取的静态内容与实体分页 XML 分片，不面向用户导航',
 }
 
 /**

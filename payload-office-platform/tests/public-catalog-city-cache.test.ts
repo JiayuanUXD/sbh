@@ -38,7 +38,7 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
   return {
     ...actual,
     // OPT-068：列表与 facet 走同一份扫描；扫描行必须是真实形状（选页要读 id）
-    scanListings: vi.fn(async (_input, ctx) => [{
+    scanListingsPage: vi.fn(async (_input, ctx) => ({ rows: [{
       id: 1,
       slug: `listing-${ctx.city}`,
       listingType: 'traditional-office',
@@ -51,7 +51,7 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
       district: null,
       businessDistrictId: null,
       coordinates: null,
-    }]),
+    }], nextPage: null })),
     hydrateListingCards: vi.fn(async (_ids, ctx) => [{ citySlug: ctx.city }]),
     getBuildingBySlug: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
     getBuildingDetail: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
@@ -195,7 +195,7 @@ describe('per-city public catalog caches', () => {
       'building-detail',
       'building-by-slug',
       // OPT-068：列表页缓存拆成「扫描行」+「本页卡片」两级；facet 共用扫描，不再单独建缓存
-      'listing-scan',
+      'listing-scan-page',
       'listing-cards',
       'listing-district-options',
     ]

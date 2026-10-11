@@ -31,7 +31,7 @@ import {
   listPublishedPages,
   listingsCityTag,
   omitListingSearchDimensions,
-  scanListings,
+  scanListingsPage,
   searchBuildingsFiltered,
   searchBuildingsPage,
   searchListingsSitemapPage,
@@ -410,21 +410,30 @@ export type ScanChannel = SearchChannel | 'all'
  * 缓存的是紧凑的 `ListingScanRow[]`（不是整页卡片）：键只含会进 where 的维度
  * （面积 / 商圈 / 地铁 / 关键词 / 可用日期），区域 / 类型 / 价格单位 / 价格区间 /
  * 页码 / 排序的任意组合都命中**同一条**。列表页与三份 facet 因此共享一次扫描；
- * 冷路径从「最多 5 页 depth 2 全字段 × 2–4 次」降到「一次 select/populate 收窄的扫描」。
+ * 各页只缓存 select/populate 收窄后的行，外层合并结果不写入单条缓存。
  *
- * 行体积上限见 supply-adapter.ts 的 `LISTING_SCAN_CANDIDATE_LIMIT` 注释（2MB 红线）。
- * 快照包含真实扫描 asOf 与行数组，均可 JSON 序列化（不能返回 Map）。
+ * 第一页保存真实扫描 asOf，后续页以该时点作参数，整份快照使用同一有效供给口径。
  */
-const getCachedListingScanByCity = memoizeByCity((citySlug) =>
+const getCachedListingScanPageByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     // scanKey 只为进缓存键；channel 作为函数参数而非 keyParts，同样会被序列化进键。
-    async (scanKey: string, scanInput: ListingSearchInput, channel: ScanChannel) => {
+    async (
+      scanKey: string,
+      scanInput: ListingSearchInput,
+      channel: ScanChannel,
+      page: number,
+      asOf: string,
+    ) => {
       void scanKey
-      const ctx = createSearchContext(citySlug, undefined, channel === 'all' ? undefined : channel)
-      return { asOf: ctx.asOf, rows: await scanListings(scanInput, ctx) }
+      const ctx = createSearchContext(
+        citySlug,
+        asOf ? new Date(asOf) : undefined,
+        channel === 'all' ? undefined : channel,
+      )
+      return { asOf: ctx.asOf, ...await scanListingsPage(scanInput, ctx, page) }
     },
     // 版本隔离旧的纯数组条目，避免热缓存被误读为快照。
-    ['listing-scan', citySlug, 'snapshot-v1'],
+    ['listing-scan-page', citySlug, 'snapshot-v2'],
     {
       tags: [...listingCacheTags(citySlug), facetsTag(citySlug)],
       revalidate: 300,
@@ -443,7 +452,23 @@ export function getCachedListingScanSnapshot(
   // 合并键与缓存键同构（城市 + 频道 + 扫描键），理由见 coalesceInFlight 注释。
   return coalesceInFlight(
     ['listing-scan', city, channel, scanKey].join(' '),
-    () => getCachedListingScanByCity(city)(scanKey, scanInput, channel),
+    async () => {
+      const load = getCachedListingScanPageByCity(city)
+      const first = await load(scanKey, scanInput, channel, 1, '')
+      const rows: ListingScanRow[] = [...first.rows]
+      async function readPage(page: number, nextPage: number | null): Promise<void> {
+        if (nextPage === null) return
+        if (!Number.isSafeInteger(nextPage) || nextPage !== page + 1) {
+          throw new Error('房源扫描分页未按顺序推进')
+        }
+        const result = await load(scanKey, scanInput, channel, nextPage, first.asOf)
+        if (result.asOf !== first.asOf) throw new Error('房源扫描快照时点不一致')
+        rows.push(...result.rows)
+        await readPage(nextPage, result.nextPage)
+      }
+      await readPage(1, first.nextPage)
+      return { asOf: first.asOf, rows }
+    },
   )
 }
 

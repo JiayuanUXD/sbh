@@ -7,6 +7,7 @@ const sitemapState = vi.hoisted(() => ({
   getCachedSearchListings: vi.fn(),
   getCachedSitemapListingsPage: vi.fn(),
   listPublicCityProfiles: vi.fn(),
+  getEffectiveSale: vi.fn(),
 }))
 
 vi.mock('next/cache', () => ({
@@ -33,192 +34,150 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
 vi.mock('@/domain/public-catalog', () => ({
   SITEMAP_TAG: 'public:sitemap',
   parseSearchInput: () => ({ page: 1, pageSize: 24 }),
+  createSearchContext: (city: string) => ({ city }),
+  searchListingsSitemapPage: sitemapState.getEffectiveSale,
 }))
 
-import sitemap from '@/app/(frontend)/sitemap'
+import { getEntitySitemap, getSitemapManifest, getStaticSitemap, sitemapXml } from '@/app/(frontend)/_lib/sitemap-shards'
+import { GET as getIndex } from '@/app/(frontend)/sitemap.xml/route'
+import { GET as getShard } from '@/app/(frontend)/sitemaps/[city]/[kind]/[page]/route'
 
-describe('city-aware public sitemap', () => {
+describe('city-aware sharded public sitemap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
+    sitemapState.getEffectiveSale.mockImplementation(async ({ city }: { city: string }) => ({
+      docs: city === 'shanghai' ? [{ slug: 'sale-office' }] : [], hasNextPage: false, nextPage: null,
+    }))
     sitemapState.listPublicCityProfiles.mockResolvedValue([
       { citySlug: 'shanghai', serviceStatus: 'live' },
       { citySlug: 'suzhou', serviceStatus: 'live' },
       { citySlug: 'hangzhou', serviceStatus: 'coming-soon' },
     ])
-    sitemapState.getCachedSearchListings.mockImplementation(async (city: string) => ({
-      docs: [{
-        id: city === 'shanghai' ? 101 : 201,
-        slug: `${city}-listing`,
-        updatedAt: '2026-08-13T00:00:00.000Z',
-      }],
-      pagination: { page: 1, totalPages: 1 },
+    sitemapState.getCachedSitemapListingsPage.mockImplementation(async (city: string, page: number) => ({
+      docs: [{ slug: `${city}-listing-${page}`, updatedAt: '2026-08-13T00:00:00.000Z', businessType: city === 'shanghai' ? 'sale' : 'lease' }],
+      hasNextPage: false, nextPage: null, page,
     }))
-    // sitemap 现在走专用轻量查询（只有 slug/updatedAt/businessType），
-    // 不再经过搜索管线——见 OPT-031。
-    sitemapState.getCachedSitemapListingsPage.mockImplementation(async (city: string) => ({
-      docs: [{
-        slug: `${city}-listing`,
-        updatedAt: '2026-08-13T00:00:00.000Z',
-        businessType: 'lease',
-      }],
-      page: 1,
-      hasNextPage: false,
-      nextPage: null,
-    }))
-    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(async (city: string) => ({
-      docs: [{ id: city === 'shanghai' ? 301 : 401, slug: `${city}-building` }],
-      hasNextPage: false,
-      nextPage: null,
-      page: 1,
+    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(async (city: string, page: number) => ({
+      docs: [{ slug: `${city}-building-${page}` }], hasNextPage: false, nextPage: null, page,
     }))
     sitemapState.getCachedPublishedPages.mockResolvedValue([
-      { id: 1, slug: 'home', updatedAt: '2026-08-10T00:00:00.000Z' },
-      { id: 2, slug: 'privacy', updatedAt: '2026-08-10T00:00:00.000Z' },
+      { slug: 'home', updatedAt: '2026-08-10T00:00:00.000Z' },
+      { slug: 'privacy', updatedAt: '2026-08-10T00:00:00.000Z' },
     ])
     sitemapState.getCachedPublishedArticles.mockResolvedValue({
-      docs: [{ id: 3, slug: 'market-update', publishedAt: '2026-08-11T00:00:00.000Z' }],
-      page: 1,
-      totalPages: 1,
+      docs: [{ slug: 'market-update', publishedAt: '2026-08-11T00:00:00.000Z' }], totalPages: 1,
     })
   })
 
-  it('enumerates only live city roots and their own effective supply', async () => {
-    const urls = (await sitemap()).map(({ url }) => url)
-
-    expect(urls).toContain('https://example.com/shanghai')
-    expect(urls).toContain('https://example.com/suzhou')
-    expect(urls).not.toContain('https://example.com/hangzhou')
-    expect(urls).toContain('https://example.com/shanghai/listings/shanghai-listing')
-    expect(urls).toContain('https://example.com/suzhou/listings/suzhou-listing')
-    expect(urls).not.toContain('https://example.com/shanghai/listings/suzhou-listing')
-    expect(urls).not.toContain('https://example.com/suzhou/listings/shanghai-listing')
-    expect(urls).toContain('https://example.com/shanghai/buildings/shanghai-building')
-    expect(urls).toContain('https://example.com/suzhou/buildings/suzhou-building')
-    expect(urls).toContain('https://example.com/shanghai/coworking')
-    expect(urls).not.toContain('https://example.com/hangzhou/coworking')
-    expect(urls.every((url) => !url.includes('?'))).toBe(true)
-    expect(sitemapState.listPublicCityProfiles).toHaveBeenCalledTimes(1)
+  it('keeps /sitemap.xml as an index for static and live-city entity shards', async () => {
+    const response = await getIndex()
+    const xml = await response.text()
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('application/xml')
+    expect(xml).toContain('<sitemapindex')
+    expect(xml).toContain('https://example.com/sitemaps/static.xml')
+    expect(xml).toContain('/sitemaps/shanghai/listings/1.xml')
+    expect(xml).toContain('/sitemaps/suzhou/buildings/1.xml')
+    expect(xml).not.toContain('hangzhou')
   })
 
-  it('preserves global content and includes city-partner exactly once', async () => {
-    const urls = (await sitemap()).map(({ url }) => url)
+  it('indexes all 60,000 listings using bounded shards instead of truncating at 5,000', async () => {
+    sitemapState.listPublicCityProfiles.mockResolvedValue([{ citySlug: 'shanghai', serviceStatus: 'live' }])
+    sitemapState.getCachedSitemapListingsPage.mockImplementation(async (_city: string, page: number) => ({
+      docs: Array.from({ length: 500 }, (_, index) => ({
+        slug: `listing-${(page - 1) * 500 + index + 1}`, businessType: 'lease',
+      })),
+      hasNextPage: page < 120, nextPage: page < 120 ? page + 1 : null, page,
+      totalPages: 120,
+    }))
+    const cities = await getSitemapManifest()
+    expect(cities[0].listingPages).toHaveLength(120)
+    expect(sitemapState.getCachedSitemapListingsPage).toHaveBeenCalledTimes(1)
+    const lastShard = await getEntitySitemap('shanghai', 'listings', 120)
+    expect(lastShard).toHaveLength(500)
+    expect(lastShard?.at(-1)?.url).toBe('https://example.com/shanghai/listings/listing-60000')
+    expect(sitemapXml(lastShard!)).not.toContain('<sitemapindex')
+  })
 
-    expect(urls).toContain('https://example.com/news')
+  it('follows building pages even when a filtered page is empty', async () => {
+    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(async (_city: string, page: number) => ({
+      docs: page === 2 ? [] : [{ slug: `building-${page}` }],
+      hasNextPage: page < 3, nextPage: page < 3 ? page + 1 : null, page,
+    }))
+    const cities = await getSitemapManifest()
+    expect(cities[0].buildingPages).toEqual([1, 3])
+    expect(cities[1].buildingPages).toEqual([1, 3])
+  })
+
+  it('serves a valid empty shard when every candidate on a page fails eligibility', async () => {
+    sitemapState.getCachedSitemapListingsPage.mockResolvedValue({
+      docs: [], totalPages: 2, hasNextPage: false, nextPage: null, page: 2,
+    })
+    const response = await getShard(new Request('https://example.com'), {
+      params: Promise.resolve({ city: 'shanghai', kind: 'listings', page: '2.xml' }),
+    })
+    expect(response.status).toBe(200)
+    expect(await response.text()).toContain('<urlset')
+    expect(await getEntitySitemap('shanghai', 'listings', 3)).toBeNull()
+  })
+
+  it('uses real lastmod and escapes slug characters in XML', async () => {
+    sitemapState.getCachedSitemapListingsPage.mockResolvedValue({
+      docs: [{ slug: 'office&a', updatedAt: '2026-08-13T00:00:00.000Z' }],
+      hasNextPage: false, nextPage: null, page: 1,
+    })
+    const xml = sitemapXml((await getEntitySitemap('shanghai', 'listings', 1))!)
+    expect(xml).toContain('office&amp;a')
+    expect(xml).toContain('<lastmod>2026-08-13T00:00:00.000Z</lastmod>')
+  })
+
+  it('preserves content and sale channel indexability in the static shard', async () => {
+    const urls = (await getStaticSitemap()).map(({ url }) => url)
+    expect(urls).toContain('https://example.com/shanghai/sale')
+    expect(urls).not.toContain('https://example.com/suzhou/sale')
     expect(urls).toContain('https://example.com/news/market-update')
-    expect(urls).toContain('https://example.com/pages/privacy')
+    expect(urls.filter((url) => url === 'https://example.com/pages/privacy')).toHaveLength(1)
     expect(urls.filter((url) => url === 'https://example.com/city-partner')).toHaveLength(1)
-    expect(new Set(urls).size).toBe(urls.length)
+    expect(urls).not.toContain('https://example.com/pages/home')
   })
 
-  it('emits only default-city legacy canonical paths while the routing flag is off', async () => {
+  it('uses only default-city legacy canonical paths when routing is off', async () => {
     process.env.MULTI_CITY_ROUTING_ENABLED = 'false'
-
-    const urls = (await sitemap()).map(({ url }) => url)
-
-    expect(urls).toContain('https://example.com/listings/shanghai-listing')
-    expect(urls).toContain('https://example.com/buildings/shanghai-building')
-    expect(urls).toContain('https://example.com/coworking')
-    expect(urls).not.toContain('https://example.com/shanghai')
-    expect(urls).not.toContain('https://example.com/suzhou')
-    expect(urls.some((url) => url.includes('suzhou-listing'))).toBe(false)
-    expect(urls.every((url) => !url.includes('?'))).toBe(true)
-    expect(urls.filter((url) => url === 'https://example.com/city-partner')).toHaveLength(1)
+    expect((await getSitemapManifest()).map((city) => city.citySlug)).toEqual(['shanghai'])
+    expect((await getEntitySitemap('shanghai', 'listings', 1))?.[0].url).toBe('https://example.com/listings/shanghai-listing-1')
+    expect(await getEntitySitemap('suzhou', 'listings', 1)).toBeNull()
   })
 
-  it('follows live-city building pages without querying coming-soon cities', async () => {
-    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(
-      async (city: string, page: number) => ({
-        docs: [{ id: page, slug: `${city}-building-${page}` }],
-        hasNextPage: page === 1,
-        nextPage: page === 1 ? 2 : null,
-        page,
-      }),
-    )
-
-    const urls = (await sitemap()).map(({ url }) => url)
-
-    expect(urls).toContain('https://example.com/shanghai/buildings/shanghai-building-2')
-    expect(urls).toContain('https://example.com/suzhou/buildings/suzhou-building-2')
-    expect(sitemapState.getCachedSitemapBuildingsPage.mock.calls).toEqual([
-      ['shanghai', 1, 200],
-      ['suzhou', 1, 200],
-      ['shanghai', 2, 200],
-      ['suzhou', 2, 200],
-    ])
-    expect(sitemapState.getCachedSitemapBuildingsPage).not.toHaveBeenCalledWith(
-      'hangzhou',
-      expect.anything(),
-      expect.anything(),
-    )
-  })
-
-  it('emits equal-timestamp buildings from adjacent pages exactly once by ID', async () => {
-    sitemapState.listPublicCityProfiles.mockResolvedValue([
-      { citySlug: 'shanghai', serviceStatus: 'live' },
-    ])
-    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(
-      async (_city: string, page: number) => ({
-        docs: (page === 1 ? [1, 2] : [3, 4]).map((id) => ({
-          id,
-          slug: `same-time-building-${id}`,
-          updatedAt: '2026-08-13T00:00:00.000Z',
-        })),
-        hasNextPage: page === 1,
-        nextPage: page === 1 ? 2 : null,
-        page,
-      }),
-    )
-
-    const urls = (await sitemap()).map(({ url }) => url)
-
-    for (const id of [1, 2, 3, 4]) {
-      expect(urls.filter((url) => url.endsWith(`/buildings/same-time-building-${id}`))).toHaveLength(1)
+  it('rejects invalid shard paths and coming-soon cities', async () => {
+    for (const params of [
+      { city: 'shanghai', kind: 'other', page: '1.xml' },
+      { city: 'shanghai', kind: 'listings', page: '0.xml' },
+      { city: 'hangzhou', kind: 'listings', page: '1.xml' },
+      { city: 'shanghai', kind: 'listings', page: '501.xml' },
+    ]) {
+      expect((await getShard(new Request('https://example.com'), { params: Promise.resolve(params) })).status).toBe(404)
     }
   })
 
-  it('caps building sitemap entries at 5000 even if a page is oversized', async () => {
-    sitemapState.listPublicCityProfiles.mockResolvedValue([
-      { citySlug: 'shanghai', serviceStatus: 'live' },
-    ])
-    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(
-      async (_city: string, page: number) => ({
-        docs: Array.from({ length: 3_000 }, (_, index) => ({
-          id: page * 10_000 + index,
-          slug: `building-${page}-${index}`,
-        })),
-        hasNextPage: true,
-        nextPage: page + 1,
-        page,
-      }),
-    )
-
-    const urls = (await sitemap()).map(({ url }) => url)
-    const buildingDetails = urls.filter((url) => /\/shanghai\/buildings\/building-/.test(url))
-
-    expect(buildingDetails).toHaveLength(5_000)
-    expect(sitemapState.getCachedSitemapBuildingsPage).toHaveBeenCalledTimes(2)
-  })
-
-  it('keeps static global routes when loading dynamic entries fails without logging secrets', async () => {
-    const secretMarker = 'postgres://secret-user:secret-pass@db.example/sbh'
-    sitemapState.listPublicCityProfiles.mockRejectedValueOnce(
-      new Error(`Local API unavailable: ${secretMarker}`),
-    )
+  it('fails closed on repeated pagination instead of silently publishing a partial index', async () => {
+    sitemapState.getCachedSitemapListingsPage.mockResolvedValue({
+      docs: [], hasNextPage: true, nextPage: 1, page: 1,
+    })
     const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-
     try {
-      const urls = (await sitemap()).map(({ url }) => url)
-      expect(urls).toEqual(expect.arrayContaining([
-        'https://example.com/entrust',
-        'https://example.com/publish',
-        'https://example.com/news',
-        'https://example.com/city-partner',
-      ]))
+      expect((await getIndex()).status).toBe(503)
       expect(errorLog).toHaveBeenCalledWith('[sitemap] dynamic_entries_unavailable')
-      expect(JSON.stringify(errorLog.mock.calls)).not.toContain(secretMarker)
-    } finally {
-      errorLog.mockRestore()
-    }
+    } finally { errorLog.mockRestore() }
+  })
+
+  it('returns 503 without logging database secrets on loader failure', async () => {
+    const secret = 'postgres://secret-user:secret-pass@db.example/sbh'
+    sitemapState.listPublicCityProfiles.mockRejectedValueOnce(new Error(secret))
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      expect((await getIndex()).status).toBe(503)
+      expect(JSON.stringify(errorLog.mock.calls)).not.toContain(secret)
+    } finally { errorLog.mockRestore() }
   })
 })

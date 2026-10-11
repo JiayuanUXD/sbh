@@ -136,14 +136,14 @@ describe('OPT-068 supply adapter：scanEffectiveListings', () => {
     expect(rows[0].price?.displayUnit).toBe('rmb-sqm-day')
   })
 
-  it('翻页直到没有下一页，并在 5000 条封顶', async () => {
+  it('扫描超过 5000 条候选直到最后一页，不截断有效房源', async () => {
     const pageOf = (page: number) =>
       Array.from({ length: 1000 }, (_, i) => listing((page - 1) * 1000 + i + 1))
     payloadState.find.mockImplementation(async (params) => {
       if (params.collection === 'listing-reports') return { docs: [], hasNextPage: false }
       if (params.collection === 'listings') {
         const page = Number(params.page ?? 1)
-        return { docs: pageOf(page), hasNextPage: true, nextPage: page + 1 }
+        return { docs: page === 6 ? [listing(5001)] : pageOf(page), hasNextPage: page < 6, nextPage: page < 6 ? page + 1 : null }
       }
       throw new Error(`unexpected collection ${String(params.collection)}`)
     })
@@ -151,8 +151,38 @@ describe('OPT-068 supply adapter：scanEffectiveListings', () => {
     const adapter = createPayloadSupplyAdapter()
     const rows = await adapter.scanEffectiveListings!(parse(''), ctx)
 
-    expect(rows).toHaveLength(5000)
-    expect(listingCalls().map((c) => c.page)).toEqual([1, 2, 3, 4, 5])
+    expect(rows).toHaveLength(5001)
+    expect(rows.at(-1)?.id).toBe(5001)
+    expect(listingCalls().map((c) => c.page)).toEqual([1, 2, 3, 4, 5, 6])
+  })
+
+  it('前页精筛后为空仍继续候选分页，所有页沿用同一 asOf', async () => {
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === 'listing-reports') return { docs: [], hasNextPage: false }
+      if (params.collection === 'listings') {
+        const first = params.page === 1
+        return {
+          docs: [listing(first ? 1 : 2, first ? { merchant: { ...(listing(1).merchant as object), status: 'disabled' } } : {})],
+          hasNextPage: first,
+          nextPage: first ? 2 : null,
+        }
+      }
+      throw new Error(`unexpected collection ${String(params.collection)}`)
+    })
+    const adapter = createPayloadSupplyAdapter()
+    const rows = await adapter.scanEffectiveListings!(parse(''), ctx)
+    expect(rows.map((row) => row.id)).toEqual([2])
+    expect(listingCalls().map((call) => call.page)).toEqual([1, 2])
+    expect(listingCalls()[0].where).toEqual(listingCalls()[1].where)
+  })
+
+  it.each([null, 1, 3, 1.5])('拒绝不连续的 nextPage %s，不能返回不完整结果', async (nextPage) => {
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === 'listing-reports') return { docs: [], hasNextPage: false }
+      return { docs: [listing(1)], hasNextPage: true, nextPage }
+    })
+    await expect(createPayloadSupplyAdapter().scanEffectiveListings!(parse(''), ctx))
+      .rejects.toThrow('房源扫描分页未按顺序推进')
   })
 
   it('区域筛选仍走楼盘 id 下推（与 findEffectiveListings 同一 where 构造）', async () => {

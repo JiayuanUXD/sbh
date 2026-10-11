@@ -114,6 +114,7 @@ export {
   buildCanonical,
   searchListings,
   scanListings,
+  scanListingsPage,
   hydrateListingCards,
   assembleListingSearchResult,
   searchBuildings,

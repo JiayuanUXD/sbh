@@ -201,6 +201,7 @@ export type BuildingFilteredResult = Readonly<{
 
 /** One public building page for bounded catalog enumeration. */
 export type BuildingSearchPageResult = Readonly<{
+  totalPages?: number
   docs: readonly BuildingSummaryViewModel[]
   page: number
   hasNextPage: boolean
@@ -363,8 +364,37 @@ export async function scanListings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<readonly ListingScanRow[]> {
+  if (adapter.scanEffectiveListingsPage) {
+    const rows: ListingScanRow[] = []
+    async function readPage(page: number): Promise<readonly ListingScanRow[]> {
+      const result = await scanListingsPage(input, ctx, page, adapter)
+      rows.push(...result.rows)
+      return result.nextPage === null ? rows : readPage(result.nextPage)
+    }
+    return readPage(1)
+  }
   if (adapter.scanEffectiveListings) return adapter.scanEffectiveListings(toScanInput(input), ctx)
   return rowsFromListings(await adapter.findEffectiveListings(input, ctx))
+}
+
+/** 单页扫描入口；旧适配器和测试 fake 作为只有第一页的扫描使用。 */
+export async function scanListingsPage(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  page: number,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null }>> {
+  if (!Number.isSafeInteger(page) || page < 1) throw new Error('无效的房源扫描页码')
+  if (!adapter.scanEffectiveListingsPage) {
+    return { rows: page === 1 ? await scanListings(input, ctx, adapter) : [], nextPage: null }
+  }
+  const result = await adapter.scanEffectiveListingsPage(toScanInput(input), ctx, page)
+  if (result.nextPage !== null && (
+    !Number.isSafeInteger(result.nextPage) || result.nextPage !== page + 1
+  )) {
+    throw new Error('房源扫描分页未按顺序推进')
+  }
+  return result
 }
 
 /**
@@ -524,7 +554,7 @@ export async function searchBuildingsFiltered(
 
   // 逐维度剥离：每个维度算一次「不含这一条时还剩什么」。同一次结果同时供给
   // 两处用途——筛选候选的计数（districts/grades/metros）与空态②的退路命中数——
-  // 因此只做一趟，不是六次筛选 + 三次 facet。全部在内存里对 ≤200 条做过滤，
+  // 因此只做一趟，不是六次筛选 + 三次 facet。对分页读取的完整公开楼盘做内存过滤，
   // 与「多发几次查询」不是一个量级的代价，所以无条件计算，不按空态与否分支。
   const omitted = new Map<BuildingSearchDimension, readonly BuildingSummaryViewModel[]>()
   for (const dimension of BUILDING_CLEARABLE_DIMENSIONS) {
@@ -539,11 +569,8 @@ export async function searchBuildingsFiltered(
   // 用全集当清单则永远认得每个候选的名字，计数为 0 的非选中项由视图层按
   // 「不显示 0」丢弃，选中项保留。
   //
-  // ⚠️ 「全集」是**这次扫描的全集**，不是这个城市的地点全集：`allDocs` 受上面那条
-  // 200 条上限约束，且库查之后还过了一道 `isPublicBuilding`。因此它可以用来取名字
-  // （取不到就不印，见 `building-filter-rows.ts`），但**不能用来判定某个区/站
-  // 「不存在」**——超过 200 个公开楼盘的城市里，只出现在第 200 名之后的真实行政区
-  // 在这里同样查不到。判定存在性要用地点表，见 `(frontend)/_lib/search-input.ts`。
+  // 「全集」指完整公开楼盘，不是城市地点全集；没有公开楼盘的地点仍可能存在。
+  // 地点存在性要查地点表，见 `(frontend)/_lib/search-input.ts`。
   const allFacets = buildBuildingFacets(allDocs)
   const overlay = <T extends { count: number }>(
     universe: readonly T[],
@@ -622,6 +649,7 @@ export async function searchBuildingsPage(
   return {
     docs,
     page: result.page,
+    totalPages: result.totalPages,
     hasNextPage: result.hasNextPage,
     nextPage: result.nextPage,
   }
@@ -901,7 +929,7 @@ export async function getHomepage(
     // OPT-068：口径与列表页一致（同 scanListings），但只取行不取整棵关系树——
     // 这条查询此前是首页冷路径最贵的一段，且每次发版缓存清零后必然重跑。
     scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
-    // 口径与楼盘列表页 searchBuildings 一致（findEffectiveBuildings 默认 limit 200）
+    // 口径与楼盘列表页 searchBuildings 一致（分页读取完整公开楼盘）
     adapter.findEffectiveBuildings(ctx),
     adapter.findCityCenter ? adapter.findCityCenter(ctx) : Promise.resolve(null),
   ])
@@ -930,7 +958,7 @@ export async function getHomepage(
 
   // 商圈卡：按商圈（而非行政区）聚合。
   //
-  // OPT-093：源是该城全部在营楼盘（allEffectiveBuildings，≤200，本函数已在同一批
+  // OPT-093：源是该城全部在营楼盘（allEffectiveBuildings，本函数已在同一批
   // 查询里取到），不再是精选楼盘的前 30 栋——那个 30 是为「精选楼盘」栏过取的，
   // 商圈卡借用它会让商圈能否上首页取决于其楼盘的更新时间：线上漕河泾、虹桥的楼盘
   // 排在第 36 / 75 / 76 名，运营在「精选区域」里选了也出不来。
