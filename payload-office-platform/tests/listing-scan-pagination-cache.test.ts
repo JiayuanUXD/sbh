@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({
-  calls: [] as { city: string; businessType?: string; asOf: string; page: number }[],
+  calls: [] as { city: string; businessType?: string; asOf: string; page: number; knownTotalPages?: number }[],
   entries: [] as { key: string; value: unknown }[],
   malformed: false,
   emptyFirst: false,
@@ -36,12 +36,14 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
       _input: unknown,
       ctx: { city: string; businessType?: string; asOf: string },
       page: number,
+      _adapter?: unknown,
+      knownTotalPages?: number,
     ) => {
       state.active++
       state.maxActive = Math.max(state.maxActive, state.active)
       await Promise.resolve()
       state.active--
-      state.calls.push({ ...ctx, page })
+      state.calls.push({ ...ctx, page, knownTotalPages })
       // 模拟扫描期间墙钟变化，后续页仍须使用第一页的快照时点。
       vi.setSystemTime(new Date(Date.now() + 60_000))
       return {
@@ -101,6 +103,7 @@ describe('房源全量扫描分页缓存', () => {
     expect(new Set(state.calls.map(call => call.asOf))).toEqual(new Set([result.asOf]))
     expect(state.maxActive).toBeGreaterThan(1)
     expect(state.maxActive).toBeLessThanOrEqual(4)
+    expect(state.calls.slice(1).every(call => call.knownTotalPages === 11)).toBe(true)
   })
 
   it('并发分页有缺页时拒绝返回部分扫描结果', async () => {
@@ -121,7 +124,7 @@ describe('房源全量扫描分页缓存', () => {
     expect(state.entries).toHaveLength(11)
     for (const entry of state.entries) {
       expect(Buffer.byteLength(JSON.stringify(entry.value))).toBeLessThan(2 * 1024 * 1024)
-      expect(entry.key).toContain('snapshot-v3')
+      expect(entry.key).toContain('snapshot-v4')
     }
     const cached = await getCachedListingScanSnapshot('shanghai', input)
     expect(cached).toEqual(first)

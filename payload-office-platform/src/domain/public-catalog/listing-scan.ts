@@ -48,7 +48,7 @@ type ScanPage<Row> = Readonly<{
 
 /** 首页、平台计数和分页缓存共用完整扫描，最多同时读取四页。 */
 export async function collectListingScanPages<Row>(
-  load: (page: number) => Promise<ScanPage<Row>>,
+  load: (page: number, knownTotalPages?: number) => Promise<ScanPage<Row>>,
   initial?: ScanPage<Row>,
 ): Promise<readonly Row[]> {
   const first = initial ?? await load(1)
@@ -61,7 +61,7 @@ export async function collectListingScanPages<Row>(
     }
     for (let start = 2; start <= totalPages; start += 4) {
       const pages = Array.from({ length: Math.min(4, totalPages - start + 1) }, (_, index) => start + index)
-      const results = await Promise.all(pages.map(load))
+      const results = await Promise.all(pages.map(page => load(page, totalPages)))
       for (const [index, result] of results.entries()) {
         const expectedNext = pages[index] < totalPages ? pages[index] + 1 : null
         if (result.nextPage !== expectedNext || (result.totalPages != null && result.totalPages !== totalPages)) {

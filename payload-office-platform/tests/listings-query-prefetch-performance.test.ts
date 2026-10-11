@@ -84,7 +84,7 @@ describe('OPT-026 route cache and prefetch contracts', () => {
     expect(page).toContain('getCachedListingDistrictOptions(city.slug)')
     expect(page).not.toContain('getHomepage(')
     expect(cachedQueries).toContain('getCachedListingScanPageByCity = memoizeByCity(')
-    expect(cachedQueries).toContain("['listing-scan-page', citySlug, 'snapshot-v3']")
+    expect(cachedQueries).toContain("['listing-scan-page', citySlug, 'snapshot-v4']")
     expect(cachedQueries).toContain('getCachedListingCardsByIdsByCity = memoizeByCity(')
     expect(cachedQueries).toContain('revalidate: 300')
   })

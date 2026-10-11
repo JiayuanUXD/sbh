@@ -366,7 +366,7 @@ export async function scanListings(
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<readonly ListingScanRow[]> {
   if (adapter.scanEffectiveListingsPage) {
-    return collectListingScanPages(page => scanListingsPage(input, ctx, page, adapter))
+    return collectListingScanPages((page, totalPages) => scanListingsPage(input, ctx, page, adapter, totalPages))
   }
   if (adapter.scanEffectiveListings) return adapter.scanEffectiveListings(toScanInput(input), ctx)
   return rowsFromListings(await adapter.findEffectiveListings(input, ctx))
@@ -378,12 +378,13 @@ export async function scanListingsPage(
   ctx: SearchContext,
   page: number,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+  knownTotalPages?: number,
 ): Promise<Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>> {
   if (!Number.isSafeInteger(page) || page < 1) throw new Error('无效的房源扫描页码')
   if (!adapter.scanEffectiveListingsPage) {
     return { rows: page === 1 ? await scanListings(input, ctx, adapter) : [], nextPage: null }
   }
-  const result = await adapter.scanEffectiveListingsPage(toScanInput(input), ctx, page)
+  const result = await adapter.scanEffectiveListingsPage(toScanInput(input), ctx, page, knownTotalPages)
   if (result.nextPage !== null && (
     !Number.isSafeInteger(result.nextPage) || result.nextPage !== page + 1
   )) {
@@ -893,6 +894,7 @@ export async function getHomepage(
   options: Readonly<{
     featuredLimit?: number
     latestArticlesLimit?: number
+    scan?: ListingScanProvider
   }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<HomepageData> {
@@ -923,7 +925,7 @@ export async function getHomepage(
     // 一次全集**扫描**喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
     // OPT-068：口径与列表页一致（同 scanListings），但只取行不取整棵关系树——
     // 这条查询此前是首页冷路径最贵的一段，且每次发版缓存清零后必然重跑。
-    scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
+    options.scan ? options.scan(EMPTY_LISTING_INPUT, ctx) : scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
     // 口径与楼盘列表页 searchBuildings 一致（分页读取完整公开楼盘）
     adapter.findEffectiveBuildings(ctx),
     adapter.findCityCenter ? adapter.findCityCenter(ctx) : Promise.resolve(null),

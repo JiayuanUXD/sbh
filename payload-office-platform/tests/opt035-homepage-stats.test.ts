@@ -8,7 +8,7 @@
  *
  * 设计依据：.superpowers/sdd/2026-08-20-homepage-apple-redesign/task-3-brief.md
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { haversineKm } from '@/domain/public-catalog/geo'
 import { getHomepage, getPlatformHomepageStats } from '@/domain/public-catalog/facade'
 import { rowsFromListings } from '@/domain/public-catalog/listing-scan'
@@ -37,6 +37,17 @@ describe('haversineKm', () => {
 
 describe('getHomepage stats / typeSummaries / nearbyListings', () => {
   const ctx = createSearchContext('shanghai')
+
+  it('首页可复用已缓存的同口径扫描，不再次查询完整房源', async () => {
+    const scan = vi.fn(async () => rowsFromListings([makeListing({ id: 1 }), makeListing({ id: 2 })]))
+    const adapter = makeHomepageAdapter({
+      findEffectiveListings: async () => { throw new Error('不应重新扫描') },
+      findEffectiveListingsByIds: async (ids) => ids.map(id => makeListing({ id: Number(id) })),
+    })
+    const home = await getHomepage(ctx, { scan }, adapter)
+    expect(home.stats.listings).toBe(2)
+    expect(scan).toHaveBeenCalledWith(expect.objectContaining({ page: 1 }), ctx)
+  })
 
   it('首页及平台统计的完整扫描都并发读取全部分页', async () => {
     let active = 0

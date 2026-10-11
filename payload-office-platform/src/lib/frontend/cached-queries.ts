@@ -32,6 +32,7 @@ import {
   listPublishedPages,
   listingsCityTag,
   omitListingSearchDimensions,
+  parseSearchInput,
   scanListingsPage,
   searchBuildingsFiltered,
   searchBuildingsPage,
@@ -141,7 +142,15 @@ const getCachedHomepageByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     // 首页是租赁语境（精选房源、热门商圈、按类型浏览都按租金展示），
     // 出售供给不参与首页曝光，等出售频道上线后单独规划入口。
-    async () => getHomepage(createSearchContext(citySlug, undefined, 'lease')),
+    async () => {
+      const input = parseSearchInput(new URLSearchParams())
+      const first = await getCachedListingScanPageByCity(citySlug)(
+        buildListingScanCacheKey(input), toScanInput(input), 'lease', 1, '',
+      )
+      return getHomepage(createSearchContext(citySlug, new Date(first.asOf), 'lease'), {
+        scan: () => getCachedListingScan(citySlug, input, 'lease'),
+      })
+    },
     ['homepage', citySlug],
     {
       tags: [
@@ -424,6 +433,7 @@ const getCachedListingScanPageByCity = memoizeByCity((citySlug) =>
       channel: ScanChannel,
       page: number,
       asOf: string,
+      knownTotalPages?: number,
     ) => {
       void scanKey
       const ctx = createSearchContext(
@@ -431,10 +441,13 @@ const getCachedListingScanPageByCity = memoizeByCity((citySlug) =>
         asOf ? new Date(asOf) : undefined,
         channel === 'all' ? undefined : channel,
       )
-      return { asOf: ctx.asOf, ...await scanListingsPage(scanInput, ctx, page) }
+      const result = knownTotalPages == null
+        ? await scanListingsPage(scanInput, ctx, page)
+        : await scanListingsPage(scanInput, ctx, page, undefined, knownTotalPages)
+      return { asOf: ctx.asOf, ...result }
     },
     // 版本隔离旧的纯数组条目，避免热缓存被误读为快照。
-    ['listing-scan-page', citySlug, 'snapshot-v3'],
+    ['listing-scan-page', citySlug, 'snapshot-v4'],
     {
       tags: [...listingCacheTags(citySlug), facetsTag(citySlug)],
       revalidate: 300,
@@ -456,8 +469,8 @@ export function getCachedListingScanSnapshot(
     async () => {
       const load = getCachedListingScanPageByCity(city)
       const first = await load(scanKey, scanInput, channel, 1, '')
-      const rows = await collectListingScanPages(async (page) => {
-        const result = await load(scanKey, scanInput, channel, page, first.asOf)
+      const rows = await collectListingScanPages(async (page, totalPages) => {
+        const result = await load(scanKey, scanInput, channel, page, first.asOf, totalPages)
         if (result.asOf !== first.asOf) throw new Error('房源扫描快照时点不一致')
         return result
       }, first)

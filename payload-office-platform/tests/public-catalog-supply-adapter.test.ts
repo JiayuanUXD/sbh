@@ -88,6 +88,38 @@ describe("Payload public catalog supply adapter", () => {
     payloadState.findByID.mockReset();
   });
 
+  it("已知总页数的后续页不重复计数，并检查最后一页之后无遗漏", async () => {
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === "listing-reports" || params.limit === 1) return { docs: [] };
+      return { docs: Array.from({ length: 1000 }, (_, i) => listing(i + 1001)),
+        hasNextPage: false, nextPage: null, totalPages: 1 };
+    });
+    const result = await createPayloadSupplyAdapter().scanEffectiveListingsPage!(
+      parseSearchInput(new URLSearchParams()), createSearchContext("shanghai"), 2, 2);
+    expect(result.rows).toHaveLength(1000);
+    expect(result).toMatchObject({ totalPages: 2, nextPage: null });
+    const queries = payloadState.find.mock.calls.map(([query]) => query).filter(query => query.collection === "listings");
+    expect(queries[0]).toMatchObject({ page: 2, limit: 1000, pagination: false });
+    expect(queries[1]).toMatchObject({ page: 2001, limit: 1, depth: 0, select: {}, pagination: false });
+  });
+
+  it("扫描期间新增下一页时拒绝返回截断结果", async () => {
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === "listing-reports") return { docs: [] };
+      return { docs: [listing(1)], hasNextPage: false, nextPage: null, totalPages: 1 };
+    });
+    await expect(createPayloadSupplyAdapter().scanEffectiveListingsPage!(
+      parseSearchInput(new URLSearchParams()), createSearchContext("shanghai"), 1, 1))
+      .rejects.toThrow("房源扫描总页数发生变化");
+  });
+
+  it("非末页粗筛候选不足一页时拒绝返回部分结果", async () => {
+    payloadState.find.mockImplementation(async (params) => ({ docs: params.collection === "listings" ? [listing(1)] : [] }));
+    await expect(createPayloadSupplyAdapter().scanEffectiveListingsPage!(
+      parseSearchInput(new URLSearchParams()), createSearchContext("shanghai"), 2, 3))
+      .rejects.toThrow("房源扫描分页缺少粗筛候选");
+  });
+
   it("首页统计完整分页读取资格标识，不展开媒体或摘要", async () => {
     payloadState.find.mockImplementation(async (params) => ({
       docs: [building(Number(params.page))],

@@ -88,6 +88,7 @@ export interface SupplyAdapter {
     input: ListingSearchInput,
     ctx: SearchContext,
     page: number,
+    knownTotalPages?: number,
   ): Promise<
     Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>
   >;
@@ -615,11 +616,14 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     input: ListingSearchInput,
     ctx: SearchContext,
     page: number,
+    knownTotalPages?: number,
   ): Promise<
     Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>
   > {
     if (!Number.isSafeInteger(page) || page < 1)
       throw new Error("无效的房源扫描页码");
+    if (knownTotalPages != null && (!Number.isSafeInteger(knownTotalPages) || knownTotalPages < page))
+      throw new Error("无效的房源扫描总页数");
     const where = await buildListingWhere(input, ctx);
     if (!where) return { rows: [], nextPage: null };
     const payload = await getPayload();
@@ -632,10 +636,25 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       sort: "id",
       limit: LISTING_SCAN_PAGE_SIZE,
       page,
+      ...(knownTotalPages != null ? { pagination: false } : {}),
     });
-    const nextPage = result.hasNextPage ? (result.nextPage ?? null) : null;
+    if (knownTotalPages != null) {
+      if (result.docs.length === 0 || (page < knownTotalPages && result.docs.length !== LISTING_SCAN_PAGE_SIZE)) {
+        throw new Error("房源扫描分页缺少粗筛候选");
+      }
+      if (page === knownTotalPages) {
+        // 无计数查询仍使用固定页偏移；额外检查末尾边界，拒绝扫描期间新增的下一页。
+        const boundary = await payload.find({ collection: "listings", where,
+          depth: 0, select: {}, sort: "id", limit: 1,
+          page: knownTotalPages * LISTING_SCAN_PAGE_SIZE + 1, pagination: false });
+        if (boundary.docs.length > 0) throw new Error("房源扫描总页数发生变化");
+      }
+    }
+    const nextPage = knownTotalPages != null
+      ? (page < knownTotalPages ? page + 1 : null)
+      : (result.hasNextPage ? (result.nextPage ?? null) : null);
     if (
-      result.hasNextPage &&
+      knownTotalPages == null && result.hasNextPage &&
       (nextPage == null ||
         !Number.isSafeInteger(nextPage) ||
         nextPage !== page + 1)
@@ -646,7 +665,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       result.docs as unknown as Record<string, unknown>[],
       new Date(ctx.asOf),
     );
-    return { rows: rowsFromListings(filterByPrice(kept, input)), nextPage, totalPages: result.totalPages };
+    return { rows: rowsFromListings(filterByPrice(kept, input)), nextPage, totalPages: knownTotalPages ?? result.totalPages };
   }
 
   async function findAllListings(

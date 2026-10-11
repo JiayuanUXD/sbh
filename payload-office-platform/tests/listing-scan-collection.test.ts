@@ -5,7 +5,9 @@ describe('统一房源分页扫描', () => {
   it('首页与缓存扫描共用有界并发，按页序返回完整结果', async () => {
     let active = 0
     let maxActive = 0
-    const rows = await collectListingScanPages(async (page) => {
+    const metadata: (number | undefined)[] = []
+    const rows = await collectListingScanPages(async (page, totalPages) => {
+      metadata.push(totalPages)
       active++
       maxActive = Math.max(maxActive, active)
       await Promise.resolve()
@@ -14,6 +16,7 @@ describe('统一房源分页扫描', () => {
     })
     expect(rows).toEqual(Array.from({ length: 11 }, (_, i) => i + 1))
     expect(maxActive).toBe(4)
+    expect(metadata).toEqual([undefined, ...Array.from({ length: 10 }, () => 11)])
   })
 
   it('旧适配器没有总页数时仍完整推进，包括精筛空页', async () => {

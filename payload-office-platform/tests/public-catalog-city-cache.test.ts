@@ -9,6 +9,8 @@ type CacheRegistration = Readonly<{
 const cacheState = vi.hoisted(() => ({
   registrations: [] as CacheRegistration[],
   homepageCities: [] as string[],
+  homepageRows: [] as number[],
+  homepageAsOf: [] as string[],
 }))
 
 vi.mock('next/cache', () => ({
@@ -56,8 +58,10 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
     getBuildingBySlug: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
     getBuildingDetail: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
     getDetailRecommendations: vi.fn(async (_slug, ctx) => [{ citySlug: ctx.city }]),
-    getHomepage: vi.fn(async (ctx) => {
+    getHomepage: vi.fn(async (ctx, options = {}) => {
       cacheState.homepageCities.push(ctx.city)
+      cacheState.homepageRows.push(options.scan ? (await options.scan(actual.parseSearchInput(new URLSearchParams()), ctx)).length : 0)
+      cacheState.homepageAsOf.push(ctx.asOf)
       return { featuredListings: [{ citySlug: ctx.city }] }
     }),
     getListingBySlug: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
@@ -96,11 +100,30 @@ import {
   getCachedSearchFacets,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
-import { getPlatformHomepageStats, parseSearchInput } from '@/domain/public-catalog'
+import { getPlatformHomepageStats, parseSearchInput, scanListingsPage } from '@/domain/public-catalog'
 
 describe('per-city public catalog caches', () => {
   beforeEach(() => {
     cacheState.homepageCities.length = 0
+    cacheState.homepageRows.length = 0
+    cacheState.homepageAsOf.length = 0
+  })
+
+  it('首页复用目录扫描缓存，并沿用第一页的快照时点', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-10-11T15:00:00Z'))
+      const input = parseSearchInput(new URLSearchParams())
+      await getCachedSearchListings('nanjing', '', input)
+      const count = vi.mocked(scanListingsPage).mock.calls.length
+      vi.setSystemTime(new Date('2026-10-11T15:01:00Z'))
+      await getCachedHomepage('nanjing')
+      expect(cacheState.homepageRows).toEqual([1])
+      expect(cacheState.homepageAsOf).toEqual(['2026-10-11T15:00:00.000Z'])
+      expect(vi.mocked(scanListingsPage).mock.calls).toHaveLength(count)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('keeps Shanghai and Hangzhou homepage values isolated after both caches are warm', async () => {
