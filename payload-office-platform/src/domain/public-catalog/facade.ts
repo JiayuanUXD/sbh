@@ -72,6 +72,7 @@ import {
 import { paginate, stableSortCards } from './stable-sort'
 import {
   applyMemoryFilters,
+  collectListingScanPages,
   computeFacets,
   rowToCandidate,
   rowsFromListings,
@@ -365,13 +366,7 @@ export async function scanListings(
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<readonly ListingScanRow[]> {
   if (adapter.scanEffectiveListingsPage) {
-    const rows: ListingScanRow[] = []
-    async function readPage(page: number): Promise<readonly ListingScanRow[]> {
-      const result = await scanListingsPage(input, ctx, page, adapter)
-      rows.push(...result.rows)
-      return result.nextPage === null ? rows : readPage(result.nextPage)
-    }
-    return readPage(1)
+    return collectListingScanPages(page => scanListingsPage(input, ctx, page, adapter))
   }
   if (adapter.scanEffectiveListings) return adapter.scanEffectiveListings(toScanInput(input), ctx)
   return rowsFromListings(await adapter.findEffectiveListings(input, ctx))

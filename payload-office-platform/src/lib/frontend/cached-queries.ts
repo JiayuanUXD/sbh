@@ -7,6 +7,7 @@ import {
   SITEMAP_TAG,
   buildBuildingCanonicalParams,
   applyMemoryFilters,
+  collectListingScanPages,
   assembleListingSearchResult,
   buildCanonicalSearchParams,
   buildListingScanCacheKey,
@@ -455,38 +456,11 @@ export function getCachedListingScanSnapshot(
     async () => {
       const load = getCachedListingScanPageByCity(city)
       const first = await load(scanKey, scanInput, channel, 1, '')
-      const rows: ListingScanRow[] = [...first.rows]
-      if (first.totalPages != null) {
-        const totalPages = first.totalPages
-        if (!Number.isSafeInteger(totalPages) || totalPages < 0 || first.nextPage !== (totalPages > 1 ? 2 : null)) {
-          throw new Error('房源扫描分页未按顺序推进')
-        }
-        // 有界并发降低全城冷读耗时；按页序合并，同一批全部校验后才接纳行。
-        for (let start = 2; start <= totalPages; start += 4) {
-          const pages = Array.from({ length: Math.min(4, totalPages - start + 1) }, (_, index) => start + index)
-          const results = await Promise.all(pages.map(page => load(scanKey, scanInput, channel, page, first.asOf)))
-          for (const [index, result] of results.entries()) {
-            const expectedNext = pages[index] < totalPages ? pages[index] + 1 : null
-            if (result.nextPage !== expectedNext || (result.totalPages != null && result.totalPages !== totalPages)) {
-              throw new Error('房源扫描分页未按顺序推进')
-            }
-            if (result.asOf !== first.asOf) throw new Error('房源扫描快照时点不一致')
-          }
-          for (const result of results) rows.push(...result.rows)
-        }
-        return { asOf: first.asOf, rows }
-      }
-      async function readPage(page: number, nextPage: number | null): Promise<void> {
-        if (nextPage === null) return
-        if (!Number.isSafeInteger(nextPage) || nextPage !== page + 1) {
-          throw new Error('房源扫描分页未按顺序推进')
-        }
-        const result = await load(scanKey, scanInput, channel, nextPage, first.asOf)
+      const rows = await collectListingScanPages(async (page) => {
+        const result = await load(scanKey, scanInput, channel, page, first.asOf)
         if (result.asOf !== first.asOf) throw new Error('房源扫描快照时点不一致')
-        rows.push(...result.rows)
-        await readPage(nextPage, result.nextPage)
-      }
-      await readPage(1, first.nextPage)
+        return result
+      }, first)
       return { asOf: first.asOf, rows }
     },
   )

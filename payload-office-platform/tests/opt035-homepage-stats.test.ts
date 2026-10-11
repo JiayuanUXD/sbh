@@ -10,7 +10,8 @@
  */
 import { describe, expect, it } from 'vitest'
 import { haversineKm } from '@/domain/public-catalog/geo'
-import { getHomepage } from '@/domain/public-catalog/facade'
+import { getHomepage, getPlatformHomepageStats } from '@/domain/public-catalog/facade'
+import { rowsFromListings } from '@/domain/public-catalog/listing-scan'
 import { createSearchContext } from '@/domain/public-catalog/types'
 import {
   makeArea,
@@ -36,6 +37,31 @@ describe('haversineKm', () => {
 
 describe('getHomepage stats / typeSummaries / nearbyListings', () => {
   const ctx = createSearchContext('shanghai')
+
+  it('首页及平台统计的完整扫描都并发读取全部分页', async () => {
+    let active = 0
+    let maxActive = 0
+    const adapter = makeHomepageAdapter({
+      scanEffectiveListingsPage: async (_input, _ctx, page) => {
+        active++
+        maxActive = Math.max(maxActive, active)
+        await Promise.resolve()
+        active--
+        return {
+          rows: rowsFromListings([makeListing({ id: page })]),
+          totalPages: 11,
+          nextPage: page < 11 ? page + 1 : null,
+        }
+      },
+    })
+    const home = await getHomepage(ctx, {}, adapter)
+    expect(home.stats.listings).toBe(11)
+    expect(maxActive).toBe(4)
+    maxActive = 0
+    const stats = await getPlatformHomepageStats(['shanghai'], adapter)
+    expect(stats.listings).toBe(11)
+    expect(maxActive).toBe(4)
+  })
 
   it('stats 三个计数分别等于有效房源数 / 有效楼盘数 / 商圈数', async () => {
     const adapter = makeHomepageAdapter({

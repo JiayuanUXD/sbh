@@ -40,6 +40,50 @@ import { buildCanonicalSearchParams } from './search-params'
 import { buildPagination, paginate, prepareForPriceSort, stableSortListings } from './stable-sort'
 import type { ListingSearchInput, Pagination } from './types'
 
+type ScanPage<Row> = Readonly<{
+  rows: readonly Row[]
+  nextPage: number | null
+  totalPages?: number
+}>
+
+/** 首页、平台计数和分页缓存共用完整扫描，最多同时读取四页。 */
+export async function collectListingScanPages<Row>(
+  load: (page: number) => Promise<ScanPage<Row>>,
+  initial?: ScanPage<Row>,
+): Promise<readonly Row[]> {
+  const first = initial ?? await load(1)
+  const rows = [...first.rows]
+  const invalid = () => new Error('房源扫描分页未按顺序推进')
+  if (first.totalPages != null) {
+    const totalPages = first.totalPages
+    if (!Number.isSafeInteger(totalPages) || totalPages < 0 || first.nextPage !== (totalPages > 1 ? 2 : null)) {
+      throw invalid()
+    }
+    for (let start = 2; start <= totalPages; start += 4) {
+      const pages = Array.from({ length: Math.min(4, totalPages - start + 1) }, (_, index) => start + index)
+      const results = await Promise.all(pages.map(load))
+      for (const [index, result] of results.entries()) {
+        const expectedNext = pages[index] < totalPages ? pages[index] + 1 : null
+        if (result.nextPage !== expectedNext || (result.totalPages != null && result.totalPages !== totalPages)) {
+          throw invalid()
+        }
+      }
+      for (const result of results) rows.push(...result.rows)
+    }
+  } else {
+    let page = 1
+    let nextPage = first.nextPage
+    while (nextPage !== null) {
+      if (!Number.isSafeInteger(nextPage) || nextPage !== page + 1) throw invalid()
+      const result = await load(nextPage)
+      rows.push(...result.rows)
+      page = nextPage
+      nextPage = result.nextPage
+    }
+  }
+  return rows
+}
+
 export type ListingScanRow = Readonly<{
   id: number
   slug: string
