@@ -5,7 +5,7 @@ import { parseSearchInput } from '@/domain/public-catalog/facade'
 import { getEffectiveSupplyWhere, getPausedListingIds } from '@/domain/review/effective-supply'
 import { createEffectiveSupplyPayloadPort } from '@/domain/review/effective-supply-payload-port'
 import { resolveEffectiveSupplies } from '@/domain/review/effective-supply-snapshot'
-import { rowsFromListings } from '@/domain/public-catalog/listing-scan'
+import { collectListingScanPages, rowsFromListings } from '@/domain/public-catalog/listing-scan'
 
 const databaseUrl = new URL(process.env.DATABASE_URL ?? '')
 databaseUrl.searchParams.set('options', '-c default_transaction_read_only=on')
@@ -23,6 +23,18 @@ const pausedIds = await getPausedListingIds(port)
 const where = { ...getEffectiveSupplyWhere(new Date(ctx.asOf), { businessType: 'lease' }),
   'building.city.slug': { equals: ctx.city }, ...(pausedIds.length ? { id: { not_in: pausedIds } } : {}) }
 try {
+  if (process.env.FULL_SCAN === '1') {
+    const fullStart = Date.now()
+    const allRows = await collectListingScanPages(async (page, totalPages) => {
+      const start = Date.now()
+      const result = await adapter.scanEffectiveListingsPage!(input, ctx, page, totalPages)
+      console.log(JSON.stringify({ page, totalPages, rows: result.rows.length, ms: Date.now() - start }))
+      return result
+    })
+    const unique = new Set(allRows.map(row => row.id)).size
+    console.log(JSON.stringify({ total: allRows.length, unique, ms: Date.now() - fullStart }))
+    if (unique !== allRows.length) throw new Error('扫描出现重复房源')
+  } else {
   for (const page of [20, 40, 57]) {
     const start = Date.now()
     const counted = await adapter.scanEffectiveListingsPage!(input, ctx, page)
@@ -58,6 +70,7 @@ try {
     const batchSame = JSON.stringify(rows) === JSON.stringify(batchRows)
     console.log(JSON.stringify({ page, batchMs: Date.now() - batchStart, buildings: buildingIds.length, merchants: merchantIds.length, rows: batchRows.length, batchSame }))
     if (!batchSame) throw new Error('批量关系扫描结果不一致')
+  }
   }
 } finally {
   await payload.db.destroy?.()
