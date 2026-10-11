@@ -142,15 +142,7 @@ const getCachedHomepageByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     // 首页是租赁语境（精选房源、热门商圈、按类型浏览都按租金展示），
     // 出售供给不参与首页曝光，等出售频道上线后单独规划入口。
-    async () => {
-      const input = parseSearchInput(new URLSearchParams())
-      const first = await getCachedListingScanPageByCity(citySlug)(
-        buildListingScanCacheKey(input), toScanInput(input), 'lease', 1, '',
-      )
-      return getHomepage(createSearchContext(citySlug, new Date(first.asOf), 'lease'), {
-        scan: () => getCachedListingScan(citySlug, input, 'lease'),
-      })
-    },
+    async () => getHomepage(createSearchContext(citySlug, undefined, 'lease')),
     ['homepage', citySlug],
     {
       tags: [

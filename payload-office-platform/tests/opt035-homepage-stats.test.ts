@@ -38,6 +38,28 @@ describe('haversineKm', () => {
 describe('getHomepage stats / typeSummaries / nearbyListings', () => {
   const ctx = createSearchContext('shanghai')
 
+  it('首页聚合路径不扫描完整房源，保留类型封面和附近排序', async () => {
+    const rows = rowsFromListings([2, 3].map(id => makeListing({ id,
+      buildingCoords: { latitude: 31.2, longitude: 121.5 } })))
+    const aggregate = vi.fn(async () => ({ count: 57545,
+      types: [{ type: 'traditional-office', count: 57545, coverId: 2 }],
+      nearbyCandidates: rows.map(({ id, slug, coordinates }) => ({ id, slug, coordinates })),
+    }))
+    const adapter = makeHomepageAdapter({
+      findHomepageListingAggregate: aggregate,
+      findEffectiveListings: async () => { throw new Error('不应扫描全集') },
+      scanEffectiveListingsPage: async () => { throw new Error('不应扫描分页') },
+      findEffectiveListingsByIds: async (ids) => ids.map(id => makeListing({ id })),
+      findEffectiveBuildings: async () => [makeBuilding({ id: 10 })],
+      findCityCenter: async () => ({ latitude: 31.2, longitude: 121.5 }),
+    })
+    const home = await getHomepage(ctx, {}, adapter)
+    expect(home.stats.listings).toBe(57545)
+    expect(home.typeSummaries['traditional-office'].count).toBe(57545)
+    expect(aggregate).toHaveBeenCalledWith([10], ctx, true)
+    expect(home.nearbyListings.map(row => row.id)).toEqual([2, 3])
+  })
+
   it('首页可复用已缓存的同口径扫描，不再次查询完整房源', async () => {
     const scan = vi.fn(async () => rowsFromListings([makeListing({ id: 1 }), makeListing({ id: 2 })]))
     const adapter = makeHomepageAdapter({

@@ -1,0 +1,142 @@
+[
+  {
+    "city": "shanghai",
+    "asOf": "2026-10-11T16:01:52.386Z",
+    "aggregated": {
+      "listings": 57545,
+      "buildings": 4448,
+      "businessAreas": 22
+    },
+    "scanned": {
+      "listings": 57545,
+      "buildings": 4448,
+      "businessAreas": 22
+    },
+    "uniqueListings": 57545,
+    "aggregateMs": 5302,
+    "scanMs": 31709,
+    "homepageAggregateMs": 13668,
+    "homepageAggregateCount": 57545,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "beijing",
+    "asOf": "2026-10-11T16:01:52.386Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 55,
+    "scanMs": 70,
+    "homepageAggregateMs": 0,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "shenzhen",
+    "asOf": "2026-10-11T16:01:52.386Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 10,
+    "scanMs": 73,
+    "homepageAggregateMs": 0,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "guangzhou",
+    "asOf": "2026-10-11T16:01:52.386Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 10,
+    "scanMs": 70,
+    "homepageAggregateMs": 0,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "hangzhou",
+    "asOf": "2026-10-11T16:01:52.386Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 9,
+    "scanMs": 75,
+    "homepageAggregateMs": 0,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "chengdu",
+    "asOf": "2026-10-11T16:01:52.386Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 9,
+    "scanMs": 69,
+    "homepageAggregateMs": 0,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "wuhan",
+    "asOf": "2026-10-11T16:01:52.386Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 9,
+    "scanMs": 70,
+    "homepageAggregateMs": 0,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  }
+]

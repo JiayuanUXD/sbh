@@ -49,10 +49,28 @@ try {
       buildings: buildings.filter(building => mapBuildingSummary(building) !== null).length,
       businessAreas: areas.length }
     const uniqueListings = new Set(rows.map(row => row.id)).size
-    const result = { city, asOf, aggregated, scanned, uniqueListings, aggregateMs, scanMs: Date.now() - scanStart }
+    const scanMs = Date.now() - scanStart
+    const summaryStart = Date.now()
+    const summary = await adapter.findHomepageListingAggregate!(buildings.map(building => building.id), ctx, true)
+    const expectedTypes = new Map<string | null, { type: string | null; count: number; coverId: number }>()
+    for (const row of rows) {
+      const existing = expectedTypes.get(row.listingType)
+      expectedTypes.set(row.listingType, { type: row.listingType, count: (existing?.count ?? 0) + 1,
+        coverId: Math.min(existing?.coverId ?? row.id, row.id) })
+    }
+    const normalizeTypes = (types: typeof summary.types) => [...types].sort((a, b) => String(a.type).localeCompare(String(b.type)))
+    const normalizeNearby = (candidates: typeof summary.nearbyCandidates) => [...candidates]
+      .filter(row => row.coordinates != null).sort((a, b) => a.id - b.id)
+    const expectedNearby = rows.map(({ id, slug, coordinates }) => ({ id, slug, coordinates }))
+    const summaryMatches = summary.count === rows.length &&
+      JSON.stringify(normalizeTypes(summary.types)) === JSON.stringify(normalizeTypes([...expectedTypes.values()])) &&
+      JSON.stringify(normalizeNearby(summary.nearbyCandidates)) === JSON.stringify(normalizeNearby(expectedNearby))
+    const result = { city, asOf, aggregated, scanned, uniqueListings, aggregateMs, scanMs,
+      homepageAggregateMs: Date.now() - summaryStart, homepageAggregateCount: summary.count,
+      homepageTypesAndNearbyMatch: summaryMatches }
     console.log(JSON.stringify(result))
     results.push(result)
-    if (uniqueListings !== rows.length || JSON.stringify(aggregated) !== JSON.stringify(scanned)) {
+    if (!summaryMatches || uniqueListings !== rows.length || JSON.stringify(aggregated) !== JSON.stringify(scanned)) {
       throw new Error(`首页计数与目录口径不一致：${city}`)
     }
   }

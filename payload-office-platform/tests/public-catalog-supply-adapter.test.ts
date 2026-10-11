@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const payloadState = vi.hoisted(() => ({
+  query: vi.fn<(sql: string, values: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>>(),
   find: vi.fn<
     (params: Record<string, unknown>) => Promise<Record<string, unknown>>
   >(),
@@ -14,6 +15,7 @@ vi.mock("payload", () => ({
   getPayload: async () => ({
     find: payloadState.find,
     findByID: payloadState.findByID,
+    db: { pool: { query: payloadState.query } },
   }),
 }));
 
@@ -86,6 +88,38 @@ describe("Payload public catalog supply adapter", () => {
   beforeEach(() => {
     payloadState.find.mockReset();
     payloadState.findByID.mockReset();
+    payloadState.query.mockReset();
+  });
+
+  it("首页按类型聚合并只读取附近候选 ID / 坐标，与楼盘聚合使用同一资格", async () => {
+    payloadState.query.mockResolvedValueOnce({ rows: [
+      { type: "traditional-office", cnt: 57544, cover_id: 1 },
+      { type: null, cnt: 1, cover_id: 2 },
+    ] }).mockResolvedValueOnce({ rows: [{ id: 1, slug: "listing-1", latitude: 31.234567, longitude: 121.456789 }] });
+    const ctx = createSearchContext("shanghai", new Date("2026-10-11T15:00:00Z"), "lease");
+    const aggregate = await createPayloadSupplyAdapter().findHomepageListingAggregate!([10], ctx, true);
+    expect(aggregate.count).toBe(57545);
+    expect(aggregate.types[0]).toEqual({ type: "traditional-office", count: 57544, coverId: 1 });
+    expect(aggregate.nearbyCandidates).toEqual([{ id: 1, slug: "listing-1",
+      coordinates: { latitude: 31.2346, longitude: 121.4568 } }]);
+    expect(payloadState.find).not.toHaveBeenCalled();
+    for (const [sql, values] of payloadState.query.mock.calls) {
+      expect(values).toEqual([ctx.asOf, [10], "shanghai", "lease"]);
+      expect(sql).toContain("m.qualification_expires_at >= $1");
+      expect(sql).toContain("mr.path = 'serviceCities'");
+      expect(sql).toContain("rep.supply_paused = true");
+      expect(sql).not.toContain("gallery");
+    }
+  });
+
+  it("首页没有城市中心时不读取坐标集合，空楼盘不打 SQL", async () => {
+    payloadState.query.mockResolvedValue({ rows: [] });
+    const adapter = createPayloadSupplyAdapter();
+    expect(await adapter.findHomepageListingAggregate!([], createSearchContext("shanghai"), true))
+      .toEqual({ count: 0, types: [], nearbyCandidates: [] });
+    expect(payloadState.query).not.toHaveBeenCalled();
+    await adapter.findHomepageListingAggregate!([10], createSearchContext("shanghai"), false);
+    expect(payloadState.query).toHaveBeenCalledTimes(1);
   });
 
   it("扫描浅层房源并按唯一关系 ID 批量回填，保留精筛和完整行", async () => {

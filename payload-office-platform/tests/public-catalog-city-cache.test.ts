@@ -109,7 +109,7 @@ describe('per-city public catalog caches', () => {
     cacheState.homepageAsOf.length = 0
   })
 
-  it('首页复用目录扫描缓存，并沿用第一页的快照时点', async () => {
+  it('首页直接使用当前统计时点，不预读或复用目录扫描', async () => {
     vi.useFakeTimers()
     try {
       vi.setSystemTime(new Date('2026-10-11T15:00:00Z'))
@@ -118,8 +118,8 @@ describe('per-city public catalog caches', () => {
       const count = vi.mocked(scanListingsPage).mock.calls.length
       vi.setSystemTime(new Date('2026-10-11T15:01:00Z'))
       await getCachedHomepage('nanjing')
-      expect(cacheState.homepageRows).toEqual([1])
-      expect(cacheState.homepageAsOf).toEqual(['2026-10-11T15:00:00.000Z'])
+      expect(cacheState.homepageRows).toEqual([0])
+      expect(cacheState.homepageAsOf).toEqual(['2026-10-11T15:01:00.000Z'])
       expect(vi.mocked(scanListingsPage).mock.calls).toHaveLength(count)
     } finally {
       vi.useRealTimers()

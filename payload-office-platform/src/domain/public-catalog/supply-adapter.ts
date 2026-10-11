@@ -50,8 +50,8 @@ import {
   type SearchContext,
   type ListingSearchInput,
 } from "./types";
-import type { PublicRouteIdentity } from "./contracts";
-import { mapBuildingCity, resolveListingPrice } from "./mappers";
+import type { CoordinatesViewModel, PublicRouteIdentity } from "./contracts";
+import { mapBuildingCity, mapCoordinates, resolveListingPrice } from "./mappers";
 import {
   matchesPriceFilter,
   rowsFromListings,
@@ -65,7 +65,17 @@ import type { BuildingsSelect, ListingsSelect } from "@/payload-types";
  * 所有方法都接受 SearchContext，确保子查询在同一 asOf / 时区 / 渠道下解析。
  * 返回的文档视为"已过有效供给谓词"；任何失效场景返回空数组或 null，不抛错。
  */
+export type HomepageListingAggregate = Readonly<{
+  count: number;
+  types: readonly Readonly<{ type: string | null; count: number; coverId: number }>[];
+  nearbyCandidates: readonly Readonly<{ id: number; slug: string; coordinates: CoordinatesViewModel | null }>[];
+}>;
+
 export interface SupplyAdapter {
+  /** 首页聚合计数及附近候选，只读取 ID / 坐标，不展开完整供给集合。 */
+  findHomepageListingAggregate?(
+    buildingIds: readonly number[], ctx: SearchContext, includeNearby: boolean,
+  ): Promise<HomepageListingAggregate>;
   /** 按搜索条件返回有效房源文档（已过谓词，未排序、未分页） */
   findEffectiveListings(
     input: ListingSearchInput,
@@ -381,6 +391,38 @@ export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000;
  * 每页 1000 个候选，精筛后独立缓存紧凑行，避免全城数据超过缓存单条 2MB 上限。
  */
 export const LISTING_SCAN_PAGE_SIZE = 1_000;
+
+// 首页与楼盘聚合共用同一 SQL 资格谓词；参数为 asOf、楼盘 ID、城市、租售频道。
+const EFFECTIVE_SUPPLY_AGGREGATE_FROM = `
+FROM listings l
+JOIN buildings b ON b.id = l.building_id
+JOIN locations city ON city.id = b.city_id
+JOIN locations dist ON dist.id = b.district_id
+JOIN merchants m ON m.id = l.merchant_id
+WHERE l.building_id = ANY($2)
+  AND l.deleted_at IS NULL
+  AND l.publication_status = 'published'
+  AND l.review_status = 'approved'
+  AND l.supply_visibility_hold = 'normal'
+  AND b.status = 'published'
+  AND b.operational_status = 'active'
+  AND b.deleted_at IS NULL
+  AND city.status = 'active'
+  AND city.slug = $3
+  AND dist.status = 'active'
+  AND ($4::text IS NULL OR l.business_type::text = $4::text)
+  AND m.status = 'active'
+  AND m.qualification_status = 'valid'
+  AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)
+  AND EXISTS (
+    SELECT 1 FROM merchants_rels mr
+    WHERE mr.parent_id = m.id AND mr.path = 'serviceCities' AND mr.locations_id = b.city_id
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM listing_reports rep
+    WHERE rep.target_listing_id = l.id AND rep.supply_paused = true
+  )
+`;
 
 /**
  * 扫描只取行模型（`listing-scan.ts#rowFromListing`）、精筛（`buildEffectiveSnapshot`
@@ -1046,6 +1088,32 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   }
 
   return {
+    async findHomepageListingAggregate(buildingIds, ctx, includeNearby) {
+      if (buildingIds.length === 0) return { count: 0, types: [], nearbyCandidates: [] };
+      const payload = await getPayload();
+      const pool = (payload.db as unknown as { pool: {
+        query: (text: string, values: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>
+      } }).pool;
+      const values = [new Date(ctx.asOf).toISOString(), buildingIds, ctx.city, ctx.businessType ?? null];
+      const grouped = await pool.query(`SELECT l.listing_type::text AS type,
+        COUNT(*)::int AS cnt, MIN(l.id)::int AS cover_id
+        ${EFFECTIVE_SUPPLY_AGGREGATE_FROM} GROUP BY l.listing_type`, values);
+      const types = grouped.rows.map(row => {
+        if ((row.type != null && typeof row.type !== "string") ||
+          !Number.isSafeInteger(row.cnt) || Number(row.cnt) < 1 ||
+          !Number.isSafeInteger(row.cover_id)) throw new Error("无效的首页供给聚合结果");
+        return { type: row.type == null ? null : String(row.type), count: Number(row.cnt), coverId: Number(row.cover_id) };
+      });
+      const nearby = includeNearby ? await pool.query(`SELECT l.id, l.slug,
+        b.latitude::float8 AS latitude, b.longitude::float8 AS longitude
+        ${EFFECTIVE_SUPPLY_AGGREGATE_FROM}
+        AND b.latitude IS NOT NULL AND b.longitude IS NOT NULL`, values) : { rows: [] };
+      const nearbyCandidates = nearby.rows.map(row => {
+        if (!Number.isSafeInteger(row.id) || typeof row.slug !== "string") throw new Error("无效的首页附近候选");
+        return { id: Number(row.id), slug: row.slug, coordinates: mapCoordinates(row.latitude, row.longitude) ?? null };
+      });
+      return { count: types.reduce((sum, type) => sum + type.count, 0), types, nearbyCandidates };
+    },
     async findEffectiveListings(input, ctx) {
       const asOf = new Date(ctx.asOf);
       const where = await buildListingWhere(input, ctx);
@@ -1338,38 +1406,7 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       // 不会出现「面积聚合漏了某条件、套数聚合又漏了另一条」这种口径分叉。
       const sql = `
 SELECT l.building_id AS bid, SUM(l.area)::float8 AS total, COUNT(*)::int AS cnt
-FROM listings l
-JOIN buildings  b    ON b.id = l.building_id
-JOIN locations  city ON city.id = b.city_id
-JOIN locations  dist ON dist.id = b.district_id
-JOIN merchants  m    ON m.id = l.merchant_id
-WHERE l.building_id = ANY($2)
-  AND l.deleted_at IS NULL
-  AND l.publication_status = 'published'
-  AND l.review_status = 'approved'
-  AND l.supply_visibility_hold = 'normal'
-  AND b.status = 'published'
-  AND b.operational_status = 'active'
-  AND b.deleted_at IS NULL
-  AND city.status = 'active'
-  AND city.slug = $3
-  AND dist.status = 'active'
-  -- 租售维度：$4 为 NULL 时不过滤（保持改造前口径），否则只算该类型。
-  -- 楼盘卡片的「在租 X ㎡ / N 套」必须传 'lease'，否则一套待售整层会被算进去。
-  -- business_type 是 ENUM，与 text 参数比较必须显式转型：PG 不做
-  -- enum = text 的隐式转换，否则报「操作符不存在」。
-  AND ($4::text IS NULL OR l.business_type::text = $4::text)
-  AND m.status = 'active'
-  AND m.qualification_status = 'valid'
-  AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)
-  AND EXISTS (
-    SELECT 1 FROM merchants_rels mr
-    WHERE mr.parent_id = m.id AND mr.path = 'serviceCities' AND mr.locations_id = b.city_id
-  )
-  AND NOT EXISTS (
-    SELECT 1 FROM listing_reports rep
-    WHERE rep.target_listing_id = l.id AND rep.supply_paused = true
-  )
+${EFFECTIVE_SUPPLY_AGGREGATE_FROM}
 GROUP BY l.building_id
 `;
       const pool = (

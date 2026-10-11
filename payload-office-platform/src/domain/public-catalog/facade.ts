@@ -922,14 +922,17 @@ export async function getHomepage(
     // 五条里时靠第六条补位，否则右侧只剩四条。
     adapter.findLatestArticles(articlesLimit + 1),
     adapter.findHomeFeaturedArticle ? adapter.findHomeFeaturedArticle() : Promise.resolve(null),
-    // 一次全集**扫描**喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
-    // OPT-068：口径与列表页一致（同 scanListings），但只取行不取整棵关系树——
-    // 这条查询此前是首页冷路径最贵的一段，且每次发版缓存清零后必然重跑。
-    options.scan ? options.scan(EMPTY_LISTING_INPUT, ctx) : scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
+    // 生产适配器直接聚合计数和类型，只读取附近候选的紧凑坐标；旧适配器保留扫描回退。
+    adapter.findHomepageListingAggregate ? Promise.resolve([])
+      : options.scan ? options.scan(EMPTY_LISTING_INPUT, ctx) : scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
     // 口径与楼盘列表页 searchBuildings 一致（分页读取完整公开楼盘）
     adapter.findEffectiveBuildings(ctx),
     adapter.findCityCenter ? adapter.findCityCenter(ctx) : Promise.resolve(null),
   ])
+
+  const listingAggregate = adapter.findHomepageListingAggregate
+    ? await adapter.findHomepageListingAggregate(allEffectiveBuildings.map(building => building.id), ctx, cityCenter != null)
+    : null
 
   const cards = mapListingsToCards(featuredListings)
   const lastEffAt = buildLastEffAtLookup(featuredListings)
@@ -1003,10 +1006,9 @@ export async function getHomepage(
     .filter((a) => a.id !== featuredArticle?.id)
     .slice(0, articlesLimit)
 
-  // 全集扫描行：喂 stats.listings / typeSummaries / nearbyListings 三个特性，
-  // 与列表页共用同一个 scanListings 口径（OPT-068）。
+  // 聚合与目录扫描使用同一有效供给口径；旧适配器按扫描行计数。
   const stats: HomepageStats = {
-    listings: allEffectiveRows.length,
+    listings: listingAggregate?.count ?? allEffectiveRows.length,
     // 与楼盘列表页 searchBuildings 的 totalDocs = docs.length 同口径：mapBuildingSummary
     // 过滤后计数，不是原始 findEffectiveBuildings 返回长度。
     buildings: allEffectiveBuildings.filter((b) => mapBuildingSummary(b) !== null).length,
@@ -1022,10 +1024,14 @@ export async function getHomepage(
   // 个条目、每个多带的 variants 约 300 字节，量级几 KB，远够不到上限，不构成
   // 体积风险，不必比照卡片链路收窄。
   // 按类型计数 + 每个类型挑一张封面来源（该类型里 id 最小的一条，确定性）。
-  // OPT-068：计数在扫描行上做；封面需要完整投影（含 variants/focal），只对被选中的
-  // 那 ≤4 条回捞——此前是对全集房源建 Map 再逐类型取一条，全集越大越贵。
+  // 计数和最小 id 由聚合提供；封面需要完整投影（含 variants/focal），只回捞选中的 ≤4 条。
   const typeCounts = new Map<string, number>()
   const typeCoverSourceId = new Map<string, number>()
+  for (const row of listingAggregate?.types ?? []) {
+    if (!row.type) continue
+    typeCounts.set(row.type, row.count)
+    typeCoverSourceId.set(row.type, row.coverId)
+  }
   for (const row of allEffectiveRows) {
     const key = row.listingType
     if (!key) continue
@@ -1036,11 +1042,11 @@ export async function getHomepage(
 
   // 核心商圈附近房源：排除已在精选区展示的房源（避免首页同一张卡片重复出现），
   // 按到城市中心的直线距离升序，tie-break 用 id 保证跨请求稳定（此前用 stableSortKey，
-  // 它由 id 派生，同序）。距离在扫描行上算，只对最终 5 条回捞卡片。
+  // 它由 id 派生，同序）。距离在紧凑坐标候选上算，只对最终 5 条回捞卡片。
   const featuredSlugs = new Set(sorted.map((c) => c.slug))
   const nearbyRows = cityCenter == null
     ? []
-    : allEffectiveRows
+    : (listingAggregate?.nearbyCandidates ?? allEffectiveRows)
         .filter((row) => !featuredSlugs.has(row.slug) && row.coordinates != null)
         .map((row) => ({
           row,
