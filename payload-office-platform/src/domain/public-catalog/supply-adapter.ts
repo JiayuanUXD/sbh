@@ -57,7 +57,7 @@ import {
   rowsFromListings,
   type ListingScanRow,
 } from "./listing-scan";
-import type { ListingsSelect } from "@/payload-types";
+import type { BuildingsSelect, ListingsSelect } from "@/payload-types";
 
 /**
  * 公开目录供给适配器契约
@@ -425,6 +425,46 @@ export const LISTING_SCAN_POPULATE = {
 } satisfies PopulateType;
 const RELATED_BUILDING_CANDIDATE_LIMIT = 500;
 
+/** 目录与 sitemap 只消费楼盘摘要；画廊、媒体列表与编辑内容留给详情查询。 */
+const BUILDING_SUMMARY_SELECT = {
+  slug: true,
+  name: true,
+  address: true,
+  grade: true,
+  summary: true,
+  status: true,
+  operationalStatus: true,
+  deletedAt: true,
+  updatedAt: true,
+  city: true,
+  district: true,
+  businessDistrict: true,
+  nearestMetro: true,
+  coverImage: true,
+  latitude: true,
+  longitude: true,
+  completionDate: true,
+  developerAndScale: { typicalFloorArea: true },
+  buildingServices: { airConditioning: true, network: true, parkingFee: true },
+} satisfies BuildingsSelect<true>;
+
+const BUILDING_SUMMARY_POPULATE = {
+  locations: { name: true, slug: true, type: true, status: true },
+  media: {
+    alt: true,
+    url: true,
+    filename: true,
+    mimeType: true,
+    prefix: true,
+    width: true,
+    height: true,
+    blurDataUrl: true,
+    sizes: true,
+    focalX: true,
+    focalY: true,
+  },
+} satisfies PopulateType;
+
 const ROUTE_CITY_POPULATE = {
   locations: { name: true, slug: true, type: true, status: true },
 } satisfies PopulateType;
@@ -671,6 +711,8 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       limit,
       page,
       sort: stablePagination ? ["-updatedAt", "id"] : "-updatedAt",
+      select: BUILDING_SUMMARY_SELECT,
+      populate: BUILDING_SUMMARY_POPULATE,
     });
     return {
       docs: (result.docs as Building[]).filter((building) =>

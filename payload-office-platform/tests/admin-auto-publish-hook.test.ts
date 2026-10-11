@@ -133,6 +133,7 @@ describe('admin-auto-publish-hook/afterChange', () => {
       data: Record<string, unknown>
     }
     expect(call.collection).toBe('listing-reviews')
+    expect(call).toMatchObject({ depth: 0 })
     expect(call.data.decision).toBe('fast_track')
     // 操作人是这条记录存在的全部意义——历史缺陷正是这里恒为 undefined
     expect(call.data.reviewedBy).toBe(5)

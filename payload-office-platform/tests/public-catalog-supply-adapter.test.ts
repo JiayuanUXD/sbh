@@ -425,6 +425,19 @@ describe("Payload public catalog supply adapter", () => {
     expect([...first.docs, ...second.docs].map(({ id }) => id)).toEqual([
       1, 2, 3, 4,
     ]);
+    for (const [params] of payloadState.find.mock.calls) {
+      expect(params.select).toMatchObject({
+        slug: true,
+        coverImage: true,
+        city: true,
+        status: true,
+      });
+      expect(params.select).not.toHaveProperty("gallery");
+      expect(params.select).not.toHaveProperty("mediaItems");
+      expect(params.populate).toMatchObject({
+        locations: { name: true, slug: true, type: true, status: true },
+      });
+    }
     expect(payloadState.find.mock.calls.map(([params]) => params.sort)).toEqual(
       [
         ["-updatedAt", "id"],
