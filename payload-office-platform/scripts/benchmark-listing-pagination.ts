@@ -36,6 +36,28 @@ try {
     const same = JSON.stringify(counted.rows.map(row => row.id)) === JSON.stringify(rows.map(row => row.id))
     console.log(JSON.stringify({ page, countMs, withoutCountMs: Date.now() - slimStart, rows: rows.length, same }))
     if (!same) throw new Error('分页结果不一致')
+    const batchStart = Date.now()
+    const shallow = await payload.find({ collection: 'listings', where, depth: 0,
+      select: LISTING_SCAN_SELECT, sort: 'id', limit: 1000, page, pagination: false })
+    const buildingIds = [...new Set(shallow.docs.map(doc => typeof doc.building === 'number' ? doc.building : doc.building?.id).filter(id => id != null))]
+    const merchantIds = [...new Set(shallow.docs.map(doc => typeof doc.merchant === 'number' ? doc.merchant : doc.merchant?.id).filter(id => id != null))]
+    const [buildings, merchants] = await Promise.all([
+      payload.find({ collection: 'buildings', where: { id: { in: buildingIds } }, depth: 1,
+        select: LISTING_SCAN_POPULATE.buildings, populate: { locations: LISTING_SCAN_POPULATE.locations },
+        limit: buildingIds.length, pagination: false }),
+      payload.find({ collection: 'merchants', where: { id: { in: merchantIds } }, depth: 0,
+        select: LISTING_SCAN_POPULATE.merchants, limit: merchantIds.length, pagination: false }),
+    ])
+    const byBuilding = new Map(buildings.docs.map(doc => [doc.id, doc]))
+    const byMerchant = new Map(merchants.docs.map(doc => [doc.id, doc]))
+    const hydrated = shallow.docs.map(doc => ({ ...doc,
+      building: byBuilding.get(typeof doc.building === 'number' ? doc.building : doc.building?.id ?? -1) ?? null,
+      merchant: byMerchant.get(typeof doc.merchant === 'number' ? doc.merchant : doc.merchant?.id ?? -1) ?? null }))
+    const batchSupply = await resolveEffectiveSupplies(port, hydrated, new Date(ctx.asOf))
+    const batchRows = rowsFromListings(hydrated.filter(doc => batchSupply.get(String(doc.id))?.eligible))
+    const batchSame = JSON.stringify(rows) === JSON.stringify(batchRows)
+    console.log(JSON.stringify({ page, batchMs: Date.now() - batchStart, buildings: buildingIds.length, merchants: merchantIds.length, rows: batchRows.length, batchSame }))
+    if (!batchSame) throw new Error('批量关系扫描结果不一致')
   }
 } finally {
   await payload.db.destroy?.()

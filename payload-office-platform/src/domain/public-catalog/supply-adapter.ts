@@ -612,6 +612,33 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     return createEffectiveSupplyPayloadPort(await getPayload());
   }
 
+  async function hydrateScanRelations(docs: readonly Record<string, unknown>[]) {
+    const payload = await getPayload();
+    const ids = (field: "building" | "merchant") => [...new Set(docs
+      .map(doc => doc[field])
+      .filter((id): id is number | string => typeof id === "number" || typeof id === "string"))];
+    const buildingIds = ids("building");
+    const merchantIds = ids("merchant");
+    // 批量读取唯一关系，避免 Payload 为每条房源重复展开同一楼盘和商户。
+    const [buildings, merchants] = await Promise.all([
+      buildingIds.length ? payload.find({ collection: "buildings",
+        where: { id: { in: buildingIds } }, depth: 1,
+        select: LISTING_SCAN_POPULATE.buildings,
+        populate: { locations: LISTING_SCAN_POPULATE.locations },
+        limit: buildingIds.length, pagination: false }) : { docs: [] },
+      merchantIds.length ? payload.find({ collection: "merchants",
+        where: { id: { in: merchantIds } }, depth: 0,
+        select: LISTING_SCAN_POPULATE.merchants,
+        limit: merchantIds.length, pagination: false }) : { docs: [] },
+    ]);
+    const byBuilding = new Map(buildings.docs.map(doc => [String(doc.id), doc]));
+    const byMerchant = new Map(merchants.docs.map(doc => [String(doc.id), doc]));
+    return docs.map(doc => ({ ...doc,
+      building: typeof doc.building === "object" ? doc.building : byBuilding.get(String(doc.building)) ?? null,
+      merchant: typeof doc.merchant === "object" ? doc.merchant : byMerchant.get(String(doc.merchant)) ?? null,
+    }));
+  }
+
   async function scanEffectiveListingsPage(
     input: ListingSearchInput,
     ctx: SearchContext,
@@ -630,9 +657,8 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     const result = await payload.find({
       collection: "listings",
       where,
-      depth: 2,
+      depth: 0,
       select: LISTING_SCAN_SELECT,
-      populate: LISTING_SCAN_POPULATE,
       sort: "id",
       limit: LISTING_SCAN_PAGE_SIZE,
       page,
@@ -662,7 +688,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       throw new Error("房源扫描分页未按顺序推进");
     }
     const kept = await fineFilter(
-      result.docs as unknown as Record<string, unknown>[],
+      await hydrateScanRelations(result.docs as unknown as Record<string, unknown>[]),
       new Date(ctx.asOf),
     );
     return { rows: rowsFromListings(filterByPrice(kept, input)), nextPage, totalPages: knownTotalPages ?? result.totalPages };

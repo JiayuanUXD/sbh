@@ -88,6 +88,39 @@ describe("Payload public catalog supply adapter", () => {
     payloadState.findByID.mockReset();
   });
 
+  it("扫描浅层房源并按唯一关系 ID 批量回填，保留精筛和完整行", async () => {
+    const raw = listing(1);
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === "listing-reports") return { docs: [] };
+      if (params.collection === "buildings") return { docs: [building(10)] };
+      if (params.collection === "merchants") return { docs: [raw.merchant] };
+      return { docs: [1, 2].map(id => ({ ...raw, id, slug: `listing-${id}`, building: 10, merchant: 50 })),
+        totalPages: 1, hasNextPage: false, nextPage: null };
+    });
+    const result = await createPayloadSupplyAdapter().scanEffectiveListingsPage!(
+      parseSearchInput(new URLSearchParams()), createSearchContext("shanghai"), 1);
+    expect(result.rows.map(row => row.id)).toEqual([1, 2]);
+    expect(result.rows[0].district?.slug).toBe("jing-an");
+    const queries = payloadState.find.mock.calls.map(([query]) => query);
+    expect(queries.find(query => query.collection === "listings")).toMatchObject({ depth: 0 });
+    expect(queries.filter(query => query.collection === "buildings")).toEqual([
+      expect.objectContaining({ depth: 1, where: { id: { in: [10] } }, limit: 1, pagination: false }),
+    ]);
+    expect(queries.filter(query => query.collection === "merchants")).toEqual([
+      expect.objectContaining({ depth: 0, where: { id: { in: [50] } }, limit: 1, pagination: false }),
+    ]);
+  });
+
+  it("批量关系缺失不把裸 ID 当成合格供给", async () => {
+    payloadState.find.mockImplementation(async (params) => ({
+      docs: params.collection === "listings" ? [{ ...listing(1), building: 10, merchant: 50 }] : [],
+      totalPages: 1, hasNextPage: false, nextPage: null,
+    }));
+    const result = await createPayloadSupplyAdapter().scanEffectiveListingsPage!(
+      parseSearchInput(new URLSearchParams()), createSearchContext("shanghai"), 1);
+    expect(result.rows).toEqual([]);
+  });
+
   it("已知总页数的后续页不重复计数，并检查最后一页之后无遗漏", async () => {
     payloadState.find.mockImplementation(async (params) => {
       if (params.collection === "listing-reports" || params.limit === 1) return { docs: [] };
