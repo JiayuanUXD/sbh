@@ -48,10 +48,11 @@ try {
     const scanned = { listings: rows.length,
       buildings: buildings.filter(building => mapBuildingSummary(building) !== null).length,
       businessAreas: areas.length }
-    const result = { city, asOf, aggregated, scanned, aggregateMs, scanMs: Date.now() - scanStart }
+    const uniqueListings = new Set(rows.map(row => row.id)).size
+    const result = { city, asOf, aggregated, scanned, uniqueListings, aggregateMs, scanMs: Date.now() - scanStart }
     console.log(JSON.stringify(result))
     results.push(result)
-    if (JSON.stringify(aggregated) !== JSON.stringify(scanned)) {
+    if (uniqueListings !== rows.length || JSON.stringify(aggregated) !== JSON.stringify(scanned)) {
       throw new Error(`首页计数与目录口径不一致：${city}`)
     }
   }
