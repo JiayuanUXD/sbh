@@ -49,6 +49,12 @@ describe('sitemap-listings-query/不再走搜索管线', () => {
 })
 
 describe('sitemap-listings-query/成本约束', () => {
+  it('关联楼盘和商户只展开有效供给判定字段', async () => {
+    const body = await sitemapQueryBody()
+    expect(body).toMatch(/populate:\s*\{\s*buildings:\s*\{\s*city:\s*true\s*\}/)
+    expect(body).toMatch(/merchants:\s*\{\s*status:\s*true,\s*qualificationStatus:\s*true,\s*qualificationExpiresAt:\s*true,\s*serviceCities:\s*true/)
+  })
+
   it('用 depth 1 而不是 depth 2', async () => {
     const body = await sitemapQueryBody()
     expect(body).toContain('depth: 1')

@@ -89,7 +89,7 @@ export interface SupplyAdapter {
     ctx: SearchContext,
     page: number,
   ): Promise<
-    Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null }>
+    Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>
   >;
 
   /**
@@ -613,7 +613,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     ctx: SearchContext,
     page: number,
   ): Promise<
-    Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null }>
+    Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>
   > {
     if (!Number.isSafeInteger(page) || page < 1)
       throw new Error("无效的房源扫描页码");
@@ -643,7 +643,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       result.docs as unknown as Record<string, unknown>[],
       new Date(ctx.asOf),
     );
-    return { rows: rowsFromListings(filterByPrice(kept, input)), nextPage };
+    return { rows: rowsFromListings(filterByPrice(kept, input)), nextPage, totalPages: result.totalPages };
   }
 
   async function findAllListings(
@@ -1054,6 +1054,15 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
           businessType: true,
           building: true,
           merchant: true,
+        },
+        populate: {
+          buildings: { city: true },
+          merchants: {
+            status: true,
+            qualificationStatus: true,
+            qualificationExpiresAt: true,
+            serviceCities: true,
+          },
         },
         sort: "id",
         limit,

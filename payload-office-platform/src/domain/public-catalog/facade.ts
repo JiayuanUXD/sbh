@@ -383,7 +383,7 @@ export async function scanListingsPage(
   ctx: SearchContext,
   page: number,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
-): Promise<Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null }>> {
+): Promise<Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>> {
   if (!Number.isSafeInteger(page) || page < 1) throw new Error('无效的房源扫描页码')
   if (!adapter.scanEffectiveListingsPage) {
     return { rows: page === 1 ? await scanListings(input, ctx, adapter) : [], nextPage: null }

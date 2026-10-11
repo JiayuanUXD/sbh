@@ -433,7 +433,7 @@ const getCachedListingScanPageByCity = memoizeByCity((citySlug) =>
       return { asOf: ctx.asOf, ...await scanListingsPage(scanInput, ctx, page) }
     },
     // 版本隔离旧的纯数组条目，避免热缓存被误读为快照。
-    ['listing-scan-page', citySlug, 'snapshot-v2'],
+    ['listing-scan-page', citySlug, 'snapshot-v3'],
     {
       tags: [...listingCacheTags(citySlug), facetsTag(citySlug)],
       revalidate: 300,
@@ -456,6 +456,26 @@ export function getCachedListingScanSnapshot(
       const load = getCachedListingScanPageByCity(city)
       const first = await load(scanKey, scanInput, channel, 1, '')
       const rows: ListingScanRow[] = [...first.rows]
+      if (first.totalPages != null) {
+        const totalPages = first.totalPages
+        if (!Number.isSafeInteger(totalPages) || totalPages < 0 || first.nextPage !== (totalPages > 1 ? 2 : null)) {
+          throw new Error('房源扫描分页未按顺序推进')
+        }
+        // 有界并发降低全城冷读耗时；按页序合并，同一批全部校验后才接纳行。
+        for (let start = 2; start <= totalPages; start += 4) {
+          const pages = Array.from({ length: Math.min(4, totalPages - start + 1) }, (_, index) => start + index)
+          const results = await Promise.all(pages.map(page => load(scanKey, scanInput, channel, page, first.asOf)))
+          for (const [index, result] of results.entries()) {
+            const expectedNext = pages[index] < totalPages ? pages[index] + 1 : null
+            if (result.nextPage !== expectedNext || (result.totalPages != null && result.totalPages !== totalPages)) {
+              throw new Error('房源扫描分页未按顺序推进')
+            }
+            if (result.asOf !== first.asOf) throw new Error('房源扫描快照时点不一致')
+          }
+          for (const result of results) rows.push(...result.rows)
+        }
+        return { asOf: first.asOf, rows }
+      }
       async function readPage(page: number, nextPage: number | null): Promise<void> {
         if (nextPage === null) return
         if (!Number.isSafeInteger(nextPage) || nextPage !== page + 1) {

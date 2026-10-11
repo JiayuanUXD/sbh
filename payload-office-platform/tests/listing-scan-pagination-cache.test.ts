@@ -5,6 +5,10 @@ const state = vi.hoisted(() => ({
   entries: [] as { key: string; value: unknown }[],
   malformed: false,
   emptyFirst: false,
+  parallel: false,
+  active: 0,
+  maxActive: 0,
+  badPage: 0,
 }))
 
 vi.mock('next/cache', () => ({
@@ -33,6 +37,10 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
       ctx: { city: string; businessType?: string; asOf: string },
       page: number,
     ) => {
+      state.active++
+      state.maxActive = Math.max(state.maxActive, state.active)
+      await Promise.resolve()
+      state.active--
       state.calls.push({ ...ctx, page })
       // 模拟扫描期间墙钟变化，后续页仍须使用第一页的快照时点。
       vi.setSystemTime(new Date(Date.now() + 60_000))
@@ -57,7 +65,8 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
             coordinates: { latitude: 31.23, longitude: 121.47 },
           }),
         ),
-        nextPage: state.malformed ? page : page === 11 ? null : page + 1,
+        nextPage: state.malformed || page === state.badPage ? page : page === 11 ? null : page + 1,
+        totalPages: state.parallel ? 11 : undefined,
       }
     }),
   }
@@ -75,11 +84,33 @@ beforeEach(() => {
   state.entries.length = 0
   state.malformed = false
   state.emptyFirst = false
+  state.parallel = false
+  state.active = 0
+  state.maxActive = 0
+  state.badPage = 0
 })
 
 afterEach(() => vi.useRealTimers())
 
 describe('房源全量扫描分页缓存', () => {
+  it('已知总页数时有界并发读取，合并顺序及快照时点不变', async () => {
+    state.parallel = true
+    const result = await getCachedListingScanSnapshot('chengdu', input)
+    expect(result.rows).toHaveLength(10001)
+    expect(result.rows.map(row => row.id)).toEqual(Array.from({ length: 10001 }, (_, i) => i + 1))
+    expect(new Set(state.calls.map(call => call.asOf))).toEqual(new Set([result.asOf]))
+    expect(state.maxActive).toBeGreaterThan(1)
+    expect(state.maxActive).toBeLessThanOrEqual(4)
+  })
+
+  it('并发分页有缺页时拒绝返回部分扫描结果', async () => {
+    state.parallel = true
+    state.badPage = 5
+    await expect(getCachedListingScanSnapshot('wuhan', input))
+      .rejects.toThrow('房源扫描分页未按顺序推进')
+    expect(state.calls.map(call => call.page)).toEqual([1, 2, 3, 4, 5])
+  })
+
   it('超过 5000 条与 2MB 的整城结果逐页缓存，复用同一 asOf，热读无查询', async () => {
     const first = await getCachedListingScanSnapshot('shanghai', input)
     expect(first.rows).toHaveLength(10001)
@@ -90,7 +121,7 @@ describe('房源全量扫描分页缓存', () => {
     expect(state.entries).toHaveLength(11)
     for (const entry of state.entries) {
       expect(Buffer.byteLength(JSON.stringify(entry.value))).toBeLessThan(2 * 1024 * 1024)
-      expect(entry.key).toContain('snapshot-v2')
+      expect(entry.key).toContain('snapshot-v3')
     }
     const cached = await getCachedListingScanSnapshot('shanghai', input)
     expect(cached).toEqual(first)
