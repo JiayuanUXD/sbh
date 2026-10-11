@@ -96,6 +96,7 @@ export default function SourceSyncViewClient() {
   }, [])
 
   useEffect(() => {
+    if (publishing) return
     // 首轮也走定时器回调：effect 体内不直接触发 setState（react-hooks/set-state-in-effect）
     const first = setTimeout(() => void load(), 0)
     const timer = setInterval(() => void load(), POLL_MS)
@@ -103,7 +104,7 @@ export default function SourceSyncViewClient() {
       clearTimeout(first)
       clearInterval(timer)
     }
-  }, [load])
+  }, [load, publishing])
 
   useEffect(
     () => () => {

@@ -16,7 +16,23 @@
  * 本 spec 用不存在 slug 验证运行时 404 行为；纯函数层的停用过滤由
  * effective-supply-consistency 测试覆盖（§2a draft / §2b unpublished / §5 paused）。
  */
-import { expect, test } from '@playwright/test'
+import { expect, test, type APIRequestContext } from '@playwright/test'
+
+async function sitemapUrls(request: APIRequestContext): Promise<string[]> {
+  const index = await request.get('/sitemap.xml')
+  expect(index.status()).toBe(200)
+  const xml = await index.text()
+  const locations = (body: string) => [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
+  if (!xml.includes('<sitemapindex')) return locations(xml)
+  const urls: string[] = []
+  for (const shard of locations(xml)) {
+    // 使用被测服务器，不请求 NEXT_PUBLIC_SITE_URL 指向的生产站。
+    const response = await request.get(new URL(shard).pathname)
+    expect(response.status(), `${shard} 分片应可访问`).toBe(200)
+    urls.push(...locations(await response.text()))
+  }
+  return urls
+}
 
 test.describe('OPT-011 停用供给不可达', () => {
   test('不存在的房源 slug 返回 404', async ({ page }) => {
@@ -30,10 +46,7 @@ test.describe('OPT-011 停用供给不可达', () => {
   })
 
   test('sitemap 中的房源/楼盘 URL 均返回 200（只含有效供给）', async ({ request }) => {
-    const sitemap = await request.get('/sitemap.xml')
-    expect(sitemap.status()).toBe(200)
-    const xml = await sitemap.text()
-    const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
+    const urls = await sitemapUrls(request)
     const detailUrls = urls.filter(
       (u) => u.includes('/listings/') || u.includes('/buildings/'),
     )
@@ -53,12 +66,8 @@ test.describe('OPT-011 停用供给不可达', () => {
     page,
     request,
   }) => {
-    const sitemap = await request.get('/sitemap.xml')
-    const xml = await sitemap.text()
     const sitemapPaths = new Set(
-      [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
-        new URL(m[1]).pathname,
-      ),
+      (await sitemapUrls(request)).map((url) => new URL(url).pathname),
     )
     await page.goto('/listings')
     // 仅取详情链接 /listings/<slug>，排除 /listings?type= 等筛选链接
@@ -76,8 +85,6 @@ test.describe('OPT-011 停用供给不可达', () => {
   })
 
   test('dev-story 不出现在 sitemap 中', async ({ request }) => {
-    const sitemap = await request.get('/sitemap.xml')
-    const xml = await sitemap.text()
-    expect(xml).not.toContain('/dev-story')
+    expect((await sitemapUrls(request)).join('\n')).not.toContain('/dev-story')
   })
 })
