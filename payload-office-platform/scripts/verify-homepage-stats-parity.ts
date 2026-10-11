@@ -1,12 +1,16 @@
 /** 只读比对平台聚合计数与公开目录扫描；所有查询固定同一 asOf。 */
 import { writeFile } from 'node:fs/promises'
 import { getPayload } from 'payload'
-import config from '@/payload.config'
 import { getPlatformHomepageStats, scanListings, parseSearchInput } from '@/domain/public-catalog/facade'
 import { createPayloadSupplyAdapter } from '@/domain/public-catalog/supply-adapter'
 import { createSearchContext } from '@/domain/public-catalog/types'
 import { mapBuildingSummary } from '@/domain/public-catalog/mappers'
 
+const databaseUrl = new URL(process.env.DATABASE_URL ?? '')
+databaseUrl.searchParams.set('options', '-c default_transaction_read_only=on -c idle_in_transaction_session_timeout=120000')
+process.env.DATABASE_URL = databaseUrl.toString()
+process.env.PAYLOAD_DISABLE_JOB_AUTORUN = '1'
+const { default: config } = await import('@/payload.config')
 const payload = await getPayload({ config })
 const pool = (payload.db as unknown as {
   pool: { query: (sql: string) => Promise<{ rows: { default_transaction_read_only: string }[] }> }
@@ -14,7 +18,7 @@ const pool = (payload.db as unknown as {
 const readOnly = await pool.query('SHOW default_transaction_read_only')
 if (readOnly.rows[0]?.default_transaction_read_only !== 'on') {
   await payload.db.destroy?.()
-  throw new Error('比对脚本必须使用只读数据库连接（PGOPTIONS=-c default_transaction_read_only=on）')
+  throw new Error('比对脚本数据库连接未进入只读模式')
 }
 const adapter = createPayloadSupplyAdapter()
 const asOf = new Date().toISOString()
@@ -55,3 +59,4 @@ try {
 } finally {
   await payload.db.destroy?.()
 }
+process.exit(0)
