@@ -1101,6 +1101,20 @@ export async function getPlatformHomepageStats(
   const perCity = await Promise.all(
     citySlugs.map(async (slug) => {
       const ctx = createSearchContext(slug, undefined, 'lease')
+      if (adapter.findEffectiveBuildingIdentities) {
+        const [buildings, areas] = await Promise.all([
+          adapter.findEffectiveBuildingIdentities(ctx),
+          adapter.findEffectiveBusinessAreas(ctx),
+        ])
+        const aggregates = await adapter.aggregateEffectiveSupplyByBuildings(
+          buildings.map(building => building.id), ctx,
+        )
+        return {
+          listings: [...aggregates.values()].reduce((sum, aggregate) => sum + aggregate.count, 0),
+          buildings: buildings.filter(building => mapBuildingSummary(building) !== null).length,
+          businessAreas: areas.length,
+        }
+      }
       const [rows, buildings, areas] = await Promise.all([
         // OPT-068：跨城汇总只要三个数，走扫描而不是全量文档拉取。
         scanListings(EMPTY_LISTING_INPUT, ctx, adapter),

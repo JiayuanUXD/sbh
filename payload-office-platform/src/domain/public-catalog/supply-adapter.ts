@@ -183,6 +183,9 @@ export interface SupplyAdapter {
     limit?: number,
   ): Promise<readonly Building[]>;
 
+  /** 平台首页计数专用：完整枚举公开楼盘，只读取标识及公开资格字段。 */
+  findEffectiveBuildingIdentities?(ctx: SearchContext): Promise<readonly Building[]>;
+
   /** 返回一页有效公开楼盘（用于 sitemap 等有界全量枚举）。 */
   findEffectiveBuildingsPage(
     ctx: SearchContext,
@@ -697,6 +700,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     ctx: SearchContext,
     options: Readonly<{ page: number; limit: number }>,
     stablePagination: boolean,
+    identitiesOnly = false,
   ): Promise<EffectiveBuildingPage> {
     const payload = await getPayload();
     const page = Math.max(1, Math.floor(options.page));
@@ -707,12 +711,15 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         ...getPublicBuildingWhere(),
         "city.slug": { equals: ctx.city },
       } as unknown as Where,
-      depth: 2,
+      depth: identitiesOnly ? 1 : 2,
       limit,
       page,
       sort: stablePagination ? ["-updatedAt", "id"] : "-updatedAt",
-      select: BUILDING_SUMMARY_SELECT,
-      populate: BUILDING_SUMMARY_POPULATE,
+      select: identitiesOnly ? {
+        slug: true, name: true, status: true, operationalStatus: true,
+        deletedAt: true, city: true, district: true,
+      } : BUILDING_SUMMARY_SELECT,
+      populate: identitiesOnly ? ROUTE_CITY_POPULATE : BUILDING_SUMMARY_POPULATE,
     });
     return {
       docs: (result.docs as Building[]).filter((building) =>
@@ -737,6 +744,21 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       },
       "区域",
     );
+  }
+
+  async function findAllPublicBuildings(ctx: SearchContext, identitiesOnly = false): Promise<readonly Building[]> {
+    const docs: Building[] = [];
+    const pageSize = identitiesOnly ? 500 : 200;
+    let page = 1;
+    while (true) {
+      const result = await findPublicBuildingsPage(ctx, { page, limit: pageSize }, true, identitiesOnly);
+      docs.push(...result.docs);
+      if (!result.hasNextPage) return docs;
+      // 触顶或缺页时显式失败，不能把部分结果当作完整目录。
+      if (page * pageSize >= 250_000) throw new Error("公开楼盘目录超过安全枚举上限");
+      if (result.nextPage !== page + 1) throw new Error("公开楼盘目录分页未连续推进");
+      page = result.nextPage;
+    }
   }
 
   /** 仅枚举 ID；Payload 的 include select 自动保留 id，空选择不加载展示字段。 */
@@ -1392,32 +1414,15 @@ GROUP BY l.building_id
           .docs;
       }
 
-      const docs: Building[] = [];
-      let page = 1;
-      const pageSize = 200;
-      const maximumCandidates = 250_000;
-      while (true) {
-        const result = await findPublicBuildingsPage(
-          ctx,
-          { page, limit: pageSize },
-          true,
-        );
-        docs.push(...result.docs);
-        if (!result.hasNextPage) return docs;
-        // 公开目录不允许无界扫库，也不允许在触顶时伪装成“全部”。
-        // 超过安全上限就显式失败，由路由返回可重试的服务错误。
-        if (page * pageSize >= maximumCandidates) {
-          throw new Error("公开楼盘目录超过安全枚举上限");
-        }
-        if (result.nextPage == null || result.nextPage !== page + 1) {
-          throw new Error("公开楼盘目录分页未连续推进");
-        }
-        page = result.nextPage;
-      }
+      return findAllPublicBuildings(ctx);
     },
 
     async findEffectiveBuildingsPage(ctx, options) {
       return findPublicBuildingsPage(ctx, options, true);
+    },
+
+    async findEffectiveBuildingIdentities(ctx) {
+      return findAllPublicBuildings(ctx, true);
     },
 
     async findFeaturedBuildings(ctx, limit = 8) {

@@ -6,7 +6,7 @@
  *
  * 设计依据：.superpowers/sdd/2026-08-20-homepage-apple-redesign/task-4-brief.md
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { getPlatformHomepageStats } from '@/domain/public-catalog/facade'
 import {
   makeArea,
@@ -16,6 +16,22 @@ import {
 } from './helpers/opt035-fixtures'
 
 describe('getPlatformHomepageStats', () => {
+  it('生产计数路径复用有效供给聚合，不扫描完整房源或楼盘展示字段', async () => {
+    const fullScan = vi.fn(async () => { throw new Error('不应全量扫描') })
+    const aggregate = vi.fn(async () => new Map([['11', { area: 100, count: 57500 }]]))
+    const adapter = makeHomepageAdapter({
+      findEffectiveListings: fullScan,
+      findEffectiveBuildings: fullScan,
+      findEffectiveBuildingIdentities: async () => [makeBuilding({ id: 11 })],
+      aggregateEffectiveSupplyByBuildings: aggregate,
+      findEffectiveBusinessAreas: async () => [makeArea({ id: 21 })],
+    })
+    const stats = await getPlatformHomepageStats(['shanghai'], adapter)
+    expect(stats).toEqual({ listings: 57500, buildings: 1, businessAreas: 1 })
+    expect(aggregate).toHaveBeenCalledWith([11], expect.objectContaining({ city: 'shanghai', businessType: 'lease' }))
+    expect(fullScan).not.toHaveBeenCalled()
+  })
+
   it('跨城汇总各城计数之和', async () => {
     const adapter = makeHomepageAdapter({
       // 每城返回相同集合：2 房源 / 1 楼盘 / 1 商圈

@@ -88,6 +88,32 @@ describe("Payload public catalog supply adapter", () => {
     payloadState.findByID.mockReset();
   });
 
+  it("首页统计完整分页读取资格标识，不展开媒体或摘要", async () => {
+    payloadState.find.mockImplementation(async (params) => ({
+      docs: [building(Number(params.page))],
+      hasNextPage: params.page === 1,
+      nextPage: params.page === 1 ? 2 : null,
+      totalPages: 2,
+    }));
+    const adapter = createPayloadSupplyAdapter();
+    const docs = await adapter.findEffectiveBuildingIdentities!(createSearchContext("shanghai"));
+    expect(docs.map(doc => doc.id)).toEqual([1, 2]);
+    for (const [query] of payloadState.find.mock.calls) {
+      expect(query).toMatchObject({ collection: "buildings", depth: 1, limit: 500 });
+      expect(query.select).toEqual({ slug: true, name: true, status: true,
+        operationalStatus: true, deletedAt: true, city: true, district: true });
+      expect(query.populate).toEqual({ locations: { name: true, slug: true, type: true, status: true } });
+      expect(query.where).toMatchObject({ "city.slug": { equals: "shanghai" },
+        "city.status": { equals: "active" }, "district.status": { equals: "active" } });
+    }
+  });
+
+  it("首页统计缺页时拒绝返回部分楼盘", async () => {
+    payloadState.find.mockResolvedValue({ docs: [building(1)], hasNextPage: true, nextPage: 3, totalPages: 3 });
+    await expect(createPayloadSupplyAdapter().findEffectiveBuildingIdentities!(createSearchContext("shanghai")))
+      .rejects.toThrow("公开楼盘目录分页未连续推进");
+  });
+
   // OPT-034：精筛不再批量查 listing-merchant-relations，商户直接读已展开的
   // listing.merchant（depth 由粗筛查询保证）。用例改为断言这一点——mock 里干脆
   // 不接 listing-merchant-relations 分支，一旦精筛又悄悄查关系表就会直接抛错。
