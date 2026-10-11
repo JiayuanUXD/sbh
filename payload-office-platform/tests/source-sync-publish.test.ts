@@ -124,9 +124,18 @@ describe('采集发布分段', () => {
       expect.objectContaining({
         collection: 'listings',
         data: { version: 1 },
+        depth: 0,
         overrideAccess: false,
       }),
     )
+    expect(f.find).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      select: { version: true, building: true, merchant: true },
+      populate: {
+        buildings: { status: true, operationalStatus: true, deletedAt: true, city: true, district: true },
+        locations: { status: true },
+        merchants: { status: true, qualificationStatus: true, qualificationExpiresAt: true, serviceCities: true },
+      },
+    }))
     expect(io.commit).toHaveBeenCalledOnce()
   })
   it('停用楼盘与缺失商户均 fail closed', async () => {
