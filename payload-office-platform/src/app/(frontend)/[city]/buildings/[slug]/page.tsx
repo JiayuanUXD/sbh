@@ -45,8 +45,11 @@ export default async function CityBuildingDetailPage({ params, searchParams }: P
   const loaded = await loadIdentity(resolved)
   if (!loaded.city || !loaded.identity || loaded.city.serviceStatus !== 'live') notFound()
   const supplyInput: BuildingSupplyInput = parseBuildingSupplySearchParams(await searchParams)
+  const supplyCurrentSearch = buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()
   const [{ building, supply }, relatedBuildings, serviceSchedule] = await Promise.all([
-    getBuildingDetail(resolved.slug, createSearchContext(loaded.city.slug), supplyInput),
+    supplyCurrentSearch === ''
+      ? getCachedBuildingDetail(loaded.city.slug, resolved.slug)
+      : getBuildingDetail(resolved.slug, createSearchContext(loaded.city.slug), supplyInput),
     getCachedRelatedBuildings(loaded.city.slug, resolved.slug),
     getServiceSchedule(),
   ])
@@ -57,5 +60,5 @@ export default async function CityBuildingDetailPage({ params, searchParams }: P
   // OPT-053：合规声明来自「站点设置」。与 layout 那次读取在同一请求内由
   // unstable_cache 去重，不多打一次库；缺省时各子组件用自己的字面量兜底。
   const siteSettings = await getCachedSiteSettings()
-  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} /><BuildingDetailLayout disclaimers={{ price: siteSettings.priceDisclaimer, image: siteSettings.imageDisclaimer }} specVisibility={siteSettings.detailSpecFields.building} building={building} supply={supply} relatedBuildings={relatedBuildings} serviceSchedule={serviceSchedule} pois={pois} mapEnabled={building.coordinates != null && hasAmapJsKey()} citySlug={citySlug} supplyCurrentSearch={buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()} /></>
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} /><BuildingDetailLayout disclaimers={{ price: siteSettings.priceDisclaimer, image: siteSettings.imageDisclaimer }} specVisibility={siteSettings.detailSpecFields.building} building={building} supply={supply} relatedBuildings={relatedBuildings} serviceSchedule={serviceSchedule} pois={pois} mapEnabled={building.coordinates != null && hasAmapJsKey()} citySlug={citySlug} supplyCurrentSearch={supplyCurrentSearch} /></>
 }

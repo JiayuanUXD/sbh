@@ -97,6 +97,7 @@ describe('rankDetailRecommendations', () => {
       async scanEffectiveListingsPage() {
         return { rows: rowsFromListings([candidateListing]), nextPage: null }
       },
+      findRecommendationCandidates: undefined,
       async findEffectiveListingsByIds(ids: readonly number[]) {
         return ids.includes(candidateListing.id) ? [candidateListing] : []
       },

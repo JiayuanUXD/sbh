@@ -58,9 +58,12 @@ export default async function BuildingDetailPage({
     redirect(`/${identity.citySlug}/buildings/${encodeURIComponent(identity.slug)}`)
   }
   const supplyInput: BuildingSupplyInput = parseBuildingSupplySearchParams(await searchParams)
+  const supplyCurrentSearch = buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()
   const ctx = createSearchContext(siteConfig.defaultCity)
   const [{ building, supply }, relatedBuildings, serviceSchedule] = await Promise.all([
-    getBuildingDetail(slug, ctx, supplyInput),
+    supplyCurrentSearch === ''
+      ? getCachedBuildingDetail(siteConfig.defaultCity, slug)
+      : getBuildingDetail(slug, ctx, supplyInput),
     getCachedRelatedBuildings(siteConfig.defaultCity, slug),
     getServiceSchedule(),
   ])
@@ -89,7 +92,7 @@ export default async function BuildingDetailPage({
         serviceSchedule={serviceSchedule}
         pois={pois}
         mapEnabled={mapEnabled}
-        supplyCurrentSearch={buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()}
+        supplyCurrentSearch={supplyCurrentSearch}
       />
     </>
   )

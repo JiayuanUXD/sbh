@@ -57,9 +57,15 @@ import {
   rowsFromListings,
   type ListingScanRow,
 } from "./listing-scan";
+import type { RecommendationCandidate } from "@/domain/recommendation/detail-recommendations";
 import type { BuildingsSelect, ListingsSelect } from "@/payload-types";
 import { EFFECTIVE_SUPPLY_AGGREGATE_FROM } from "./effective-supply-sql";
-import { buildListingPageQuery, buildListingFacetsQuery } from "./listing-query-sql";
+import {
+  buildListingPageQuery,
+  buildListingFacetsQuery,
+  buildRecommendationCandidatesQuery,
+  type RecommendationScope,
+} from "./listing-query-sql";
 import { buildPagination } from "./stable-sort";
 import type { ListingPageSelection, ScanFacets } from "./listing-scan";
 import { PUBLIC_BUILDING_METADATA_SQL, buildBuildingPageQuery,
@@ -92,6 +98,11 @@ export interface SupplyAdapter {
   findListingPage?(input: ListingSearchInput, ctx: SearchContext): Promise<ListingPageSelection>;
   /** 与目录同谓词的筛选计数，不返回全量候选。 */
   findListingFacets?(input: ListingSearchInput, ctx: SearchContext): Promise<ScanFacets>;
+  /** 详情页推荐候选：按商圈 / 行政区 / 同楼盘局部范围直接在库内读取紧凑候选，不扫描全城。 */
+  findRecommendationCandidates?(
+    scope: RecommendationScope,
+    ctx: SearchContext,
+  ): Promise<readonly RecommendationCandidate[]>;
   /** 首页聚合计数及附近候选，只读取 ID / 坐标，不展开完整供给集合。 */
   findHomepageListingAggregate?(
     buildingIds: readonly number[] | null, ctx: SearchContext, includeNearby: boolean,
@@ -470,6 +481,7 @@ const BUILDING_SUMMARY_SELECT = {
   operationalStatus: true,
   deletedAt: true,
   updatedAt: true,
+  recommendedOrder: true,
   city: true,
   district: true,
   businessDistrict: true,
@@ -497,6 +509,34 @@ const BUILDING_SUMMARY_POPULATE = {
     focalX: true,
     focalY: true,
   },
+} satisfies PopulateType;
+
+/** 房源卡片与楼内房源列表只消费卡片字段；避免回捞整套画廊、楼盘画廊与富文本详情。 */
+const LISTING_CARD_SELECT = {
+  slug: true,
+  title: true,
+  listingType: true,
+  businessType: true,
+  area: true,
+  floor: true,
+  seats: true,
+  decorationStatus: true,
+  availableFrom: true,
+  isFeatured: true,
+  updatedAt: true,
+  price: true,
+  rent: true,
+  rentUnit: true,
+  coverImage: true,
+  highlights: true,
+  building: true,
+  merchant: true,
+} satisfies ListingsSelect<true>;
+
+const LISTING_CARD_POPULATE = {
+  buildings: BUILDING_SUMMARY_SELECT,
+  ...BUILDING_SUMMARY_POPULATE,
+  merchants: LISTING_SCAN_POPULATE.merchants,
 } satisfies PopulateType;
 
 const ROUTE_CITY_POPULATE = {
@@ -982,6 +1022,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       where,
       limit: 1,
       depth: 3,
+      pagination: false,
     });
     const kept = await fineFilter(
       result.docs as unknown as Record<string, unknown>[],
@@ -1134,11 +1175,15 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     findEffectiveBuildingsByIds: hydrateBuildingIds,
     async findHomepageBuildingOverview(ctx, visibleAreaSlugs) {
       const rows = await readBuildingMetadata(ctx);
+      const count = rows.length;
       const visible = new Set(visibleAreaSlugs);
       const areas = new Map<string, { slug: string; names: string[]; candidates: number[]; index: number }>();
-      let count = 0;
-      for (const row of rows) {
-        count++;
+      // PUBLIC_BUILDING_METADATA_SQL 已按 updated_at DESC, id ASC 稳定排序；
+      // 稳定 sort 叠加 recommended_order 升序后与 sortForDistrictCards 口径一致（OPT-093）。
+      const sortedRows = [...rows].sort(
+        (a, b) => (a.recommended_order ?? 0) - (b.recommended_order ?? 0),
+      );
+      for (const row of sortedRows) {
         if (!row.area_slug || !visible.has(row.area_slug)) continue;
         const entry = areas.get(row.area_slug) ?? { slug: row.area_slug, names: [], candidates: [], index: 0 };
         if (entry.names.length < 4) entry.names.push(row.name);
@@ -1182,6 +1227,43 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         throw new Error("目录筛选查询返回无效计数");
       }
       return facets;
+    },
+    async findRecommendationCandidates(scope, ctx) {
+      const query = buildRecommendationCandidatesQuery(scope, ctx);
+      if (!query) return [];
+      const payload = await getPayload();
+      const result = await payload.db.pool.query<{
+        id: number;
+        listing_type: string | null;
+        business_type: string | null;
+        area: number | null;
+        price_amount: number | null;
+        price_unit: string | null;
+        district_id: number | null;
+        business_district_id: number | null;
+      }>(query.text, query.values);
+      return result.rows.map((row) => {
+        if (!Number.isSafeInteger(row.id)) {
+          throw new Error("推荐候选查询返回无效 ID");
+        }
+        const area = typeof row.area === "number" && Number.isFinite(row.area) ? row.area : null;
+        const priceAmount =
+          typeof row.price_amount === "number" && Number.isFinite(row.price_amount)
+            ? row.price_amount
+            : null;
+        return {
+          id: row.id,
+          listingType: typeof row.listing_type === "string" ? row.listing_type : "",
+          businessType: row.business_type === "sale" ? "sale" : "lease",
+          area,
+          priceAmount,
+          priceUnit: typeof row.price_unit === "string" ? row.price_unit : null,
+          buildingDistrictId: Number.isSafeInteger(row.district_id) ? row.district_id : null,
+          buildingBusinessDistrictId: Number.isSafeInteger(row.business_district_id)
+            ? row.business_district_id
+            : null,
+        };
+      });
     },
     async findHomepageListingAggregate(buildingIds, ctx, includeNearby) {
       if (buildingIds?.length === 0) return { count: 0, types: [], nearbyCandidates: [] };
@@ -1249,6 +1331,9 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         where,
         depth: 2,
         limit: ids.length,
+        pagination: false,
+        select: LISTING_CARD_SELECT,
+        populate: LISTING_CARD_POPULATE,
         sort: "id",
       });
       return fineFilter(
@@ -1338,6 +1423,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         where,
         limit: 1,
         depth: 2,
+        pagination: false,
         select: { slug: true, building: true },
         populate: LISTING_ROUTE_IDENTITY_POPULATE,
       });
@@ -1346,10 +1432,28 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       const candidateCity = mapBuildingCity(candidate.building);
       if (!candidateCity) return null;
 
-      const effective = await findEffectiveListingBySlugInCity(
-        candidate.slug,
-        createSearchContext(candidateCity.citySlug, asOf),
+      const checkWhere: Where = {
+        ...where,
+        "building.city.slug": { equals: candidateCity.citySlug },
+        slug: { equals: candidate.slug },
+      };
+      const checkResult = await payload.find({
+        collection: "listings",
+        where: checkWhere,
+        limit: 1,
+        depth: 2,
+        pagination: false,
+        select: { slug: true, building: true, merchant: true },
+        populate: {
+          ...LISTING_ROUTE_IDENTITY_POPULATE,
+          merchants: LISTING_SCAN_POPULATE.merchants,
+        },
+      });
+      const kept = await fineFilter(
+        checkResult.docs as unknown as Record<string, unknown>[],
+        asOf,
       );
+      const effective = kept[0] ?? null;
       if (!effective) return null;
       const effectiveCity = mapBuildingCity(effective.building);
       if (!effectiveCity || effectiveCity.citySlug !== candidateCity.citySlug)
@@ -1368,6 +1472,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         },
         limit: 1,
         depth: 2,
+        pagination: false,
       });
       return (result.docs[0] as Building | undefined) ?? null;
     },
@@ -1383,6 +1488,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         where,
         limit: 1,
         depth: 1,
+        pagination: false,
         select: { slug: true, city: true },
         populate: ROUTE_CITY_POPULATE,
       });
@@ -1461,6 +1567,9 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
         collection: "listings",
         where: { id: { in: ids } } as Where,
         depth: 2,
+        pagination: false,
+        select: LISTING_CARD_SELECT,
+        populate: LISTING_CARD_POPULATE,
         sort: "id",
         limit: ids.length,
       });
@@ -1573,6 +1682,9 @@ GROUP BY l.building_id
           ...locality,
         } as unknown as Where,
         depth: 1,
+        pagination: false,
+        select: BUILDING_SUMMARY_SELECT,
+        populate: BUILDING_SUMMARY_POPULATE,
         limit: RELATED_BUILDING_CANDIDATE_LIMIT,
         sort: "id",
       });
@@ -1611,6 +1723,9 @@ GROUP BY l.building_id
           "city.slug": { equals: ctx.city },
         } as unknown as Where,
         depth: 2, // coverImage + district 一次填充；缺封面楼盘由卡片降级占位
+        pagination: false,
+        select: BUILDING_SUMMARY_SELECT,
+        populate: BUILDING_SUMMARY_POPULATE,
         limit: Math.min(Math.max(limit, 1), 50),
         sort: ["recommendedOrder", "-updatedAt"],
       });
@@ -1622,13 +1737,19 @@ GROUP BY l.building_id
     async findFeaturedListings(ctx, limit = 6) {
       const payload = await getPayload();
       const asOf = new Date(ctx.asOf);
-      const where = await baseEffectiveWhere(ctx);
-      where.isFeatured = { equals: true };
+      const baseWhere = await baseEffectiveWhere(ctx);
+      const featuredWhere: Where = {
+        ...baseWhere,
+        isFeatured: { equals: true },
+      };
       const result = await payload.find({
         collection: "listings",
-        where: where as Where,
+        where: featuredWhere,
         limit: Math.max(limit * 5, limit),
         depth: 2,
+        pagination: false,
+        select: LISTING_CARD_SELECT,
+        populate: LISTING_CARD_POPULATE,
         sort: "-updatedAt",
       });
       let kept = await fineFilter(
@@ -1639,13 +1760,20 @@ GROUP BY l.building_id
       // 保证首页「推荐房源」两行布局在精选数据稀缺时仍能填满，不出现稀疏单行。
       if (kept.length < limit) {
         const excludeIds = kept.map((l) => l.id);
-        const fallbackWhere = await baseEffectiveWhere(ctx);
-        if (excludeIds.length) fallbackWhere.id = { not_in: excludeIds };
+        const existingNotIn =
+          (baseWhere.id as { not_in?: unknown[] } | undefined)?.not_in ?? [];
+        const combinedExclude = [...existingNotIn, ...excludeIds];
+        const fallbackWhere: Where = combinedExclude.length
+          ? { ...baseWhere, id: { not_in: combinedExclude } }
+          : { ...baseWhere };
         const more = await payload.find({
           collection: "listings",
-          where: fallbackWhere as Where,
+          where: fallbackWhere,
           limit: (limit - kept.length) * 3,
           depth: 2,
+          pagination: false,
+          select: LISTING_CARD_SELECT,
+          populate: LISTING_CARD_POPULATE,
           sort: "-updatedAt",
         });
         const moreKept = await fineFilter(
@@ -1670,6 +1798,7 @@ GROUP BY l.building_id
           frontendVisible: { equals: true },
           "parent.slug": { equals: ctx.city },
         },
+        pagination: false,
         limit: 100,
         sort: "sortOrder",
       });
@@ -1687,6 +1816,7 @@ GROUP BY l.building_id
           // 商圈的 parent 是行政区，城市在再上一层，故按祖父的 slug 过滤
           "parent.parent.slug": { equals: ctx.city },
         },
+        pagination: false,
         limit: 200,
         sort: "sortOrder",
         depth: 1, // coverImage 一次填充；缺封面的商圈由 facade 回退到楼盘封面
@@ -1704,6 +1834,7 @@ GROUP BY l.building_id
           status: { equals: "active" },
         } as unknown as Where,
         depth: 0,
+        pagination: false,
         limit: 1,
       });
       const doc = result.docs[0] as
@@ -1726,6 +1857,7 @@ GROUP BY l.building_id
           deletedAt: { exists: false }, // articles 启用 trash，排除逻辑删除
         },
         depth: 2, // coverImage 填充为 Media
+        pagination: false,
         limit: Math.min(Math.max(limit, 1), 50),
         sort: "-publishedAt",
       });
@@ -1742,6 +1874,7 @@ GROUP BY l.building_id
           isHomeFeatured: { equals: true },
         },
         depth: 2,
+        pagination: false,
         limit: 1,
         sort: "-publishedAt",
       });

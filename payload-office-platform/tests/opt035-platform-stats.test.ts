@@ -16,7 +16,43 @@ import {
 } from './helpers/opt035-fixtures'
 
 describe('getPlatformHomepageStats', () => {
-  it('生产计数路径复用有效供给聚合，不扫描完整房源或楼盘展示字段', async () => {
+  it('生产计数路径优先使用首页 SQL 概览与聚合，无需先拉全城楼盘 ID 数组', async () => {
+    const fullScan = vi.fn(async () => { throw new Error('不应全量扫描') })
+    const findIdentities = vi.fn(async () => { throw new Error('不应拉取楼盘 ID 列表') })
+    const findHomepageListingAggregate = vi.fn(async () => ({
+      count: 57500,
+      types: [],
+      nearbyCandidates: [],
+    }))
+    const findHomepageBuildingOverview = vi.fn(async () => ({
+      count: 1564,
+      representatives: [],
+      areas: [],
+    }))
+    const adapter = makeHomepageAdapter({
+      findEffectiveListings: fullScan,
+      findEffectiveBuildings: fullScan,
+      findEffectiveBuildingIdentities: findIdentities,
+      findHomepageListingAggregate,
+      findHomepageBuildingOverview,
+      findEffectiveBusinessAreas: async () => [makeArea({ id: 21 })],
+    })
+    const stats = await getPlatformHomepageStats(['shanghai'], adapter)
+    expect(stats).toEqual({ listings: 57500, buildings: 1564, businessAreas: 1 })
+    expect(findHomepageListingAggregate).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({ city: 'shanghai', businessType: 'lease' }),
+      false,
+    )
+    expect(findHomepageBuildingOverview).toHaveBeenCalledWith(
+      expect.objectContaining({ city: 'shanghai', businessType: 'lease' }),
+      [],
+    )
+    expect(findIdentities).not.toHaveBeenCalled()
+    expect(fullScan).not.toHaveBeenCalled()
+  })
+
+  it('当首页 SQL 概览缺席时回退到有效供给聚合，不扫描完整房源或楼盘展示字段', async () => {
     const fullScan = vi.fn(async () => { throw new Error('不应全量扫描') })
     const aggregate = vi.fn(async () => new Map([['11', { area: 100, count: 57500 }]]))
     const adapter = makeHomepageAdapter({

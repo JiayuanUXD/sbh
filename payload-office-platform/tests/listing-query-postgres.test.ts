@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
-import { buildListingFacetsQuery, buildListingPageQuery } from '@/domain/public-catalog/listing-query-sql'
-import { applyMemoryFilters, computeFacets, rowFromListing, selectListingPage } from '@/domain/public-catalog/listing-scan'
+import { buildListingFacetsQuery, buildListingPageQuery, buildRecommendationCandidatesQuery } from '@/domain/public-catalog/listing-query-sql'
+import { applyMemoryFilters, computeFacets, rowFromListing, rowToCandidate, selectListingPage } from '@/domain/public-catalog/listing-scan'
 import { parseSearchInput } from '@/domain/public-catalog/facade'
 import { createSearchContext } from '@/domain/public-catalog/types'
 import { DISPLAY_UNIT_BY_PERIOD_BASIS } from '@/domain/public-catalog/mappers'
@@ -125,4 +125,33 @@ describe.skipIf(!databaseAvailable)('数据库目录与扫描语义逐项一致'
         .toEqual(computeFacets(applyMemoryFilters(rows, input)))
     })
   }
+
+  it('推荐候选 SQL 在商圈、行政区、楼盘三档范围下与扫描行字段严格一致且排除全部失效供给', async () => {
+    const ctx = createSearchContext('shanghai', asOf, 'lease')
+    const expected = docs
+      .filter(doc => doc.businessType === 'lease')
+      .flatMap(doc => { const row = rowFromListing(doc); return row ? [rowToCandidate(row)] : [] })
+      .map(c => ({
+        id: c.id,
+        listing_type: c.listingType,
+        business_type: c.businessType,
+        area: c.area,
+        price_amount: c.priceAmount,
+        price_unit: c.priceUnit,
+        district_id: c.buildingDistrictId,
+        business_district_id: c.buildingBusinessDistrictId,
+      }))
+
+    for (const scope of [
+      { businessDistrictId: area.id, districtId: district.id, buildingId: 1 },
+      { businessDistrictId: null, districtId: district.id, buildingId: 1 },
+      { businessDistrictId: null, districtId: null, buildingId: 1 },
+    ]) {
+      const q = buildRecommendationCandidatesQuery(scope, ctx)!
+      const actual = (await client.query(q.text, q.values)).rows
+      expect(actual).toEqual(expected)
+    }
+  })
 })
+
+

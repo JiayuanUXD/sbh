@@ -7,6 +7,7 @@ import type { SearchContext } from './types';
 export type BuildingMetadataRow = {
   id: number; slug: string; name: string; city: unknown;
   area_slug: string | null; cover_id: number | null;
+  recommended_order?: number | null;
 };
 export type BuildingSqlResult = Omit<BuildingFilteredResult, 'docs' | 'groups' | 'page' | 'totalPages'> & {
   supply: readonly Readonly<{ id: number; count: number; area: number | null }>[];
@@ -18,7 +19,8 @@ export const PUBLIC_BUILDING_METADATA_SQL = `
 SELECT b.id, b.slug, b.name,
   jsonb_build_object('id', city.id, 'slug', city.slug, 'name', city.name,
     'type', city.type, 'status', city.status) AS city,
-  ba.slug AS area_slug, media.id AS cover_id
+  ba.slug AS area_slug, media.id AS cover_id,
+  COALESCE(b.recommended_order, 0)::int AS recommended_order
 FROM buildings b
 JOIN locations city ON city.id = b.city_id
 JOIN locations dist ON dist.id = b.district_id
