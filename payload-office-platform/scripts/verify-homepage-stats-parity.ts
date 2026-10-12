@@ -51,7 +51,7 @@ try {
     const uniqueListings = new Set(rows.map(row => row.id)).size
     const scanMs = Date.now() - scanStart
     const summaryStart = Date.now()
-    const summary = await adapter.findHomepageListingAggregate!(buildings.map(building => building.id), ctx, true)
+    const summary = await adapter.findHomepageListingAggregate!(null, ctx, true)
     const expectedTypes = new Map<string | null, { type: string | null; count: number; coverId: number }>()
     for (const row of rows) {
       const existing = expectedTypes.get(row.listingType)

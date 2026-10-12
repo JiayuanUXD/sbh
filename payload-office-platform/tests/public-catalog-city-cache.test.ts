@@ -39,6 +39,8 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
+    getListingPageSelection: vi.fn(async (input) => ({ ids: [1], pagination: actual.buildPagination(1, input.page, input.pageSize), filteredByRentUnit: false })),
+    getSearchFacets: vi.fn(async () => ({ districts: [], businessAreas: [], listingTypes: [], buildingForms: [], rentUnits: [], totalDocs: 1 })),
     // OPT-068：列表与 facet 走同一份扫描；扫描行必须是真实形状（选页要读 id）
     scanListingsPage: vi.fn(async (_input, ctx) => ({ rows: [{
       id: 1,
@@ -217,8 +219,9 @@ describe('per-city public catalog caches', () => {
       'sitemap-buildings-page',
       'building-detail',
       'building-by-slug',
-      // OPT-068：列表页缓存拆成「扫描行」+「本页卡片」两级；facet 共用扫描，不再单独建缓存
-      'listing-scan-page',
+      // SQL 分页、facet 与本页卡片都必须保留城市键和供给失效标签。
+      'listing-selection',
+      'listing-facets',
       'listing-cards',
       'listing-district-options',
     ]

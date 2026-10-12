@@ -454,10 +454,18 @@ export async function searchListings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<ListingSearchResult> {
-  const rows = await scanListings(input, ctx, adapter)
-  const page = selectListingPage(rows, input)
+  const page = await getListingPageSelection(input, ctx, adapter)
   const cards = await hydrateListingCards(page.ids, ctx, adapter)
   return assembleListingSearchResult(page, cards, input)
+}
+
+export async function getListingPageSelection(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+) {
+  if (adapter.findListingPage) return adapter.findListingPage(input, ctx)
+  return selectListingPage(await scanListings(input, ctx, adapter), input)
 }
 
 /**
@@ -916,6 +924,12 @@ export async function getHomepage(
     }
   }
 
+  const cityCenterQuery = adapter.findCityCenter
+    ? measure('city-center', () => adapter.findCityCenter!(ctx)) : Promise.resolve(null)
+  const aggregateQuery = adapter.findHomepageListingAggregate
+    ? cityCenterQuery.then(center => measure('listing-aggregate', () =>
+      adapter.findHomepageListingAggregate!(null, ctx, center != null))) : Promise.resolve(null)
+
   const [
     featuredListings,
     districts,
@@ -926,6 +940,7 @@ export async function getHomepage(
     allEffectiveRows,
     allEffectiveBuildings,
     cityCenter,
+    listingAggregate,
   ] = await Promise.all([
     measure('featured-listings', () => adapter.findFeaturedListings(ctx, featuredLimit)),
     measure('districts', () => adapter.findEffectiveDistricts(ctx)),
@@ -940,12 +955,9 @@ export async function getHomepage(
       : options.scan ? options.scan(EMPTY_LISTING_INPUT, ctx) : scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
     // 口径与楼盘列表页 searchBuildings 一致（分页读取完整公开楼盘）
     measure('buildings', () => adapter.findEffectiveBuildings(ctx)),
-    adapter.findCityCenter ? measure('city-center', () => adapter.findCityCenter!(ctx)) : Promise.resolve(null),
+    cityCenterQuery,
+    aggregateQuery,
   ])
-
-  const listingAggregate = adapter.findHomepageListingAggregate
-    ? await measure('listing-aggregate', () => adapter.findHomepageListingAggregate!(allEffectiveBuildings.map(building => building.id), ctx, cityCenter != null))
-    : null
 
   const cards = mapListingsToCards(featuredListings)
   const lastEffAt = buildLastEffAtLookup(featuredListings)
@@ -1293,6 +1305,7 @@ export async function getSearchFacets(
     page: 1,
     sort: 'recommended',
   }
+  if (adapter.findListingFacets) return adapter.findListingFacets(facetInput, ctx)
   // OPT-068：与列表共用同一份扫描（同城同频道下区域 / 类型 / 价格的任意组合都
   // 命中同一条扫描缓存），聚合在 listing-scan.ts#computeFacets，与列表口径逐字段等价。
   const rows = await scanListings(facetInput, ctx, adapter)

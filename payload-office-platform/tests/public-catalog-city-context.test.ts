@@ -6,7 +6,7 @@ const payloadState = vi.hoisted(() => ({
   query: vi.fn<(
     text: string,
     values: unknown[],
-  ) => Promise<{ rows: Array<{ id?: number; bid?: number; total?: number; cnt?: number }> }>>(),
+  ) => Promise<{ rows: Record<string, unknown>[] }>>(),
 }))
 
 vi.mock('payload', () => ({
@@ -242,6 +242,15 @@ describe('required city in public catalog context', () => {
       return building ?? {}
     })
     payloadState.query.mockImplementation(async (text, values) => {
+      if (text.includes('AS ids')) {
+        const ids = listings.filter(candidate => (candidate.building as { city: { slug: string } }).city.slug === values[2]).map(candidate => Number(candidate.id));
+        return { rows: [{ ids, total: ids.length, filtered: false }] }
+      }
+      if (text.includes('AS facets')) {
+        return { rows: [{ facets: { districts: [{ id: 2021, slug: 'hangzhou-district', name: 'hangzhou district', count: 1 }],
+          businessAreas: [], listingTypes: [{ value: 'traditional-office', count: 1 }], buildingForms: [],
+          rentUnits: [{ value: 'rmb-month', count: 1 }], totalDocs: 1 } }] }
+      }
       if (text.includes('SUM(l.area)')) {
         const requestedIds = Array.isArray(values[1]) ? values[1].map(Number) : []
         const requestedCity = typeof values[2] === 'string' ? values[2] : null

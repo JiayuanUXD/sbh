@@ -6,13 +6,11 @@ import {
   LISTINGS_CATEGORY_TAG,
   SITEMAP_TAG,
   buildBuildingCanonicalParams,
-  applyMemoryFilters,
   collectListingScanPages,
   assembleListingSearchResult,
   buildCanonicalSearchParams,
   buildListingScanCacheKey,
   buildingsCityTag,
-  computeFacets,
   createSearchContext,
   facetsTag,
   hydrateListingCards,
@@ -23,6 +21,8 @@ import {
   getHomepage,
   getListingBySlug,
   getListingDistrictOptions,
+  getListingPageSelection,
+  getSearchFacets,
   getPageBySlug,
   getPlatformHomepageStats,
   getRelatedBuildings,
@@ -32,12 +32,10 @@ import {
   listPublishedPages,
   listingsCityTag,
   omitListingSearchDimensions,
-  parseSearchInput,
   scanListingsPage,
   searchBuildingsFiltered,
   searchBuildingsPage,
   searchListingsSitemapPage,
-  selectListingPage,
   toScanInput,
   type BuildingSearchInput,
   type HomepageStats,
@@ -517,7 +515,7 @@ export function getCachedListingCardsByIds(
 }
 
 /**
- * 房源列表查询：扫描（缓存）→ 内存选页 → 本页卡片（缓存）。
+ * 房源列表查询：数据库选页（缓存）→ 本页卡片（缓存）。
  *
  * @param businessType 频道；缺省 lease 保持既有调用不变。出售频道传 sale——
  *   两者共用同一套查询与组件，只是作用域不同。
@@ -529,11 +527,27 @@ export async function getCachedSearchListings(
   businessType: SearchChannel = 'lease',
 ) {
   void canonicalQuery
-  const rows = await getCachedListingScan(citySlug, input, businessType)
-  const page = selectListingPage(rows, input)
+  const city = canonicalCitySlug(citySlug)
+  const query = `${buildCanonicalSearchParams(input).toString()}|pageSize=${input.pageSize}`
+  const page = await coalesceInFlight(`listing-selection ${city} ${businessType} ${query}`,
+    () => getCachedListingSelectionByCity(city)(input, businessType))
   const cards = await getCachedListingCardsByIds(citySlug, page.ids)
   return assembleListingSearchResult(page, cards, input)
 }
+
+const getCachedListingSelectionByCity = memoizeByCity((citySlug) => unstable_cache(
+  async (input: ListingSearchInput, businessType: SearchChannel) => getListingPageSelection(
+    input, createSearchContext(citySlug, undefined, businessType)),
+  ['listing-selection', citySlug, 'sql-v1'],
+  { tags: listingCacheTags(citySlug), revalidate: 300 },
+))
+
+const getCachedListingFacetsByCity = memoizeByCity((citySlug) => unstable_cache(
+  async (input: ListingSearchInput, businessType: SearchChannel) => getSearchFacets(
+    input, createSearchContext(citySlug, undefined, businessType)),
+  ['listing-facets', citySlug, 'sql-v1'],
+  { tags: [...listingCacheTags(citySlug), facetsTag(citySlug)], revalidate: 300 },
+))
 
 const getCachedListingDistrictOptionsByCity = memoizeByCity((citySlug) =>
   unstable_cache(
@@ -552,8 +566,7 @@ export function getCachedListingDistrictOptions(citySlug: string) {
 }
 
 /**
- * facet：与列表共用同一份扫描缓存（频道进键，租售计数不串），聚合是纯内存操作，
- * 不再单独建一条 `unstable_cache`——facet 本身已经不是「昂贵查询」了。
+ * facet：数据库独立聚合；城市、频道与筛选条件共同进键，剥离维度后合并冷查询。
  */
 export async function getCachedSearchFacets(
   citySlug: string,
@@ -562,8 +575,11 @@ export async function getCachedSearchFacets(
   businessType: SearchChannel = 'lease',
 ): Promise<SearchFacets> {
   void canonicalQuery
-  const rows = await getCachedListingScan(citySlug, input, businessType)
-  return computeFacets(applyMemoryFilters(rows, { ...input, page: 1, sort: 'recommended' }))
+  const city = canonicalCitySlug(citySlug)
+  const facetInput = { ...input, page: 1, sort: 'recommended' as const }
+  const query = buildCanonicalSearchParams(facetInput).toString()
+  return coalesceInFlight(`listing-facets ${city} ${businessType} ${query}`,
+    () => getCachedListingFacetsByCity(city)(facetInput, businessType))
 }
 
 /**

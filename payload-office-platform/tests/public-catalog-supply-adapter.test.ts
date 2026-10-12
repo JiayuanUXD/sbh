@@ -91,6 +91,33 @@ describe("Payload public catalog supply adapter", () => {
     payloadState.query.mockReset();
   });
 
+  it("目录在数据库分页，返回全量计数而不枚举展示文档", async () => {
+    const adapter = createPayloadSupplyAdapter();
+    expect(adapter.findListingPage).toBeTypeOf("function");
+    payloadState.query.mockResolvedValue({ rows: [{ ids: [57500], total: 57545, filtered: false }] });
+    const input = { ...parseSearchInput(new URLSearchParams()), page: 2398 };
+    const page = await adapter.findListingPage!(input, createSearchContext("shanghai", undefined, "lease"));
+    expect(page.ids).toEqual([57500]);
+    expect(page.pagination.totalDocs).toBe(57545);
+    expect(page.pagination.totalPages).toBe(2398);
+    expect(payloadState.find).not.toHaveBeenCalled();
+    const [sql, values] = payloadState.query.mock.calls[0];
+    expect(sql).toContain("LIMIT");
+    expect(sql).toContain("OFFSET");
+    expect(values).toContain(2397 * 24);
+    expect(sql).toContain("m.qualification_expires_at >= $1");
+    expect(sql).toContain("rep.supply_paused = true");
+  });
+
+  it("数据库 facet 返回分组计数，不扫描全部候选", async () => {
+    const adapter = createPayloadSupplyAdapter();
+    expect(adapter.findListingFacets).toBeTypeOf("function");
+    const facets = { districts: [], businessAreas: [], listingTypes: [], buildingForms: [], rentUnits: [], totalDocs: 57545 };
+    payloadState.query.mockResolvedValue({ rows: [{ facets }] });
+    expect(await adapter.findListingFacets!(parseSearchInput(new URLSearchParams()), createSearchContext("shanghai"))).toEqual(facets);
+    expect(payloadState.find).not.toHaveBeenCalled();
+  });
+
   it("首页按类型聚合并只读取附近候选 ID / 坐标，与楼盘聚合使用同一资格", async () => {
     payloadState.query.mockResolvedValueOnce({ rows: [
       { type: "traditional-office", cnt: 57544, cover_id: 1 },

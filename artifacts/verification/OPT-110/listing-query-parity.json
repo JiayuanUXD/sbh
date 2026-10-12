@@ -1,0 +1,1733 @@
+{
+  "at": "2026-10-12T00:51:00.799Z",
+  "results": [
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "",
+      "matches": true,
+      "total": 57545,
+      "pageMs": 528,
+      "facetsMs": 948
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 57545,
+      "pageMs": 2010,
+      "facetsMs": 4516
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "page=2",
+      "matches": true,
+      "total": 57545,
+      "pageMs": 1262,
+      "facetsMs": 946
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "page=2398",
+      "matches": true,
+      "total": 57545,
+      "pageMs": 622,
+      "facetsMs": 911
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "page=999999",
+      "matches": true,
+      "total": 57545,
+      "pageMs": 637,
+      "facetsMs": 2326
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 45,
+      "pageMs": 1078,
+      "facetsMs": 891
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 57500,
+      "pageMs": 424,
+      "facetsMs": 2313
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 332,
+      "facetsMs": 186
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "district=changning",
+      "matches": true,
+      "total": 15605,
+      "pageMs": 105,
+      "facetsMs": 119
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "businessArea=xianxiaxincun",
+      "matches": true,
+      "total": 3913,
+      "pageMs": 37,
+      "facetsMs": 43
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "priceUnit=rmb-sqm-day",
+      "matches": true,
+      "total": 57500,
+      "pageMs": 434,
+      "facetsMs": 746
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "priceUnit=rmb-sqm-day&sort=price-asc",
+      "matches": true,
+      "total": 57500,
+      "pageMs": 671,
+      "facetsMs": 778
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "priceUnit=rmb-sqm-day&sort=price-desc",
+      "matches": true,
+      "total": 57500,
+      "pageMs": 1820,
+      "facetsMs": 1744
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "priceUnit=rmb-sqm-day&priceMin=0&priceMax=100",
+      "matches": true,
+      "total": 57500,
+      "pageMs": 2042,
+      "facetsMs": 1555
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "priceUnit=rmb-seat-month",
+      "matches": true,
+      "total": 45,
+      "pageMs": 399,
+      "facetsMs": 609
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "priceUnit=rmb-seat-month&sort=price-asc",
+      "matches": true,
+      "total": 45,
+      "pageMs": 305,
+      "facetsMs": 312
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "priceUnit=rmb-seat-month&sort=price-desc",
+      "matches": true,
+      "total": 45,
+      "pageMs": 957,
+      "facetsMs": 909
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "priceUnit=rmb-seat-month&priceMin=0&priceMax=100",
+      "matches": true,
+      "total": 0,
+      "pageMs": 1685,
+      "facetsMs": 1297
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 29414,
+      "pageMs": 1351,
+      "facetsMs": 1437
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 6333,
+      "pageMs": 1477,
+      "facetsMs": 710
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "q=静安",
+      "matches": true,
+      "total": 5262,
+      "pageMs": 177,
+      "facetsMs": 271
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 1116,
+      "pageMs": 313,
+      "facetsMs": 618
+    },
+    {
+      "city": "shanghai",
+      "channel": "lease",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 57545,
+      "pageMs": 1537,
+      "facetsMs": 1827
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 87,
+      "facetsMs": 19
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 86,
+      "facetsMs": 19
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 27,
+      "facetsMs": 16
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 30,
+      "facetsMs": 22
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 21
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 15
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 15
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 86,
+      "facetsMs": 100
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 92,
+      "facetsMs": 110
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 98,
+      "facetsMs": 34
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 118,
+      "facetsMs": 88
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 122,
+      "facetsMs": 83
+    },
+    {
+      "city": "hangzhou",
+      "channel": "lease",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 31
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 20,
+      "facetsMs": 63
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 17,
+      "facetsMs": 97
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 85,
+      "facetsMs": 23
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 78,
+      "facetsMs": 96
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 23,
+      "facetsMs": 82
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 17,
+      "facetsMs": 81
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 100,
+      "facetsMs": 110
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 89,
+      "facetsMs": 97
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 92,
+      "facetsMs": 14
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 84,
+      "facetsMs": 107
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 22,
+      "facetsMs": 22
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 86,
+      "facetsMs": 95
+    },
+    {
+      "city": "suzhou",
+      "channel": "lease",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 94,
+      "facetsMs": 105
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 101,
+      "facetsMs": 99
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 93,
+      "facetsMs": 21
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 88,
+      "facetsMs": 98
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 99,
+      "facetsMs": 21
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 81,
+      "facetsMs": 98
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 17,
+      "facetsMs": 87
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 80
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 26,
+      "facetsMs": 37
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 26
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 17,
+      "facetsMs": 30
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 35,
+      "facetsMs": 33
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 42,
+      "facetsMs": 26
+    },
+    {
+      "city": "ningbo",
+      "channel": "lease",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 22,
+      "facetsMs": 42
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 35,
+      "facetsMs": 24
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 18,
+      "facetsMs": 32
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 18,
+      "facetsMs": 27
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 35,
+      "facetsMs": 17
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 20,
+      "facetsMs": 19
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 20
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 31,
+      "facetsMs": 22
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 16
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 33,
+      "facetsMs": 28
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 32,
+      "facetsMs": 34
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 21
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 26
+    },
+    {
+      "city": "jiaxing",
+      "channel": "lease",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 17
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 28
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 23,
+      "facetsMs": 25
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 57,
+      "facetsMs": 26
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 16
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 16
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 19
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 29,
+      "facetsMs": 15
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 21
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 20,
+      "facetsMs": 15
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 23,
+      "facetsMs": 16
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 87,
+      "facetsMs": 21
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 37,
+      "facetsMs": 24
+    },
+    {
+      "city": "nanjing",
+      "channel": "lease",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 26,
+      "facetsMs": 23
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 18,
+      "facetsMs": 13
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 32,
+      "facetsMs": 20
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 21
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 14,
+      "facetsMs": 13
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 23
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 24,
+      "facetsMs": 16
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 22,
+      "facetsMs": 14
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 13,
+      "facetsMs": 24
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 17
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 20
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 24,
+      "facetsMs": 67
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 46,
+      "facetsMs": 20
+    },
+    {
+      "city": "hefei",
+      "channel": "lease",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 26,
+      "facetsMs": 18
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 98,
+      "facetsMs": 84
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 93,
+      "facetsMs": 196
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 276,
+      "facetsMs": 118
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 173,
+      "facetsMs": 215
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 403,
+      "facetsMs": 396
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 378,
+      "facetsMs": 412
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 506,
+      "facetsMs": 511
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 394,
+      "facetsMs": 576
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 425,
+      "facetsMs": 382
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 421,
+      "facetsMs": 294
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 179,
+      "facetsMs": 139
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 136,
+      "facetsMs": 177
+    },
+    {
+      "city": "shanghai",
+      "channel": "sale",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 199,
+      "facetsMs": 122
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 34
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 49,
+      "facetsMs": 29
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 17
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 31,
+      "facetsMs": 20
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 31,
+      "facetsMs": 25
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 41,
+      "facetsMs": 22
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 50,
+      "facetsMs": 17
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 24,
+      "facetsMs": 18
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 16
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 29,
+      "facetsMs": 22
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 24
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 28,
+      "facetsMs": 27
+    },
+    {
+      "city": "hangzhou",
+      "channel": "sale",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 20
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 20,
+      "facetsMs": 27
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 18,
+      "facetsMs": 23
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 17
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 32
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 30,
+      "facetsMs": 39
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 20
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 20,
+      "facetsMs": 19
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 17
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 22,
+      "facetsMs": 26
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 38,
+      "facetsMs": 27
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 41
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 97
+    },
+    {
+      "city": "suzhou",
+      "channel": "sale",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 77,
+      "facetsMs": 28
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 37,
+      "facetsMs": 17
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 26,
+      "facetsMs": 22
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 17,
+      "facetsMs": 14
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 18
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 28,
+      "facetsMs": 22
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 60,
+      "facetsMs": 25
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 33,
+      "facetsMs": 42
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 20,
+      "facetsMs": 83
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 90,
+      "facetsMs": 25
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 31,
+      "facetsMs": 39
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 95,
+      "facetsMs": 19
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 62,
+      "facetsMs": 23
+    },
+    {
+      "city": "ningbo",
+      "channel": "sale",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 14
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 49,
+      "facetsMs": 17
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 18,
+      "facetsMs": 65
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 27,
+      "facetsMs": 17
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 52
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 73
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 20,
+      "facetsMs": 19
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 19,
+      "facetsMs": 48
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 98,
+      "facetsMs": 20
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 91,
+      "facetsMs": 18
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 18,
+      "facetsMs": 19
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 34,
+      "facetsMs": 22
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 25,
+      "facetsMs": 22
+    },
+    {
+      "city": "jiaxing",
+      "channel": "sale",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 62,
+      "facetsMs": 46
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 22,
+      "facetsMs": 27
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 14
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 16
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 24
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 17,
+      "facetsMs": 18
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 14
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 29,
+      "facetsMs": 22
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 14
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 17,
+      "facetsMs": 19
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 24,
+      "facetsMs": 23
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 24,
+      "facetsMs": 24
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 17
+    },
+    {
+      "city": "nanjing",
+      "channel": "sale",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 32
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "",
+      "matches": true,
+      "total": 0,
+      "pageMs": 22,
+      "facetsMs": 46
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "sort=newest",
+      "matches": true,
+      "total": 0,
+      "pageMs": 14,
+      "facetsMs": 14
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "page=2",
+      "matches": true,
+      "total": 0,
+      "pageMs": 22,
+      "facetsMs": 25
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "page=1",
+      "matches": true,
+      "total": 0,
+      "pageMs": 17,
+      "facetsMs": 31
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "page=999999",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 12
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "type=coworking",
+      "matches": true,
+      "total": 0,
+      "pageMs": 16,
+      "facetsMs": 15
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "type=traditional-office",
+      "matches": true,
+      "total": 0,
+      "pageMs": 35,
+      "facetsMs": 16
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "form=detached",
+      "matches": true,
+      "total": 0,
+      "pageMs": 34,
+      "facetsMs": 16
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "areaMin=100&areaMax=300",
+      "matches": true,
+      "total": 0,
+      "pageMs": 21,
+      "facetsMs": 21
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "q=虹桥",
+      "matches": true,
+      "total": 0,
+      "pageMs": 15,
+      "facetsMs": 16
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "q=静安",
+      "matches": true,
+      "total": 0,
+      "pageMs": 22,
+      "facetsMs": 28
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "q=陆家嘴",
+      "matches": true,
+      "total": 0,
+      "pageMs": 18,
+      "facetsMs": 16
+    },
+    {
+      "city": "hefei",
+      "channel": "sale",
+      "query": "availableBefore=2026-12-01",
+      "matches": true,
+      "total": 0,
+      "pageMs": 27,
+      "facetsMs": 37
+    }
+  ]
+}

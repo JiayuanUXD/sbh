@@ -58,6 +58,10 @@ import {
   type ListingScanRow,
 } from "./listing-scan";
 import type { BuildingsSelect, ListingsSelect } from "@/payload-types";
+import { EFFECTIVE_SUPPLY_AGGREGATE_FROM } from "./effective-supply-sql";
+import { buildListingPageQuery, buildListingFacetsQuery } from "./listing-query-sql";
+import { buildPagination } from "./stable-sort";
+import type { ListingPageSelection, ScanFacets } from "./listing-scan";
 
 /**
  * 公开目录供给适配器契约
@@ -72,9 +76,13 @@ export type HomepageListingAggregate = Readonly<{
 }>;
 
 export interface SupplyAdapter {
+  /** 数据库端筛选、稳定排序与分页；只返回当前页 ID。 */
+  findListingPage?(input: ListingSearchInput, ctx: SearchContext): Promise<ListingPageSelection>;
+  /** 与目录同谓词的筛选计数，不返回全量候选。 */
+  findListingFacets?(input: ListingSearchInput, ctx: SearchContext): Promise<ScanFacets>;
   /** 首页聚合计数及附近候选，只读取 ID / 坐标，不展开完整供给集合。 */
   findHomepageListingAggregate?(
-    buildingIds: readonly number[], ctx: SearchContext, includeNearby: boolean,
+    buildingIds: readonly number[] | null, ctx: SearchContext, includeNearby: boolean,
   ): Promise<HomepageListingAggregate>;
   /** 按搜索条件返回有效房源文档（已过谓词，未排序、未分页） */
   findEffectiveListings(
@@ -391,38 +399,6 @@ export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000;
  * 每页 1000 个候选，精筛后独立缓存紧凑行，避免全城数据超过缓存单条 2MB 上限。
  */
 export const LISTING_SCAN_PAGE_SIZE = 1_000;
-
-// 首页与楼盘聚合共用同一 SQL 资格谓词；参数为 asOf、楼盘 ID、城市、租售频道。
-const EFFECTIVE_SUPPLY_AGGREGATE_FROM = `
-FROM listings l
-JOIN buildings b ON b.id = l.building_id
-JOIN locations city ON city.id = b.city_id
-JOIN locations dist ON dist.id = b.district_id
-JOIN merchants m ON m.id = l.merchant_id
-WHERE l.building_id = ANY($2)
-  AND l.deleted_at IS NULL
-  AND l.publication_status = 'published'
-  AND l.review_status = 'approved'
-  AND l.supply_visibility_hold = 'normal'
-  AND b.status = 'published'
-  AND b.operational_status = 'active'
-  AND b.deleted_at IS NULL
-  AND city.status = 'active'
-  AND city.slug = $3
-  AND dist.status = 'active'
-  AND ($4::text IS NULL OR l.business_type::text = $4::text)
-  AND m.status = 'active'
-  AND m.qualification_status = 'valid'
-  AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)
-  AND EXISTS (
-    SELECT 1 FROM merchants_rels mr
-    WHERE mr.parent_id = m.id AND mr.path = 'serviceCities' AND mr.locations_id = b.city_id
-  )
-  AND NOT EXISTS (
-    SELECT 1 FROM listing_reports rep
-    WHERE rep.target_listing_id = l.id AND rep.supply_paused = true
-  )
-`;
 
 /**
  * 扫描只取行模型（`listing-scan.ts#rowFromListing`）、精筛（`buildEffectiveSnapshot`
@@ -1088,8 +1064,28 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   }
 
   return {
+    async findListingPage(input, ctx) {
+      const payload = await getPayload();
+      const query = buildListingPageQuery(input, ctx);
+      const result = await payload.db.pool.query<{ ids: number[]; total: number; filtered: boolean }>(query.text, query.values);
+      const row = result.rows[0];
+      if (!row || !Number.isSafeInteger(Number(row.total)) || Number(row.total) < 0 || !Array.isArray(row.ids)) {
+        throw new Error("目录分页查询返回无效计数");
+      }
+      return { ids: row.ids, pagination: buildPagination(Number(row.total), input.page, input.pageSize), filteredByRentUnit: row.filtered };
+    },
+    async findListingFacets(input, ctx) {
+      const payload = await getPayload();
+      const query = buildListingFacetsQuery(input, ctx);
+      const result = await payload.db.pool.query<{ facets: ScanFacets }>(query.text, query.values);
+      const facets = result.rows[0]?.facets;
+      if (!facets || !Number.isSafeInteger(facets.totalDocs) || facets.totalDocs < 0) {
+        throw new Error("目录筛选查询返回无效计数");
+      }
+      return facets;
+    },
     async findHomepageListingAggregate(buildingIds, ctx, includeNearby) {
-      if (buildingIds.length === 0) return { count: 0, types: [], nearbyCandidates: [] };
+      if (buildingIds?.length === 0) return { count: 0, types: [], nearbyCandidates: [] };
       const payload = await getPayload();
       const pool = (payload.db as unknown as { pool: {
         query: (text: string, values: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>

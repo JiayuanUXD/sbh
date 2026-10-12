@@ -1,0 +1,142 @@
+[
+  {
+    "city": "shanghai",
+    "asOf": "2026-10-12T00:56:38.338Z",
+    "aggregated": {
+      "listings": 57545,
+      "buildings": 4448,
+      "businessAreas": 22
+    },
+    "scanned": {
+      "listings": 57545,
+      "buildings": 4448,
+      "businessAreas": 22
+    },
+    "uniqueListings": 57545,
+    "aggregateMs": 12260,
+    "scanMs": 59251,
+    "homepageAggregateMs": 8142,
+    "homepageAggregateCount": 57545,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "hangzhou",
+    "asOf": "2026-10-12T00:56:38.338Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 9,
+    "scanMs": 304,
+    "homepageAggregateMs": 90,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "suzhou",
+    "asOf": "2026-10-12T00:56:38.338Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 10,
+    "scanMs": 97,
+    "homepageAggregateMs": 24,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "ningbo",
+    "asOf": "2026-10-12T00:56:38.338Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 9,
+    "scanMs": 98,
+    "homepageAggregateMs": 60,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "jiaxing",
+    "asOf": "2026-10-12T00:56:38.338Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 10,
+    "scanMs": 100,
+    "homepageAggregateMs": 25,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "nanjing",
+    "asOf": "2026-10-12T00:56:38.338Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 10,
+    "scanMs": 101,
+    "homepageAggregateMs": 78,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  },
+  {
+    "city": "hefei",
+    "asOf": "2026-10-12T00:56:38.338Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 15,
+    "scanMs": 87,
+    "homepageAggregateMs": 20,
+    "homepageAggregateCount": 0,
+    "homepageTypesAndNearbyMatch": true
+  }
+]

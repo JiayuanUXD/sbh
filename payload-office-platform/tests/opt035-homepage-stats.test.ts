@@ -56,8 +56,26 @@ describe('getHomepage stats / typeSummaries / nearbyListings', () => {
     const home = await getHomepage(ctx, {}, adapter)
     expect(home.stats.listings).toBe(57545)
     expect(home.typeSummaries['traditional-office'].count).toBe(57545)
-    expect(aggregate).toHaveBeenCalledWith([10], ctx, true)
+    expect(aggregate).toHaveBeenCalledWith(null, ctx, true)
     expect(home.nearbyListings.map(row => row.id)).toEqual([2, 3])
+  })
+
+  it('城市房源聚合不等待完整楼盘扫描结束', async () => {
+    let release!: (value: ReturnType<typeof makeBuilding>[]) => void
+    const buildings = new Promise<ReturnType<typeof makeBuilding>[]>(resolve => { release = resolve })
+    const aggregate = vi.fn(async () => ({ count: 0, types: [], nearbyCandidates: [] }))
+    const adapter = makeHomepageAdapter({
+      findHomepageListingAggregate: aggregate,
+      findEffectiveBuildings: async () => buildings,
+      findCityCenter: async () => null,
+    })
+    const pending = getHomepage(ctx, {}, adapter)
+    try {
+      await vi.waitFor(() => expect(aggregate).toHaveBeenCalledWith(null, ctx, false))
+    } finally {
+      release([])
+      await pending
+    }
   })
 
   it('首页可复用已缓存的同口径扫描，不再次查询完整房源', async () => {

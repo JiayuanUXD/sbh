@@ -113,6 +113,7 @@ export {
   parseSearchInput,
   buildCanonical,
   searchListings,
+  getListingPageSelection,
   scanListings,
   scanListingsPage,
   hydrateListingCards,
