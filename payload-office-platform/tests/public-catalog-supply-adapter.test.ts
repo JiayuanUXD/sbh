@@ -652,6 +652,14 @@ describe("Payload public catalog supply adapter", () => {
     );
   });
 
+  it("楼盘摘要以 500 条分页读取，减少完整目录的串行往返", async () => {
+    payloadState.find.mockResolvedValue({ docs: [], hasNextPage: false, nextPage: null });
+    await createPayloadSupplyAdapter().findEffectiveBuildings(createSearchContext("shanghai"));
+    expect(payloadState.find).toHaveBeenCalledWith(expect.objectContaining({
+      collection: "buildings", limit: 500, page: 1,
+    }));
+  });
+
   it("楼盘分页游标重复时显式失败，不返回不完整目录", async () => {
     payloadState.find.mockResolvedValue({
       docs: [building(1)],
@@ -663,5 +671,49 @@ describe("Payload public catalog supply adapter", () => {
         createSearchContext("shanghai"),
       ),
     ).rejects.toThrow("公开楼盘目录分页未连续推进");
+  });
+
+  it("完整楼盘枚举最多四页并发，乱序完成仍按稳定页码拼接", async () => {
+    let active = 0;
+    let peak = 0;
+    const pending = new Map<number, () => void>();
+    payloadState.find.mockImplementation(async (params) => {
+      const page = Number(params.page);
+      if (page > 1) {
+        active++;
+        peak = Math.max(peak, active);
+        await new Promise<void>(resolve => pending.set(page, resolve));
+        active--;
+      }
+      return { docs: [makeBuilding({ id: page, slug: `building-${page}` })],
+        totalPages: 6, hasNextPage: page < 6, nextPage: page < 6 ? page + 1 : null };
+    });
+    const result = createPayloadSupplyAdapter().findEffectiveBuildings(createSearchContext("shanghai"));
+    await vi.waitFor(() => expect(pending.size).toBe(4));
+    for (const page of [5, 3, 4, 2]) pending.get(page)!();
+    await vi.waitFor(() => expect(pending.has(6)).toBe(true));
+    pending.get(6)!();
+    expect((await result).map(doc => doc.id)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(peak).toBe(4);
+  });
+
+  it("并发楼盘枚举发现页数变化时失败，不缓存不完整目录", async () => {
+    payloadState.find.mockImplementation(async (params) => ({
+      docs: [makeBuilding({ id: Number(params.page) })],
+      totalPages: params.page === 1 ? 3 : 2,
+      hasNextPage: params.page !== 3,
+      nextPage: Number(params.page) + 1,
+    }));
+    await expect(createPayloadSupplyAdapter().findEffectiveBuildings(createSearchContext("shanghai")))
+      .rejects.toThrow("公开楼盘目录分页未连续推进");
+  });
+
+  it("完整枚举发现跨页重复楼盘时失败", async () => {
+    payloadState.find.mockImplementation(async (params) => ({
+      docs: [makeBuilding({ id: 1 })], totalPages: 2,
+      hasNextPage: params.page === 1, nextPage: params.page === 1 ? 2 : null,
+    }));
+    await expect(createPayloadSupplyAdapter().findEffectiveBuildings(createSearchContext("shanghai")))
+      .rejects.toThrow("公开楼盘目录出现跨页重复");
   });
 });

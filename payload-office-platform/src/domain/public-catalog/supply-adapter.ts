@@ -811,15 +811,44 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
 
   async function findAllPublicBuildings(ctx: SearchContext, identitiesOnly = false): Promise<readonly Building[]> {
     const docs: Building[] = [];
-    const pageSize = identitiesOnly ? 500 : 200;
+    const seen = new Set<number>();
+    const append = (entries: readonly Building[]) => {
+      for (const entry of entries) {
+        if (seen.has(entry.id)) throw new Error("公开楼盘目录出现跨页重复");
+        seen.add(entry.id);
+        docs.push(entry);
+      }
+    };
+    const pageSize = 500;
     let page = 1;
     while (true) {
       const result = await findPublicBuildingsPage(ctx, { page, limit: pageSize }, true, identitiesOnly);
-      docs.push(...result.docs);
+      append(result.docs);
       if (!result.hasNextPage) return docs;
       // 触顶或缺页时显式失败，不能把部分结果当作完整目录。
       if (page * pageSize >= 250_000) throw new Error("公开楼盘目录超过安全枚举上限");
       if (result.nextPage !== page + 1) throw new Error("公开楼盘目录分页未连续推进");
+      if (page === 1 && typeof result.totalPages === "number"
+        && Number.isSafeInteger(result.totalPages) && result.totalPages > 1) {
+        const totalPages = result.totalPages;
+        if (totalPages * pageSize > 250_000) throw new Error("公开楼盘目录超过安全枚举上限");
+        // 页边界由首次计数限定；最多四页并发，结果仍按页码拼接并逐页校验。
+        for (let start = 2; start <= totalPages; start += 4) {
+          const pages = Array.from({ length: Math.min(4, totalPages - start + 1) }, (_, i) => start + i);
+          const batch = await Promise.all(pages.map(next =>
+            findPublicBuildingsPage(ctx, { page: next, limit: pageSize }, true, identitiesOnly)));
+          for (let i = 0; i < batch.length; i++) {
+            const next = pages[i];
+            const entry = batch[i];
+            if (entry.totalPages !== totalPages || entry.hasNextPage !== (next < totalPages)
+              || (entry.hasNextPage && entry.nextPage !== next + 1)) {
+              throw new Error("公开楼盘目录分页未连续推进");
+            }
+            append(entry.docs);
+          }
+        }
+        return docs;
+      }
       page = result.nextPage;
     }
   }
