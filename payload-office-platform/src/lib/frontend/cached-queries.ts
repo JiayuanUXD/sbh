@@ -198,7 +198,10 @@ const getCachedListingBySlugByCity = memoizeByCity((citySlug) =>
 
 export function getCachedListingBySlug(citySlug: string, slug: string) {
   const city = canonicalCitySlug(citySlug)
-  return getCachedListingBySlugByCity(city)(slug)
+  return coalesceInFlight(
+    ['listing-by-slug', city, slug].join(' '),
+    () => getCachedListingBySlugByCity(city)(slug),
+  )
 }
 
 const getCachedRelatedListingsByCity = memoizeByCity((citySlug) =>
@@ -390,7 +393,10 @@ const getCachedBuildingDetailByCity = memoizeByCity((citySlug) =>
 
 export function getCachedBuildingDetail(citySlug: string, slug: string) {
   const city = canonicalCitySlug(citySlug)
-  return getCachedBuildingDetailByCity(city)(slug)
+  return coalesceInFlight(
+    ['building-detail', city, slug].join(' '),
+    () => getCachedBuildingDetailByCity(city)(slug),
+  )
 }
 
 const getCachedBuildingBySlugByCity = memoizeByCity((citySlug) =>

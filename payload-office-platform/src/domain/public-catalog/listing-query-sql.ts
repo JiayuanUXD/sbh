@@ -101,3 +101,44 @@ export function buildListingFacetsQuery(input: ListingSearchInput, ctx: SearchCo
       JOIN listings_building_form f ON f.parent_id = r.id GROUP BY f.value) groups), '[]'::json)
   ) AS facets`, values: query.values }
 }
+
+export const RECOMMENDATION_CANDIDATE_LIMIT = 1_000
+
+export type RecommendationScope = Readonly<{
+  businessDistrictId: number | null
+  districtId: number | null
+  buildingId: number | null
+}>
+
+/** 详情页推荐候选查询：按商圈 → 行政区 → 同楼盘的优先级在库内直接限定局部范围，避免扫描全城。 */
+export function buildRecommendationCandidatesQuery(
+  scope: RecommendationScope,
+  ctx: SearchContext,
+): Query | null {
+  const select = `SELECT l.id, COALESCE(l.listing_type::text, '') AS listing_type,
+    CASE WHEN l.business_type::text = 'sale' THEN 'sale' ELSE 'lease' END AS business_type,
+    l.area::float8 AS area, (${amount})::float8 AS price_amount, (${unit}) AS price_unit,
+    b.district_id AS district_id, b.business_district_id AS business_district_id
+    ${effectiveSupplySqlFrom()}`
+  if (scope.businessDistrictId != null) {
+    return {
+      text: `${select} AND b.business_district_id = $5 ORDER BY l.id ASC LIMIT ${RECOMMENDATION_CANDIDATE_LIMIT}`,
+      values: [ctx.asOf, null, ctx.city, ctx.businessType ?? null, scope.businessDistrictId],
+    }
+  }
+  if (scope.districtId != null) {
+    return {
+      text: `${select} AND b.district_id = $5 ORDER BY l.id ASC LIMIT ${RECOMMENDATION_CANDIDATE_LIMIT}`,
+      values: [ctx.asOf, null, ctx.city, ctx.businessType ?? null, scope.districtId],
+    }
+  }
+  if (scope.buildingId != null) {
+    return {
+      text: `${select} ORDER BY l.id ASC LIMIT ${RECOMMENDATION_CANDIDATE_LIMIT}`,
+      values: [ctx.asOf, [scope.buildingId], ctx.city, ctx.businessType ?? null],
+    }
+  }
+  return null
+}
+
+

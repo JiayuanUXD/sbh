@@ -1161,6 +1161,18 @@ export async function getPlatformHomepageStats(
   const perCity = await Promise.all(
     citySlugs.map(async (slug) => {
       const ctx = createSearchContext(slug, undefined, 'lease')
+      if (adapter.findHomepageListingAggregate && adapter.findHomepageBuildingOverview) {
+        const [listingAggregate, buildingOverview, areas] = await Promise.all([
+          adapter.findHomepageListingAggregate(null, ctx, false),
+          adapter.findHomepageBuildingOverview(ctx, []),
+          adapter.findEffectiveBusinessAreas(ctx),
+        ])
+        return {
+          listings: listingAggregate.count,
+          buildings: buildingOverview.count,
+          businessAreas: areas.length,
+        }
+      }
       if (adapter.findEffectiveBuildingIdentities) {
         const [buildings, areas] = await Promise.all([
           adapter.findEffectiveBuildingIdentities(ctx),
@@ -1518,29 +1530,39 @@ export async function getDetailRecommendations(
     buildingBusinessDistrictId: extractBuildingBusinessDistrictId(currentListing),
   }
 
-  // 3. 候选房源：从整城扫描里按 商圈 → 行政区 → 同楼盘 的优先级挑
-  //    （OPT-068 前是各打一次不分页 depth 2 全量查询，详情页冷开 3–4 秒的主因）
-  const scan = options.scan ?? ((input, scanCtx) => scanListings(input, scanCtx, adapter))
-  const rows = await scan(EMPTY_LISTING_INPUT, ctx)
+  // 3. 候选房源：按 商圈 → 行政区 → 同楼盘 的优先级挑候选。
+  //    生产适配器直接按局部范围执行单条 SQL；未实现该方法的测试替身回退到扫描过滤。
   const businessDistrictId = context.buildingBusinessDistrictId
   const districtId = context.buildingDistrictId
   const currentBuildingId = toBuildingId(currentListing.building)
-
-  let candidateRows: readonly ListingScanRow[]
-  if (businessDistrictId != null) {
-    candidateRows = rows.filter((row) => row.businessDistrictId === businessDistrictId)
-  } else if (districtId != null) {
-    candidateRows = rows.filter((row) => row.district?.id === districtId)
-  } else if (currentBuildingId != null) {
-    candidateRows = rows.filter((row) => row.buildingId === currentBuildingId)
-  } else {
+  if (businessDistrictId == null && districtId == null && currentBuildingId == null) {
     return []
   }
 
-  if (candidateRows.length === 0) return []
+  let candidates: readonly RecommendationCandidate[]
+  if (adapter.findRecommendationCandidates) {
+    candidates = await adapter.findRecommendationCandidates(
+      { businessDistrictId, districtId, buildingId: currentBuildingId },
+      ctx,
+    )
+  } else {
+    const scan = options.scan ?? ((input, scanCtx) => scanListings(input, scanCtx, adapter))
+    const rows = await scan(EMPTY_LISTING_INPUT, ctx)
+    let candidateRows: readonly ListingScanRow[]
+    if (businessDistrictId != null) {
+      candidateRows = rows.filter((row) => row.businessDistrictId === businessDistrictId)
+    } else if (districtId != null) {
+      candidateRows = rows.filter((row) => row.district?.id === districtId)
+    } else {
+      candidateRows = rows.filter((row) => row.buildingId === currentBuildingId)
+    }
+    candidates = candidateRows.map(rowToCandidate)
+  }
 
-  // 4. 转为候选对象并打分（打分本身排除当前房源）
-  const ranked = rankDetailRecommendations(candidateRows.map(rowToCandidate), context)
+  if (candidates.length === 0) return []
+
+  // 4. 对候选对象打分（打分本身排除当前房源）
+  const ranked = rankDetailRecommendations(candidates, context)
 
   // 5. 限制数量
   const limit = options.limit ?? 6

@@ -126,6 +126,56 @@ describe("Payload public catalog supply adapter", () => {
     expect(payloadState.find).toHaveBeenCalledTimes(2);
   });
 
+  it("首页楼盘概览按 recommended_order 升序选出代表楼盘名与封面候选", async () => {
+    const area = makeArea({ id: 21, slug: "visible" });
+    payloadState.query.mockResolvedValue({ rows: [
+      { id: 1, slug: "building-1", name: "普通新更新楼盘", city: CITY_SHANGHAI, area_slug: area.slug, cover_id: 9001, recommended_order: 10 },
+      { id: 2, slug: "building-2", name: "置顶推荐楼盘", city: CITY_SHANGHAI, area_slug: area.slug, cover_id: 9002, recommended_order: 1 },
+    ] });
+    payloadState.find.mockResolvedValueOnce({ docs: [makeBuilding({ id: 2, name: "置顶推荐楼盘", businessDistrict: area })] });
+    const result = await createPayloadSupplyAdapter().findHomepageBuildingOverview!(createSearchContext("shanghai"), [area.slug]);
+    expect(result.areas[0].names).toEqual(["置顶推荐楼盘", "普通新更新楼盘"]);
+    expect(result.representatives.map(doc => doc.id)).toEqual([2]);
+    expect(payloadState.find).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      collection: "buildings", where: expect.objectContaining({ id: { in: [2] } }),
+    }));
+  });
+
+  it("详情页局部推荐候选按商圈或行政区直接执行 SQL，不扫描整城房源", async () => {
+    const adapter = createPayloadSupplyAdapter();
+    expect(adapter.findRecommendationCandidates).toBeTypeOf("function");
+    payloadState.query.mockResolvedValue({ rows: [{
+      id: 1010,
+      listing_type: "traditional-office",
+      business_type: "lease",
+      area: 160,
+      price_amount: 8.5,
+      price_unit: "rmb-sqm-day",
+      district_id: 1,
+      business_district_id: 10,
+    }] });
+    const ctx = createSearchContext("shanghai", new Date("2026-10-12T00:00:00Z"), "lease");
+    const candidates = await adapter.findRecommendationCandidates!(
+      { businessDistrictId: 10, districtId: 1, buildingId: 99 },
+      ctx,
+    );
+    expect(candidates).toEqual([{
+      id: 1010,
+      listingType: "traditional-office",
+      businessType: "lease",
+      area: 160,
+      priceAmount: 8.5,
+      priceUnit: "rmb-sqm-day",
+      buildingDistrictId: 1,
+      buildingBusinessDistrictId: 10,
+    }]);
+    expect(payloadState.find).not.toHaveBeenCalled();
+    const [sql, values] = payloadState.query.mock.calls[0];
+    expect(sql).toContain("b.business_district_id = $5");
+    expect(sql).toContain("LIMIT 1000");
+    expect(values).toEqual([ctx.asOf, null, "shanghai", "lease", 10]);
+  });
+
   it("目录在数据库分页，返回全量计数而不枚举展示文档", async () => {
     const adapter = createPayloadSupplyAdapter();
     expect(adapter.findListingPage).toBeTypeOf("function");

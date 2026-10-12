@@ -35,7 +35,7 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
       CREATE TEMP TABLE media (id int, url text) ON COMMIT DROP;
       CREATE TEMP TABLE buildings (id int, slug text, name text, city_id int, district_id int,
         business_district_id int, nearest_metro_id int, cover_image_id int, grade text,
-        completion_date timestamptz, updated_at timestamptz, status text, operational_status text, deleted_at timestamptz) ON COMMIT DROP;
+        completion_date timestamptz, updated_at timestamptz, recommended_order int DEFAULT 0, status text, operational_status text, deleted_at timestamptz) ON COMMIT DROP;
       CREATE TEMP TABLE merchants (id int, status text, qualification_status text, qualification_expires_at timestamptz) ON COMMIT DROP;
       CREATE TEMP TABLE merchants_rels (parent_id int, path text, locations_id int) ON COMMIT DROP;
       CREATE TEMP TABLE listing_reports (target_listing_id int, supply_paused boolean) ON COMMIT DROP;
@@ -57,7 +57,7 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
         businessDistrict: area, nearestMetro: metro, grade: grades[id % grades.length], completionDate: date,
         updatedAt: `2026-10-01T00:00:0${id % 3}.000Z` })
       documents.push(doc)
-      await client.query(`INSERT INTO buildings VALUES ($1,$2,$3,100,$4,$5,$6,9001,$7,$8,$9,'published','active',NULL)`,
+      await client.query(`INSERT INTO buildings VALUES ($1,$2,$3,100,$4,$5,$6,9001,$7,$8,$9,0,'published','active',NULL)`,
         [id, doc.slug, doc.name, district.id, area.id, metro?.id ?? null, doc.grade, date, doc.updatedAt])
       for (const business of ['lease', 'sale']) {
         const count = business === 'lease' ? id % 4 : id % 5 === 0 ? 1 : 0
@@ -76,7 +76,7 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
       (99993,1,1,'lease',99999,'published','approved','normal',NULL);
       INSERT INTO listing_reports VALUES (99993,true);
       INSERT INTO buildings SELECT 999,'invalid','未公开楼盘',city_id,district_id,business_district_id,
-        nearest_metro_id,cover_image_id,grade,completion_date,updated_at,'draft',operational_status,NULL FROM buildings WHERE id=1;`)
+        nearest_metro_id,cover_image_id,grade,completion_date,updated_at,recommended_order,'draft',operational_status,NULL FROM buildings WHERE id=1;`)
     // 原适配器先由 PG numeric 求和，再在 JS 将 float8 结果收敛到两位；不是逐行 JS 累加。
     for (const business of ['lease', 'sale']) {
       const rows = (await client.query(`SELECT building_id, SUM(area)::float8 AS area, COUNT(*)::int AS count
@@ -114,5 +114,7 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
     const rows = (await client.query(PUBLIC_BUILDING_METADATA_SQL, ['shanghai'])).rows
     expect(rows.map(row => row.id)).toEqual(documents.map(doc => doc.id))
     expect(rows.every(row => mapBuildingCity({ city: row.city })?.citySlug === CITY_SHANGHAI.slug)).toBe(true)
+    expect(rows.every(row => row.recommended_order === 0)).toBe(true)
   })
 })
+
