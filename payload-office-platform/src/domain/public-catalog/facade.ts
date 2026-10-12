@@ -902,6 +902,19 @@ export async function getHomepage(
   // 精选楼盘只取展示张数。此前过取 30 栋是给商圈卡挑封面用的，OPT-093 后商圈卡
   // 改从 allEffectiveBuildings 聚合，这里不必再多取。
   const articlesLimit = options.latestArticlesLimit ?? 5
+  const measure = async <T>(query: string, run: () => Promise<T>): Promise<T> => {
+    const start = Date.now()
+    if (process.env.NODE_ENV === 'production') {
+      console.info('[public-catalog:home]', JSON.stringify({ city: ctx.city, query, phase: 'start' }))
+    }
+    try {
+      return await run()
+    } finally {
+      if (process.env.NODE_ENV === 'production') {
+        console.info('[public-catalog:home]', JSON.stringify({ city: ctx.city, query, phase: 'end', elapsedMs: Date.now() - start }))
+      }
+    }
+  }
 
   const [
     featuredListings,
@@ -914,24 +927,24 @@ export async function getHomepage(
     allEffectiveBuildings,
     cityCenter,
   ] = await Promise.all([
-    adapter.findFeaturedListings(ctx, featuredLimit),
-    adapter.findEffectiveDistricts(ctx),
-    adapter.findEffectiveBusinessAreas(ctx),
-    adapter.findFeaturedBuildings(ctx, featuredLimit),
+    measure('featured-listings', () => adapter.findFeaturedListings(ctx, featuredLimit)),
+    measure('districts', () => adapter.findEffectiveDistricts(ctx)),
+    measure('business-areas', () => adapter.findEffectiveBusinessAreas(ctx)),
+    measure('featured-buildings', () => adapter.findFeaturedBuildings(ctx, featuredLimit)),
     // 多取一条：首页右侧列表要去掉左侧主推那篇（HomeNewsList），主推落在最新
     // 五条里时靠第六条补位，否则右侧只剩四条。
-    adapter.findLatestArticles(articlesLimit + 1),
-    adapter.findHomeFeaturedArticle ? adapter.findHomeFeaturedArticle() : Promise.resolve(null),
+    measure('latest-articles', () => adapter.findLatestArticles(articlesLimit + 1)),
+    adapter.findHomeFeaturedArticle ? measure('featured-article', () => adapter.findHomeFeaturedArticle!()) : Promise.resolve(null),
     // 生产适配器直接聚合计数和类型，只读取附近候选的紧凑坐标；旧适配器保留扫描回退。
     adapter.findHomepageListingAggregate ? Promise.resolve([])
       : options.scan ? options.scan(EMPTY_LISTING_INPUT, ctx) : scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
     // 口径与楼盘列表页 searchBuildings 一致（分页读取完整公开楼盘）
-    adapter.findEffectiveBuildings(ctx),
-    adapter.findCityCenter ? adapter.findCityCenter(ctx) : Promise.resolve(null),
+    measure('buildings', () => adapter.findEffectiveBuildings(ctx)),
+    adapter.findCityCenter ? measure('city-center', () => adapter.findCityCenter!(ctx)) : Promise.resolve(null),
   ])
 
   const listingAggregate = adapter.findHomepageListingAggregate
-    ? await adapter.findHomepageListingAggregate(allEffectiveBuildings.map(building => building.id), ctx, cityCenter != null)
+    ? await measure('listing-aggregate', () => adapter.findHomepageListingAggregate!(allEffectiveBuildings.map(building => building.id), ctx, cityCenter != null))
     : null
 
   const cards = mapListingsToCards(featuredListings)
@@ -950,11 +963,11 @@ export async function getHomepage(
     const vm = mapBuildingSummary(b)
     if (vm) buildingVMs.push(vm)
   }
-  const featuredBuildingSlice = await attachSupplyAggregates(
+  const featuredBuildingSlice = await measure('featured-building-aggregate', () => attachSupplyAggregates(
     buildingVMs.slice(0, featuredLimit),
     ctx,
     adapter,
-  )
+  ))
 
   // 商圈卡：按商圈（而非行政区）聚合。
   //
@@ -1060,7 +1073,7 @@ export async function getHomepage(
   const hydrateIds = [...new Set([...coverIds, ...nearbyRows.map((n) => n.row.id)])]
   const hydrateIdSet = new Set(hydrateIds)
   const hydrated = adapter.findEffectiveListingsByIds
-    ? await adapter.findEffectiveListingsByIds(hydrateIds, ctx)
+    ? await measure('listing-hydration', () => adapter.findEffectiveListingsByIds!(hydrateIds, ctx))
     : (await adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx)).filter((l) => hydrateIdSet.has(l.id))
   const hydratedById = new Map(hydrated.map((doc) => [doc.id, doc] as const))
 
