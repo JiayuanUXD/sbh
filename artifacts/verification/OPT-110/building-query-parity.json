@@ -1,0 +1,2569 @@
+{
+  "asOf": "2026-10-12T06:27:56.714Z",
+  "cases": [
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "",
+      "total": 4448,
+      "ids": [
+        570,
+        547,
+        9,
+        1052,
+        1055,
+        902,
+        828,
+        440,
+        176,
+        213,
+        822,
+        12,
+        815,
+        433,
+        145,
+        1042,
+        577,
+        13,
+        1030,
+        551,
+        540,
+        265,
+        648,
+        654
+      ],
+      "queryMs": 3847,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "page=2",
+      "total": 4448,
+      "ids": [
+        5,
+        266,
+        431,
+        562,
+        1056,
+        309,
+        786,
+        1049,
+        538,
+        318,
+        214,
+        4,
+        3,
+        111,
+        404,
+        549,
+        317,
+        220,
+        834,
+        1021,
+        420,
+        3844,
+        152,
+        802
+      ],
+      "queryMs": 616,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "page=186",
+      "total": 4448,
+      "ids": [
+        2623,
+        4486,
+        533,
+        319,
+        825,
+        2867,
+        3134,
+        3118
+      ],
+      "queryMs": 328,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "page=999999",
+      "total": 4448,
+      "ids": [
+        570,
+        547,
+        9,
+        1052,
+        1055,
+        902,
+        828,
+        440,
+        176,
+        213,
+        822,
+        12,
+        815,
+        433,
+        145,
+        1042,
+        577,
+        13,
+        1030,
+        551,
+        540,
+        265,
+        648,
+        654
+      ],
+      "queryMs": 303,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "sort=area-desc",
+      "total": 4448,
+      "ids": [
+        9,
+        902,
+        150,
+        1052,
+        1628,
+        551,
+        822,
+        570,
+        703,
+        540,
+        562,
+        654,
+        266,
+        1055,
+        213,
+        440,
+        111,
+        5,
+        176,
+        547,
+        318,
+        2132,
+        531,
+        431
+      ],
+      "queryMs": 563,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "sort=grade",
+      "total": 4448,
+      "ids": [
+        156,
+        166,
+        165,
+        169,
+        164,
+        171,
+        162,
+        157,
+        124,
+        131,
+        115,
+        123,
+        111,
+        108,
+        135,
+        142,
+        144,
+        119,
+        126,
+        137,
+        132,
+        116,
+        146,
+        129
+      ],
+      "queryMs": 3705,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "sort=completion-desc",
+      "total": 4448,
+      "ids": [
+        4,
+        8,
+        22,
+        21,
+        4614,
+        19,
+        3901,
+        2144,
+        2782,
+        1895,
+        2540,
+        1060,
+        208,
+        1268,
+        959,
+        1306,
+        1082,
+        356,
+        118,
+        2132,
+        2517,
+        4671,
+        2373,
+        1639
+      ],
+      "queryMs": 639,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "onlyWithStock=1",
+      "total": 2531,
+      "ids": [
+        570,
+        547,
+        9,
+        1052,
+        1055,
+        902,
+        828,
+        440,
+        176,
+        213,
+        822,
+        12,
+        815,
+        433,
+        145,
+        1042,
+        577,
+        13,
+        1030,
+        551,
+        540,
+        265,
+        648,
+        654
+      ],
+      "queryMs": 350,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "leasableAreaMin=1000",
+      "total": 1622,
+      "ids": [
+        570,
+        547,
+        9,
+        1052,
+        1055,
+        902,
+        828,
+        440,
+        176,
+        213,
+        822,
+        12,
+        815,
+        433,
+        145,
+        1042,
+        577,
+        13,
+        1030,
+        551,
+        540,
+        265,
+        648,
+        654
+      ],
+      "queryMs": 345,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "leasableAreaMax=5000",
+      "total": 1759,
+      "ids": [
+        3182,
+        518,
+        250,
+        572,
+        1105,
+        3115,
+        1171,
+        3220,
+        248,
+        1153,
+        750,
+        2683,
+        2478,
+        3262,
+        3686,
+        1164,
+        1749,
+        2728,
+        2340,
+        3096,
+        3819,
+        3563,
+        184,
+        527
+      ],
+      "queryMs": 457,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "completedAfter=2010",
+      "total": 939,
+      "ids": [
+        570,
+        9,
+        1052,
+        1055,
+        902,
+        828,
+        440,
+        822,
+        815,
+        433,
+        577,
+        13,
+        551,
+        540,
+        648,
+        654,
+        266,
+        562,
+        1056,
+        786,
+        318,
+        214,
+        4,
+        111
+      ],
+      "queryMs": 1051,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "completedAfter=2020",
+      "total": 113,
+      "ids": [
+        540,
+        4,
+        420,
+        394,
+        8,
+        157,
+        2144,
+        2517,
+        2132,
+        218,
+        118,
+        3314,
+        395,
+        121,
+        1082,
+        863,
+        1853,
+        461,
+        1748,
+        1306,
+        3243,
+        174,
+        1895,
+        1869
+      ],
+      "queryMs": 532,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "district=minhang",
+      "total": 485,
+      "ids": [
+        570,
+        828,
+        577,
+        13,
+        4,
+        304,
+        424,
+        218,
+        537,
+        3813,
+        2939,
+        2419,
+        3124,
+        3354,
+        3146,
+        3356,
+        3787,
+        3786,
+        3835,
+        1543,
+        989,
+        3289,
+        1003,
+        518
+      ],
+      "queryMs": 367,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "district=putuo",
+      "total": 324,
+      "ids": [
+        648,
+        270,
+        268,
+        793,
+        703,
+        118,
+        3726,
+        809,
+        4057,
+        2709,
+        3627,
+        788,
+        1895,
+        2202,
+        2553,
+        3522,
+        3490,
+        3511,
+        2994,
+        1263,
+        1060,
+        250,
+        436,
+        1153
+      ],
+      "queryMs": 373,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "businessArea=changshoulu",
+      "total": 58,
+      "ids": [
+        1895,
+        3059,
+        3779,
+        4615,
+        1141,
+        1871,
+        432,
+        1707,
+        3256,
+        2109,
+        2941,
+        832,
+        2898,
+        3437,
+        1484,
+        1034,
+        2396,
+        564,
+        2116,
+        448,
+        1260,
+        4039,
+        653,
+        1284
+      ],
+      "queryMs": 340,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "businessArea=xujiahui",
+      "total": 70,
+      "ids": [
+        2522,
+        1354,
+        1855,
+        4087,
+        3205,
+        810,
+        177,
+        818,
+        2530,
+        2411,
+        542,
+        489,
+        2172,
+        2907,
+        2163,
+        494,
+        2432,
+        2066,
+        729,
+        434,
+        280,
+        2855,
+        212,
+        180
+      ],
+      "queryMs": 431,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "grade=serviced-office",
+      "total": 49,
+      "ids": [
+        145,
+        111,
+        152,
+        144,
+        155,
+        137,
+        120,
+        154,
+        118,
+        132,
+        136,
+        115,
+        121,
+        108,
+        153,
+        151,
+        134,
+        138,
+        113,
+        142,
+        147,
+        128,
+        143,
+        127
+      ],
+      "queryMs": 354,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "grade=creative-park",
+      "total": 3,
+      "ids": [
+        163,
+        172,
+        167
+      ],
+      "queryMs": 310,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "metro=shanghai-metro-lujiazui",
+      "total": 9,
+      "ids": [
+        171,
+        169,
+        164,
+        162,
+        166,
+        165,
+        163,
+        170,
+        168
+      ],
+      "queryMs": 296,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "metro=shanghai-metro-longhua-zhonglu",
+      "total": 1,
+      "ids": [
+        157
+      ],
+      "queryMs": 335,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "district=minhang&businessArea=changshoulu",
+      "total": 0,
+      "ids": [],
+      "queryMs": 327,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 352,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "lease",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 1082,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 235,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 214,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 282,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 393,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 801,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 477,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 362,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 348,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 353,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 433,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 493,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 521,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 964,
+      "matched": true
+    },
+    {
+      "city": "shanghai",
+      "business": "sale",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 411,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 25,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 44,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 35,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 27,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 34,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 26,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 35,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 77,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 91,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 27,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 35,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "lease",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 69,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 34,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 28,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 35,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 33,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 25,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 35,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 35,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 28,
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "business": "sale",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 32,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 34,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 29,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 32,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 44,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 198,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 100,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 101,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 104,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 96,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "lease",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 96,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 78,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 78,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 57,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 23,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 34,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "business": "sale",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 23,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 23,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 24,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "lease",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 20,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 21,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "business": "sale",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 22,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 40,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 27,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 33,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 33,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 26,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 33,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 46,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "lease",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 51,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 40,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 28,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 54,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 99,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 99,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 99,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 86,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 35,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 77,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 24,
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "business": "sale",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 83,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 93,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 97,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 29,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 62,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 29,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 64,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 26,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 77,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 77,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 56,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 36,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "lease",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 76,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 92,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 99,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 200,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 207,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 92,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 110,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 91,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 69,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 37,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 77,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 31,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 57,
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "business": "sale",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 34,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 74,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 78,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 32,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 77,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 30,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 62,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 32,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 65,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 100,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 201,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 100,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 102,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "lease",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 102,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "",
+      "total": 0,
+      "ids": [],
+      "queryMs": 95,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "page=2",
+      "total": 0,
+      "ids": [],
+      "queryMs": 200,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "page=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 105,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "page=999999",
+      "total": 0,
+      "ids": [],
+      "queryMs": 96,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "sort=area-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 24,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "sort=grade",
+      "total": 0,
+      "ids": [],
+      "queryMs": 83,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "sort=completion-desc",
+      "total": 0,
+      "ids": [],
+      "queryMs": 93,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 101,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "leasableAreaMin=1000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 37,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "leasableAreaMax=5000",
+      "total": 0,
+      "ids": [],
+      "queryMs": 61,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "completedAfter=2010",
+      "total": 0,
+      "ids": [],
+      "queryMs": 107,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "completedAfter=2020",
+      "total": 0,
+      "ids": [],
+      "queryMs": 94,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "district=missing&grade=grade-a",
+      "total": 0,
+      "ids": [],
+      "queryMs": 100,
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "business": "sale",
+      "query": "metro=missing&onlyWithStock=1",
+      "total": 0,
+      "ids": [],
+      "queryMs": 102,
+      "matched": true
+    }
+  ],
+  "homepages": [
+    {
+      "city": "shanghai",
+      "stats": {
+        "listings": 57545,
+        "buildings": 4448,
+        "businessAreas": 22
+      },
+      "legacyMs": 5906,
+      "overviewHomepageMs": 1263,
+      "districtCards": [
+        {
+          "slug": "lujiazui",
+          "buildings": [
+            "中国保险大厦",
+            "永华大厦",
+            "星展银行大厦",
+            "良丰大厦"
+          ],
+          "cover": "/api/media/file/a58c82eb-2a6b-4f36-aa52-f7746c9ea891.png?prefix=media"
+        },
+        {
+          "slug": "hongqiao",
+          "buildings": [
+            "南丰大厦",
+            "凯利大厦",
+            "汇金公馆",
+            "星空广场"
+          ],
+          "cover": "/api/media/file/lingkongsoho.jpg?prefix=media"
+        },
+        {
+          "slug": "shibobinjiang",
+          "buildings": [
+            "中信大厦",
+            "宝武大厦",
+            "君康金融广场",
+            "耀华路443号"
+          ],
+          "cover": "/api/media/file/hzx-b1874-1.jpg?prefix=media"
+        },
+        {
+          "slug": "wujiaochang",
+          "buildings": [
+            "创梦亚马逊实训创新中心",
+            "海洋大学科技园区",
+            "创智科技中心",
+            "波司登国际大厦"
+          ],
+          "cover": "/api/media/file/hzx-b2110-1.jpg?prefix=media"
+        },
+        {
+          "slug": "caohejing",
+          "buildings": [
+            "鸿洋创意园区",
+            "华城广场",
+            "现代物流大厦",
+            "宝石大楼"
+          ],
+          "cover": "/api/media/file/caohejin.jpg?prefix=media"
+        },
+        {
+          "slug": "nanjingxilu",
+          "buildings": [
+            "锦江向阳大厦",
+            "创邑SPACE/中邦",
+            "静安新时代",
+            "锦延大厦"
+          ],
+          "cover": "/api/media/file/hzx-b2095-1.jpg?prefix=media"
+        },
+        {
+          "slug": "huaihaizhonglu",
+          "buildings": [
+            "中城大楼",
+            "锦江淮海楼",
+            "南昌路28号",
+            "棠人育培"
+          ],
+          "cover": "/api/media/file/hzx-b2031-1.jpg?prefix=media"
+        },
+        {
+          "slug": "renminguangchang",
+          "buildings": [
+            "南京西路456号",
+            "福申大厦",
+            "民生银行大厦",
+            "黄浦大楼"
+          ],
+          "cover": "/api/media/file/hzx-b2035-1.jpg?prefix=media"
+        },
+        {
+          "slug": "zhangjiang",
+          "buildings": [
+            "张江日月光",
+            "张润大厦",
+            "佑越国际",
+            "张江药谷"
+          ],
+          "cover": "/api/media/file/zhangjiang.jpg?prefix=media"
+        },
+        {
+          "slug": "zhongshangongyuan",
+          "buildings": [
+            "笠园凯旋坊",
+            "虹桥国际大厦",
+            "德必法华525创意树林",
+            "愚园路1032弄"
+          ],
+          "cover": "/api/media/file/hzx-b2116-1.jpg?prefix=media"
+        },
+        {
+          "slug": "tianmuxilu",
+          "buildings": [
+            "苏河湾大厦",
+            "上海铁路大厦",
+            "梅园路35号",
+            "天目大楼"
+          ],
+          "cover": "/api/media/file/hzx-b1822-1.jpg?prefix=media"
+        },
+        {
+          "slug": "tangqiao",
+          "buildings": [
+            "蓝村大厦",
+            "亚洲商务楼2幢",
+            "东旅大厦",
+            "中锦滨江大厦"
+          ],
+          "cover": "/api/media/file/hzx-b1977-1.jpg?prefix=media"
+        },
+        {
+          "slug": "shanghainanzhan",
+          "buildings": [
+            "S569上海服装数字化创意园",
+            "美通科创空间",
+            "一加大厦",
+            "汤米创意园"
+          ],
+          "cover": "/api/media/file/hzx-b2067-1.jpg?prefix=media"
+        },
+        {
+          "slug": "hongqiaohuochezhan",
+          "buildings": [
+            "上海·宝业中心",
+            "东朔数字港",
+            "恒大虹桥国际",
+            "虹桥协信中心"
+          ],
+          "cover": "/api/media/file/hzx-b2011-1.jpg?prefix=media"
+        },
+        {
+          "slug": "xianxiaxincun",
+          "buildings": [
+            "虹桥公寓",
+            "云享客仙霞创意园",
+            "上海工程大学科创楼",
+            "上服商厦"
+          ],
+          "cover": "/api/media/file/hzx-b1996-1.jpg?prefix=media"
+        },
+        {
+          "slug": "zhenru",
+          "buildings": [
+            "昆仑商务楼",
+            "现代城市购物花园",
+            "盛源科技园",
+            "M50桃浦创意园"
+          ],
+          "cover": "/api/media/file/hzx-b2103-1.jpg?prefix=media"
+        },
+        {
+          "slug": "qishenlu",
+          "buildings": [
+            "莘吴之星大厦",
+            "紫贝文化创意港",
+            "爱发科大厦",
+            "慧峰商务大厦"
+          ],
+          "cover": "/api/media/file/hzx-b5026-1.jpg?prefix=media"
+        },
+        {
+          "slug": "shenzhuanggongyequ",
+          "buildings": [
+            "歆翱商务中心",
+            "宝城路158弄",
+            "歆翱创意园 新桥",
+            "黎安智谷"
+          ],
+          "cover": "/api/media/file/hzx-b1895-1.jpg?prefix=media"
+        },
+        {
+          "slug": "jingansi",
+          "buildings": [
+            "创艺大厦",
+            "上海宾馆商务楼",
+            "上海华侨大厦",
+            "胶州大楼"
+          ],
+          "cover": "/api/media/file/86b991ab-d9c1-4a22-bbc3-9e961247460d.png?prefix=media"
+        },
+        {
+          "slug": "jinganxincheng",
+          "buildings": [
+            "宏汇莲花广场"
+          ],
+          "cover": "/api/media/file/hzx-b213-1.jpg?prefix=media"
+        },
+        {
+          "slug": "xujiahui",
+          "buildings": [
+            "徐家汇新媒体社区",
+            "汇金广场",
+            "树德坊",
+            "U-CUBE襄阳"
+          ],
+          "cover": "/api/media/file/hzx-b5068-1.jpg?prefix=media"
+        }
+      ],
+      "matched": true
+    },
+    {
+      "city": "beijing",
+      "stats": {
+        "listings": 0,
+        "buildings": 0,
+        "businessAreas": 0
+      },
+      "legacyMs": 20,
+      "overviewHomepageMs": 231,
+      "districtCards": [],
+      "matched": true
+    },
+    {
+      "city": "guangzhou",
+      "stats": {
+        "listings": 0,
+        "buildings": 0,
+        "businessAreas": 0
+      },
+      "legacyMs": 11,
+      "overviewHomepageMs": 136,
+      "districtCards": [],
+      "matched": true
+    },
+    {
+      "city": "shenzhen",
+      "stats": {
+        "listings": 0,
+        "buildings": 0,
+        "businessAreas": 0
+      },
+      "legacyMs": 11,
+      "overviewHomepageMs": 725,
+      "districtCards": [],
+      "matched": true
+    },
+    {
+      "city": "hangzhou",
+      "stats": {
+        "listings": 0,
+        "buildings": 0,
+        "businessAreas": 0
+      },
+      "legacyMs": 11,
+      "overviewHomepageMs": 404,
+      "districtCards": [],
+      "matched": true
+    },
+    {
+      "city": "chengdu",
+      "stats": {
+        "listings": 0,
+        "buildings": 0,
+        "businessAreas": 0
+      },
+      "legacyMs": 11,
+      "overviewHomepageMs": 299,
+      "districtCards": [],
+      "matched": true
+    },
+    {
+      "city": "wuhan",
+      "stats": {
+        "listings": 0,
+        "buildings": 0,
+        "businessAreas": 0
+      },
+      "legacyMs": 17,
+      "overviewHomepageMs": 585,
+      "districtCards": [],
+      "matched": true
+    }
+  ]
+}

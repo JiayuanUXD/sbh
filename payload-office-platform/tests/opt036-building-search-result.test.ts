@@ -111,6 +111,34 @@ describe('partitionByStock', () => {
 })
 
 describe('searchBuildingsFiltered', () => {
+  it('数据库路径只回读当前页，并保持 SQL 顺序、库存分组和分面计数', async () => {
+    const ctx = createSearchContext('shanghai', new Date('2026-08-21T00:00:00Z'))
+    const input = { sort: 'stock-desc' as const, page: 1, pageSize: 24 as const }
+    const raws = [makeBuilding({ id: 1, slug: 'stock' }), makeBuilding({ id: 2, slug: 'empty' })]
+    const baseline = await searchBuildingsFiltered(input, ctx, makeHomepageAdapter({
+      findEffectiveBuildings: async () => raws,
+    }))
+    const { docs: _docs, groups: _groups, ...metadata } = baseline
+    const requested: number[][] = []
+    const adapter = makeHomepageAdapter({
+      findEffectiveBuildings: async () => { throw new Error('不允许读取全集') },
+      findBuildingPageSelection: async () => ({ ...metadata,
+        supply: [{ id: 1, count: 7, area: 123.45 }, { id: 2, count: 0, area: null }],
+      }),
+      findEffectiveBuildingsByIds: async ids => {
+        requested.push([...ids])
+        return [...raws].reverse()
+      },
+    })
+    const result = await searchBuildingsFiltered(input, ctx, adapter)
+    expect(requested).toEqual([[1, 2]])
+    expect(result.docs.map(doc => doc.slug)).toEqual(['stock', 'empty'])
+    expect(result.docs[0]).toMatchObject({ listingCount: 7, leasableArea: 123.45 })
+    expect(result.groups.withStock.map(doc => doc.slug)).toEqual(['stock'])
+    expect(result.groups.withoutStock.map(doc => doc.slug)).toEqual(['empty'])
+    expect(result.facets).toEqual(metadata.facets)
+    expect(result.dimensionHits).toEqual(metadata.dimensionHits)
+  })
   it('facets 在筛选前的全集上计算：选中一个区域后，被筛掉的区域仍出现在 facets 里，且计数是筛选前的', async () => {
     const DISTRICT_HUANGPU: Location = {
       ...DISTRICT_JINGAN,

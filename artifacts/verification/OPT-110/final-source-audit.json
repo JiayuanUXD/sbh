@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-12T00:15:45.708Z",
+  "at": "2026-10-12T01:26:46.920Z",
   "buildings": {
     "total": 4442,
     "unique_ids": 4442,
@@ -12,7 +12,8 @@
     "drafts": 0,
     "deleted": 0,
     "held": 0,
-    "leased": 0
+    "leased": 0,
+    "paused": 0
   },
   "reviews": {
     "with_fast_track_review": 55381

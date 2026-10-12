@@ -51,7 +51,7 @@ import {
   type ListingSearchInput,
 } from "./types";
 import type { CoordinatesViewModel, PublicRouteIdentity } from "./contracts";
-import { mapBuildingCity, mapCoordinates, resolveListingPrice } from "./mappers";
+import { mapBuildingCity, mapCoordinates, mapMedia, resolveListingPrice } from "./mappers";
 import {
   matchesPriceFilter,
   rowsFromListings,
@@ -62,6 +62,9 @@ import { EFFECTIVE_SUPPLY_AGGREGATE_FROM } from "./effective-supply-sql";
 import { buildListingPageQuery, buildListingFacetsQuery } from "./listing-query-sql";
 import { buildPagination } from "./stable-sort";
 import type { ListingPageSelection, ScanFacets } from "./listing-scan";
+import { PUBLIC_BUILDING_METADATA_SQL, buildBuildingPageQuery,
+  type BuildingMetadataRow, type BuildingPageSelection, type BuildingSqlResult } from "./building-query-sql";
+import type { BuildingSearchInput } from "./building-search";
 
 /**
  * 公开目录供给适配器契约
@@ -74,8 +77,17 @@ export type HomepageListingAggregate = Readonly<{
   types: readonly Readonly<{ type: string | null; count: number; coverId: number }>[];
   nearbyCandidates: readonly Readonly<{ id: number; slug: string; coordinates: CoordinatesViewModel | null }>[];
 }>;
+export type HomepageBuildingOverview = Readonly<{
+  count: number;
+  representatives: readonly Building[];
+  areas: readonly Readonly<{ slug: string; names: readonly string[] }>[];
+}>;
 
 export interface SupplyAdapter {
+  findBuildingPageSelection?(input: BuildingSearchInput, ctx: SearchContext): Promise<BuildingPageSelection>;
+  findEffectiveBuildingsByIds?(ids: readonly number[], ctx: SearchContext): Promise<readonly Building[]>;
+  /** 首页楼盘计数与商圈代表摘要，不水合城市内所有楼盘。 */
+  findHomepageBuildingOverview?(ctx: SearchContext, visibleAreaSlugs: readonly string[]): Promise<HomepageBuildingOverview>;
   /** 数据库端筛选、稳定排序与分页；只返回当前页 ID。 */
   findListingPage?(input: ListingSearchInput, ctx: SearchContext): Promise<ListingPageSelection>;
   /** 与目录同谓词的筛选计数，不返回全量候选。 */
@@ -819,36 +831,19 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         docs.push(entry);
       }
     };
-    const pageSize = 500;
+    const pageSize = identitiesOnly ? 500 : 200;
+    let expectedPages: number | undefined;
     let page = 1;
     while (true) {
       const result = await findPublicBuildingsPage(ctx, { page, limit: pageSize }, true, identitiesOnly);
+      if (page === 1 && typeof result.totalPages === "number") expectedPages = result.totalPages;
+      if (expectedPages !== undefined && (result.totalPages !== expectedPages
+        || result.hasNextPage !== (page < expectedPages))) throw new Error("公开楼盘目录分页未连续推进");
       append(result.docs);
       if (!result.hasNextPage) return docs;
       // 触顶或缺页时显式失败，不能把部分结果当作完整目录。
       if (page * pageSize >= 250_000) throw new Error("公开楼盘目录超过安全枚举上限");
       if (result.nextPage !== page + 1) throw new Error("公开楼盘目录分页未连续推进");
-      if (page === 1 && typeof result.totalPages === "number"
-        && Number.isSafeInteger(result.totalPages) && result.totalPages > 1) {
-        const totalPages = result.totalPages;
-        if (totalPages * pageSize > 250_000) throw new Error("公开楼盘目录超过安全枚举上限");
-        // 页边界由首次计数限定；最多四页并发，结果仍按页码拼接并逐页校验。
-        for (let start = 2; start <= totalPages; start += 4) {
-          const pages = Array.from({ length: Math.min(4, totalPages - start + 1) }, (_, i) => start + i);
-          const batch = await Promise.all(pages.map(next =>
-            findPublicBuildingsPage(ctx, { page: next, limit: pageSize }, true, identitiesOnly)));
-          for (let i = 0; i < batch.length; i++) {
-            const next = pages[i];
-            const entry = batch[i];
-            if (entry.totalPages !== totalPages || entry.hasNextPage !== (next < totalPages)
-              || (entry.hasNextPage && entry.nextPage !== next + 1)) {
-              throw new Error("公开楼盘目录分页未连续推进");
-            }
-            append(entry.docs);
-          }
-        }
-        return docs;
-      }
       page = result.nextPage;
     }
   }
@@ -1092,7 +1087,82 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     return where;
   }
 
+  async function readBuildingMetadata(ctx: SearchContext): Promise<BuildingMetadataRow[]> {
+    const payload = await getPayload();
+    const result = await payload.db.pool.query<BuildingMetadataRow>(PUBLIC_BUILDING_METADATA_SQL, [ctx.city]);
+    if (result.rows.length > 250_000) throw new Error("公开楼盘目录超过安全枚举上限");
+    return result.rows.filter(row => {
+      if (!Number.isSafeInteger(row.id) || typeof row.slug !== "string" || typeof row.name !== "string") {
+        throw new Error("无效的公开楼盘摘要");
+      }
+      return mapBuildingCity({ city: row.city })?.citySlug === ctx.city;
+    });
+  }
+
+  async function hydrateBuildingIds(ids: readonly number[], ctx: SearchContext): Promise<Building[]> {
+    const payload = await getPayload();
+    const documents: Building[] = [];
+    const readChunk = async (chunk: readonly number[]) => {
+      const page = await payload.find({ collection: "buildings",
+        where: { ...getPublicBuildingWhere(), "city.slug": { equals: ctx.city }, id: { in: chunk } } as unknown as Where,
+        depth: 2, limit: chunk.length, pagination: false,
+        select: BUILDING_SUMMARY_SELECT, populate: BUILDING_SUMMARY_POPULATE,
+      });
+      return (page.docs as Building[]).filter(building =>
+        isPublicBuilding(building) && mapBuildingCity(building)?.citySlug === ctx.city);
+    };
+    for (let start = 0; start < ids.length; start += 200) {
+      documents.push(...await readChunk(ids.slice(start, start + 200)));
+    }
+    return documents;
+  }
+
   return {
+    async findBuildingPageSelection(input, ctx) {
+      const identities = await readBuildingMetadata(ctx);
+      const ordered = [...identities].sort((a, b) => a.slug.localeCompare(b.slug)).map(row => row.id);
+      const query = buildBuildingPageQuery(input, ctx, ordered);
+      const payload = await getPayload();
+      const result = await payload.db.pool.query<{ result: BuildingSqlResult }>(query.text, query.values);
+      const row = result.rows[0]?.result;
+      if (!row || ![row.totalDocs, row.withStockTotal, row.withoutStockTotal, row.unfilteredTotalDocs]
+        .every(value => Number.isSafeInteger(value) && value >= 0) || !Array.isArray(row.supply)) {
+        throw new Error("无效的楼盘目录分页结果");
+      }
+      return { ...row, page: Math.max(1, input.page), totalPages: Math.max(1, Math.ceil(row.totalDocs / input.pageSize)) };
+    },
+    findEffectiveBuildingsByIds: hydrateBuildingIds,
+    async findHomepageBuildingOverview(ctx, visibleAreaSlugs) {
+      const rows = await readBuildingMetadata(ctx);
+      const visible = new Set(visibleAreaSlugs);
+      const areas = new Map<string, { slug: string; names: string[]; candidates: number[]; index: number }>();
+      let count = 0;
+      for (const row of rows) {
+        count++;
+        if (!row.area_slug || !visible.has(row.area_slug)) continue;
+        const entry = areas.get(row.area_slug) ?? { slug: row.area_slug, names: [], candidates: [], index: 0 };
+        if (entry.names.length < 4) entry.names.push(row.name);
+        if (row.cover_id !== null) entry.candidates.push(row.id);
+        areas.set(row.area_slug, entry);
+      }
+      const representatives: Building[] = [];
+      let pending = [...areas.values()].filter(area => area.candidates.length > 0);
+      // 封面资格交给实际媒体 mapper；无效媒体按旧顺序继续寻找下一楼盘。
+      while (pending.length > 0) {
+        const docs = await hydrateBuildingIds(pending.map(area => area.candidates[area.index]), ctx);
+        const byId = new Map(docs.map(doc => [doc.id, doc]));
+        pending = pending.filter(area => {
+          const doc = byId.get(area.candidates[area.index]);
+          if (doc && mapMedia(doc.coverImage, doc.name)) {
+            representatives.push(doc);
+            return false;
+          }
+          area.index++;
+          return area.index < area.candidates.length;
+        });
+      }
+      return { count, representatives, areas: [...areas.values()].map(({ slug, names }) => ({ slug, names })) };
+    },
     async findListingPage(input, ctx) {
       const payload = await getPayload();
       const query = buildListingPageQuery(input, ctx);

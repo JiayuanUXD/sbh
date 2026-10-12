@@ -38,6 +38,21 @@ describe('haversineKm', () => {
 describe('getHomepage stats / typeSummaries / nearbyListings', () => {
   const ctx = createSearchContext('shanghai')
 
+  it('首页使用楼盘概览计数和商圈名称，不读取全部楼盘文档', async () => {
+    const area = makeArea({ id: 21 })
+    const representative = makeBuilding({ id: 10, businessDistrict: area, coverImage: MEDIA_WITH_SIZES })
+    const adapter = makeHomepageAdapter({
+      findHomepageBuildingOverview: async () => ({ count: 4448, representatives: [representative],
+        areas: [{ slug: area.slug, names: ['楼盘一', '楼盘二', '楼盘三', '楼盘四'] }] }),
+      findEffectiveBuildings: async () => { throw new Error('不应水合全部楼盘') },
+      findEffectiveBusinessAreas: async () => [area],
+    })
+    const result = await getHomepage(ctx, {}, adapter)
+    expect(result.stats.buildings).toBe(4448)
+    expect(result.districtCards).toHaveLength(1)
+    expect(result.districtCards[0].buildings).toEqual(['楼盘一', '楼盘二', '楼盘三', '楼盘四'])
+  })
+
   it('首页聚合路径不扫描完整房源，保留类型封面和附近排序', async () => {
     const rows = rowsFromListings([2, 3].map(id => makeListing({ id,
       buildingCoords: { latitude: 31.2, longitude: 121.5 } })))

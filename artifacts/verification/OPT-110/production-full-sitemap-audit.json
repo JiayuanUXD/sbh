@@ -1,0 +1,641 @@
+﻿{
+    "at":  "2026-10-12T01:13:40.8555804Z",
+    "version":  "e333a3d6f7b59c4874efe75b692443598cd0eafb-worktree-6769e6204259",
+    "shards":  [
+                   {
+                       "url":  "https://shangban.cc/sitemaps/static.xml",
+                       "count":  10,
+                       "elapsedMs":  278
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/1.xml",
+                       "count":  500,
+                       "elapsedMs":  304
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/2.xml",
+                       "count":  500,
+                       "elapsedMs":  3058
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/3.xml",
+                       "count":  500,
+                       "elapsedMs":  3094
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/4.xml",
+                       "count":  500,
+                       "elapsedMs":  4913
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/5.xml",
+                       "count":  500,
+                       "elapsedMs":  4925
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/6.xml",
+                       "count":  500,
+                       "elapsedMs":  4932
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/7.xml",
+                       "count":  500,
+                       "elapsedMs":  4941
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/8.xml",
+                       "count":  500,
+                       "elapsedMs":  2722
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/9.xml",
+                       "count":  500,
+                       "elapsedMs":  2733
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/10.xml",
+                       "count":  500,
+                       "elapsedMs":  2740
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/11.xml",
+                       "count":  500,
+                       "elapsedMs":  2748
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/12.xml",
+                       "count":  500,
+                       "elapsedMs":  2517
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/13.xml",
+                       "count":  500,
+                       "elapsedMs":  2525
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/14.xml",
+                       "count":  500,
+                       "elapsedMs":  2533
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/15.xml",
+                       "count":  500,
+                       "elapsedMs":  2541
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/16.xml",
+                       "count":  500,
+                       "elapsedMs":  2549
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/17.xml",
+                       "count":  500,
+                       "elapsedMs":  2587
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/18.xml",
+                       "count":  500,
+                       "elapsedMs":  2595
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/19.xml",
+                       "count":  500,
+                       "elapsedMs":  2602
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/20.xml",
+                       "count":  500,
+                       "elapsedMs":  1684
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/21.xml",
+                       "count":  500,
+                       "elapsedMs":  1717
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/22.xml",
+                       "count":  500,
+                       "elapsedMs":  1724
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/23.xml",
+                       "count":  500,
+                       "elapsedMs":  1731
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/24.xml",
+                       "count":  500,
+                       "elapsedMs":  1774
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/25.xml",
+                       "count":  500,
+                       "elapsedMs":  1814
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/26.xml",
+                       "count":  500,
+                       "elapsedMs":  1822
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/27.xml",
+                       "count":  500,
+                       "elapsedMs":  1829
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/28.xml",
+                       "count":  500,
+                       "elapsedMs":  2138
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/29.xml",
+                       "count":  500,
+                       "elapsedMs":  2151
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/30.xml",
+                       "count":  500,
+                       "elapsedMs":  2172
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/31.xml",
+                       "count":  500,
+                       "elapsedMs":  2179
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/32.xml",
+                       "count":  500,
+                       "elapsedMs":  1794
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/33.xml",
+                       "count":  500,
+                       "elapsedMs":  1802
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/34.xml",
+                       "count":  500,
+                       "elapsedMs":  1823
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/35.xml",
+                       "count":  500,
+                       "elapsedMs":  1830
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/36.xml",
+                       "count":  500,
+                       "elapsedMs":  2404
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/37.xml",
+                       "count":  500,
+                       "elapsedMs":  2420
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/38.xml",
+                       "count":  500,
+                       "elapsedMs":  2428
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/39.xml",
+                       "count":  500,
+                       "elapsedMs":  2441
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/40.xml",
+                       "count":  500,
+                       "elapsedMs":  3221
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/41.xml",
+                       "count":  500,
+                       "elapsedMs":  3230
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/42.xml",
+                       "count":  500,
+                       "elapsedMs":  3237
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/43.xml",
+                       "count":  500,
+                       "elapsedMs":  3244
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/44.xml",
+                       "count":  500,
+                       "elapsedMs":  4557
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/45.xml",
+                       "count":  500,
+                       "elapsedMs":  4597
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/46.xml",
+                       "count":  500,
+                       "elapsedMs":  4605
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/47.xml",
+                       "count":  500,
+                       "elapsedMs":  4612
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/48.xml",
+                       "count":  500,
+                       "elapsedMs":  3529
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/49.xml",
+                       "count":  500,
+                       "elapsedMs":  3540
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/50.xml",
+                       "count":  500,
+                       "elapsedMs":  3548
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/51.xml",
+                       "count":  500,
+                       "elapsedMs":  3558
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/52.xml",
+                       "count":  500,
+                       "elapsedMs":  4248
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/53.xml",
+                       "count":  500,
+                       "elapsedMs":  4260
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/54.xml",
+                       "count":  500,
+                       "elapsedMs":  4270
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/55.xml",
+                       "count":  500,
+                       "elapsedMs":  4277
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/56.xml",
+                       "count":  500,
+                       "elapsedMs":  5106
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/57.xml",
+                       "count":  500,
+                       "elapsedMs":  5201
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/58.xml",
+                       "count":  500,
+                       "elapsedMs":  5276
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/59.xml",
+                       "count":  500,
+                       "elapsedMs":  5287
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/60.xml",
+                       "count":  500,
+                       "elapsedMs":  3038
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/61.xml",
+                       "count":  500,
+                       "elapsedMs":  3050
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/62.xml",
+                       "count":  500,
+                       "elapsedMs":  3056
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/63.xml",
+                       "count":  500,
+                       "elapsedMs":  3064
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/64.xml",
+                       "count":  500,
+                       "elapsedMs":  2370
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/65.xml",
+                       "count":  500,
+                       "elapsedMs":  2378
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/66.xml",
+                       "count":  500,
+                       "elapsedMs":  2385
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/67.xml",
+                       "count":  500,
+                       "elapsedMs":  2392
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/68.xml",
+                       "count":  500,
+                       "elapsedMs":  1825
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/69.xml",
+                       "count":  500,
+                       "elapsedMs":  2616
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/70.xml",
+                       "count":  500,
+                       "elapsedMs":  2623
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/71.xml",
+                       "count":  500,
+                       "elapsedMs":  2630
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/72.xml",
+                       "count":  500,
+                       "elapsedMs":  2941
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/73.xml",
+                       "count":  500,
+                       "elapsedMs":  2950
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/74.xml",
+                       "count":  500,
+                       "elapsedMs":  2957
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/75.xml",
+                       "count":  500,
+                       "elapsedMs":  2965
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/76.xml",
+                       "count":  500,
+                       "elapsedMs":  2545
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/77.xml",
+                       "count":  500,
+                       "elapsedMs":  2626
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/78.xml",
+                       "count":  500,
+                       "elapsedMs":  2633
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/79.xml",
+                       "count":  500,
+                       "elapsedMs":  2761
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/80.xml",
+                       "count":  500,
+                       "elapsedMs":  1957
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/81.xml",
+                       "count":  500,
+                       "elapsedMs":  2006
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/82.xml",
+                       "count":  500,
+                       "elapsedMs":  2015
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/83.xml",
+                       "count":  500,
+                       "elapsedMs":  2022
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/84.xml",
+                       "count":  500,
+                       "elapsedMs":  2687
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/85.xml",
+                       "count":  500,
+                       "elapsedMs":  2699
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/86.xml",
+                       "count":  500,
+                       "elapsedMs":  2773
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/87.xml",
+                       "count":  500,
+                       "elapsedMs":  4126
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/88.xml",
+                       "count":  500,
+                       "elapsedMs":  1993
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/89.xml",
+                       "count":  500,
+                       "elapsedMs":  2004
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/90.xml",
+                       "count":  500,
+                       "elapsedMs":  2699
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/91.xml",
+                       "count":  500,
+                       "elapsedMs":  2706
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/92.xml",
+                       "count":  500,
+                       "elapsedMs":  1553
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/93.xml",
+                       "count":  500,
+                       "elapsedMs":  5002
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/94.xml",
+                       "count":  500,
+                       "elapsedMs":  5076
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/95.xml",
+                       "count":  500,
+                       "elapsedMs":  5084
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/96.xml",
+                       "count":  500,
+                       "elapsedMs":  1403
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/97.xml",
+                       "count":  500,
+                       "elapsedMs":  1890
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/98.xml",
+                       "count":  500,
+                       "elapsedMs":  1907
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/99.xml",
+                       "count":  500,
+                       "elapsedMs":  3750
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/100.xml",
+                       "count":  500,
+                       "elapsedMs":  3616
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/101.xml",
+                       "count":  500,
+                       "elapsedMs":  3625
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/102.xml",
+                       "count":  500,
+                       "elapsedMs":  3633
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/103.xml",
+                       "count":  500,
+                       "elapsedMs":  3647
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/104.xml",
+                       "count":  500,
+                       "elapsedMs":  1651
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/105.xml",
+                       "count":  500,
+                       "elapsedMs":  1660
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/106.xml",
+                       "count":  500,
+                       "elapsedMs":  2318
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/107.xml",
+                       "count":  500,
+                       "elapsedMs":  2327
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/108.xml",
+                       "count":  500,
+                       "elapsedMs":  4248
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/109.xml",
+                       "count":  500,
+                       "elapsedMs":  4256
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/110.xml",
+                       "count":  500,
+                       "elapsedMs":  4265
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/111.xml",
+                       "count":  500,
+                       "elapsedMs":  4288
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/112.xml",
+                       "count":  500,
+                       "elapsedMs":  2897
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/113.xml",
+                       "count":  500,
+                       "elapsedMs":  5748
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/114.xml",
+                       "count":  500,
+                       "elapsedMs":  5759
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/115.xml",
+                       "count":  500,
+                       "elapsedMs":  5766
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/listings/116.xml",
+                       "count":  45,
+                       "elapsedMs":  5330
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/1.xml",
+                       "count":  500,
+                       "elapsedMs":  5338
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/2.xml",
+                       "count":  500,
+                       "elapsedMs":  5344
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/3.xml",
+                       "count":  500,
+                       "elapsedMs":  5352
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/4.xml",
+                       "count":  500,
+                       "elapsedMs":  1093
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/5.xml",
+                       "count":  500,
+                       "elapsedMs":  5344
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/6.xml",
+                       "count":  500,
+                       "elapsedMs":  5356
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/7.xml",
+                       "count":  500,
+                       "elapsedMs":  5363
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/8.xml",
+                       "count":  500,
+                       "elapsedMs":  1185
+                   },
+                   {
+                       "url":  "https://shangban.cc/sitemaps/shanghai/buildings/9.xml",
+                       "count":  448,
+                       "elapsedMs":  1291
+                   }
+               ],
+    "totalUniqueUrls":  62003,
+    "expectedBuildings":  4442,
+    "expectedListings":  57500,
+    "missingBuildings":  0,
+    "missingListings":  0
+}

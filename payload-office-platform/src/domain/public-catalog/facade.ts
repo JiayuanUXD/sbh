@@ -538,7 +538,8 @@ function buildBuildingFacets(
 /**
  * 楼盘列表筛选/排序/分页/分组（OPT-036 Task 2 + Task 12）。
  *
- * 步骤：searchBuildings 取全集 → 逐维度剥离后算 facets 与退路命中数 →
+ * 生产适配器在数据库计算筛选、排序、分面及分页，仅回读当前页楼盘摘要。
+ * 不具备该接口的适配器保留原流程：取全集 → 逐维度剥离后算 facets 与退路命中数 →
  * applyBuildingFilters → sortBuildings → partitionByStock → **合并成一条序列
  * （有在租在前）后再分页** → 当前页再分一次组交给视图。
  *
@@ -546,14 +547,30 @@ function buildBuildingFacets(
  * 才排暂无在租」）。两组各自分页会让第 2 页同时出现「有在租第 25–48 个」和
  * 「暂无在租第 25–48 个」，翻页语义变成两条互不相干的游标。
  *
- * 底层生产适配器按稳定 ID 顺序受控分页枚举，只有拿到完整集合后才计算
- * facets/total/视图分页。枚举达安全上限仍有后续页时 fail-closed，不静默伪称“全部”。
+ * 轻量身份枚举达安全上限时 fail-closed，不静默伪称“全部”。
  */
 export async function searchBuildingsFiltered(
   input: BuildingSearchInput,
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<BuildingFilteredResult> {
+  if (adapter.findBuildingPageSelection) {
+    const selection = await adapter.findBuildingPageSelection(input, ctx)
+    const { supply, ...metadata } = selection
+    const ids = supply.map(row => row.id)
+    const wanted = new Set(ids)
+    const raw = adapter.findEffectiveBuildingsByIds
+      ? await adapter.findEffectiveBuildingsByIds(ids, ctx)
+      : (await adapter.findEffectiveBuildings(ctx)).filter(building => wanted.has(building.id))
+    const byId = new Map(raw.map(building => [building.id, mapBuildingSummary(building)]))
+    const docs = supply.flatMap(row => {
+      const summary = byId.get(row.id)
+      if (!summary) return []
+      return [{ ...summary, ...(row.count > 0 ? { listingCount: row.count } : {}),
+        ...(row.area != null && row.area > 0 ? { leasableArea: row.area } : {}) }]
+    })
+    return { ...metadata, docs, groups: partitionByStock(docs) }
+  }
   const { docs: allDocs } = await searchBuildings(ctx, adapter, input.business ?? 'lease')
 
   // 逐维度剥离：每个维度算一次「不含这一条时还剩什么」。同一次结果同时供给
@@ -929,6 +946,10 @@ export async function getHomepage(
   const aggregateQuery = adapter.findHomepageListingAggregate
     ? cityCenterQuery.then(center => measure('listing-aggregate', () =>
       adapter.findHomepageListingAggregate!(null, ctx, center != null))) : Promise.resolve(null)
+  const businessAreasQuery = measure('business-areas', () => adapter.findEffectiveBusinessAreas(ctx))
+  const buildingOverviewQuery = adapter.findHomepageBuildingOverview
+    ? businessAreasQuery.then(areas => measure('building-overview', () =>
+      adapter.findHomepageBuildingOverview!(ctx, areas.map(area => area.slug)))) : Promise.resolve(null)
 
   const [
     featuredListings,
@@ -941,10 +962,11 @@ export async function getHomepage(
     allEffectiveBuildings,
     cityCenter,
     listingAggregate,
+    buildingOverview,
   ] = await Promise.all([
     measure('featured-listings', () => adapter.findFeaturedListings(ctx, featuredLimit)),
     measure('districts', () => adapter.findEffectiveDistricts(ctx)),
-    measure('business-areas', () => adapter.findEffectiveBusinessAreas(ctx)),
+    businessAreasQuery,
     measure('featured-buildings', () => adapter.findFeaturedBuildings(ctx, featuredLimit)),
     // 多取一条：首页右侧列表要去掉左侧主推那篇（HomeNewsList），主推落在最新
     // 五条里时靠第六条补位，否则右侧只剩四条。
@@ -954,9 +976,11 @@ export async function getHomepage(
     adapter.findHomepageListingAggregate ? Promise.resolve([])
       : options.scan ? options.scan(EMPTY_LISTING_INPUT, ctx) : scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
     // 口径与楼盘列表页 searchBuildings 一致（分页读取完整公开楼盘）
-    measure('buildings', () => adapter.findEffectiveBuildings(ctx)),
+    adapter.findHomepageBuildingOverview ? Promise.resolve([])
+      : measure('buildings', () => adapter.findEffectiveBuildings(ctx)),
     cityCenterQuery,
     aggregateQuery,
+    buildingOverviewQuery,
   ])
 
   const cards = mapListingsToCards(featuredListings)
@@ -989,7 +1013,7 @@ export async function getHomepage(
   // 排在第 36 / 75 / 76 名，运营在「精选区域」里选了也出不来。
   // 排序后同一商圈内首个命中的楼盘即代表封面，前几个名字即代表楼盘。
   const byArea = new Map<string, { cover: NonNullable<MediaViewModel> | null; names: string[] }>()
-  for (const raw of sortForDistrictCards(allEffectiveBuildings)) {
+  for (const raw of sortForDistrictCards(buildingOverview?.representatives ?? allEffectiveBuildings)) {
     const ba = raw.businessDistrict
     if (typeof ba !== 'object' || ba === null) continue
     const slug = ba.slug
@@ -999,6 +1023,9 @@ export async function getHomepage(
     if (!entry.cover && vm?.coverImage) entry.cover = vm.coverImage
     if (entry.names.length < AREA_CARD_BUILDINGS_MAX) entry.names.push(raw.name)
     byArea.set(slug, entry)
+  }
+  for (const area of buildingOverview?.areas ?? []) {
+    byArea.set(area.slug, { cover: byArea.get(area.slug)?.cover ?? null, names: [...area.names] })
   }
 
   // 候选池不设张数上限（OPT-093）：视图层（CityHomeView）先按运营配置的「精选区域」
@@ -1036,7 +1063,7 @@ export async function getHomepage(
     listings: listingAggregate?.count ?? allEffectiveRows.length,
     // 与楼盘列表页 searchBuildings 的 totalDocs = docs.length 同口径：mapBuildingSummary
     // 过滤后计数，不是原始 findEffectiveBuildings 返回长度。
-    buildings: allEffectiveBuildings.filter((b) => mapBuildingSummary(b) !== null).length,
+    buildings: buildingOverview?.count ?? allEffectiveBuildings.filter((b) => mapBuildingSummary(b) !== null).length,
     // 与「全部 N 个商圈」链接口径一致：前台可见商圈总数，不受卡片区质量门槛影响。
     businessAreas: businessAreas.length,
   }

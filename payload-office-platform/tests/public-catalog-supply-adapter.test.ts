@@ -29,8 +29,10 @@ import {
 } from "@/domain/public-catalog";
 import {
   DISTRICT_JINGAN,
+  CITY_SHANGHAI,
   makeBuilding,
   makeHomepageAdapter,
+  makeArea,
 } from "./helpers/opt035-fixtures";
 
 function listing(id: number): Record<string, unknown> {
@@ -89,6 +91,39 @@ describe("Payload public catalog supply adapter", () => {
     payloadState.find.mockReset();
     payloadState.findByID.mockReset();
     payloadState.query.mockReset();
+  });
+
+  it("首页楼盘概览只回捞可见商圈代表封面，完整计数不水合全城", async () => {
+    const adapter = createPayloadSupplyAdapter();
+    expect(adapter.findHomepageBuildingOverview).toBeTypeOf("function");
+    const city = CITY_SHANGHAI;
+    payloadState.query.mockResolvedValue({ rows: [
+      { id: 1, slug: "one", name: "一号楼", city, area_slug: "visible", cover_id: 9001 },
+      { id: 2, slug: "two", name: "二号楼", city, area_slug: "visible", cover_id: 9001 },
+      { id: 3, slug: "three", name: "三号楼", city, area_slug: "hidden", cover_id: 9001 },
+      { id: 4, slug: "four", name: "四号楼", city: { ...city, type: "district" }, area_slug: "visible", cover_id: 9001 },
+    ] });
+    payloadState.find.mockResolvedValue({ docs: [makeBuilding({ id: 1, businessDistrict: makeArea({ id: 21, slug: "visible" }) })] });
+    const result = await adapter.findHomepageBuildingOverview!(createSearchContext("shanghai"), ["visible"]);
+    expect(result.count).toBe(3);
+    expect(result.areas).toEqual([{ slug: "visible", names: ["一号楼", "二号楼"] }]);
+    expect(result.representatives.map(doc => doc.id)).toEqual([1]);
+    expect(payloadState.find).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      collection: "buildings", where: expect.objectContaining({ id: { in: [1] } }),
+    }));
+  });
+
+  it("代表封面仍经原媒体 mapper 验证，首个无效时继续选择下一个楼盘", async () => {
+    const area = makeArea({ id: 21, slug: "visible" });
+    payloadState.query.mockResolvedValue({ rows: [1, 2].map(id => ({
+      id, slug: `building-${id}`, name: `楼盘${id}`, city: CITY_SHANGHAI, area_slug: area.slug, cover_id: 9001,
+    })) });
+    payloadState.find.mockResolvedValueOnce({ docs: [makeBuilding({ id: 1, businessDistrict: area, coverImage: null })] })
+      .mockResolvedValueOnce({ docs: [makeBuilding({ id: 2, businessDistrict: area })] });
+    const result = await createPayloadSupplyAdapter().findHomepageBuildingOverview!(createSearchContext("shanghai"), [area.slug]);
+    expect(result.representatives.map(doc => doc.id)).toEqual([2]);
+    expect(result.areas[0].names).toEqual(["楼盘1", "楼盘2"]);
+    expect(payloadState.find).toHaveBeenCalledTimes(2);
   });
 
   it("目录在数据库分页，返回全量计数而不枚举展示文档", async () => {
@@ -652,11 +687,11 @@ describe("Payload public catalog supply adapter", () => {
     );
   });
 
-  it("楼盘摘要以 500 条分页读取，减少完整目录的串行往返", async () => {
+  it("旧摘要扫描保持 200 条有界水合，数据库目录不复用全城水合", async () => {
     payloadState.find.mockResolvedValue({ docs: [], hasNextPage: false, nextPage: null });
     await createPayloadSupplyAdapter().findEffectiveBuildings(createSearchContext("shanghai"));
     expect(payloadState.find).toHaveBeenCalledWith(expect.objectContaining({
-      collection: "buildings", limit: 500, page: 1,
+      collection: "buildings", limit: 200, page: 1,
     }));
   });
 
@@ -673,7 +708,7 @@ describe("Payload public catalog supply adapter", () => {
     ).rejects.toThrow("公开楼盘目录分页未连续推进");
   });
 
-  it("完整楼盘枚举最多四页并发，乱序完成仍按稳定页码拼接", async () => {
+  it("旧完整摘要扫描保持顺序读取与稳定页码拼接", async () => {
     let active = 0;
     let peak = 0;
     const pending = new Map<number, () => void>();
@@ -689,15 +724,15 @@ describe("Payload public catalog supply adapter", () => {
         totalPages: 6, hasNextPage: page < 6, nextPage: page < 6 ? page + 1 : null };
     });
     const result = createPayloadSupplyAdapter().findEffectiveBuildings(createSearchContext("shanghai"));
-    await vi.waitFor(() => expect(pending.size).toBe(4));
-    for (const page of [5, 3, 4, 2]) pending.get(page)!();
-    await vi.waitFor(() => expect(pending.has(6)).toBe(true));
-    pending.get(6)!();
+    for (let page = 2; page <= 6; page++) {
+      await vi.waitFor(() => expect(pending.has(page)).toBe(true));
+      pending.get(page)!();
+    }
     expect((await result).map(doc => doc.id)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(peak).toBe(4);
+    expect(peak).toBe(1);
   });
 
-  it("并发楼盘枚举发现页数变化时失败，不缓存不完整目录", async () => {
+  it("完整楼盘枚举发现页数变化时失败，不缓存不完整目录", async () => {
     payloadState.find.mockImplementation(async (params) => ({
       docs: [makeBuilding({ id: Number(params.page) })],
       totalPages: params.page === 1 ? 3 : 2,
