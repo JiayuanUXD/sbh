@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
-import { getPayload } from 'payload'
-import config from '@/payload.config'
-import { mapGlobalToSchedule, resolveServiceStatus } from '@/domain/advisor-availability'
+import { resolveServiceStatus } from '@/domain/advisor-availability'
+import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 
 /**
  * 平台级顾问卡片
@@ -34,13 +33,8 @@ function formatNextOpenAt(iso: string): string {
 
 async function fetchAdvisorStatus() {
   try {
-    const payload = await getPayload({ config })
-    const doc = await payload.findGlobal({
-      slug: 'advisor-service-hours',
-      depth: 1,
-      overrideAccess: true,
-    })
-    const schedule = mapGlobalToSchedule(doc as unknown as Record<string, unknown>)
+    const schedule = await getServiceSchedule()
+    if (!schedule) return null
     return resolveServiceStatus(schedule, new Date().toISOString())
   } catch {
     return null

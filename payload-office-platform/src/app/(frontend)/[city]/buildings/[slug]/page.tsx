@@ -15,47 +15,58 @@ import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
 export const dynamic = 'force-dynamic'
 type Props = Readonly<{ params: Promise<{ city: string; slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }>
 
-async function loadIdentity(params: Awaited<Props['params']>) {
-  const city = await resolveCityContext(params.city)
-  if (!city) return { city: null }
-  const identity = await resolveBuildingRouteIdentity(params.slug)
-  if (!identity) return { city, identity: null }
-  if (identity.citySlug !== city.slug) redirect(`/${identity.citySlug}/buildings/${encodeURIComponent(identity.slug)}`)
-  if (city.serviceStatus !== 'live') return { city, identity: null }
-  return { city, identity }
+async function redirectIfCrossCityBuilding(citySlug: string, slug: string): Promise<void> {
+  const identity = await resolveBuildingRouteIdentity(slug)
+  if (identity && identity.citySlug !== citySlug) {
+    redirect(`/${identity.citySlug}/buildings/${encodeURIComponent(identity.slug)}`)
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolved = await params
-  const loaded = await loadIdentity(resolved)
-  if (!loaded.city || !loaded.identity) return { title: '楼盘未找到', robots: { index: false, follow: false } }
-  const { building } = await getCachedBuildingDetail(loaded.city.slug, resolved.slug)
-  if (!building) return { title: '楼盘未找到', robots: { index: false, follow: false } }
-  const routingEnabled = getMultiCityRoutingEnabled()
-  const metadata = buildBuildingMetadata(
-    building,
-    siteConfig.siteOrigin,
-    routingEnabled ? { citySlug: loaded.city.slug } : undefined,
-  )
-  return routingEnabled ? metadata : { ...metadata, robots: { index: false, follow: true } }
+  const city = await resolveCityContext(resolved.city)
+  if (!city) return { title: '楼盘未找到', robots: { index: false, follow: false } }
+  if (city.serviceStatus === 'live') {
+    const detail = await getCachedBuildingDetail(city.slug, resolved.slug)
+    if (detail?.building && detail.building.slug === resolved.slug) {
+      const routingEnabled = getMultiCityRoutingEnabled()
+      const metadata = buildBuildingMetadata(
+        detail.building,
+        siteConfig.siteOrigin,
+        routingEnabled ? { citySlug: city.slug } : undefined,
+      )
+      return routingEnabled ? metadata : { ...metadata, robots: { index: false, follow: true } }
+    }
+  }
+  await redirectIfCrossCityBuilding(city.slug, resolved.slug)
+  return { title: '楼盘未找到', robots: { index: false, follow: false } }
 }
 
 export default async function CityBuildingDetailPage({ params, searchParams }: Props) {
   const resolved = await params
-  const loaded = await loadIdentity(resolved)
-  if (!loaded.city || !loaded.identity || loaded.city.serviceStatus !== 'live') notFound()
+  const city = await resolveCityContext(resolved.city)
+  if (!city) notFound()
+  if (city.serviceStatus !== 'live') {
+    await redirectIfCrossCityBuilding(city.slug, resolved.slug)
+    notFound()
+  }
   const supplyInput: BuildingSupplyInput = parseBuildingSupplySearchParams(await searchParams)
   const supplyCurrentSearch = buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()
-  const [{ building, supply }, relatedBuildings, serviceSchedule] = await Promise.all([
+  const [detail, relatedBuildings, serviceSchedule] = await Promise.all([
     supplyCurrentSearch === ''
-      ? getCachedBuildingDetail(loaded.city.slug, resolved.slug)
-      : getBuildingDetail(resolved.slug, createSearchContext(loaded.city.slug), supplyInput),
-    getCachedRelatedBuildings(loaded.city.slug, resolved.slug),
+      ? getCachedBuildingDetail(city.slug, resolved.slug)
+      : getBuildingDetail(resolved.slug, createSearchContext(city.slug), supplyInput),
+    getCachedRelatedBuildings(city.slug, resolved.slug),
     getServiceSchedule(),
   ])
-  if (!building) notFound()
+  const building = detail?.building?.slug === resolved.slug ? detail.building : null
+  const supply = detail?.supply
+  if (!building || !supply) {
+    await redirectIfCrossCityBuilding(city.slug, resolved.slug)
+    notFound()
+  }
   const pois = await fetchNearbyPois(building.id, building.coordinates)
-  const citySlug = getMultiCityRoutingEnabled() ? loaded.city.slug : undefined
+  const citySlug = getMultiCityRoutingEnabled() ? city.slug : undefined
   const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin, { citySlug })
   // OPT-053：合规声明来自「站点设置」。与 layout 那次读取在同一请求内由
   // unstable_cache 去重，不多打一次库；缺省时各子组件用自己的字面量兜底。
