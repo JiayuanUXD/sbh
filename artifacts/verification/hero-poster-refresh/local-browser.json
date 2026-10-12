@@ -1,0 +1,46 @@
+[
+  {
+    "width": 375,
+    "probe": {
+      "loaded": true,
+      "poster": "/_next/static/media/hero-poster.3ns2i2kkfzvx9.jpg",
+      "scrollWidth": 360,
+      "url": "http://localhost:3721/shanghai",
+      "videoCount": 0,
+      "width": 375
+    }
+  },
+  {
+    "width": 768,
+    "probe": {
+      "heading": "汇聚高端商务空间，赋能企业卓越成长",
+      "loaded": true,
+      "poster": "/_next/static/media/hero-poster.3ns2i2kkfzvx9.jpg",
+      "scrollWidth": 753,
+      "url": "http://localhost:3721/shanghai",
+      "width": 768
+    }
+  },
+  {
+    "width": 1440,
+    "probe": {
+      "heading": "汇聚高端商务空间，赋能企业卓越成长",
+      "loaded": true,
+      "poster": "/_next/static/media/hero-poster.3ns2i2kkfzvx9.jpg",
+      "scrollWidth": 1425,
+      "url": "http://localhost:3721/shanghai",
+      "width": 1440
+    }
+  },
+  {
+    "width": 1920,
+    "probe": {
+      "heading": "汇聚高端商务空间，赋能企业卓越成长",
+      "loaded": true,
+      "poster": "/_next/static/media/hero-poster.3ns2i2kkfzvx9.jpg",
+      "scrollWidth": 1905,
+      "url": "http://localhost:3721/shanghai",
+      "width": 1920
+    }
+  }
+]

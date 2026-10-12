@@ -2,7 +2,10 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const cli = 'C:/Users/Administrator/AppData/Roaming/npm/node_modules/@cloudbase/cli/bin/tcb'
-const build = JSON.parse(readFileSync('E:/wt-pub/artifacts/verification/OPT-110/package-manifest.json')).build
+const build = JSON.parse(readFileSync(process.env.RELEASE_MANIFEST ?? 'E:/wt-pub/artifacts/verification/OPT-110/package-manifest.json')).build
+const proofDirectory = process.env.RELEASE_PROOF_DIRECTORY ?? 'E:/wt-pub/artifacts/verification/OPT-110'
+const rollback = process.env.ROLLBACK_VERSION ?? 'sbh-219'
+if (!/^sbh-\d+$/.test(rollback)) throw new Error('Invalid rollback version')
 const candidate = process.env.CANDIDATE_VERSION
 if (!/^sbh-\d+$/.test(candidate ?? '')) throw new Error('CANDIDATE_VERSION is required')
 const sentinel = JSON.parse(readFileSync(new URL('../OPT-037/lib/sentinel.json', import.meta.url)))
@@ -52,14 +55,14 @@ try {
     console.log(pages.at(-1))
     if (r.status !== 200) throw new Error(`Failed smoke: ${path}`)
   }
-  writeFileSync('E:/wt-pub/artifacts/verification/OPT-110/promoted-verification.json', JSON.stringify({ build, health, pages }, null, 2))
+  writeFileSync(`${proofDirectory}/promoted-verification.json`, JSON.stringify({ build, health, pages }, null, 2))
   if (pages.some(page => ['/', '/shanghai/listings', '/shanghai/buildings'].includes(page.path)
     && page.elapsedMs >= 10_000)) throw new Error('Cold frontend response exceeded 10 second acceptance threshold')
   console.log({ success: true, build, pages })
 } catch (error) {
   console.error('Smoke failure:', error)
-  writeFileSync('E:/wt-pub/artifacts/verification/OPT-110/smoke-failure.json', JSON.stringify({ build, currentPath, pages, error: String(error) }, null, 2))
-  const r = spawnSync(process.execPath, [cli, 'api', 'tcbr', 'SubmitServerRollback', '--api-version', '2022-02-17', '--json', '--body', JSON.stringify({ EnvId: 'sbh-d9gnr8h5ef7e22e30', ServerName: 'sbh', CurrentVersionName: candidate, RollbackVersionName: 'sbh-219', OperatorRemark: 'OPT-110 冒烟失败回滚' })], { encoding: 'utf8', env: { ...process.env, CLOUDBASE_CI: '1' } })
+  writeFileSync(`${proofDirectory}/smoke-failure.json`, JSON.stringify({ build, currentPath, pages, error: String(error) }, null, 2))
+  const r = spawnSync(process.execPath, [cli, 'api', 'tcbr', 'SubmitServerRollback', '--api-version', '2022-02-17', '--json', '--body', JSON.stringify({ EnvId: 'sbh-d9gnr8h5ef7e22e30', ServerName: 'sbh', CurrentVersionName: candidate, RollbackVersionName: rollback, OperatorRemark: 'OPT-110 冒烟失败回滚' })], { encoding: 'utf8', env: { ...process.env, CLOUDBASE_CI: '1' } })
   console.error('Rollback response:', r.stdout, r.stderr)
   throw error
 }
