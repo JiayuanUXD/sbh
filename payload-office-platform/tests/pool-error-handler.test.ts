@@ -78,6 +78,51 @@ describe('attachPoolErrorHandler', () => {
     expect(payload.logger.error.mock.calls[0][0]).toMatchObject({ scope: 'client', pgCode: '25P03' })
   })
 
+  it('借出 client 触发 error 后在微任务中调用 client.release(err) 销毁死连接，且容忍已归还的 double-release', async () => {
+    const pool = new EventEmitter()
+    const payload = makePayload(pool)
+    attachPoolErrorHandler(payload as never)
+
+    const releaseSpy = vi.fn()
+    const client = Object.assign(new EventEmitter(), { release: releaseSpy })
+    pool.emit('connect', client)
+
+    const err = Object.assign(new Error('idle-in-transaction timeout'), { code: '25P03' })
+    client.emit('error', err)
+    await Promise.resolve()
+    expect(releaseSpy).toHaveBeenCalledTimes(1)
+    expect(releaseSpy).toHaveBeenCalledWith(err)
+
+    // 模拟借用方已同步归还后 pg-pool 的 throwOnDoubleRelease
+    releaseSpy.mockImplementationOnce(() => {
+      throw new Error('Release called on client which has already been released to the pool.')
+    })
+    expect(() => client.emit('error', err)).not.toThrow()
+    await Promise.resolve()
+    expect(releaseSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('补齐 pool.options 的 keepAlive / connectionTimeoutMillis 并为初始化期已建立的 _clients 挂载处理器', () => {
+    const setKeepAlive = vi.fn()
+    const existingClient = Object.assign(new EventEmitter(), {
+      connection: { stream: { setKeepAlive } },
+    })
+    const pool = Object.assign(new EventEmitter(), {
+      options: {} as Record<string, unknown>,
+      _clients: [existingClient],
+    })
+    const payload = makePayload(pool)
+    attachPoolErrorHandler(payload as never)
+
+    expect(pool.options).toMatchObject({
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
+    })
+    expect(existingClient.listenerCount('error')).toBe(1)
+    expect(setKeepAlive).toHaveBeenCalledWith(true, 10_000)
+  })
+
   it('同一个 client 重复 connect 不重复挂', () => {
     const pool = new EventEmitter()
     const payload = makePayload(pool)
@@ -115,3 +160,4 @@ describe('attachPoolErrorHandler', () => {
     expect(() => attachPoolErrorHandler(payload as never)).not.toThrow()
   })
 })
+

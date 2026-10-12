@@ -99,7 +99,7 @@ export function prepareStagingPackage({
   const outputRelativeToRepository = relative(root, output)
 
   if (!isAbsolute(outputDirectory)) throw new Error('输出目录必须使用绝对路径')
-  if (!outputRelativeToRepository.startsWith('..')) {
+  if (!outputRelativeToRepository.startsWith('..') && !isAbsolute(outputRelativeToRepository)) {
     throw new Error('staging 部署包不得写入仓库目录')
   }
 
@@ -122,7 +122,7 @@ export function prepareStagingPackage({
     ['archive', '--format=tar', `--output=${archivePath}`, `${commitSha}:payload-office-platform`],
     { cwd: root },
   )
-  execFileSync('tar', ['-xf', archivePath, '-C', output], { cwd: root })
+  execFileSync('tar', ['-xf', '.source.tar'], { cwd: output })
   unlinkSync(archivePath)
 
   const dockerfilePath = join(output, 'Dockerfile')

@@ -19,12 +19,14 @@ type Props = Readonly<{ params: Promise<{ city: string; slug: string }> }>
 async function loadCityDetail({ city: routeCity, slug }: Awaited<Props['params']>) {
   const city = await resolveCityContext(routeCity)
   if (!city) return { city: null, listing: null }
+  if (city.serviceStatus === 'live') {
+    const listing = await getCachedListingBySlug(city.slug, slug)
+    if (listing && listing.slug === slug) return { city, listing }
+  }
   const identity = await resolveListingRouteIdentity(slug)
   if (!identity) return { city, listing: null }
   if (identity.citySlug !== city.slug) redirect(`/${identity.citySlug}/listings/${encodeURIComponent(identity.slug)}`)
-  if (city.serviceStatus !== 'live') return { city, listing: null }
-  const listing = await getCachedListingBySlug(city.slug, slug)
-  return { city, listing }
+  return { city, listing: null }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

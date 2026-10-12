@@ -214,6 +214,8 @@ describe('city route boundaries', () => {
 
     const page = await CityListingDetailPage({ params: Promise.resolve({ city: 'shanghai', slug: 'shanghai-office' }) })
 
+    // 已开城缓存命中时直接返回本城文档，不再额外打一次未缓存的 resolveListingRouteIdentity
+    expect(io.resolveListingRouteIdentity).not.toHaveBeenCalled()
     // OPT-037 Task 9：楼盘详情文档随「配套设施」段一并移除（见
     // CityListingDetailView 文件头），房源详情路由不再取它。
     expect(io.getCachedBuildingBySlug).not.toHaveBeenCalled()
@@ -280,6 +282,8 @@ describe('city route boundaries', () => {
       robots: { index: false, follow: true },
     })
     const page = await CityBuildingDetailPage(props)
+    // 已开城缓存命中时不再额外打未缓存的 resolveBuildingRouteIdentity
+    expect(io.resolveBuildingRouteIdentity).not.toHaveBeenCalled()
     const script = Array.isArray(page.props.children) ? page.props.children[0] : null
     const jsonLd = JSON.parse(script.props.dangerouslySetInnerHTML.__html)
     expect(jsonLd.url).toBe('https://example.test/buildings/tower')

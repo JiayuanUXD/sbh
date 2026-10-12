@@ -17,21 +17,39 @@
  * `idle_in_transaction_session_timeout`（见 payload.config.ts 的 pool 配置）
  * 能安全启用的前提——那个超时被触发时，PG 正是通过连接级错误通知客户端的。
  *
- * ## 为什么只记日志不做别的
+ * ## 为什么池级错误只记日志，而借出连接错误还要兜底 `release(err)`
  *
- * `pool.emit('error')` 触发时，pg-pool 已经把该 client 移出池子并关闭了
- *（源码注释：「once the pool emits an error the client has already been closed
- * & purged and is unusable」）。池子会在下次取用时自动补一条新连接，
- * 这里不需要、也不应该做恢复动作——只要不让进程死掉，并把事故留痕。
+ * - 空闲连接：`pool.emit('error')` 触发时，pg-pool 的 `idleListener` 已经把该
+ *   client 移出池子并关闭了（源码注释：「once the pool emits an error the client
+ *   has already been closed & purged and is unusable」）。
+ * - 借出连接：pg-pool 在 `_acquireClient` 时会 `removeListener('error', idleListener)`，
+ *   把移除职责交给借用方的 `client.release(err)`。如果连接是因事务泄漏被遗弃后触发
+ *   `25P03`（`idle_in_transaction_session_timeout`），借用方早已丢失引用、永远不会
+ *   调 `release(err)`；若这里只记日志不调 `client.release(err)`，死连接会永久留在
+ *   `pool._clients` 里占住配额，攒够 `max`（默认 10）条后池子彻底僵死。
  */
 
 import type { Payload } from 'payload'
 
 type ClientLike = {
   on?: (event: 'error', listener: (err: Error) => void) => unknown
+  release?: (err?: Error | boolean) => void
+  connection?: {
+    stream?: {
+      setKeepAlive?: (enable?: boolean, initialDelay?: number) => unknown
+    }
+  }
+}
+
+type PoolOptionsLike = {
+  keepAlive?: boolean
+  keepAliveInitialDelayMillis?: number
+  connectionTimeoutMillis?: number
 }
 
 type PoolLike = {
+  options?: PoolOptionsLike
+  _clients?: ClientLike[]
   on?: {
     (event: 'error', listener: (err: Error) => void): unknown
     (event: 'connect', listener: (client: ClientLike) => void): unknown
@@ -49,6 +67,15 @@ export function attachPoolErrorHandler(payload: Payload): void {
   const marked = pool as PoolLike & { [ATTACHED]?: boolean }
   if (marked[ATTACHED]) return
   marked[ATTACHED] = true
+
+  // 公网 TencentDB 经 NAT 网关连接时，长时间无流量的 TCP 连接可能被中间设备静默丢弃；
+  // 开启 TCP Keep-Alive（10s 起探）让 OS 及时识别半开连接并触发 error 回收，
+  // 配合 connectionTimeoutMillis 避免池满或建连异常时请求无限挂起。
+  if (pool.options && typeof pool.options === 'object') {
+    pool.options.keepAlive ??= true
+    pool.options.keepAliveInitialDelayMillis ??= 10_000
+    pool.options.connectionTimeoutMillis ??= 10_000
+  }
 
   const log = (scope: 'pool' | 'client') => (err: Error) => {
     // 固定、不含 PII 的错误文本；连接串与参数一律不进日志。
@@ -73,16 +100,32 @@ export function attachPoolErrorHandler(payload: Payload): void {
   // 被 idle_in_transaction_session_timeout 回收时报 25P03，而当时只挂了 ① 的版本
   // **一次都没触发**，三个复现进程全部以 `throw er; // Unhandled 'error' event` 崩溃。
   //
-  // 也就是说：只加超时 + 只挂 pool 处理器，会把「连接池被泄漏拖垮」换成
-  // 「每回收一次崩一次容器」——更糟。两条监听必须同时存在。
-  //
   // 只要 Client 上有 ≥1 个 'error' 监听者，Node 就不会因未处理事件退出；
-  // 借用方自己的 try/catch 照常收到 query 层面的 rejection，不受影响。
-  pool.on('connect', (client: ClientLike) => {
+  // 同时用 queueMicrotask 兜底调用 `client.release(err)`，确保被遗弃的借出连接
+  // 触发 pg-pool 的 `_remove(client)` + `_pulseQueue()`，不会变成僵尸连接占满池配额。
+  const attachClient = (client: ClientLike) => {
     if (!client || typeof client.on !== 'function') return
     const c = client as ClientLike & { [ATTACHED]?: boolean }
     if (c[ATTACHED]) return
     c[ATTACHED] = true
-    client.on('error', log('client'))
-  })
+    client.connection?.stream?.setKeepAlive?.(true, 10_000)
+    client.on('error', (err: Error) => {
+      log('client')(err)
+      queueMicrotask(() => {
+        try {
+          client.release?.(err)
+        } catch {
+          // 若借用方已同步归还连接，pg-pool 的 throwOnDoubleRelease 会抛错，此处安全忽略
+        }
+      })
+    })
+  }
+
+  if (Array.isArray(pool._clients)) {
+    for (const existingClient of pool._clients) {
+      attachClient(existingClient)
+    }
+  }
+
+  pool.on('connect', attachClient)
 }
