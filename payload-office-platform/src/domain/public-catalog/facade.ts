@@ -72,6 +72,7 @@ import {
 import { paginate, stableSortCards } from './stable-sort'
 import {
   applyMemoryFilters,
+  collectListingScanPages,
   computeFacets,
   rowToCandidate,
   rowsFromListings,
@@ -201,6 +202,7 @@ export type BuildingFilteredResult = Readonly<{
 
 /** One public building page for bounded catalog enumeration. */
 export type BuildingSearchPageResult = Readonly<{
+  totalPages?: number
   docs: readonly BuildingSummaryViewModel[]
   page: number
   hasNextPage: boolean
@@ -363,8 +365,32 @@ export async function scanListings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<readonly ListingScanRow[]> {
+  if (adapter.scanEffectiveListingsPage) {
+    return collectListingScanPages((page, totalPages) => scanListingsPage(input, ctx, page, adapter, totalPages))
+  }
   if (adapter.scanEffectiveListings) return adapter.scanEffectiveListings(toScanInput(input), ctx)
   return rowsFromListings(await adapter.findEffectiveListings(input, ctx))
+}
+
+/** 单页扫描入口；旧适配器和测试 fake 作为只有第一页的扫描使用。 */
+export async function scanListingsPage(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  page: number,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+  knownTotalPages?: number,
+): Promise<Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>> {
+  if (!Number.isSafeInteger(page) || page < 1) throw new Error('无效的房源扫描页码')
+  if (!adapter.scanEffectiveListingsPage) {
+    return { rows: page === 1 ? await scanListings(input, ctx, adapter) : [], nextPage: null }
+  }
+  const result = await adapter.scanEffectiveListingsPage(toScanInput(input), ctx, page, knownTotalPages)
+  if (result.nextPage !== null && (
+    !Number.isSafeInteger(result.nextPage) || result.nextPage !== page + 1
+  )) {
+    throw new Error('房源扫描分页未按顺序推进')
+  }
+  return result
 }
 
 /**
@@ -428,10 +454,18 @@ export async function searchListings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<ListingSearchResult> {
-  const rows = await scanListings(input, ctx, adapter)
-  const page = selectListingPage(rows, input)
+  const page = await getListingPageSelection(input, ctx, adapter)
   const cards = await hydrateListingCards(page.ids, ctx, adapter)
   return assembleListingSearchResult(page, cards, input)
+}
+
+export async function getListingPageSelection(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+) {
+  if (adapter.findListingPage) return adapter.findListingPage(input, ctx)
+  return selectListingPage(await scanListings(input, ctx, adapter), input)
 }
 
 /**
@@ -504,7 +538,8 @@ function buildBuildingFacets(
 /**
  * 楼盘列表筛选/排序/分页/分组（OPT-036 Task 2 + Task 12）。
  *
- * 步骤：searchBuildings 取全集 → 逐维度剥离后算 facets 与退路命中数 →
+ * 生产适配器在数据库计算筛选、排序、分面及分页，仅回读当前页楼盘摘要。
+ * 不具备该接口的适配器保留原流程：取全集 → 逐维度剥离后算 facets 与退路命中数 →
  * applyBuildingFilters → sortBuildings → partitionByStock → **合并成一条序列
  * （有在租在前）后再分页** → 当前页再分一次组交给视图。
  *
@@ -512,19 +547,35 @@ function buildBuildingFacets(
  * 才排暂无在租」）。两组各自分页会让第 2 页同时出现「有在租第 25–48 个」和
  * 「暂无在租第 25–48 个」，翻页语义变成两条互不相干的游标。
  *
- * 底层生产适配器按稳定 ID 顺序受控分页枚举，只有拿到完整集合后才计算
- * facets/total/视图分页。枚举达安全上限仍有后续页时 fail-closed，不静默伪称“全部”。
+ * 轻量身份枚举达安全上限时 fail-closed，不静默伪称“全部”。
  */
 export async function searchBuildingsFiltered(
   input: BuildingSearchInput,
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<BuildingFilteredResult> {
+  if (adapter.findBuildingPageSelection) {
+    const selection = await adapter.findBuildingPageSelection(input, ctx)
+    const { supply, ...metadata } = selection
+    const ids = supply.map(row => row.id)
+    const wanted = new Set(ids)
+    const raw = adapter.findEffectiveBuildingsByIds
+      ? await adapter.findEffectiveBuildingsByIds(ids, ctx)
+      : (await adapter.findEffectiveBuildings(ctx)).filter(building => wanted.has(building.id))
+    const byId = new Map(raw.map(building => [building.id, mapBuildingSummary(building)]))
+    const docs = supply.flatMap(row => {
+      const summary = byId.get(row.id)
+      if (!summary) return []
+      return [{ ...summary, ...(row.count > 0 ? { listingCount: row.count } : {}),
+        ...(row.area != null && row.area > 0 ? { leasableArea: row.area } : {}) }]
+    })
+    return { ...metadata, docs, groups: partitionByStock(docs) }
+  }
   const { docs: allDocs } = await searchBuildings(ctx, adapter, input.business ?? 'lease')
 
   // 逐维度剥离：每个维度算一次「不含这一条时还剩什么」。同一次结果同时供给
   // 两处用途——筛选候选的计数（districts/grades/metros）与空态②的退路命中数——
-  // 因此只做一趟，不是六次筛选 + 三次 facet。全部在内存里对 ≤200 条做过滤，
+  // 因此只做一趟，不是六次筛选 + 三次 facet。对分页读取的完整公开楼盘做内存过滤，
   // 与「多发几次查询」不是一个量级的代价，所以无条件计算，不按空态与否分支。
   const omitted = new Map<BuildingSearchDimension, readonly BuildingSummaryViewModel[]>()
   for (const dimension of BUILDING_CLEARABLE_DIMENSIONS) {
@@ -539,11 +590,8 @@ export async function searchBuildingsFiltered(
   // 用全集当清单则永远认得每个候选的名字，计数为 0 的非选中项由视图层按
   // 「不显示 0」丢弃，选中项保留。
   //
-  // ⚠️ 「全集」是**这次扫描的全集**，不是这个城市的地点全集：`allDocs` 受上面那条
-  // 200 条上限约束，且库查之后还过了一道 `isPublicBuilding`。因此它可以用来取名字
-  // （取不到就不印，见 `building-filter-rows.ts`），但**不能用来判定某个区/站
-  // 「不存在」**——超过 200 个公开楼盘的城市里，只出现在第 200 名之后的真实行政区
-  // 在这里同样查不到。判定存在性要用地点表，见 `(frontend)/_lib/search-input.ts`。
+  // 「全集」指完整公开楼盘，不是城市地点全集；没有公开楼盘的地点仍可能存在。
+  // 地点存在性要查地点表，见 `(frontend)/_lib/search-input.ts`。
   const allFacets = buildBuildingFacets(allDocs)
   const overlay = <T extends { count: number }>(
     universe: readonly T[],
@@ -622,6 +670,7 @@ export async function searchBuildingsPage(
   return {
     docs,
     page: result.page,
+    totalPages: result.totalPages,
     hasNextPage: result.hasNextPage,
     nextPage: result.nextPage,
   }
@@ -870,6 +919,7 @@ export async function getHomepage(
   options: Readonly<{
     featuredLimit?: number
     latestArticlesLimit?: number
+    scan?: ListingScanProvider
   }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<HomepageData> {
@@ -877,6 +927,29 @@ export async function getHomepage(
   // 精选楼盘只取展示张数。此前过取 30 栋是给商圈卡挑封面用的，OPT-093 后商圈卡
   // 改从 allEffectiveBuildings 聚合，这里不必再多取。
   const articlesLimit = options.latestArticlesLimit ?? 5
+  const measure = async <T>(query: string, run: () => Promise<T>): Promise<T> => {
+    const start = Date.now()
+    if (process.env.NODE_ENV === 'production') {
+      console.info('[public-catalog:home]', JSON.stringify({ city: ctx.city, query, phase: 'start' }))
+    }
+    try {
+      return await run()
+    } finally {
+      if (process.env.NODE_ENV === 'production') {
+        console.info('[public-catalog:home]', JSON.stringify({ city: ctx.city, query, phase: 'end', elapsedMs: Date.now() - start }))
+      }
+    }
+  }
+
+  const cityCenterQuery = adapter.findCityCenter
+    ? measure('city-center', () => adapter.findCityCenter!(ctx)) : Promise.resolve(null)
+  const aggregateQuery = adapter.findHomepageListingAggregate
+    ? cityCenterQuery.then(center => measure('listing-aggregate', () =>
+      adapter.findHomepageListingAggregate!(null, ctx, center != null))) : Promise.resolve(null)
+  const businessAreasQuery = measure('business-areas', () => adapter.findEffectiveBusinessAreas(ctx))
+  const buildingOverviewQuery = adapter.findHomepageBuildingOverview
+    ? businessAreasQuery.then(areas => measure('building-overview', () =>
+      adapter.findHomepageBuildingOverview!(ctx, areas.map(area => area.slug)))) : Promise.resolve(null)
 
   const [
     featuredListings,
@@ -888,22 +961,26 @@ export async function getHomepage(
     allEffectiveRows,
     allEffectiveBuildings,
     cityCenter,
+    listingAggregate,
+    buildingOverview,
   ] = await Promise.all([
-    adapter.findFeaturedListings(ctx, featuredLimit),
-    adapter.findEffectiveDistricts(ctx),
-    adapter.findEffectiveBusinessAreas(ctx),
-    adapter.findFeaturedBuildings(ctx, featuredLimit),
+    measure('featured-listings', () => adapter.findFeaturedListings(ctx, featuredLimit)),
+    measure('districts', () => adapter.findEffectiveDistricts(ctx)),
+    businessAreasQuery,
+    measure('featured-buildings', () => adapter.findFeaturedBuildings(ctx, featuredLimit)),
     // 多取一条：首页右侧列表要去掉左侧主推那篇（HomeNewsList），主推落在最新
     // 五条里时靠第六条补位，否则右侧只剩四条。
-    adapter.findLatestArticles(articlesLimit + 1),
-    adapter.findHomeFeaturedArticle ? adapter.findHomeFeaturedArticle() : Promise.resolve(null),
-    // 一次全集**扫描**喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
-    // OPT-068：口径与列表页一致（同 scanListings），但只取行不取整棵关系树——
-    // 这条查询此前是首页冷路径最贵的一段，且每次发版缓存清零后必然重跑。
-    scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
-    // 口径与楼盘列表页 searchBuildings 一致（findEffectiveBuildings 默认 limit 200）
-    adapter.findEffectiveBuildings(ctx),
-    adapter.findCityCenter ? adapter.findCityCenter(ctx) : Promise.resolve(null),
+    measure('latest-articles', () => adapter.findLatestArticles(articlesLimit + 1)),
+    adapter.findHomeFeaturedArticle ? measure('featured-article', () => adapter.findHomeFeaturedArticle!()) : Promise.resolve(null),
+    // 生产适配器直接聚合计数和类型，只读取附近候选的紧凑坐标；旧适配器保留扫描回退。
+    adapter.findHomepageListingAggregate ? Promise.resolve([])
+      : options.scan ? options.scan(EMPTY_LISTING_INPUT, ctx) : scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
+    // 口径与楼盘列表页 searchBuildings 一致（分页读取完整公开楼盘）
+    adapter.findHomepageBuildingOverview ? Promise.resolve([])
+      : measure('buildings', () => adapter.findEffectiveBuildings(ctx)),
+    cityCenterQuery,
+    aggregateQuery,
+    buildingOverviewQuery,
   ])
 
   const cards = mapListingsToCards(featuredListings)
@@ -922,21 +999,21 @@ export async function getHomepage(
     const vm = mapBuildingSummary(b)
     if (vm) buildingVMs.push(vm)
   }
-  const featuredBuildingSlice = await attachSupplyAggregates(
+  const featuredBuildingSlice = await measure('featured-building-aggregate', () => attachSupplyAggregates(
     buildingVMs.slice(0, featuredLimit),
     ctx,
     adapter,
-  )
+  ))
 
   // 商圈卡：按商圈（而非行政区）聚合。
   //
-  // OPT-093：源是该城全部在营楼盘（allEffectiveBuildings，≤200，本函数已在同一批
+  // OPT-093：源是该城全部在营楼盘（allEffectiveBuildings，本函数已在同一批
   // 查询里取到），不再是精选楼盘的前 30 栋——那个 30 是为「精选楼盘」栏过取的，
   // 商圈卡借用它会让商圈能否上首页取决于其楼盘的更新时间：线上漕河泾、虹桥的楼盘
   // 排在第 36 / 75 / 76 名，运营在「精选区域」里选了也出不来。
   // 排序后同一商圈内首个命中的楼盘即代表封面，前几个名字即代表楼盘。
   const byArea = new Map<string, { cover: NonNullable<MediaViewModel> | null; names: string[] }>()
-  for (const raw of sortForDistrictCards(allEffectiveBuildings)) {
+  for (const raw of sortForDistrictCards(buildingOverview?.representatives ?? allEffectiveBuildings)) {
     const ba = raw.businessDistrict
     if (typeof ba !== 'object' || ba === null) continue
     const slug = ba.slug
@@ -946,6 +1023,9 @@ export async function getHomepage(
     if (!entry.cover && vm?.coverImage) entry.cover = vm.coverImage
     if (entry.names.length < AREA_CARD_BUILDINGS_MAX) entry.names.push(raw.name)
     byArea.set(slug, entry)
+  }
+  for (const area of buildingOverview?.areas ?? []) {
+    byArea.set(area.slug, { cover: byArea.get(area.slug)?.cover ?? null, names: [...area.names] })
   }
 
   // 候选池不设张数上限（OPT-093）：视图层（CityHomeView）先按运营配置的「精选区域」
@@ -978,13 +1058,12 @@ export async function getHomepage(
     .filter((a) => a.id !== featuredArticle?.id)
     .slice(0, articlesLimit)
 
-  // 全集扫描行：喂 stats.listings / typeSummaries / nearbyListings 三个特性，
-  // 与列表页共用同一个 scanListings 口径（OPT-068）。
+  // 聚合与目录扫描使用同一有效供给口径；旧适配器按扫描行计数。
   const stats: HomepageStats = {
-    listings: allEffectiveRows.length,
+    listings: listingAggregate?.count ?? allEffectiveRows.length,
     // 与楼盘列表页 searchBuildings 的 totalDocs = docs.length 同口径：mapBuildingSummary
     // 过滤后计数，不是原始 findEffectiveBuildings 返回长度。
-    buildings: allEffectiveBuildings.filter((b) => mapBuildingSummary(b) !== null).length,
+    buildings: buildingOverview?.count ?? allEffectiveBuildings.filter((b) => mapBuildingSummary(b) !== null).length,
     // 与「全部 N 个商圈」链接口径一致：前台可见商圈总数，不受卡片区质量门槛影响。
     businessAreas: businessAreas.length,
   }
@@ -997,10 +1076,14 @@ export async function getHomepage(
   // 个条目、每个多带的 variants 约 300 字节，量级几 KB，远够不到上限，不构成
   // 体积风险，不必比照卡片链路收窄。
   // 按类型计数 + 每个类型挑一张封面来源（该类型里 id 最小的一条，确定性）。
-  // OPT-068：计数在扫描行上做；封面需要完整投影（含 variants/focal），只对被选中的
-  // 那 ≤4 条回捞——此前是对全集房源建 Map 再逐类型取一条，全集越大越贵。
+  // 计数和最小 id 由聚合提供；封面需要完整投影（含 variants/focal），只回捞选中的 ≤4 条。
   const typeCounts = new Map<string, number>()
   const typeCoverSourceId = new Map<string, number>()
+  for (const row of listingAggregate?.types ?? []) {
+    if (!row.type) continue
+    typeCounts.set(row.type, row.count)
+    typeCoverSourceId.set(row.type, row.coverId)
+  }
   for (const row of allEffectiveRows) {
     const key = row.listingType
     if (!key) continue
@@ -1011,11 +1094,11 @@ export async function getHomepage(
 
   // 核心商圈附近房源：排除已在精选区展示的房源（避免首页同一张卡片重复出现），
   // 按到城市中心的直线距离升序，tie-break 用 id 保证跨请求稳定（此前用 stableSortKey，
-  // 它由 id 派生，同序）。距离在扫描行上算，只对最终 5 条回捞卡片。
+  // 它由 id 派生，同序）。距离在紧凑坐标候选上算，只对最终 5 条回捞卡片。
   const featuredSlugs = new Set(sorted.map((c) => c.slug))
   const nearbyRows = cityCenter == null
     ? []
-    : allEffectiveRows
+    : (listingAggregate?.nearbyCandidates ?? allEffectiveRows)
         .filter((row) => !featuredSlugs.has(row.slug) && row.coordinates != null)
         .map((row) => ({
           row,
@@ -1029,7 +1112,7 @@ export async function getHomepage(
   const hydrateIds = [...new Set([...coverIds, ...nearbyRows.map((n) => n.row.id)])]
   const hydrateIdSet = new Set(hydrateIds)
   const hydrated = adapter.findEffectiveListingsByIds
-    ? await adapter.findEffectiveListingsByIds(hydrateIds, ctx)
+    ? await measure('listing-hydration', () => adapter.findEffectiveListingsByIds!(hydrateIds, ctx))
     : (await adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx)).filter((l) => hydrateIdSet.has(l.id))
   const hydratedById = new Map(hydrated.map((doc) => [doc.id, doc] as const))
 
@@ -1078,6 +1161,20 @@ export async function getPlatformHomepageStats(
   const perCity = await Promise.all(
     citySlugs.map(async (slug) => {
       const ctx = createSearchContext(slug, undefined, 'lease')
+      if (adapter.findEffectiveBuildingIdentities) {
+        const [buildings, areas] = await Promise.all([
+          adapter.findEffectiveBuildingIdentities(ctx),
+          adapter.findEffectiveBusinessAreas(ctx),
+        ])
+        const aggregates = await adapter.aggregateEffectiveSupplyByBuildings(
+          buildings.map(building => building.id), ctx,
+        )
+        return {
+          listings: [...aggregates.values()].reduce((sum, aggregate) => sum + aggregate.count, 0),
+          buildings: buildings.filter(building => mapBuildingSummary(building) !== null).length,
+          businessAreas: areas.length,
+        }
+      }
       const [rows, buildings, areas] = await Promise.all([
         // OPT-068：跨城汇总只要三个数，走扫描而不是全量文档拉取。
         scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
@@ -1235,6 +1332,7 @@ export async function getSearchFacets(
     page: 1,
     sort: 'recommended',
   }
+  if (adapter.findListingFacets) return adapter.findListingFacets(facetInput, ctx)
   // OPT-068：与列表共用同一份扫描（同城同频道下区域 / 类型 / 价格的任意组合都
   // 命中同一条扫描缓存），聚合在 listing-scan.ts#computeFacets，与列表口径逐字段等价。
   const rows = await scanListings(facetInput, ctx, adapter)

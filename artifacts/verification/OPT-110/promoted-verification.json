@@ -1,0 +1,99 @@
+{
+  "build": "05d6946019b11869a00f6749ae725f3f1a21824f-worktree-b70c93a1a692",
+  "health": [
+    {
+      "status": "ok",
+      "checks": {
+        "payload": "ok",
+        "db": "ok"
+      },
+      "timestamp": "2026-10-12T06:52:49.550Z",
+      "version": "e333a3d6f7b59c4874efe75b692443598cd0eafb-worktree-6769e6204259",
+      "env": "production"
+    },
+    {
+      "status": "ok",
+      "checks": {
+        "payload": "ok",
+        "db": "ok"
+      },
+      "timestamp": "2026-10-12T06:52:54.894Z",
+      "version": "05d6946019b11869a00f6749ae725f3f1a21824f-worktree-b70c93a1a692",
+      "env": "production"
+    },
+    {
+      "status": "ok",
+      "checks": {
+        "payload": "ok",
+        "db": "ok"
+      },
+      "timestamp": "2026-10-12T06:52:59.995Z",
+      "version": "05d6946019b11869a00f6749ae725f3f1a21824f-worktree-b70c93a1a692",
+      "env": "production"
+    },
+    {
+      "status": "ok",
+      "checks": {
+        "payload": "ok",
+        "db": "ok"
+      },
+      "timestamp": "2026-10-12T06:53:05.097Z",
+      "version": "05d6946019b11869a00f6749ae725f3f1a21824f-worktree-b70c93a1a692",
+      "env": "production"
+    }
+  ],
+  "pages": [
+    {
+      "path": "/",
+      "status": 200,
+      "headersMs": 2273,
+      "firstChunkMs": 2286,
+      "bytes": 97718,
+      "elapsedMs": 2295,
+      "rendered": true
+    },
+    {
+      "path": "/shanghai/listings",
+      "status": 200,
+      "headersMs": 4895,
+      "firstChunkMs": 4958,
+      "bytes": 111151,
+      "elapsedMs": 4991,
+      "rendered": true
+    },
+    {
+      "path": "/shanghai",
+      "status": 200,
+      "headersMs": 86,
+      "firstChunkMs": 97,
+      "bytes": 98049,
+      "elapsedMs": 166,
+      "rendered": true
+    },
+    {
+      "path": "/admin/login",
+      "status": 200,
+      "headersMs": 661,
+      "firstChunkMs": 704,
+      "bytes": 58597,
+      "elapsedMs": 2446
+    },
+    {
+      "path": "/shanghai/buildings",
+      "status": 200,
+      "headersMs": 5318,
+      "firstChunkMs": 5324,
+      "bytes": 123298,
+      "elapsedMs": 5350,
+      "rendered": true
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 200,
+      "headersMs": 1001,
+      "firstChunkMs": 1002,
+      "bytes": 10571,
+      "elapsedMs": 1005
+    }
+  ]
+}

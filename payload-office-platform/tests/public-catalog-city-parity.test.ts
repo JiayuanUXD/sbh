@@ -27,7 +27,18 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSitemapListingsPage: sitemapIo.getCachedSitemapListingsPage,
 }))
 
-import sitemap from '@/app/(frontend)/sitemap'
+import { getEntitySitemap, getSitemapManifest } from '@/app/(frontend)/_lib/sitemap-shards'
+
+async function sitemap() {
+  const cities = await getSitemapManifest()
+  const entries: { url: string }[] = []
+  for (const city of cities) {
+    for (const page of city.listingPages) {
+      entries.push(...(await getEntitySitemap(city.citySlug, 'listings', page) ?? []))
+    }
+  }
+  return entries
+}
 import {
   createSearchContext,
   getDetailRecommendations,

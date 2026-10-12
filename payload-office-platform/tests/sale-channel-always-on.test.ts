@@ -29,7 +29,7 @@ const FORMERLY_GATED = [
   'src/lib/frontend/nav-targets.ts',
   'src/app/(frontend)/sale/page.tsx',
   'src/app/(frontend)/[city]/sale/page.tsx',
-  'src/app/(frontend)/sitemap.ts',
+  'src/app/(frontend)/_lib/sitemap-shards.ts',
   'src/collections/Listings.ts',
   'src/endpoints/listing-publish-endpoint.ts',
 ] as const
@@ -81,8 +81,8 @@ describe('sale-channel/出售能力恒定可用', () => {
   })
 
   it('sitemap 只按有效出售房源数判定，不再叠加开关', async () => {
-    const src = await read('src/app/(frontend)/sitemap.ts')
-    expect(src).toContain('shouldListSaleChannelInSitemap(city.saleListings.length)')
+    const src = await read('src/app/(frontend)/_lib/sitemap-shards.ts')
+    expect(src).toContain('shouldListSaleChannelInSitemap(await hasEffectiveSale(city.citySlug) ? 1 : 0)')
     expect(src).not.toContain('getSaleChannelEnabled() && shouldListSaleChannelInSitemap')
   })
 

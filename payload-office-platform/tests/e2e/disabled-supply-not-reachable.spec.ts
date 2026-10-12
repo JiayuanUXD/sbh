@@ -16,68 +16,78 @@
  * 本 spec 用不存在 slug 验证运行时 404 行为；纯函数层的停用过滤由
  * effective-supply-consistency 测试覆盖（§2a draft / §2b unpublished / §5 paused）。
  */
-import { expect, test } from '@playwright/test'
+import { expect, test, type APIRequestContext } from "@playwright/test";
 
-test.describe('OPT-011 停用供给不可达', () => {
-  test('不存在的房源 slug 返回 404', async ({ page }) => {
-    const resp = await page.goto('/listings/this-listing-does-not-exist')
-    expect(resp?.status()).toBe(404)
-  })
+async function sitemapUrls(request: APIRequestContext): Promise<string[]> {
+  const index = await request.get("/sitemap.xml");
+  expect(index.status()).toBe(200);
+  const xml = await index.text();
+  const locations = (body: string) =>
+    [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+  if (!xml.includes("<sitemapindex")) return locations(xml);
+  const urls: string[] = [];
+  for (const shard of locations(xml)) {
+    // 使用被测服务器，不请求 NEXT_PUBLIC_SITE_URL 指向的生产站。
+    const response = await request.get(new URL(shard).pathname);
+    expect(response.status(), `${shard} 分片应可访问`).toBe(200);
+    urls.push(...locations(await response.text()));
+  }
+  return urls;
+}
 
-  test('不存在的楼盘 slug 返回 404', async ({ page }) => {
-    const resp = await page.goto('/buildings/this-building-does-not-exist')
-    expect(resp?.status()).toBe(404)
-  })
+test.describe("OPT-011 停用供给不可达", () => {
+  test("不存在的房源 slug 返回 404", async ({ page }) => {
+    const resp = await page.goto("/listings/this-listing-does-not-exist");
+    expect(resp?.status()).toBe(404);
+  });
 
-  test('sitemap 中的房源/楼盘 URL 均返回 200（只含有效供给）', async ({ request }) => {
-    const sitemap = await request.get('/sitemap.xml')
-    expect(sitemap.status()).toBe(200)
-    const xml = await sitemap.text()
-    const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
+  test("不存在的楼盘 slug 返回 404", async ({ page }) => {
+    const resp = await page.goto("/buildings/this-building-does-not-exist");
+    expect(resp?.status()).toBe(404);
+  });
+
+  test("sitemap 中的房源/楼盘 URL 均返回 200（只含有效供给）", async ({
+    request,
+  }) => {
+    const urls = await sitemapUrls(request);
     const detailUrls = urls.filter(
-      (u) => u.includes('/listings/') || u.includes('/buildings/'),
-    )
+      (u) => u.includes("/listings/") || u.includes("/buildings/"),
+    );
     // sitemap 至少含若干房源/楼盘（seed 数据存在）
-    expect(detailUrls.length).toBeGreaterThan(0)
+    expect(detailUrls.length).toBeGreaterThan(0);
     for (const url of detailUrls) {
       // sitemap 的 <loc> 是绝对 URL，origin 来自 NEXT_PUBLIC_SITE_URL（生产 server 下为
       // 线上 https，与本地测试 server 不同）。只取 pathname 走 baseURL，确保命中被测的
       // 本地 server 而非线上/其它端口（与下方「列表页链接均在 sitemap」用例同款处理）。
-      const path = new URL(url).pathname
-      const r = await request.get(path)
-      expect(r.status(), `${path} 应可访问`).toBe(200)
+      const path = new URL(url).pathname;
+      const r = await request.get(path);
+      expect(r.status(), `${path} 应可访问`).toBe(200);
     }
-  })
+  });
 
-  test('列表页房源详情链接均出现在 sitemap 中（无停用供给混入）', async ({
+  test("列表页房源详情链接均出现在 sitemap 中（无停用供给混入）", async ({
     page,
     request,
   }) => {
-    const sitemap = await request.get('/sitemap.xml')
-    const xml = await sitemap.text()
     const sitemapPaths = new Set(
-      [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
-        new URL(m[1]).pathname,
-      ),
-    )
-    await page.goto('/listings')
+      (await sitemapUrls(request)).map((url) => new URL(url).pathname),
+    );
+    await page.goto("/listings");
     // 仅取详情链接 /listings/<slug>，排除 /listings?type= 等筛选链接
     const links = await page
       .locator('a[href*="/listings/"]')
       .evaluateAll((els) =>
         els
-          .map((e) => e.getAttribute('href'))
+          .map((e) => e.getAttribute("href"))
           .filter((h): h is string => !!h && /^\/listings\/[^?]+$/.test(h)),
-      )
-    expect(links.length).toBeGreaterThan(0)
+      );
+    expect(links.length).toBeGreaterThan(0);
     for (const href of links) {
-      expect(sitemapPaths.has(href), `${href} 应在 sitemap 中`).toBe(true)
+      expect(sitemapPaths.has(href), `${href} 应在 sitemap 中`).toBe(true);
     }
-  })
+  });
 
-  test('dev-story 不出现在 sitemap 中', async ({ request }) => {
-    const sitemap = await request.get('/sitemap.xml')
-    const xml = await sitemap.text()
-    expect(xml).not.toContain('/dev-story')
-  })
-})
+  test("dev-story 不出现在 sitemap 中", async ({ request }) => {
+    expect((await sitemapUrls(request)).join("\n")).not.toContain("/dev-story");
+  });
+});

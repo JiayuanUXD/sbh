@@ -174,7 +174,7 @@ function isPopulatedBuilding(v: unknown): v is PopulatedBuilding {
  * 兜底，导致 9 个组合里 6 个共用同一个 displayUnit，楼盘页按它分组筛选时会把
  * 月单价和年租金混作一类。
  */
-const DISPLAY_UNIT_BY_PERIOD_BASIS: Record<
+export const DISPLAY_UNIT_BY_PERIOD_BASIS: Record<
   PriceViewPeriod,
   Record<PriceViewBasis, PriceDisplayUnit>
 > = {
@@ -196,7 +196,7 @@ function priceKeyOf(
   }
 }
 
-const LEGACY_PRICE: Record<NonNullable<Listing['rentUnit']>, Omit<PriceViewModel, 'amount' | 'businessType' | 'text'>> = {
+export const LEGACY_PRICE: Record<NonNullable<Listing['rentUnit']>, Omit<PriceViewModel, 'amount' | 'businessType' | 'text'>> = {
   'rmb-sqm-day': priceKeyOf('day', 'sqm'),
   'rmb-month': priceKeyOf('month', 'total'),
   'rmb-seat-month': priceKeyOf('month', 'seat'),

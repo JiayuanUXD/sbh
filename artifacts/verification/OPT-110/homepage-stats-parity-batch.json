@@ -1,0 +1,121 @@
+[
+  {
+    "city": "shanghai",
+    "asOf": "2026-10-11T15:45:10.225Z",
+    "aggregated": {
+      "listings": 57545,
+      "buildings": 4448,
+      "businessAreas": 22
+    },
+    "scanned": {
+      "listings": 57545,
+      "buildings": 4448,
+      "businessAreas": 22
+    },
+    "uniqueListings": 57545,
+    "aggregateMs": 14138,
+    "scanMs": 65392
+  },
+  {
+    "city": "beijing",
+    "asOf": "2026-10-11T15:45:10.225Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 87,
+    "scanMs": 135
+  },
+  {
+    "city": "shenzhen",
+    "asOf": "2026-10-11T15:45:10.225Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 55,
+    "scanMs": 237
+  },
+  {
+    "city": "guangzhou",
+    "asOf": "2026-10-11T15:45:10.225Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 31,
+    "scanMs": 250
+  },
+  {
+    "city": "hangzhou",
+    "asOf": "2026-10-11T15:45:10.225Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 39,
+    "scanMs": 348
+  },
+  {
+    "city": "chengdu",
+    "asOf": "2026-10-11T15:45:10.225Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 105,
+    "scanMs": 389
+  },
+  {
+    "city": "wuhan",
+    "asOf": "2026-10-11T15:45:10.225Z",
+    "aggregated": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "scanned": {
+      "listings": 0,
+      "buildings": 0,
+      "businessAreas": 0
+    },
+    "uniqueListings": 0,
+    "aggregateMs": 57,
+    "scanMs": 199
+  }
+]

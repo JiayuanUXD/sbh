@@ -2,8 +2,8 @@
  * OPT-068 生产供给适配器：轻量扫描与按 id 回捞。
  *
  * 锁定三件事：
- *   1. 扫描查询只取行模型需要的字段（select）、只展开判定需要的关联字段（populate），
- *      depth 2、按 id 稳定排序、每页 1000——线上实测 depth 2 全字段每 200 条 1.5 秒，
+ *   1. 扫描查询只取行模型需要的字段（select）、批量读取判定需要的关联字段，
+ *      depth 0、按 id 稳定排序、每页 1000——线上实测 depth 2 全字段每 200 条 1.5 秒，
  *      同样的查询收窄字段后 0.27 秒，这是整个 OPT-068 的收益来源，不能被谁顺手改回去。
  *   2. 扫描仍过完整有效供给谓词：粗筛 where + 举报暂停排除 + 精筛，商户不合格的行不出现。
  *   3. 回捞按 id in 查询、同样过精筛；空 id 列表不打库。
@@ -97,12 +97,15 @@ describe('OPT-068 supply adapter：scanEffectiveListings', () => {
     payloadState.find.mockReset()
   })
 
-  it('只取行模型字段、只展开判定字段，depth 2 / limit 1000 / sort id，并保留粗筛 where', async () => {
+  it('只取行模型字段和批量判定字段，depth 0 / limit 1000 / sort id，并保留粗筛 where', async () => {
     payloadState.find.mockImplementation(async (params) => {
       if (params.collection === 'listing-reports') return { docs: [], hasNextPage: false }
       if (params.collection === 'listings') {
-        return { docs: [listing(1), listing(2, { merchant: { ...(listing(2).merchant as object), status: 'disabled' } })], hasNextPage: false }
+        return { docs: [listing(1, { building: 10, merchant: 50 }), listing(2, { building: 10, merchant: 51 })], hasNextPage: false }
       }
+      if (params.collection === 'buildings') return { docs: [listing(1).building] }
+      if (params.collection === 'merchants') return { docs: [listing(1).merchant,
+        { ...(listing(2).merchant as object), id: 51, status: 'disabled' }] }
       throw new Error(`unexpected collection ${String(params.collection)}`)
     })
 
@@ -110,11 +113,18 @@ describe('OPT-068 supply adapter：scanEffectiveListings', () => {
     const rows = await adapter.scanEffectiveListings!(parse('areaMin=100'), ctx)
 
     const [call] = listingCalls()
-    expect(call.depth).toBe(2)
+    expect(call.depth).toBe(0)
     expect(call.limit).toBe(1000)
     expect(call.sort).toBe('id')
     expect(call.select).toEqual(EXPECTED_SELECT)
-    expect(call.populate).toEqual(EXPECTED_POPULATE)
+    expect(call.populate).toBeUndefined()
+    const relations = payloadState.find.mock.calls.map(([params]) => params)
+    expect(relations.find(query => query.collection === 'buildings')).toMatchObject({
+      depth: 1, select: EXPECTED_POPULATE.buildings, populate: { locations: EXPECTED_POPULATE.locations },
+    })
+    expect(relations.find(query => query.collection === 'merchants')).toMatchObject({
+      depth: 0, select: EXPECTED_POPULATE.merchants,
+    })
     expect(call.where).toMatchObject({
       publicationStatus: { equals: 'published' },
       reviewStatus: { equals: 'approved' },
@@ -136,14 +146,14 @@ describe('OPT-068 supply adapter：scanEffectiveListings', () => {
     expect(rows[0].price?.displayUnit).toBe('rmb-sqm-day')
   })
 
-  it('翻页直到没有下一页，并在 5000 条封顶', async () => {
+  it('扫描超过 5000 条候选直到最后一页，不截断有效房源', async () => {
     const pageOf = (page: number) =>
       Array.from({ length: 1000 }, (_, i) => listing((page - 1) * 1000 + i + 1))
     payloadState.find.mockImplementation(async (params) => {
       if (params.collection === 'listing-reports') return { docs: [], hasNextPage: false }
       if (params.collection === 'listings') {
         const page = Number(params.page ?? 1)
-        return { docs: pageOf(page), hasNextPage: true, nextPage: page + 1 }
+        return { docs: page === 6 ? [listing(5001)] : pageOf(page), hasNextPage: page < 6, nextPage: page < 6 ? page + 1 : null }
       }
       throw new Error(`unexpected collection ${String(params.collection)}`)
     })
@@ -151,8 +161,38 @@ describe('OPT-068 supply adapter：scanEffectiveListings', () => {
     const adapter = createPayloadSupplyAdapter()
     const rows = await adapter.scanEffectiveListings!(parse(''), ctx)
 
-    expect(rows).toHaveLength(5000)
-    expect(listingCalls().map((c) => c.page)).toEqual([1, 2, 3, 4, 5])
+    expect(rows).toHaveLength(5001)
+    expect(rows.at(-1)?.id).toBe(5001)
+    expect(listingCalls().map((c) => c.page)).toEqual([1, 2, 3, 4, 5, 6])
+  })
+
+  it('前页精筛后为空仍继续候选分页，所有页沿用同一 asOf', async () => {
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === 'listing-reports') return { docs: [], hasNextPage: false }
+      if (params.collection === 'listings') {
+        const first = params.page === 1
+        return {
+          docs: [listing(first ? 1 : 2, first ? { merchant: { ...(listing(1).merchant as object), status: 'disabled' } } : {})],
+          hasNextPage: first,
+          nextPage: first ? 2 : null,
+        }
+      }
+      throw new Error(`unexpected collection ${String(params.collection)}`)
+    })
+    const adapter = createPayloadSupplyAdapter()
+    const rows = await adapter.scanEffectiveListings!(parse(''), ctx)
+    expect(rows.map((row) => row.id)).toEqual([2])
+    expect(listingCalls().map((call) => call.page)).toEqual([1, 2])
+    expect(listingCalls()[0].where).toEqual(listingCalls()[1].where)
+  })
+
+  it.each([null, 1, 3, 1.5])('拒绝不连续的 nextPage %s，不能返回不完整结果', async (nextPage) => {
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === 'listing-reports') return { docs: [], hasNextPage: false }
+      return { docs: [listing(1)], hasNextPage: true, nextPage }
+    })
+    await expect(createPayloadSupplyAdapter().scanEffectiveListings!(parse(''), ctx))
+      .rejects.toThrow('房源扫描分页未按顺序推进')
   })
 
   it('区域筛选仍走楼盘 id 下推（与 findEffectiveListings 同一 where 构造）', async () => {

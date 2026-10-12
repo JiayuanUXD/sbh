@@ -1,0 +1,190 @@
+{
+  "logs": [
+    {
+      "at": "2026-10-12 08:21:49",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[00:21:48] \u001b[33mWARN\u001b[39m: \u001b[36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\u001b[39m"
+    },
+    {
+      "at": "2026-10-12 08:21:49",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[00:21:48] \u001b[32mINFO\u001b[39m: \u001b[36m[migrate-locked] 获取迁移锁，执行迁移\u001b[39m"
+    },
+    {
+      "at": "2026-10-12 08:21:49",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[00:21:48] \u001b[32mINFO\u001b[39m: \u001b[36mReading migration files from /app/src/migrations\u001b[39m"
+    },
+    {
+      "at": "2026-10-12 08:21:50",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[00:21:49] \u001b[32mINFO\u001b[39m: \u001b[36m[migrate-locked] 迁移完成，已释放锁\u001b[39m"
+    },
+    {
+      "at": "2026-10-12 08:21:55",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[00:21:54] \u001b[33mWARN\u001b[39m: \u001b[36m[migrate-locked] 连接池未能优雅关闭（timeout），将强制退出进程\u001b[39m"
+    },
+    {
+      "at": "2026-10-12 08:21:55",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[00:21:54] \u001b[32mINFO\u001b[39m: \u001b[36m[migrate-locked] 迁移阶段结束，退出码 0，交给 pnpm start\u001b[39m"
+    },
+    {
+      "at": "2026-10-12 08:21:55",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "> payload-office-platform@0.1.0 start /app"
+    },
+    {
+      "at": "2026-10-12 08:21:55",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "> next start"
+    },
+    {
+      "at": "2026-10-12 08:21:56",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "▲ Next.js 16.2.10"
+    },
+    {
+      "at": "2026-10-12 08:21:56",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "- Local:         http://localhost:80"
+    },
+    {
+      "at": "2026-10-12 08:21:56",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "- Network:       http://10.14.22.118:80"
+    },
+    {
+      "at": "2026-10-12 08:21:56",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "✓ Ready in 146ms"
+    },
+    {
+      "at": "2026-10-12 08:22:33",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[00:22:32] \u001b[33mWARN\u001b[39m: \u001b[36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.\u001b[39m"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home-cache] {\"city\":\"shanghai\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"featured-listings\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"districts\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"business-areas\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"featured-buildings\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"latest-articles\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"featured-article\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"buildings\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"city-center\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:22:44",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"districts\",\"phase\":\"end\",\"elapsedMs\":97}"
+    },
+    {
+      "at": "2026-10-12 08:22:45",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"featured-article\",\"phase\":\"end\",\"elapsedMs\":199}"
+    },
+    {
+      "at": "2026-10-12 08:22:45",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"latest-articles\",\"phase\":\"end\",\"elapsedMs\":202}"
+    },
+    {
+      "at": "2026-10-12 08:22:45",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"city-center\",\"phase\":\"end\",\"elapsedMs\":209}"
+    },
+    {
+      "at": "2026-10-12 08:22:45",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"business-areas\",\"phase\":\"end\",\"elapsedMs\":243}"
+    },
+    {
+      "at": "2026-10-12 08:22:45",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"featured-buildings\",\"phase\":\"end\",\"elapsedMs\":527}"
+    },
+    {
+      "at": "2026-10-12 08:22:46",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"featured-listings\",\"phase\":\"end\",\"elapsedMs\":1494}"
+    },
+    {
+      "at": "2026-10-12 08:22:51",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"buildings\",\"phase\":\"end\",\"elapsedMs\":6258}"
+    },
+    {
+      "at": "2026-10-12 08:22:51",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"listing-aggregate\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:23:03",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"listing-aggregate\",\"phase\":\"end\",\"elapsedMs\":12391}"
+    },
+    {
+      "at": "2026-10-12 08:23:03",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"featured-building-aggregate\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:23:03",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"featured-building-aggregate\",\"phase\":\"end\",\"elapsedMs\":19}"
+    },
+    {
+      "at": "2026-10-12 08:23:03",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"listing-hydration\",\"phase\":\"start\"}"
+    },
+    {
+      "at": "2026-10-12 08:23:05",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home] {\"city\":\"shanghai\",\"query\":\"listing-hydration\",\"phase\":\"end\",\"elapsedMs\":1735}"
+    },
+    {
+      "at": "2026-10-12 08:23:05",
+      "pod": "sbh-218-54b54486bc-8qwdv",
+      "message": "[public-catalog:home-cache] {\"city\":\"shanghai\",\"phase\":\"end\",\"elapsedMs\":20509}"
+    }
+  ],
+  "hasMore": false
+}

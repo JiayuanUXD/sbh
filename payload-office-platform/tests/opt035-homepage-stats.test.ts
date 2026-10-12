@@ -8,9 +8,10 @@
  *
  * 设计依据：.superpowers/sdd/2026-08-20-homepage-apple-redesign/task-3-brief.md
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { haversineKm } from '@/domain/public-catalog/geo'
-import { getHomepage } from '@/domain/public-catalog/facade'
+import { getHomepage, getPlatformHomepageStats } from '@/domain/public-catalog/facade'
+import { rowsFromListings } from '@/domain/public-catalog/listing-scan'
 import { createSearchContext } from '@/domain/public-catalog/types'
 import {
   makeArea,
@@ -36,6 +37,97 @@ describe('haversineKm', () => {
 
 describe('getHomepage stats / typeSummaries / nearbyListings', () => {
   const ctx = createSearchContext('shanghai')
+
+  it('首页使用楼盘概览计数和商圈名称，不读取全部楼盘文档', async () => {
+    const area = makeArea({ id: 21 })
+    const representative = makeBuilding({ id: 10, businessDistrict: area, coverImage: MEDIA_WITH_SIZES })
+    const adapter = makeHomepageAdapter({
+      findHomepageBuildingOverview: async () => ({ count: 4448, representatives: [representative],
+        areas: [{ slug: area.slug, names: ['楼盘一', '楼盘二', '楼盘三', '楼盘四'] }] }),
+      findEffectiveBuildings: async () => { throw new Error('不应水合全部楼盘') },
+      findEffectiveBusinessAreas: async () => [area],
+    })
+    const result = await getHomepage(ctx, {}, adapter)
+    expect(result.stats.buildings).toBe(4448)
+    expect(result.districtCards).toHaveLength(1)
+    expect(result.districtCards[0].buildings).toEqual(['楼盘一', '楼盘二', '楼盘三', '楼盘四'])
+  })
+
+  it('首页聚合路径不扫描完整房源，保留类型封面和附近排序', async () => {
+    const rows = rowsFromListings([2, 3].map(id => makeListing({ id,
+      buildingCoords: { latitude: 31.2, longitude: 121.5 } })))
+    const aggregate = vi.fn(async () => ({ count: 57545,
+      types: [{ type: 'traditional-office', count: 57545, coverId: 2 }],
+      nearbyCandidates: rows.map(({ id, slug, coordinates }) => ({ id, slug, coordinates })),
+    }))
+    const adapter = makeHomepageAdapter({
+      findHomepageListingAggregate: aggregate,
+      findEffectiveListings: async () => { throw new Error('不应扫描全集') },
+      scanEffectiveListingsPage: async () => { throw new Error('不应扫描分页') },
+      findEffectiveListingsByIds: async (ids) => ids.map(id => makeListing({ id })),
+      findEffectiveBuildings: async () => [makeBuilding({ id: 10 })],
+      findCityCenter: async () => ({ latitude: 31.2, longitude: 121.5 }),
+    })
+    const home = await getHomepage(ctx, {}, adapter)
+    expect(home.stats.listings).toBe(57545)
+    expect(home.typeSummaries['traditional-office'].count).toBe(57545)
+    expect(aggregate).toHaveBeenCalledWith(null, ctx, true)
+    expect(home.nearbyListings.map(row => row.id)).toEqual([2, 3])
+  })
+
+  it('城市房源聚合不等待完整楼盘扫描结束', async () => {
+    let release!: (value: ReturnType<typeof makeBuilding>[]) => void
+    const buildings = new Promise<ReturnType<typeof makeBuilding>[]>(resolve => { release = resolve })
+    const aggregate = vi.fn(async () => ({ count: 0, types: [], nearbyCandidates: [] }))
+    const adapter = makeHomepageAdapter({
+      findHomepageListingAggregate: aggregate,
+      findEffectiveBuildings: async () => buildings,
+      findCityCenter: async () => null,
+    })
+    const pending = getHomepage(ctx, {}, adapter)
+    try {
+      await vi.waitFor(() => expect(aggregate).toHaveBeenCalledWith(null, ctx, false))
+    } finally {
+      release([])
+      await pending
+    }
+  })
+
+  it('首页可复用已缓存的同口径扫描，不再次查询完整房源', async () => {
+    const scan = vi.fn(async () => rowsFromListings([makeListing({ id: 1 }), makeListing({ id: 2 })]))
+    const adapter = makeHomepageAdapter({
+      findEffectiveListings: async () => { throw new Error('不应重新扫描') },
+      findEffectiveListingsByIds: async (ids) => ids.map(id => makeListing({ id: Number(id) })),
+    })
+    const home = await getHomepage(ctx, { scan }, adapter)
+    expect(home.stats.listings).toBe(2)
+    expect(scan).toHaveBeenCalledWith(expect.objectContaining({ page: 1 }), ctx)
+  })
+
+  it('首页及平台统计的完整扫描都并发读取全部分页', async () => {
+    let active = 0
+    let maxActive = 0
+    const adapter = makeHomepageAdapter({
+      scanEffectiveListingsPage: async (_input, _ctx, page) => {
+        active++
+        maxActive = Math.max(maxActive, active)
+        await Promise.resolve()
+        active--
+        return {
+          rows: rowsFromListings([makeListing({ id: page })]),
+          totalPages: 11,
+          nextPage: page < 11 ? page + 1 : null,
+        }
+      },
+    })
+    const home = await getHomepage(ctx, {}, adapter)
+    expect(home.stats.listings).toBe(11)
+    expect(maxActive).toBe(4)
+    maxActive = 0
+    const stats = await getPlatformHomepageStats(['shanghai'], adapter)
+    expect(stats.listings).toBe(11)
+    expect(maxActive).toBe(4)
+  })
 
   it('stats 三个计数分别等于有效房源数 / 有效楼盘数 / 商圈数', async () => {
     const adapter = makeHomepageAdapter({

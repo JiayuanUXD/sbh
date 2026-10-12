@@ -1,8 +1,8 @@
 /**
- * OPT-068 缓存层：列表页与 facet 共用一份扫描缓存，本页卡片按 id 回捞。
+ * 数据库查询缓存：列表页与 facet 各自缓存，本页卡片按 id 回捞。
  *
  * 与 opt036-facet-query-dedupe 一样**数真实调用次数**：`unstable_cache` 换成直通
- * （冷路径下界），计量点是域层 `scanListings` / `hydrateListingCards`。
+ * （冷路径下界），计量点是页选择 / facet / `hydrateListingCards`。
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,17 +11,17 @@ const hydrateCalls: number[][] = []
 
 const ROWS = [
   {
-    id: 1, slug: 'l-1', listingType: 'traditional-office', businessType: 'lease', area: 120,
+    id: 1, slug: 'l-1', listingType: 'traditional-office', businessType: 'lease', area: 120, buildingForm: [], businessDistrict: null,
     price: { amount: 5, currency: 'CNY', businessType: 'lease', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day', text: '5 元/㎡/天' },
     isFeatured: false, lastEffAt: 3, buildingId: 1, district: { id: 10, slug: 'jingan', name: '静安' }, businessDistrictId: 20, coordinates: null,
   },
   {
-    id: 2, slug: 'l-2', listingType: 'coworking', businessType: 'lease', area: 80,
+    id: 2, slug: 'l-2', listingType: 'coworking', businessType: 'lease', area: 80, buildingForm: [], businessDistrict: null,
     price: { amount: 3, currency: 'CNY', businessType: 'lease', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day', text: '3 元/㎡/天' },
     isFeatured: false, lastEffAt: 2, buildingId: 2, district: { id: 11, slug: 'pudong', name: '浦东' }, businessDistrictId: 21, coordinates: null,
   },
   {
-    id: 3, slug: 'l-3', listingType: 'traditional-office', businessType: 'lease', area: 200,
+    id: 3, slug: 'l-3', listingType: 'traditional-office', businessType: 'lease', area: 200, buildingForm: [], businessDistrict: null,
     price: null,
     isFeatured: false, lastEffAt: 1, buildingId: 1, district: { id: 10, slug: 'jingan', name: '静安' }, businessDistrictId: 20, coordinates: null,
   },
@@ -37,9 +37,16 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
-    scanListings: vi.fn(async (input: unknown, ctx: { city: string; businessType?: string }) => {
-      scanCalls.push(`${ctx.city}|${ctx.businessType ?? 'all'}|${actual.buildCanonicalSearchParams(input as never).toString()}`)
-      return ROWS
+    scanListingsPage: vi.fn(async () => {
+      throw new Error('目录与 facet 不应扫描整城候选')
+    }),
+    getListingPageSelection: vi.fn(async (input: Parameters<typeof actual.selectListingPage>[1], ctx: { city: string; businessType?: string }) => {
+      scanCalls.push(`page|${ctx.city}|${ctx.businessType}|${actual.buildCanonicalSearchParams(input).toString()}`)
+      return actual.selectListingPage(ROWS, input)
+    }),
+    getSearchFacets: vi.fn(async (input: Parameters<typeof actual.selectListingPage>[1], ctx: { city: string; businessType?: string }) => {
+      scanCalls.push(`facet|${ctx.city}|${ctx.businessType}|${actual.buildCanonicalSearchParams(input).toString()}`)
+      return actual.computeFacets(actual.applyMemoryFilters(ROWS, input))
     }),
     hydrateListingCards: vi.fn(async (ids: readonly number[]) => {
       hydrateCalls.push([...ids])
@@ -63,8 +70,8 @@ beforeEach(() => {
   hydrateCalls.length = 0
 })
 
-describe('OPT-068 列表页缓存：扫描 + 本页卡片', () => {
-  it('整页（列表 + 三份剥离 facet）并发只扫描一次，本页卡片按推荐序 id 回捞', async () => {
+describe('列表页数据库分页缓存与独立 facet', () => {
+  it('整页并发只查一次页选择及一次去重 facet，本页卡片按推荐序 id 回捞', async () => {
     const input = parse('')
     const [result, unitFacets, districtFacets, typeFacets] = await Promise.all([
       getCachedSearchListings('shanghai', '', input),
@@ -72,7 +79,8 @@ describe('OPT-068 列表页缓存：扫描 + 本页卡片', () => {
       getCachedSearchFacetsIgnoring('shanghai', input, ['district']),
       getCachedSearchFacetsIgnoring('shanghai', input, ['listingType']),
     ])
-    expect(scanCalls).toHaveLength(1)
+    expect(scanCalls).toHaveLength(2)
+    expect(scanCalls.filter(call => call.startsWith('facet|'))).toHaveLength(1)
     expect(hydrateCalls).toEqual([[1, 2, 3]])
     expect(result.docs.map((d) => d.id)).toEqual([1, 2, 3])
     expect(result.pagination.totalDocs).toBe(3)
@@ -81,7 +89,7 @@ describe('OPT-068 列表页缓存：扫描 + 本页卡片', () => {
     expect(typeFacets.listingTypes).toEqual([{ value: 'traditional-office', count: 2 }, { value: 'coworking', count: 1 }])
   })
 
-  it('区域 / 类型 / 价格 / 页码 / 排序在内存里生效，扫描键不变', async () => {
+  it('区域 / 类型 / 价格 / 页码 / 排序完整传给页选择，并各自分键', async () => {
     const plain = await getCachedSearchListings('shanghai', '', parse(''))
     const byDistrict = await getCachedSearchListings('shanghai', '', parse('district=jingan&sort=newest'))
     const byType = await getCachedSearchListings('shanghai', '', parse('type=coworking'))
@@ -90,8 +98,7 @@ describe('OPT-068 列表页缓存：扫描 + 本页卡片', () => {
     expect(byDistrict.docs.map((d) => d.id)).toEqual([1, 3])
     expect(byType.docs.map((d) => d.id)).toEqual([2])
     expect(byUnitRange.docs.map((d) => d.id)).toEqual([2])
-    // 直通 unstable_cache 下每次调用都会扫描，但键必须一致——同键才可能在生产上命中同一条缓存
-    expect(new Set(scanCalls).size).toBe(1)
+    expect(new Set(scanCalls).size).toBe(4)
   })
 
   it('会进 where 的维度分键：面积 / 关键词各自一次扫描', async () => {
@@ -114,6 +121,13 @@ describe('OPT-068 列表页缓存：扫描 + 本页卡片', () => {
   it('空 id 列表不回捞、不进缓存', async () => {
     expect(await getCachedListingCardsByIds('shanghai', [])).toEqual([])
     expect(hydrateCalls).toEqual([])
+  })
+
+  it('直接输入的小数价格边界不会因重新解析 URL 被截断', async () => {
+    const input = { ...parse('priceUnit=rmb-sqm-day'), priceMax: 3.5 }
+    const result = await getCachedSearchListings('shanghai', '', input)
+    expect(result.docs.map(doc => doc.id)).toEqual([2])
+    expect(scanCalls.some(call => call.includes('priceMax=3.5'))).toBe(true)
   })
 
   it('越界页码：本页无 id，不回捞，但分页元数据仍完整', async () => {

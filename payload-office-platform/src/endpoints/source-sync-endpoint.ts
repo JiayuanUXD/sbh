@@ -8,6 +8,7 @@ import { invalidateSupplyImportCache } from '@/domain/supply-import/cache-invali
 import { parseSyncChunk } from '@/domain/supply-sync/chunk'
 import { rollbackSourceSyncBatch } from '@/domain/supply-sync/source-sync-rollback'
 import { SOURCE_SYNC_QUEUE, SOURCE_SYNC_TASK } from '@/domain/supply-sync/source-sync-task'
+import { pendingSourceSync, publishSourceSlice, sourcePublishCounts } from '@/domain/supply-sync/source-sync-publish'
 
 /**
  * 外部来源同步 endpoint（OPT-104）：
@@ -34,7 +35,10 @@ async function guardSync(
     return { ok: true, ctx }
   } catch (err) {
     const message = err instanceof Error ? err.message : '无权限'
-    return { ok: false, response: Response.json({ ok: false, error: message }, { status: 403 }) }
+    return {
+      ok: false,
+      response: Response.json({ ok: false, error: message }, { status: 403 }),
+    }
   }
 }
 
@@ -73,7 +77,11 @@ export function createSourceSyncEndpoints(): Endpoint[] {
           req,
           data: {
             action: 'data.import',
-            object: { collection: BATCH_COLLECTION, objectId: 0, objectVersion: 1 },
+            object: {
+              collection: BATCH_COLLECTION,
+              objectId: 0,
+              objectVersion: 1,
+            },
             errorCode: parsed.code,
             errorMessage: `同步包 ${file.name} 校验不通过：${parsed.errors[0] ?? ''}`,
           },
@@ -101,17 +109,35 @@ export function createSourceSyncEndpoints(): Endpoint[] {
         overrideAccess: true,
         req,
       })
-      await req.payload.jobs.queue({ task: SOURCE_SYNC_TASK, queue: SOURCE_SYNC_QUEUE, input: { batchId: batch.id } })
+      await req.payload.jobs.queue({
+        task: SOURCE_SYNC_TASK,
+        queue: SOURCE_SYNC_QUEUE,
+        input: { batchId: batch.id },
+      })
       await writeAuditSuccess({
         payload: req.payload,
         req,
         data: {
           action: 'data.import',
-          object: { collection: BATCH_COLLECTION, objectId: batch.id, objectVersion: 1 },
-          after: { source: 'huizuxuanzhi', kind: parsed.kind, rowCount: parsed.rows.length, fileName: file.name },
+          object: {
+            collection: BATCH_COLLECTION,
+            objectId: batch.id,
+            objectVersion: 1,
+          },
+          after: {
+            source: 'huizuxuanzhi',
+            kind: parsed.kind,
+            rowCount: parsed.rows.length,
+            fileName: file.name,
+          },
         },
       })
-      return Response.json({ ok: true, batchId: batch.id, kind: parsed.kind, rowCount: parsed.rows.length })
+      return Response.json({
+        ok: true,
+        batchId: batch.id,
+        kind: parsed.kind,
+        rowCount: parsed.rows.length,
+      })
     },
   }
 
@@ -147,13 +173,87 @@ export function createSourceSyncEndpoints(): Endpoint[] {
         req,
         data: {
           action: 'data.import',
-          object: { collection: BATCH_COLLECTION, objectId: id, objectVersion: 1 },
-          after: { rollback: true, restored, republished, failures: failures.length },
+          object: {
+            collection: BATCH_COLLECTION,
+            objectId: id,
+            objectVersion: 1,
+          },
+          after: {
+            rollback: true,
+            restored,
+            republished,
+            failures: failures.length,
+          },
         },
       })
       return Response.json({ ok: true, restored, republished, failures })
     },
   }
 
-  return [upload, revalidate, rollback]
+  const publishGuard = async (req: RequestContext) => {
+    const guard = await guardSync(req)
+    if (!guard.ok) return guard.response
+    if (!guard.ctx.roleCodes.includes('ADM') || guard.ctx.dataScope !== 'global') {
+      return Response.json({ ok: false, error: '仅全局管理员可发布采集数据' }, { status: 403 })
+    }
+    try {
+      for (const permission of ['building:update', 'listing:update', 'listing:review', 'listing:publish']) {
+        await requireOperationPermission(req, permission)
+      }
+    } catch (error) {
+      return Response.json({ ok: false, error: error instanceof Error ? error.message : '无权限' }, { status: 403 })
+    }
+    if (await pendingSourceSync(req)) {
+      return Response.json(
+        {
+          ok: false,
+          error: '请等待全部同步批次完成后再发布',
+          code: 'SYNC_PENDING',
+        },
+        { status: 409 },
+      )
+    }
+    return null
+  }
+  const preflight: Endpoint = {
+    path: '/source-sync/publish',
+    method: 'get',
+    handler: async (reqIn) => {
+      const req = reqIn as RequestContext
+      const denied = await publishGuard(req)
+      if (denied) return denied
+      return Response.json({ ok: true, ...(await sourcePublishCounts(req)) })
+    },
+  }
+  const publish: Endpoint = {
+    path: '/source-sync/publish',
+    method: 'post',
+    handler: async (reqIn) => {
+      const req = reqIn as RequestContext
+      const denied = await publishGuard(req)
+      if (denied) return denied
+      let body: unknown
+      try {
+        body = await req.json?.()
+      } catch {
+        body = null
+      }
+      if (!body || typeof body !== 'object')
+        return Response.json({ ok: false, error: '发布参数不合法' }, { status: 400 })
+      const { phase, afterId = 0 } = body as Record<string, unknown>
+      if (
+        (phase !== 'buildings' && phase !== 'listings') ||
+        typeof afterId !== 'number' ||
+        !Number.isSafeInteger(afterId) ||
+        afterId < 0
+      ) {
+        return Response.json({ ok: false, error: '发布参数不合法' }, { status: 400 })
+      }
+      return Response.json({
+        ok: true,
+        ...(await publishSourceSlice(req, phase, afterId)),
+      })
+    },
+  }
+  return [upload, revalidate, rollback, preflight, publish]
 }

@@ -1,0 +1,564 @@
+[
+  {
+    "at": "2026-10-12T00:22:32.396Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"c721967e_6422_42c1_b332_077adf9339a8\" on \"c721967e_6422_42c1_b332_077adf9339a8\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"d0157c93_eb58_4e67_96c6_5d6b53b3bcc4\" on \"d0157c93_eb58_4e67_96c6_5d6b53b3bcc4\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"2a3830dc_1304_4050_8c57_28c3b266bb76\" on \"2a3830dc_1304_4050_8c57_28c3b266bb76\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"83765d39_c5ae_4167_8910_b903118a32f8\" on \"83765d39_c5ae_4167_8910_b903118a32f8\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"14d39663_22f8_463f_8f9d_dc0a73c69dfc\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"c721967e_6422_42c1_b332_077adf9339a8\" on \"c721967e_6422_42c1_b332_077adf9339a8\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"d0157c93_eb58_4e67_96c6_5d6b53b3bcc4\" on \"d0157c93_eb58_4e67_96c6_5d6b53b3bcc4\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"2a3830dc_1304_4050_8c57_28c3b266bb76\" on \"2a3830dc_1304_4050_8c57_28c3b266bb76\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"83765d39_c5ae_4167_8910_b903118a32f8\" on \"83765d39_c5ae_4167_8910_b903118a32f8\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"14d39663_22f8_463f_8f9d_dc0a73c69dfc\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"c721967e_6422_42c1_b332_077adf9339a8\" on \"c721967e_6422_42c1_b332_077adf9339a8\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"d0157c93_eb58_4e67_96c6_5d6b53b3bcc4\" on \"d0157c93_eb58_4e67_96c6_5d6b53b3bcc4\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"2a3830dc_1304_4050_8c57_28c3b266bb76\" on \"2a3830dc_1304_4050_8c57_28c3b266bb76\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"83765d39_c5ae_4167_8910_b903118a32f8\" on \"83765d39_c5ae_4167_8910_b903118a32f8\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"14d39663_22f8_463f_8f9d_dc0a73c69dfc\" o"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:22:42.412Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"2113b806_b2e7_4598_8885_dd3658ca8d99\" on \"2113b806_b2e7_4598_8885_dd3658ca8d99\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"50fa7e1b_8026_4156_bfef_da7426c7455c\" on \"50fa7e1b_8026_4156_bfef_da7426c7455c\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"bf07559f_da2f_4995_9b94_7e38a987a798\" on \"bf07559f_da2f_4995_9b94_7e38a987a798\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"908efde8_6710_4656_97ae_7ca6b1d7e5eb\" on \"908efde8_6710_4656_97ae_7ca6b1d7e5eb\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"cb6c7698_a7c8_461f_a3b9_6f1c2b59a1ee\" on \"cb6c7698_a7c8_461f_a3b9_6f1c2b59a1ee\".\"id\" = \"908efde8_6"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"2113b806_b2e7_4598_8885_dd3658ca8d99\" on \"2113b806_b2e7_4598_8885_dd3658ca8d99\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"50fa7e1b_8026_4156_bfef_da7426c7455c\" on \"50fa7e1b_8026_4156_bfef_da7426c7455c\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"bf07559f_da2f_4995_9b94_7e38a987a798\" on \"bf07559f_da2f_4995_9b94_7e38a987a798\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"908efde8_6710_4656_97ae_7ca6b1d7e5eb\" on \"908efde8_6710_4656_97ae_7ca6b1d7e5eb\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"cb6c7698_a7c8_461f_a3b9_6f1c2b59a1ee\" on \"cb6c7698_a7c8_461f_a3b9_6f1c2b59a1ee\".\"id\" = \"908efde8_6"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"2113b806_b2e7_4598_8885_dd3658ca8d99\" on \"2113b806_b2e7_4598_8885_dd3658ca8d99\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"50fa7e1b_8026_4156_bfef_da7426c7455c\" on \"50fa7e1b_8026_4156_bfef_da7426c7455c\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"bf07559f_da2f_4995_9b94_7e38a987a798\" on \"bf07559f_da2f_4995_9b94_7e38a987a798\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"908efde8_6710_4656_97ae_7ca6b1d7e5eb\" on \"908efde8_6710_4656_97ae_7ca6b1d7e5eb\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"cb6c7698_a7c8_461f_a3b9_6f1c2b59a1ee\" on \"cb6c7698_a7c8_461f_a3b9_6f1c2b59a1ee\".\"id\" = \"908efde8_6"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:22:52.486Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"e3563869_5d70_42d5_bdd4_4c7b3cbcfab9\" on \"e3563869_5d70_42d5_bdd4_4c7b3cbcfab9\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"14688401_69d8_4986_9046_cdf7bdb0d642\" on \"14688401_69d8_4986_9046_cdf7bdb0d642\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"fbf33a25_fc61_4a50_8acc_a6e353de62b3\" on \"fbf33a25_fc61_4a50_8acc_a6e353de62b3\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"63326411_9ebd_4622_a933_9abcd79a41db\" on \"63326411_9ebd_4622_a933_9abcd79a41db\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"b6063c51_cad6_4605_aa78_343ef1a70e1b\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"2bb6dac9_1c5c_459f_830d_697a184f5245\" on \"2bb6dac9_1c5c_459f_830d_697a184f5245\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"261fb5fe_09a6_47bd_b4ea_e4ed704467c0\" on \"261fb5fe_09a6_47bd_b4ea_e4ed704467c0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"0a6ee549_4d14_4074_ab63_368e8205b5de\" on \"0a6ee549_4d14_4074_ab63_368e8205b5de\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"3cd30210_53de_417c_9453_7b937c9a61b6\" on \"3cd30210_53de_417c_9453_7b937c9a61b6\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"5cc19089_f62e_4e89_ac1a_6ed7a4e06564\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"ae23866d_d061_47a7_9819_6f3e6a56f4a0\" on \"ae23866d_d061_47a7_9819_6f3e6a56f4a0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"63e9772b_b218_4262_affa_87da235e69df\" on \"63e9772b_b218_4262_affa_87da235e69df\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"06a39be3_866e_4e09_8055_8c56252ce82e\" on \"06a39be3_866e_4e09_8055_8c56252ce82e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"60a90832_b4ac_4d7b_a5da_0af594382464\" on \"60a90832_b4ac_4d7b_a5da_0af594382464\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"bb63a697_50b8_40b2_bec0_2425f194caf3\" on \"bb63a697_50b8_40b2_bec0_2425f194caf3\".\"id\" = \"60a90832_b"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 5,
+        "transaction_seconds": 5,
+        "query": "SELECT l.listing_type::text AS type,\n        COUNT(*)::int AS cnt, MIN(l.id)::int AS cover_id\n        \nFROM listings l\nJOIN buildings b ON b.id = l.building_id\nJOIN locations city ON city.id = b.city_id\nJOIN locations dist ON dist.id = b.district_id\nJOIN merchants m ON m.id = l.merchant_id\nWHERE l.building_id = ANY($2)\n  AND l.deleted_at IS NULL\n  AND l.publication_status = 'published'\n  AND l.review_status = 'approved'\n  AND l.supply_visibility_hold = 'normal'\n  AND b.status = 'published'\n  AND b.operational_status = 'active'\n  AND b.deleted_at IS NULL\n  AND city.status = 'active'\n  AND city.slug = $3\n  AND dist.status = 'active'\n  AND ($4::text IS NULL OR l.business_type::text = $4::text)\n"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"756c240b_5783_478c_b50e_43f80c4e6776\" on \"756c240b_5783_478c_b50e_43f80c4e6776\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"77dfb534_a502_40ca_bcec_2cd749d6bfe0\" on \"77dfb534_a502_40ca_bcec_2cd749d6bfe0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"39d36119_97db_4d95_9e3a_dc34d0b150aa\" on \"39d36119_97db_4d95_9e3a_dc34d0b150aa\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"a846fe30_1968_448b_a3dd_b5153c7f312d\" on \"a846fe30_1968_448b_a3dd_b5153c7f312d\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"6eaf40c6_3cc6_4add_b685_90493f9276bf\" on \"6eaf40c6_3cc6_4add_b685_90493f9276bf\".\"id\" = \"a846fe30_1"
+      },
+      {
+        "state": "active",
+        "wait_event_type": "IPC",
+        "wait_event": "MessageQueueSend",
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"ae23866d_d061_47a7_9819_6f3e6a56f4a0\" on \"ae23866d_d061_47a7_9819_6f3e6a56f4a0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"63e9772b_b218_4262_affa_87da235e69df\" on \"63e9772b_b218_4262_affa_87da235e69df\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"06a39be3_866e_4e09_8055_8c56252ce82e\" on \"06a39be3_866e_4e09_8055_8c56252ce82e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"60a90832_b4ac_4d7b_a5da_0af594382464\" on \"60a90832_b4ac_4d7b_a5da_0af594382464\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"bb63a697_50b8_40b2_bec0_2425f194caf3\" on \"bb63a697_50b8_40b2_bec0_2425f194caf3\".\"id\" = \"60a90832_b"
+      },
+      {
+        "state": "active",
+        "wait_event_type": "IPC",
+        "wait_event": "MessageQueueSend",
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"ae23866d_d061_47a7_9819_6f3e6a56f4a0\" on \"ae23866d_d061_47a7_9819_6f3e6a56f4a0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"63e9772b_b218_4262_affa_87da235e69df\" on \"63e9772b_b218_4262_affa_87da235e69df\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"06a39be3_866e_4e09_8055_8c56252ce82e\" on \"06a39be3_866e_4e09_8055_8c56252ce82e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"60a90832_b4ac_4d7b_a5da_0af594382464\" on \"60a90832_b4ac_4d7b_a5da_0af594382464\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"bb63a697_50b8_40b2_bec0_2425f194caf3\" on \"bb63a697_50b8_40b2_bec0_2425f194caf3\".\"id\" = \"60a90832_b"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:23:02.505Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"3ac2bba2_384f_46b5_80db_bd6a3de69073\" on \"3ac2bba2_384f_46b5_80db_bd6a3de69073\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"2d487e88_255d_49be_bda4_8f2a5d0fdcad\" on \"2d487e88_255d_49be_bda4_8f2a5d0fdcad\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"aa6d1486_e3f7_46c4_9a10_82d9936e7f14\" on \"aa6d1486_e3f7_46c4_9a10_82d9936e7f14\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"737d5050_3056_4404_83d7_e86fb33e1ef5\" on \"737d5050_3056_4404_83d7_e86fb33e1ef5\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"d0d2d633_df32_4273_b87a_c8fe835f86bd\" on \"d0d2d633_df32_4273_b87a_c8fe835f86bd\".\"id\" = \"737d5050_3"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"b766c1bc_0fe2_424f_9c8d_45aeec159779\" on \"b766c1bc_0fe2_424f_9c8d_45aeec159779\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"37d62a53_e823_4cc6_89a2_0aea389c1f82\" on \"37d62a53_e823_4cc6_89a2_0aea389c1f82\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"1f2abf82_5eba_410e_87e2_f745cf05fb50\" on \"1f2abf82_5eba_410e_87e2_f745cf05fb50\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"8deebe91_7239_42cf_8dc4_cf57eed4f8b2\" on \"8deebe91_7239_42cf_8dc4_cf57eed4f8b2\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"0974b722_bd1b_4796_aa3b_69d3c7549ff2\" on \"0974b722_bd1b_4796_aa3b_69d3c7549ff2\".\"id\" = \"8deebe91_7"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"b766c1bc_0fe2_424f_9c8d_45aeec159779\" on \"b766c1bc_0fe2_424f_9c8d_45aeec159779\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"37d62a53_e823_4cc6_89a2_0aea389c1f82\" on \"37d62a53_e823_4cc6_89a2_0aea389c1f82\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"1f2abf82_5eba_410e_87e2_f745cf05fb50\" on \"1f2abf82_5eba_410e_87e2_f745cf05fb50\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"8deebe91_7239_42cf_8dc4_cf57eed4f8b2\" on \"8deebe91_7239_42cf_8dc4_cf57eed4f8b2\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"0974b722_bd1b_4796_aa3b_69d3c7549ff2\" on \"0974b722_bd1b_4796_aa3b_69d3c7549ff2\".\"id\" = \"8deebe91_7"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"b766c1bc_0fe2_424f_9c8d_45aeec159779\" on \"b766c1bc_0fe2_424f_9c8d_45aeec159779\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"37d62a53_e823_4cc6_89a2_0aea389c1f82\" on \"37d62a53_e823_4cc6_89a2_0aea389c1f82\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"1f2abf82_5eba_410e_87e2_f745cf05fb50\" on \"1f2abf82_5eba_410e_87e2_f745cf05fb50\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"8deebe91_7239_42cf_8dc4_cf57eed4f8b2\" on \"8deebe91_7239_42cf_8dc4_cf57eed4f8b2\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"0974b722_bd1b_4796_aa3b_69d3c7549ff2\" on \"0974b722_bd1b_4796_aa3b_69d3c7549ff2\".\"id\" = \"8deebe91_7"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:23:12.517Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"f4fd5232_4355_47cc_8b81_c3c8a5154411\" on \"f4fd5232_4355_47cc_8b81_c3c8a5154411\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"c76429c6_6438_4c45_b804_b15a76515a4a\" on \"c76429c6_6438_4c45_b804_b15a76515a4a\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"c9e3d55b_77a5_4343_8321_380c71a2492b\" on \"c9e3d55b_77a5_4343_8321_380c71a2492b\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"3f3db86f_00aa_4c55_93fc_25223ed5d331\" on \"3f3db86f_00aa_4c55_93fc_25223ed5d331\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"792a6168_ece8_4127_a257_96fb3ae1a4f0\" on \"792a6168_ece8_4127_a257_96fb3ae1a4f0\".\"id\" = \"3f3db86f_0"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:23:22.539Z",
+    "activity": []
+  },
+  {
+    "at": "2026-10-12T00:23:32.560Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"6fa0d311_1f93_4913_a582_44a43407237d\" on \"6fa0d311_1f93_4913_a582_44a43407237d\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"a5298cc7_b193_4b3d_b85e_d45d109df55c\" on \"a5298cc7_b193_4b3d_b85e_d45d109df55c\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"76ba2752_ed39_4ac5_b44e_84ac0a6e0330\" on \"76ba2752_ed39_4ac5_b44e_84ac0a6e0330\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"51784f99_9e36_4155_b96a_e1d9d1f53699\" on \"51784f99_9e36_4155_b96a_e1d9d1f53699\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"e7824cd5_4d4e_4c97_93da_b828280cc6da\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select \"listings\".\"id\", \"listings\".\"title\", \"listings\".\"listing_type\", \"listings\".\"building_id\", \"listings\".\"business_type\", \"listings\".\"slug\", \"listings\".\"price_amount\", \"listings\".\"price_currency\", \"listings\".\"price_period\", \"listings\".\"price_unit\", \"listings\".\"rent\", \"listings\".\"rent_unit\", \"listings\".\"area\", \"listings\".\"is_featured\", \"listings\".\"merchant_id\", \"listings\".\"updated_at\", \"listings_buildingForm\".\"data\" as \"buildingForm\" from \"listings\" \"listings\" left join lateral (select coalesce(json_agg(json_build_array(\"listings_buildingForm\".\"value\") order by \"listings_buildingForm\".\"order\" asc), '[]'::json) as \"data\" from (select * from \"listings_building_form\" \"listings_buildingForm\" w"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"4123cb69_ff93_425d_b714_97de7c8eaddf\" on \"4123cb69_ff93_425d_b714_97de7c8eaddf\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"a930f837_92f1_4dfa_b4c3_9c3f33e9c5df\" on \"a930f837_92f1_4dfa_b4c3_9c3f33e9c5df\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"af617926_9a38_4eeb_80c5_956725c5bf8f\" on \"af617926_9a38_4eeb_80c5_956725c5bf8f\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"88245cc4_afaf_46cc_82e2_36ea6661a4c0\" on \"88245cc4_afaf_46cc_82e2_36ea6661a4c0\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"56ea4ef1_6902_4341_abff_ae2d2b72e554\" on \"56ea4ef1_6902_4341_abff_ae2d2b72e554\".\"id\" = \"88245cc4_a"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"91e063d9_7bca_486f_8b53_6fd125cc60d7\" on \"91e063d9_7bca_486f_8b53_6fd125cc60d7\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"1aa472ec_eb7a_4fea_94b8_1cb05a540d95\" on \"1aa472ec_eb7a_4fea_94b8_1cb05a540d95\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"edbb1aa6_d99f_4f05_b999_4daf4163de7c\" on \"edbb1aa6_d99f_4f05_b999_4daf4163de7c\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"9010cd23_645e_455b_aeea_2fa9d8b94bc7\" on \"9010cd23_645e_455b_aeea_2fa9d8b94bc7\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"0842dd77_0ea0_4f6c_b819_1f24aa43c58b\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"buildings\".\"id\", \"buildings\".\"created_at\", \"buildings\".\"created_at\" from \"buildings\" left join \"locations\" \"1b8571e4_2e55_42c5_9b93_9fb1291402ee\" on \"1b8571e4_2e55_42c5_9b93_9fb1291402ee\".\"id\" = \"buildings\".\"city_id\" left join \"locations\" \"83a86593_4060_4582_8515_ea61fbc79002\" on \"83a86593_4060_4582_8515_ea61fbc79002\".\"id\" = \"buildings\".\"district_id\" left join \"locations\" \"d30aeb2a_7540_4d7c_b199_e9f83dde9af7\" on \"d30aeb2a_7540_4d7c_b199_e9f83dde9af7\".\"id\" = \"buildings\".\"city_id\" where ((\"buildings\".\"status\" = $1 and \"buildings\".\"operational_status\" = $2 and \"buildings\".\"deleted_at\" is null and \"1b8571e4_2e55_42c5_9b93_9fb1291402ee\".\"status\" = $3 and \"83a86593_4060_4582_8515"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select \"id\", \"name\", \"slug\", \"type\", \"status\" from \"locations\" \"locations\" where \"locations\".\"id\" in ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95) order by \"locations\".\"created_at\" desc"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"aca45115_2304_4601_9258_0e4794e34a9e\" on \"aca45115_2304_4601_9258_0e4794e34a9e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"f52bd147_a492_4259_ae22_728e39543c3e\" on \"f52bd147_a492_4259_ae22_728e39543c3e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"5075d650_d993_4df6_8332_7509c8d4b8f2\" on \"5075d650_d993_4df6_8332_7509c8d4b8f2\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"802c211d_7f10_4c64_a07d_7fcb4618ee8f\" on \"802c211d_7f10_4c64_a07d_7fcb4618ee8f\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"da3310c4_6f32_4356_b818_2192705df5bc\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"buildings\".\"id\", \"buildings\".\"created_at\", \"buildings\".\"created_at\" from \"buildings\" left join \"locations\" \"11279506_ba43_46c7_a853_12cd9261c871\" on \"11279506_ba43_46c7_a853_12cd9261c871\".\"id\" = \"buildings\".\"city_id\" left join \"locations\" \"8ee70954_57e2_4be8_8aab_23d33767cdce\" on \"8ee70954_57e2_4be8_8aab_23d33767cdce\".\"id\" = \"buildings\".\"district_id\" left join \"locations\" \"c63cb815_2e0b_41e1_87e7_15328cc8d5f1\" on \"c63cb815_2e0b_41e1_87e7_15328cc8d5f1\".\"id\" = \"buildings\".\"city_id\" where ((\"buildings\".\"status\" = $1 and \"buildings\".\"operational_status\" = $2 and \"buildings\".\"deleted_at\" is null and \"11279506_ba43_46c7_a853_12cd9261c871\".\"status\" = $3 and \"8ee70954_57e2_4be8_8aab"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": null,
+        "query": "select \"id\", \"name\", \"slug\", \"type\", \"status\" from \"locations\" \"locations\" where \"locations\".\"id\" in ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97) order by \"locations\".\"created_at\" desc"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"0331c816_6e8c_4569_b8ea_e440abadc6b6\" on \"0331c816_6e8c_4569_b8ea_e440abadc6b6\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"078f9673_bf9b_4d69_82e2_e6b795064965\" on \"078f9673_bf9b_4d69_82e2_e6b795064965\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"60a4f21e_0a86_4d4e_9657_5e329d8c98fa\" on \"60a4f21e_0a86_4d4e_9657_5e329d8c98fa\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"bd8d1952_3bbc_4cf3_a4f3_9e7a4ad7b16e\" on \"bd8d1952_3bbc_4cf3_a4f3_9e7a4ad7b16e\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"c76766a7_fdb1_4ce5_904f_8d754905ac0b\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"buildings\" left join \"locations\" \"36726ae2_b4ea_49a3_aedd_a0f4b9cf82f6\" on \"36726ae2_b4ea_49a3_aedd_a0f4b9cf82f6\".\"id\" = \"buildings\".\"city_id\" left join \"locations\" \"464791f2_7f71_41fe_a305_36d80051a078\" on \"464791f2_7f71_41fe_a305_36d80051a078\".\"id\" = \"buildings\".\"district_id\" left join \"locations\" \"9b670066_dea2_450d_ac27_843f6faf7444\" on \"9b670066_dea2_450d_ac27_843f6faf7444\".\"id\" = \"buildings\".\"city_id\" where ((\"buildings\".\"status\" = $1 and \"buildings\".\"operational_status\" = $2 and \"buildings\".\"deleted_at\" is null and \"36726ae2_b4ea_49a3_aedd_a0f4b9cf82f6\".\"status\" = $3 and \"464791f2_7f71_41fe_a305_36d80051a078\".\"status\" = $4 and \"9b670066_dea2_450d_ac27_843f"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"907e6328_26d6_4dc4_ac23_9f013a4db063\" on \"907e6328_26d6_4dc4_ac23_9f013a4db063\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"8c317f10_11bb_41b5_a0be_de964262f8f2\" on \"8c317f10_11bb_41b5_a0be_de964262f8f2\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"3cc213b8_79ee_4f4c_a7d8_c7565521ce0b\" on \"3cc213b8_79ee_4f4c_a7d8_c7565521ce0b\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"1d695558_4f42_41b5_9781_85a69ebb712c\" on \"1d695558_4f42_41b5_9781_85a69ebb712c\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"4819ec2c_adf7_4546_9377_177ec64bdfc6\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"0331c816_6e8c_4569_b8ea_e440abadc6b6\" on \"0331c816_6e8c_4569_b8ea_e440abadc6b6\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"078f9673_bf9b_4d69_82e2_e6b795064965\" on \"078f9673_bf9b_4d69_82e2_e6b795064965\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"60a4f21e_0a86_4d4e_9657_5e329d8c98fa\" on \"60a4f21e_0a86_4d4e_9657_5e329d8c98fa\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"bd8d1952_3bbc_4cf3_a4f3_9e7a4ad7b16e\" on \"bd8d1952_3bbc_4cf3_a4f3_9e7a4ad7b16e\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"c76766a7_fdb1_4ce5_904f_8d754905ac0b\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"907e6328_26d6_4dc4_ac23_9f013a4db063\" on \"907e6328_26d6_4dc4_ac23_9f013a4db063\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"8c317f10_11bb_41b5_a0be_de964262f8f2\" on \"8c317f10_11bb_41b5_a0be_de964262f8f2\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"3cc213b8_79ee_4f4c_a7d8_c7565521ce0b\" on \"3cc213b8_79ee_4f4c_a7d8_c7565521ce0b\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"1d695558_4f42_41b5_9781_85a69ebb712c\" on \"1d695558_4f42_41b5_9781_85a69ebb712c\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"4819ec2c_adf7_4546_9377_177ec64bdfc6\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"aca45115_2304_4601_9258_0e4794e34a9e\" on \"aca45115_2304_4601_9258_0e4794e34a9e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"f52bd147_a492_4259_ae22_728e39543c3e\" on \"f52bd147_a492_4259_ae22_728e39543c3e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"5075d650_d993_4df6_8332_7509c8d4b8f2\" on \"5075d650_d993_4df6_8332_7509c8d4b8f2\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"802c211d_7f10_4c64_a07d_7fcb4618ee8f\" on \"802c211d_7f10_4c64_a07d_7fcb4618ee8f\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"da3310c4_6f32_4356_b818_2192705df5bc\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"0331c816_6e8c_4569_b8ea_e440abadc6b6\" on \"0331c816_6e8c_4569_b8ea_e440abadc6b6\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"078f9673_bf9b_4d69_82e2_e6b795064965\" on \"078f9673_bf9b_4d69_82e2_e6b795064965\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"60a4f21e_0a86_4d4e_9657_5e329d8c98fa\" on \"60a4f21e_0a86_4d4e_9657_5e329d8c98fa\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"bd8d1952_3bbc_4cf3_a4f3_9e7a4ad7b16e\" on \"bd8d1952_3bbc_4cf3_a4f3_9e7a4ad7b16e\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"c76766a7_fdb1_4ce5_904f_8d754905ac0b\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"aca45115_2304_4601_9258_0e4794e34a9e\" on \"aca45115_2304_4601_9258_0e4794e34a9e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"f52bd147_a492_4259_ae22_728e39543c3e\" on \"f52bd147_a492_4259_ae22_728e39543c3e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"5075d650_d993_4df6_8332_7509c8d4b8f2\" on \"5075d650_d993_4df6_8332_7509c8d4b8f2\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"802c211d_7f10_4c64_a07d_7fcb4618ee8f\" on \"802c211d_7f10_4c64_a07d_7fcb4618ee8f\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"da3310c4_6f32_4356_b818_2192705df5bc\" o"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:23:42.585Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"e9ce4f3e_b614_4ca0_a2f9_68b7d71cf235\" on \"e9ce4f3e_b614_4ca0_a2f9_68b7d71cf235\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"7e3b4141_7bc5_4dc3_908a_b3ec9c745ced\" on \"7e3b4141_7bc5_4dc3_908a_b3ec9c745ced\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"a3e38f88_6dee_4035_8078_e4ecfd3a2465\" on \"a3e38f88_6dee_4035_8078_e4ecfd3a2465\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"539bc4fc_6757_4a76_a396_366e50f4ac00\" on \"539bc4fc_6757_4a76_a396_366e50f4ac00\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"02384884_2fd8_4f28_b25b_78d3846af1d4\" on \"02384884_2fd8_4f28_b25b_78d3846af1d4\".\"id\" = \"539bc4fc_6"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"0e61acf7_49ae_437d_adb8_aa139d90021b\" on \"0e61acf7_49ae_437d_adb8_aa139d90021b\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"d4880b33_4006_4c02_b5d0_949c6643f51b\" on \"d4880b33_4006_4c02_b5d0_949c6643f51b\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"4f34635f_2ab2_47ef_ad59_3541d0d25bd7\" on \"4f34635f_2ab2_47ef_ad59_3541d0d25bd7\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"2f28a5c4_b030_4ce7_92dc_cff5d90e3eb9\" on \"2f28a5c4_b030_4ce7_92dc_cff5d90e3eb9\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"0515bef4_4709_48ad_8c6f_9dec58ab9859\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"f64390da_3672_4269_b76c_58a45d8e758d\" on \"f64390da_3672_4269_b76c_58a45d8e758d\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"7d0844ac_e880_48fb_8d3d_6fe092a837e3\" on \"7d0844ac_e880_48fb_8d3d_6fe092a837e3\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"05b3cd87_9880_4345_a893_2dd3df74f3f9\" on \"05b3cd87_9880_4345_a893_2dd3df74f3f9\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"89bf7efc_21cf_4263_8568_7003db782700\" on \"89bf7efc_21cf_4263_8568_7003db782700\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"a247c639_bc48_41a2_b3c8_76efdc207dba\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"fddcec07_aea4_4d2c_bff5_1fb1f724182c\" on \"fddcec07_aea4_4d2c_bff5_1fb1f724182c\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"89e26c97_37fa_4c3b_ada1_c4e39c0b0a6e\" on \"89e26c97_37fa_4c3b_ada1_c4e39c0b0a6e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"c8649d5c_11b9_459a_9cf3_6c8537cd50c0\" on \"c8649d5c_11b9_459a_9cf3_6c8537cd50c0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"34c9f0b7_a325_4649_b152_294971f5fb74\" on \"34c9f0b7_a325_4649_b152_294971f5fb74\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"85aec2eb_45a0_4e92_aed2_ede06fb36eee\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 1,
+        "transaction_seconds": 2,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"589eb518_d31a_4c02_81bb_a1e10426e769\" on \"589eb518_d31a_4c02_81bb_a1e10426e769\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"13c6c09a_1dec_492c_84f4_43cb6ccba200\" on \"13c6c09a_1dec_492c_84f4_43cb6ccba200\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"6299d4bf_e73a_4d1a_ae0d_add54d2b8884\" on \"6299d4bf_e73a_4d1a_ae0d_add54d2b8884\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"2bf81009_8d40_41eb_b9ec_ce68608f88f1\" on \"2bf81009_8d40_41eb_b9ec_ce68608f88f1\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"e6733de5_dff5_4ead_ad50_0f72c0e993d8\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": "IPC",
+        "wait_event": "MessageQueueSend",
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"e9ce4f3e_b614_4ca0_a2f9_68b7d71cf235\" on \"e9ce4f3e_b614_4ca0_a2f9_68b7d71cf235\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"7e3b4141_7bc5_4dc3_908a_b3ec9c745ced\" on \"7e3b4141_7bc5_4dc3_908a_b3ec9c745ced\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"a3e38f88_6dee_4035_8078_e4ecfd3a2465\" on \"a3e38f88_6dee_4035_8078_e4ecfd3a2465\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"539bc4fc_6757_4a76_a396_366e50f4ac00\" on \"539bc4fc_6757_4a76_a396_366e50f4ac00\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"02384884_2fd8_4f28_b25b_78d3846af1d4\" on \"02384884_2fd8_4f28_b25b_78d3846af1d4\".\"id\" = \"539bc4fc_6"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"fddcec07_aea4_4d2c_bff5_1fb1f724182c\" on \"fddcec07_aea4_4d2c_bff5_1fb1f724182c\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"89e26c97_37fa_4c3b_ada1_c4e39c0b0a6e\" on \"89e26c97_37fa_4c3b_ada1_c4e39c0b0a6e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"c8649d5c_11b9_459a_9cf3_6c8537cd50c0\" on \"c8649d5c_11b9_459a_9cf3_6c8537cd50c0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"34c9f0b7_a325_4649_b152_294971f5fb74\" on \"34c9f0b7_a325_4649_b152_294971f5fb74\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"85aec2eb_45a0_4e92_aed2_ede06fb36eee\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": "IPC",
+        "wait_event": "MessageQueueSend",
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"e9ce4f3e_b614_4ca0_a2f9_68b7d71cf235\" on \"e9ce4f3e_b614_4ca0_a2f9_68b7d71cf235\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"7e3b4141_7bc5_4dc3_908a_b3ec9c745ced\" on \"7e3b4141_7bc5_4dc3_908a_b3ec9c745ced\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"a3e38f88_6dee_4035_8078_e4ecfd3a2465\" on \"a3e38f88_6dee_4035_8078_e4ecfd3a2465\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"539bc4fc_6757_4a76_a396_366e50f4ac00\" on \"539bc4fc_6757_4a76_a396_366e50f4ac00\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"02384884_2fd8_4f28_b25b_78d3846af1d4\" on \"02384884_2fd8_4f28_b25b_78d3846af1d4\".\"id\" = \"539bc4fc_6"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"fddcec07_aea4_4d2c_bff5_1fb1f724182c\" on \"fddcec07_aea4_4d2c_bff5_1fb1f724182c\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"89e26c97_37fa_4c3b_ada1_c4e39c0b0a6e\" on \"89e26c97_37fa_4c3b_ada1_c4e39c0b0a6e\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"c8649d5c_11b9_459a_9cf3_6c8537cd50c0\" on \"c8649d5c_11b9_459a_9cf3_6c8537cd50c0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"34c9f0b7_a325_4649_b152_294971f5fb74\" on \"34c9f0b7_a325_4649_b152_294971f5fb74\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"85aec2eb_45a0_4e92_aed2_ede06fb36eee\" o"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:23:52.599Z",
+    "activity": []
+  },
+  {
+    "at": "2026-10-12T00:24:02.613Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 1,
+        "transaction_seconds": 1,
+        "query": "\nSELECT l.building_id AS bid, SUM(l.area)::float8 AS total, COUNT(*)::int AS cnt\nFROM listings l\nJOIN buildings  b    ON b.id = l.building_id\nJOIN locations  city ON city.id = b.city_id\nJOIN locations  dist ON dist.id = b.district_id\nJOIN merchants  m    ON m.id = l.merchant_id\nWHERE l.building_id = ANY($2)\n  AND l.deleted_at IS NULL\n  AND l.publication_status = 'published'\n  AND l.review_status = 'approved'\n  AND l.supply_visibility_hold = 'normal'\n  AND b.status = 'published'\n  AND b.operational_status = 'active'\n  AND b.deleted_at IS NULL\n  AND city.status = 'active'\n  AND city.slug = $3\n  AND dist.status = 'active'\n  -- 租售维度：$4 为 NULL 时不过滤（保持改造前口径），否则只算该类型。\n  -- 楼盘卡片的「在租 X ㎡ / N 套」必须传 'l"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "\nSELECT l.building_id AS bid, SUM(l.area)::float8 AS total, COUNT(*)::int AS cnt\nFROM listings l\nJOIN buildings  b    ON b.id = l.building_id\nJOIN locations  city ON city.id = b.city_id\nJOIN locations  dist ON dist.id = b.district_id\nJOIN merchants  m    ON m.id = l.merchant_id\nWHERE l.building_id = ANY($2)\n  AND l.deleted_at IS NULL\n  AND l.publication_status = 'published'\n  AND l.review_status = 'approved'\n  AND l.supply_visibility_hold = 'normal'\n  AND b.status = 'published'\n  AND b.operational_status = 'active'\n  AND b.deleted_at IS NULL\n  AND city.status = 'active'\n  AND city.slug = $3\n  AND dist.status = 'active'\n  -- 租售维度：$4 为 NULL 时不过滤（保持改造前口径），否则只算该类型。\n  -- 楼盘卡片的「在租 X ㎡ / N 套」必须传 'l"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:24:12.639Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"buildings\".\"id\", \"buildings\".\"created_at\", \"buildings\".\"created_at\" from \"buildings\" left join \"locations\" \"6ab78a62_3b9b_473d_92d3_f333bbb5fa0e\" on \"6ab78a62_3b9b_473d_92d3_f333bbb5fa0e\".\"id\" = \"buildings\".\"city_id\" left join \"locations\" \"ea2781f3_f623_46c8_9823_dea5d0f8b9ff\" on \"ea2781f3_f623_46c8_9823_dea5d0f8b9ff\".\"id\" = \"buildings\".\"district_id\" left join \"locations\" \"5fa46133_a2bb_4b91_9648_5ee28c190eb6\" on \"5fa46133_a2bb_4b91_9648_5ee28c190eb6\".\"id\" = \"buildings\".\"city_id\" where ((\"buildings\".\"status\" = $1 and \"buildings\".\"operational_status\" = $2 and \"buildings\".\"deleted_at\" is null and \"6ab78a62_3b9b_473d_92d3_f333bbb5fa0e\".\"status\" = $3 and \"ea2781f3_f623_46c8_9823"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 10,
+        "transaction_seconds": 10,
+        "query": "\nSELECT l.building_id AS bid, SUM(l.area)::float8 AS total, COUNT(*)::int AS cnt\nFROM listings l\nJOIN buildings  b    ON b.id = l.building_id\nJOIN locations  city ON city.id = b.city_id\nJOIN locations  dist ON dist.id = b.district_id\nJOIN merchants  m    ON m.id = l.merchant_id\nWHERE l.building_id = ANY($2)\n  AND l.deleted_at IS NULL\n  AND l.publication_status = 'published'\n  AND l.review_status = 'approved'\n  AND l.supply_visibility_hold = 'normal'\n  AND b.status = 'published'\n  AND b.operational_status = 'active'\n  AND b.deleted_at IS NULL\n  AND city.status = 'active'\n  AND city.slug = $3\n  AND dist.status = 'active'\n  -- 租售维度：$4 为 NULL 时不过滤（保持改造前口径），否则只算该类型。\n  -- 楼盘卡片的「在租 X ㎡ / N 套」必须传 'l"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"081da297_4a38_43c8_a2d9_96b2002427a1\" on \"081da297_4a38_43c8_a2d9_96b2002427a1\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"3833a91a_fd81_40f8_be78_00096d0f90c8\" on \"3833a91a_fd81_40f8_be78_00096d0f90c8\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"5834b53a_0ffe_4348_a8bf_d56d902a03b7\" on \"5834b53a_0ffe_4348_a8bf_d56d902a03b7\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"58ae64dd_d6b0_4019_97db_83ccce19919e\" on \"58ae64dd_d6b0_4019_97db_83ccce19919e\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"14b0f7f6_d874_4c53_b9c2_4ecbd564e352\" on \"14b0f7f6_d874_4c53_b9c2_4ecbd564e352\".\"id\" = \"58ae64dd_d"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"da8b8163_e153_4d55_b200_b9c99c7360fb\" on \"da8b8163_e153_4d55_b200_b9c99c7360fb\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"052e460a_2127_44b8_84d6_4b1f524aa5b0\" on \"052e460a_2127_44b8_84d6_4b1f524aa5b0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"3a2e8a4a_7624_4a0e_a267_fde6a9857575\" on \"3a2e8a4a_7624_4a0e_a267_fde6a9857575\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"b339b33f_2e3d_42e7_8836_710ec531c060\" on \"b339b33f_2e3d_42e7_8836_710ec531c060\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"3a94c9cd_b540_4db3_99fd_884d697a1fa1\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select \"site_settings\".\"id\", \"site_settings\".\"site_name\", \"site_settings\".\"logo_id\", \"site_settings\".\"hero_heading\", \"site_settings\".\"slogan\", \"site_settings\".\"price_disclaimer\", \"site_settings\".\"image_disclaimer\", \"site_settings\".\"footer_brand_blurb\", \"site_settings\".\"copyright_holder\", \"site_settings\".\"icp_record_number\", \"site_settings\".\"member_entry_visible\", \"site_settings\".\"service_phone_visible\", \"site_settings\".\"service_phone\", \"site_settings\".\"watermark_enabled\", \"site_settings\".\"watermark_tiled_source\", \"site_settings\".\"watermark_tiled_text\", \"site_settings\".\"watermark_tiled_image_id\", \"site_settings\".\"watermark_tiled_image_scale\", \"site_settings\".\"watermark_tiled_density\", \"site_s"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"37ff9fe4_dfb8_4d3e_b2b6_261a988a6d77\" on \"37ff9fe4_dfb8_4d3e_b2b6_261a988a6d77\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"05a7db41_0af1_468b_b959_e63259f93a24\" on \"05a7db41_0af1_468b_b959_e63259f93a24\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"d0e7551a_8192_4131_a811_bcddfc983796\" on \"d0e7551a_8192_4131_a811_bcddfc983796\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"d7541d35_ef85_40da_837a_aea97f79f126\" on \"d7541d35_ef85_40da_837a_aea97f79f126\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"cb695085_60fb_4ab1_a47c_d8e8e10c818b\" on \"cb695085_60fb_4ab1_a47c_d8e8e10c818b\".\"id\" = \"d7541d35_e"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"d11af223_a339_4d1a_a22a_d22384aee5b5\" on \"d11af223_a339_4d1a_a22a_d22384aee5b5\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"2d1eba93_5dfc_4884_b94a_21e98af86305\" on \"2d1eba93_5dfc_4884_b94a_21e98af86305\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"32fc4e34_3f29_413e_8081_5a721cb68ed0\" on \"32fc4e34_3f29_413e_8081_5a721cb68ed0\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"a6874831_031e_4bd7_89d6_cfb5617b667e\" on \"a6874831_031e_4bd7_89d6_cfb5617b667e\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"b3219880_321d_4757_9d2a_6a9da83f386a\" on \"b3219880_321d_4757_9d2a_6a9da83f386a\".\"id\" = \"a6874831_0"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"104f3340_1359_4e06_be42_5cc8e9f126cc\" on \"104f3340_1359_4e06_be42_5cc8e9f126cc\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"f0db5f11_fc9a_4fdc_8a7b_aa2716ea345d\" on \"f0db5f11_fc9a_4fdc_8a7b_aa2716ea345d\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"b63193f1_ead6_4c05_bf5d_be045138ca98\" on \"b63193f1_ead6_4c05_bf5d_be045138ca98\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"fef87949_feab_4b09_b84b_872de35d459a\" on \"fef87949_feab_4b09_b84b_872de35d459a\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"59ea589c_9574_4b7b_bd4f_a593d5158759\" on \"59ea589c_9574_4b7b_bd4f_a593d5158759\".\"id\" = \"fef87949_f"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"c1768acc_cec9_46bc_804d_fc5de2ca05f8\" on \"c1768acc_cec9_46bc_804d_fc5de2ca05f8\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"af87545f_14c5_4580_8789_a400ed5b1752\" on \"af87545f_14c5_4580_8789_a400ed5b1752\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"6087b297_5aec_405f_999f_d029f0d3d8c3\" on \"6087b297_5aec_405f_999f_d029f0d3d8c3\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"464a9624_6ffb_48e4_aea9_4ecf3191a9e4\" on \"464a9624_6ffb_48e4_aea9_4ecf3191a9e4\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"d6dd36c7_6912_402c_97ba_cfed021558ee\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 0,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"fce87c4d_55ab_4807_b02d_2fb7e86f9482\" on \"fce87c4d_55ab_4807_b02d_2fb7e86f9482\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"2cc60b1e_410f_4409_ac1c_d386c4dae498\" on \"2cc60b1e_410f_4409_ac1c_d386c4dae498\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"88b187f0_d53b_4c27_9c8c_ca716f70a417\" on \"88b187f0_d53b_4c27_9c8c_ca716f70a417\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"f293585d_56c9_49f3_b042_af27b18e5ee3\" on \"f293585d_56c9_49f3_b042_af27b18e5ee3\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"e995a832_8f32_443c_9faf_eef73cb939b8\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 1,
+        "transaction_seconds": 1,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"680cd2fc_d9a9_457c_8752_137078ecb450\" on \"680cd2fc_d9a9_457c_8752_137078ecb450\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"6a1f8ae5_627a_4b09_906e_0369735f5b9a\" on \"6a1f8ae5_627a_4b09_906e_0369735f5b9a\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"656c1f24_75c4_4a59_9168_3394a5c77809\" on \"656c1f24_75c4_4a59_9168_3394a5c77809\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"b4c07ca0_871e_4791_b7d8_bd9fd1bf3208\" on \"b4c07ca0_871e_4791_b7d8_bd9fd1bf3208\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"c458269d_8de5_4d68_acf9_f61aa7071fc7\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"081da297_4a38_43c8_a2d9_96b2002427a1\" on \"081da297_4a38_43c8_a2d9_96b2002427a1\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"3833a91a_fd81_40f8_be78_00096d0f90c8\" on \"3833a91a_fd81_40f8_be78_00096d0f90c8\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"5834b53a_0ffe_4348_a8bf_d56d902a03b7\" on \"5834b53a_0ffe_4348_a8bf_d56d902a03b7\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"58ae64dd_d6b0_4019_97db_83ccce19919e\" on \"58ae64dd_d6b0_4019_97db_83ccce19919e\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"14b0f7f6_d874_4c53_b9c2_4ecbd564e352\" on \"14b0f7f6_d874_4c53_b9c2_4ecbd564e352\".\"id\" = \"58ae64dd_d"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 1,
+        "transaction_seconds": 1,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"680cd2fc_d9a9_457c_8752_137078ecb450\" on \"680cd2fc_d9a9_457c_8752_137078ecb450\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"6a1f8ae5_627a_4b09_906e_0369735f5b9a\" on \"6a1f8ae5_627a_4b09_906e_0369735f5b9a\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"656c1f24_75c4_4a59_9168_3394a5c77809\" on \"656c1f24_75c4_4a59_9168_3394a5c77809\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"b4c07ca0_871e_4791_b7d8_bd9fd1bf3208\" on \"b4c07ca0_871e_4791_b7d8_bd9fd1bf3208\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"c458269d_8de5_4d68_acf9_f61aa7071fc7\" o"
+      },
+      {
+        "state": "active",
+        "wait_event_type": "IPC",
+        "wait_event": "BtreePage",
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"37ff9fe4_dfb8_4d3e_b2b6_261a988a6d77\" on \"37ff9fe4_dfb8_4d3e_b2b6_261a988a6d77\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"05a7db41_0af1_468b_b959_e63259f93a24\" on \"05a7db41_0af1_468b_b959_e63259f93a24\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"d0e7551a_8192_4131_a811_bcddfc983796\" on \"d0e7551a_8192_4131_a811_bcddfc983796\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"d7541d35_ef85_40da_837a_aea97f79f126\" on \"d7541d35_ef85_40da_837a_aea97f79f126\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"cb695085_60fb_4ab1_a47c_d8e8e10c818b\" on \"cb695085_60fb_4ab1_a47c_d8e8e10c818b\".\"id\" = \"d7541d35_e"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 0,
+        "transaction_seconds": 1,
+        "query": "select COUNT(1) OVER() from \"listings\" left join \"buildings\" \"081da297_4a38_43c8_a2d9_96b2002427a1\" on \"081da297_4a38_43c8_a2d9_96b2002427a1\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"3833a91a_fd81_40f8_be78_00096d0f90c8\" on \"3833a91a_fd81_40f8_be78_00096d0f90c8\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"5834b53a_0ffe_4348_a8bf_d56d902a03b7\" on \"5834b53a_0ffe_4348_a8bf_d56d902a03b7\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"58ae64dd_d6b0_4019_97db_83ccce19919e\" on \"58ae64dd_d6b0_4019_97db_83ccce19919e\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"14b0f7f6_d874_4c53_b9c2_4ecbd564e352\" on \"14b0f7f6_d874_4c53_b9c2_4ecbd564e352\".\"id\" = \"58ae64dd_d"
+      },
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 1,
+        "transaction_seconds": 1,
+        "query": "select distinct \"listings\".\"id\", \"listings\".\"created_at\", \"listings\".\"created_at\" from \"listings\" left join \"buildings\" \"680cd2fc_d9a9_457c_8752_137078ecb450\" on \"680cd2fc_d9a9_457c_8752_137078ecb450\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"6a1f8ae5_627a_4b09_906e_0369735f5b9a\" on \"6a1f8ae5_627a_4b09_906e_0369735f5b9a\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"656c1f24_75c4_4a59_9168_3394a5c77809\" on \"656c1f24_75c4_4a59_9168_3394a5c77809\".\"id\" = \"listings\".\"building_id\" left join \"buildings\" \"b4c07ca0_871e_4791_b7d8_bd9fd1bf3208\" on \"b4c07ca0_871e_4791_b7d8_bd9fd1bf3208\".\"id\" = \"listings\".\"building_id\" left join \"locations\" \"c458269d_8de5_4d68_acf9_f61aa7071fc7\" o"
+      }
+    ]
+  },
+  {
+    "at": "2026-10-12T00:24:22.672Z",
+    "activity": [
+      {
+        "state": "active",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_seconds": 1,
+        "transaction_seconds": 1,
+        "query": "\nSELECT l.building_id AS bid, SUM(l.area)::float8 AS total, COUNT(*)::int AS cnt\n\nFROM listings l\nJOIN buildings b ON b.id = l.building_id\nJOIN locations city ON city.id = b.city_id\nJOIN locations dist ON dist.id = b.district_id\nJOIN merchants m ON m.id = l.merchant_id\nWHERE l.building_id = ANY($2)\n  AND l.deleted_at IS NULL\n  AND l.publication_status = 'published'\n  AND l.review_status = 'approved'\n  AND l.supply_visibility_hold = 'normal'\n  AND b.status = 'published'\n  AND b.operational_status = 'active'\n  AND b.deleted_at IS NULL\n  AND city.status = 'active'\n  AND city.slug = $3\n  AND dist.status = 'active'\n  AND ($4::text IS NULL OR l.business_type::text = $4::text)\n  AND m.status = 'act"
+      }
+    ]
+  }
+]

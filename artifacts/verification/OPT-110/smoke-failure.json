@@ -1,0 +1,15 @@
+{
+  "build": "e1fa898ec6644ff6e41fb874204860429ae39da0-worktree-d890ebbf57c5",
+  "currentPath": "/shanghai/listings",
+  "pages": [
+    {
+      "path": "/",
+      "status": 200,
+      "headersMs": 21548,
+      "firstChunkMs": 21553,
+      "bytes": 97309,
+      "elapsedMs": 21625
+    }
+  ],
+  "error": "TimeoutError: The operation was aborted due to timeout"
+}

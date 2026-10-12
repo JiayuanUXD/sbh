@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Alert, Button, Modal, Progress, Space, Table, Tag, Typography } from '@arco-design/web-react'
 import type { ColumnProps } from '@arco-design/web-react/es/Table'
-import { IconRefresh, IconUpload } from '@arco-design/web-react/icon'
+import { IconRefresh, IconUpload, IconCheckCircle } from '@arco-design/web-react/icon'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -21,15 +21,26 @@ type Batch = {
   stats: Partial<
     Record<'created' | 'updated' | 'unchanged' | 'retired' | 'skipped' | 'failed' | 'imagesCreated', number>
   > | null
-  affected: { updatedPublishedListings?: unknown[]; retiredListings?: unknown[] } | null
+  affected: {
+    updatedPublishedListings?: unknown[]
+    retiredListings?: unknown[]
+  } | null
   writeErrors: { row: number; externalId: string; message: string }[] | null
   rolledBackAt: string | null
   createdAt: string
 }
 
-type UploadLog = { name: string; state: 'waiting' | 'uploading' | 'ok' | 'error'; message?: string }
+type UploadLog = {
+  name: string
+  state: 'waiting' | 'uploading' | 'ok' | 'error'
+  message?: string
+}
 
-const KIND_LABEL: Record<Kind, string> = { buildings: '楼盘', listings: '房源', retire: '下架旧房源' }
+const KIND_LABEL: Record<Kind, string> = {
+  buildings: '楼盘',
+  listings: '房源',
+  retire: '下架旧房源',
+}
 const STATUS_TAG: Record<Status, { color: string; label: string }> = {
   queued: { color: 'gray', label: '排队中' },
   running: { color: 'arcoblue', label: '写入中' },
@@ -53,6 +64,20 @@ export default function SourceSyncViewClient() {
   const [notice, setNotice] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const cancelRef = useRef(false)
+  const stopPublishRef = useRef(false)
+  const [publishOpen, setPublishOpen] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [publishCounts, setPublishCounts] = useState({
+    buildings: 0,
+    listings: 0,
+  })
+  const [publishProgress, setPublishProgress] = useState({
+    processed: 0,
+    published: 0,
+    skipped: 0,
+    failed: 0,
+  })
+  const [publishErrors, setPublishErrors] = useState<{ phase: string; id: number; message: string }[]>([])
 
   const load = useCallback(async () => {
     try {
@@ -71,6 +96,7 @@ export default function SourceSyncViewClient() {
   }, [])
 
   useEffect(() => {
+    if (publishing) return
     // 首轮也走定时器回调：effect 体内不直接触发 setState（react-hooks/set-state-in-effect）
     const first = setTimeout(() => void load(), 0)
     const timer = setInterval(() => void load(), POLL_MS)
@@ -78,11 +104,12 @@ export default function SourceSyncViewClient() {
       clearTimeout(first)
       clearInterval(timer)
     }
-  }, [load])
+  }, [load, publishing])
 
   useEffect(
     () => () => {
       cancelRef.current = true
+      stopPublishRef.current = true
     },
     [],
   )
@@ -105,7 +132,11 @@ export default function SourceSyncViewClient() {
       for (;;) {
         const body = new FormData()
         body.append('file', file)
-        const res = await fetch('/api/source-sync/upload', { method: 'POST', body, credentials: 'include' })
+        const res = await fetch('/api/source-sync/upload', {
+          method: 'POST',
+          body,
+          credentials: 'include',
+        })
         const json = (await res.json().catch(() => ({}))) as {
           ok?: boolean
           code?: string
@@ -119,7 +150,11 @@ export default function SourceSyncViewClient() {
           if (cancelRef.current) break
           continue
         }
-        if (res.ok && json.ok) setLog(file.name, { state: 'ok', message: `${json.rowCount ?? 0} 行，已入队` })
+        if (res.ok && json.ok)
+          setLog(file.name, {
+            state: 'ok',
+            message: `${json.rowCount ?? 0} 行，已入队`,
+          })
         else
           setLog(file.name, {
             state: 'error',
@@ -133,8 +168,83 @@ export default function SourceSyncViewClient() {
   }
 
   const revalidate = async () => {
-    const res = await fetch('/api/source-sync/revalidate', { method: 'POST', credentials: 'include' })
+    const res = await fetch('/api/source-sync/revalidate', {
+      method: 'POST',
+      credentials: 'include',
+    })
     setNotice(res.ok ? '已按城市刷新前台缓存' : `刷新失败：HTTP ${res.status}`)
+  }
+
+  const preparePublish = async () => {
+    try {
+      const response = await fetch('/api/source-sync/publish', {
+        credentials: 'include',
+      })
+      const result = (await response.json()) as {
+        buildings: number
+        listings: number
+        error?: string
+      }
+      if (!response.ok) throw new Error(result.error ?? `HTTP ${response.status}`)
+      setPublishCounts({
+        buildings: result.buildings,
+        listings: result.listings,
+      })
+      setPublishProgress({ processed: 0, published: 0, skipped: 0, failed: 0 })
+      setPublishErrors([])
+      setPublishOpen(true)
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  const runPublish = async () => {
+    stopPublishRef.current = false
+    setPublishing(true)
+    setPublishProgress({ processed: 0, published: 0, skipped: 0, failed: 0 })
+    setPublishErrors([])
+    try {
+      for (const phase of ['buildings', 'listings'] as const) {
+        let afterId = 0
+        while (!stopPublishRef.current) {
+          const response = await fetch('/api/source-sync/publish', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phase, afterId }),
+          })
+          const result = (await response.json()) as {
+            cursor: number
+            processed: number
+            published: number
+            skipped: number
+            done: boolean
+            errors: { id: number; message: string }[]
+            error?: string
+          }
+          if (!response.ok) throw new Error(result.error ?? `HTTP ${response.status}`)
+          setPublishProgress((previous) => ({
+            processed: previous.processed + result.processed,
+            published: previous.published + result.published,
+            skipped: previous.skipped + result.skipped,
+            failed: previous.failed + result.errors.length,
+          }))
+          setPublishErrors((previous) =>
+            [...previous, ...result.errors.map((error) => ({ ...error, phase }))].slice(0, 200),
+          )
+          afterId = result.cursor
+          if (result.done) break
+          if (result.processed === 0) throw new Error('发布未推进，请重试')
+        }
+        if (stopPublishRef.current) break
+      }
+      setNotice(stopPublishRef.current ? '已停止后续发布，已发布的数据保留' : '采集数据发布扫描完成，请检查失败明细')
+    } catch (error) {
+      setNotice(`发布中断：${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setPublishing(false)
+      void load()
+    }
   }
 
   const rollback = (batch: Batch) => {
@@ -175,7 +285,12 @@ export default function SourceSyncViewClient() {
 
   const columns: ColumnProps<Batch>[] = [
     { title: '文件', dataIndex: 'fileName', width: 180 },
-    { title: '内容', dataIndex: 'kind', width: 100, render: (k: Kind) => KIND_LABEL[k] },
+    {
+      title: '内容',
+      dataIndex: 'kind',
+      width: 100,
+      render: (k: Kind) => KIND_LABEL[k],
+    },
     {
       title: '状态',
       dataIndex: 'status',
@@ -194,14 +309,26 @@ export default function SourceSyncViewClient() {
       width: 150,
       render: (_: unknown, b) => `${b.stats?.created ?? 0} / ${b.stats?.updated ?? 0} / ${b.stats?.unchanged ?? 0}`,
     },
-    { title: '下架', width: 70, render: (_: unknown, b) => b.stats?.retired ?? 0 },
-    { title: '跳过', width: 70, render: (_: unknown, b) => b.stats?.skipped ?? 0 },
+    {
+      title: '下架',
+      width: 70,
+      render: (_: unknown, b) => b.stats?.retired ?? 0,
+    },
+    {
+      title: '跳过',
+      width: 70,
+      render: (_: unknown, b) => b.stats?.skipped ?? 0,
+    },
     {
       title: '失败',
       width: 70,
       render: (_: unknown, b) => (b.stats?.failed ? <Text type="error">{b.stats.failed}</Text> : 0),
     },
-    { title: '图片', width: 70, render: (_: unknown, b) => b.stats?.imagesCreated ?? 0 },
+    {
+      title: '图片',
+      width: 70,
+      render: (_: unknown, b) => b.stats?.imagesCreated ?? 0,
+    },
     {
       title: '操作',
       width: 110,
@@ -239,6 +366,13 @@ export default function SourceSyncViewClient() {
         <Button icon={<IconRefresh />} disabled={active} onClick={() => void revalidate()}>
           刷新前台缓存
         </Button>
+        <Button
+          icon={<IconCheckCircle />}
+          disabled={active || uploading || publishing}
+          onClick={() => void preparePublish()}
+        >
+          发布采集数据
+        </Button>
         <Text type="secondary">
           总进度 {totals.done.toLocaleString()} / {totals.rows.toLocaleString()} 行
         </Text>
@@ -251,6 +385,52 @@ export default function SourceSyncViewClient() {
         style={{ display: 'none' }}
         onChange={(e) => void onFiles(e)}
       />
+
+      <Modal
+        visible={publishOpen}
+        title="发布采集数据"
+        footer={null}
+        onCancel={() => {
+          stopPublishRef.current = true
+          setPublishOpen(false)
+        }}
+      >
+        <Paragraph>
+          待发布楼盘 {publishCounts.buildings.toLocaleString()} 个，房源 {publishCounts.listings.toLocaleString()} 套。
+        </Paragraph>
+        <Paragraph type="secondary">
+          发布楼盘后再审核上架房源。停止或关闭页面后可重新扫描草稿；停用、冻结、已成交及举报暂停的数据不会上架。
+        </Paragraph>
+        <Paragraph>
+          已处理 {publishProgress.processed.toLocaleString()}，已发布 {publishProgress.published.toLocaleString()}，跳过{' '}
+          {publishProgress.skipped.toLocaleString()}，失败 {publishProgress.failed.toLocaleString()}。
+        </Paragraph>
+        {publishProgress.failed > 200 && <Paragraph type="secondary">仅显示前 200 条失败明细。</Paragraph>}
+        <Space style={{ marginBottom: 16 }}>
+          <Button type="primary" loading={publishing} onClick={() => void runPublish()}>
+            确认发布 / 重试草稿
+          </Button>
+          <Button
+            disabled={!publishing}
+            onClick={() => {
+              stopPublishRef.current = true
+            }}
+          >
+            停止后续批次
+          </Button>
+        </Space>
+        {publishErrors.length > 0 && (
+          <div style={{ maxHeight: 240, overflow: 'auto' }}>
+            {publishErrors.map((error, index) => (
+              <div key={`${error.phase}-${error.id}-${index}`}>
+                <Text type="error">
+                  {error.phase === 'buildings' ? '楼盘' : '房源'} {error.id}：{error.message}
+                </Text>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       {notice && (
         <Alert type="info" content={notice} style={{ marginBottom: 16 }} closable onClose={() => setNotice(null)} />
@@ -271,7 +451,12 @@ export default function SourceSyncViewClient() {
               dataIndex: 'state',
               width: 90,
               render: (s: UploadLog['state']) =>
-                ({ waiting: '等待', uploading: '上传中', ok: '已入队', error: '失败' })[s],
+                ({
+                  waiting: '等待',
+                  uploading: '上传中',
+                  ok: '已入队',
+                  error: '失败',
+                })[s],
             },
             { title: '说明', dataIndex: 'message' },
           ]}

@@ -33,7 +33,7 @@ async function sitemapQueryBody(): Promise<string> {
 
 describe('sitemap-listings-query/不再走搜索管线', () => {
   it('sitemap.ts 使用专用查询，不再调 getCachedSearchListings', async () => {
-    const src = await read('src/app/(frontend)/sitemap.ts')
+    const src = await read('src/app/(frontend)/_lib/sitemap-shards.ts')
     expect(src).toContain('getCachedSitemapListingsPage')
     // 判「调用」而不是「出现」：文件里的注释要解释为什么不再用搜索管线，
     // 直接 not.toContain 会被自己的注释绊倒（这个坑本轮已踩三次）。
@@ -42,13 +42,19 @@ describe('sitemap-listings-query/不再走搜索管线', () => {
   })
 
   it('房源 lastmod 用真实 updatedAt，不再统一填 now', async () => {
-    const src = await read('src/app/(frontend)/sitemap.ts')
+    const src = await read('src/app/(frontend)/_lib/sitemap-shards.ts')
     // 每条 URL 都写「刚刚更新」等于没给爬虫任何信息
-    expect(src).toContain('listing.updatedAt ? new Date(listing.updatedAt) : now')
+    expect(src).toContain("'updatedAt' in doc && doc.updatedAt ? new Date(doc.updatedAt as string) : now")
   })
 })
 
 describe('sitemap-listings-query/成本约束', () => {
+  it('关联楼盘和商户只展开有效供给判定字段', async () => {
+    const body = await sitemapQueryBody()
+    expect(body).toMatch(/populate:\s*\{\s*buildings:\s*\{\s*city:\s*true\s*\}/)
+    expect(body).toMatch(/merchants:\s*\{\s*status:\s*true,\s*qualificationStatus:\s*true,\s*qualificationExpiresAt:\s*true,\s*serviceCities:\s*true/)
+  })
+
   it('用 depth 1 而不是 depth 2', async () => {
     const body = await sitemapQueryBody()
     expect(body).toContain('depth: 1')

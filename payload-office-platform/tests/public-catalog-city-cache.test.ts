@@ -9,6 +9,8 @@ type CacheRegistration = Readonly<{
 const cacheState = vi.hoisted(() => ({
   registrations: [] as CacheRegistration[],
   homepageCities: [] as string[],
+  homepageRows: [] as number[],
+  homepageAsOf: [] as string[],
 }))
 
 vi.mock('next/cache', () => ({
@@ -37,8 +39,10 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
+    getListingPageSelection: vi.fn(async (input) => ({ ids: [1], pagination: actual.buildPagination(1, input.page, input.pageSize), filteredByRentUnit: false })),
+    getSearchFacets: vi.fn(async () => ({ districts: [], businessAreas: [], listingTypes: [], buildingForms: [], rentUnits: [], totalDocs: 1 })),
     // OPT-068：列表与 facet 走同一份扫描；扫描行必须是真实形状（选页要读 id）
-    scanListings: vi.fn(async (_input, ctx) => [{
+    scanListingsPage: vi.fn(async (_input, ctx) => ({ rows: [{
       id: 1,
       slug: `listing-${ctx.city}`,
       listingType: 'traditional-office',
@@ -51,13 +55,15 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
       district: null,
       businessDistrictId: null,
       coordinates: null,
-    }]),
+    }], nextPage: null })),
     hydrateListingCards: vi.fn(async (_ids, ctx) => [{ citySlug: ctx.city }]),
     getBuildingBySlug: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
     getBuildingDetail: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
     getDetailRecommendations: vi.fn(async (_slug, ctx) => [{ citySlug: ctx.city }]),
-    getHomepage: vi.fn(async (ctx) => {
+    getHomepage: vi.fn(async (ctx, options = {}) => {
       cacheState.homepageCities.push(ctx.city)
+      cacheState.homepageRows.push(options.scan ? (await options.scan(actual.parseSearchInput(new URLSearchParams()), ctx)).length : 0)
+      cacheState.homepageAsOf.push(ctx.asOf)
       return { featuredListings: [{ citySlug: ctx.city }] }
     }),
     getListingBySlug: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
@@ -96,11 +102,30 @@ import {
   getCachedSearchFacets,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
-import { getPlatformHomepageStats, parseSearchInput } from '@/domain/public-catalog'
+import { getPlatformHomepageStats, parseSearchInput, scanListingsPage } from '@/domain/public-catalog'
 
 describe('per-city public catalog caches', () => {
   beforeEach(() => {
     cacheState.homepageCities.length = 0
+    cacheState.homepageRows.length = 0
+    cacheState.homepageAsOf.length = 0
+  })
+
+  it('首页直接使用当前统计时点，不预读或复用目录扫描', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-10-11T15:00:00Z'))
+      const input = parseSearchInput(new URLSearchParams())
+      await getCachedSearchListings('nanjing', '', input)
+      const count = vi.mocked(scanListingsPage).mock.calls.length
+      vi.setSystemTime(new Date('2026-10-11T15:01:00Z'))
+      await getCachedHomepage('nanjing')
+      expect(cacheState.homepageRows).toEqual([0])
+      expect(cacheState.homepageAsOf).toEqual(['2026-10-11T15:01:00.000Z'])
+      expect(vi.mocked(scanListingsPage).mock.calls).toHaveLength(count)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('keeps Shanghai and Hangzhou homepage values isolated after both caches are warm', async () => {
@@ -194,8 +219,9 @@ describe('per-city public catalog caches', () => {
       'sitemap-buildings-page',
       'building-detail',
       'building-by-slug',
-      // OPT-068：列表页缓存拆成「扫描行」+「本页卡片」两级；facet 共用扫描，不再单独建缓存
-      'listing-scan',
+      // SQL 分页、facet 与本页卡片都必须保留城市键和供给失效标签。
+      'listing-selection',
+      'listing-facets',
       'listing-cards',
       'listing-district-options',
     ]

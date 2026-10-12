@@ -18,31 +18,31 @@ describe('OPT-027 homepage and sitemap cache contracts', () => {
     expect(cachedQueries).toMatch(/getCachedHomepageByCity[\s\S]*?revalidate:\s*300/)
   })
 
-  it('wraps sitemap entity loading in a tagged 300 second cache', async () => {
-    const sitemap = await readFile(resolve(ROOT, 'src/app/(frontend)/sitemap.ts'), 'utf8')
+  it('wraps the lightweight sitemap manifest in a tagged 300 second cache', async () => {
+    const sitemap = await readFile(resolve(ROOT, 'src/app/(frontend)/_lib/sitemap-shards.ts'), 'utf8')
 
     expect(sitemap).toContain('unstable_cache(')
-    expect(sitemap).toContain("['public-sitemap-entries']")
+    expect(sitemap).toContain("['public-sitemap-manifest-v1']")
     expect(sitemap).toContain('SITEMAP_TAG')
     expect(sitemap).toMatch(/revalidate:\s*300/)
-    expect(sitemap).toContain('getCachedSitemapEntries(multiCityRoutingEnabled)')
+    expect(sitemap).toContain('loadManifest(getMultiCityRoutingEnabled())')
   })
 
-  it('每个城市只构建一次 search source（租售分组走内存，不各查一次）', async () => {
-    const sitemap = await readFile(resolve(ROOT, 'src/app/(frontend)/sitemap.ts'), 'utf8')
+  it('索引按候选总页数生成分片，不冷态扫描完整城市供给', async () => {
+    const [sitemap, indexRoute] = await Promise.all([
+      readFile(resolve(ROOT, 'src/app/(frontend)/_lib/sitemap-shards.ts'), 'utf8'),
+      readFile(resolve(ROOT, 'src/app/(frontend)/sitemap.xml/route.ts'), 'utf8'),
+    ])
 
-    // 构建 search source 是 sitemap 里最贵的一步：全量有效供给查询 + 逐条精筛
-    // （媒体数、商户关系有效期、资质、举报暂停）。按频道各查一次会让它乘以频道数，
-    // 而且为了确认「这个城市没有出售房源」要付出和查全部租赁一样的开销。
-    // 生产上这样做把 /sitemap.xml 拖到超时，超时又让 unstable_cache 写不进去，
-    // 下次请求仍是冷的，形成死循环。
-    const listingCalls = sitemap.match(/getCityListings\(/g) ?? []
-    // 一处定义 + 一处调用
-    expect(listingCalls.length).toBe(2)
-    expect(sitemap).not.toMatch(/getCityListings\([^)]*['"]sale['"]/)
-    expect(sitemap).not.toMatch(/getCityListings\([^)]*['"]lease['"]/)
-    // 租售分组必须是内存过滤
-    expect(sitemap).toContain("allListings.filter((l) => l.businessType === 'sale')")
+    // 候选总页数只决定 XML 分片数量；有效供给精筛由各分片执行。
+    // 出售频道判定独立于索引，避免索引为了找出售房源而扫描全部租赁供给。
+    const manifest = sitemap.slice(sitemap.indexOf('const loadManifest'), sitemap.indexOf('const hasEffectiveSale'))
+    expect(manifest).toContain('if (result.totalPages != null)')
+    expect(manifest).toContain('Array.from({ length: result.totalPages }')
+    expect(manifest).not.toContain('hasEffectiveSale(')
+    expect(indexRoute).toContain('getSitemapManifest()')
+    expect(indexRoute).not.toContain('getStaticSitemap(')
+    expect(indexRoute).not.toContain('getEntitySitemap(')
   })
 
   it('invalidates content-dependent public caches from page and article collection hooks', async () => {

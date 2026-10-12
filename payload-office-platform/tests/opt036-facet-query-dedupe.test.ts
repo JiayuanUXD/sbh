@@ -16,13 +16,11 @@
  *
  * ## 本文件测什么
  *
- * **数真实调用次数，不靠推理断言**。计量点是域层的 `scanListings`（OPT-068 起
- * 列表与 facet 都建立在它之上；原计量点 `getSearchFacets` 已不再打库）——它与
- * `adapter.scanEffectiveListings` 是一比一，因此它的调用次数就是「打了几次库」。
+ * **数真实调用次数，不靠推理断言**。计量点是域层的 `getSearchFacets`，生产适配器
+ * 直接执行一次 SQL 聚合；同键冷查询必须共享 in-flight promise。
  *
- * OPT-068 之后区域 / 类型 / 价格是内存维度、不进扫描键，所以「只叠了区域」的
- * 页面三份 facet 也只剩一次扫描；只有面积 / 商圈 / 地铁 / 关键词这类进 where 的
- * 维度才会分出第二次。下面的期望值按这个口径重写。
+ * 数据库筛选后，区域 / 类型 / 价格都进入 facet 键。不同剥离条件可以各查一次，
+ * 相同条件仍只能查一次；不能再依赖整城扫描来合并不同结果集。
  *
  * `next/cache` 的 `unstable_cache` 在本文件里被替换成直通实现（永不存储），
  * 这是**冷路径的严格下界**：任何被数到的调用在生产上都真的会打库。
@@ -45,9 +43,9 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
-    scanListings: vi.fn(async (input: unknown, ctx: { city: string; businessType?: string }) => {
+    getSearchFacets: vi.fn(async (input: unknown, ctx: { city: string; businessType?: string }) => {
       facetCalls.push(`${ctx.city}|${ctx.businessType ?? 'all'}|${actual.buildCanonicalSearchParams(input as never).toString()}`)
-      return []
+      return { districts: [], businessAreas: [], listingTypes: [], buildingForms: [], rentUnits: [], totalDocs: 0 }
     }),
     searchBuildingsFiltered: vi.fn(async (input: unknown, ctx: { city: string }) => {
       buildingSearchCalls.push(`${ctx.city}|${actual.buildBuildingCanonicalParams(input as never).toString()}`)
@@ -129,15 +127,14 @@ describe('facet 冷路径查询放大（终审 I2）', () => {
     expect(facetCalls).toHaveLength(1)
   })
 
-  it('只叠了内存维度（区域）：三份剥离 facet 仍共用同一次扫描', async () => {
-    // OPT-068：district 不进扫描键，剥不剥都落到同一份扫描输入 {}。
+  it('区域筛选与剥离区域分属两个数据库计数键，其余相同输入去重', async () => {
     const input = parseListingSearchInput(new URLSearchParams('?district=jingan'))
     await Promise.all([
       getCachedSearchFacetsIgnoring('shanghai', input, ['priceUnit']),
       getCachedSearchFacetsIgnoring('shanghai', input, ['district']),
       getCachedSearchFacetsIgnoring('shanghai', input, ['listingType']),
     ])
-    expect(facetCalls).toHaveLength(1)
+    expect(facetCalls).toHaveLength(2)
   })
 
   it('key 不同的照旧各查各的（不能为了去重把不同条件合并掉）', async () => {
@@ -188,14 +185,12 @@ describe('列表页整页冷成本（终审 I2：数出来的，不是推出来�
     expect(await renderPage('?q=随便什么词', 0)).toBe(2)
   })
 
-  it('空态①：剥掉全部条件 + 计价单位后仍是同一次扫描（类型是内存维度）', async () => {
-    // 只挑了类目（类型），没有收窄条件 → 空态①。OPT-068 前这里是 2：三份基础
-    // facet 的 {type} 一次、剥光后的 {} 一次；现在 type 不进扫描键，两者同键。
-    expect(await renderPage('?type=coworking', 0)).toBe(1)
+  it('空态①：当前类型与剥掉类型分别计数，同一输入仍去重', async () => {
+    expect(await renderPage('?type=coworking', 0)).toBe(2)
   })
 
-  it('空态①叠 where 维度：基础三份与剥光后的总数各一次扫描', async () => {
-    expect(await renderPage('?type=coworking&areaMin=100', 0)).toBe(2)
+  it('空态②叠类型与面积：四种有效输入各计数一次，退路不重复查库', async () => {
+    expect(await renderPage('?type=coworking&areaMin=100', 0)).toBe(4)
   })
 })
 

@@ -24,26 +24,47 @@
  *   与前台 / 详情完全一致；超过 500 的极端场景会封顶，属后续优化点。
  */
 
-import type { PopulateType, Where } from 'payload'
-import type { Building, Listing, Location, Page, Article } from '@/payload-types'
+import type { PopulateType, Where } from "payload";
+import type {
+  Building,
+  Listing,
+  Location,
+  Page,
+  Article,
+} from "@/payload-types";
 import {
   getEffectiveSupplyWhere,
   getPausedListingIds,
-} from '@/domain/review/effective-supply'
-import { createEffectiveSupplyPayloadPort } from '@/domain/review/effective-supply-payload-port'
+} from "@/domain/review/effective-supply";
+import { createEffectiveSupplyPayloadPort } from "@/domain/review/effective-supply-payload-port";
 import {
   resolveEffectiveSupplies,
   toId,
-} from '@/domain/review/effective-supply-snapshot'
+} from "@/domain/review/effective-supply-snapshot";
 import {
   getPublicBuildingWhere,
   isPublicBuilding,
-} from '@/domain/supply/public-building'
-import { createSearchContext, type SearchContext, type ListingSearchInput } from './types'
-import type { PublicRouteIdentity } from './contracts'
-import { mapBuildingCity, resolveListingPrice } from './mappers'
-import { matchesPriceFilter, rowsFromListings, type ListingScanRow } from './listing-scan'
-import type { ListingsSelect } from '@/payload-types'
+} from "@/domain/supply/public-building";
+import {
+  createSearchContext,
+  type SearchContext,
+  type ListingSearchInput,
+} from "./types";
+import type { CoordinatesViewModel, PublicRouteIdentity } from "./contracts";
+import { mapBuildingCity, mapCoordinates, mapMedia, resolveListingPrice } from "./mappers";
+import {
+  matchesPriceFilter,
+  rowsFromListings,
+  type ListingScanRow,
+} from "./listing-scan";
+import type { BuildingsSelect, ListingsSelect } from "@/payload-types";
+import { EFFECTIVE_SUPPLY_AGGREGATE_FROM } from "./effective-supply-sql";
+import { buildListingPageQuery, buildListingFacetsQuery } from "./listing-query-sql";
+import { buildPagination } from "./stable-sort";
+import type { ListingPageSelection, ScanFacets } from "./listing-scan";
+import { PUBLIC_BUILDING_METADATA_SQL, buildBuildingPageQuery,
+  type BuildingMetadataRow, type BuildingPageSelection, type BuildingSqlResult } from "./building-query-sql";
+import type { BuildingSearchInput } from "./building-search";
 
 /**
  * 公开目录供给适配器契约
@@ -51,9 +72,35 @@ import type { ListingsSelect } from '@/payload-types'
  * 所有方法都接受 SearchContext，确保子查询在同一 asOf / 时区 / 渠道下解析。
  * 返回的文档视为"已过有效供给谓词"；任何失效场景返回空数组或 null，不抛错。
  */
+export type HomepageListingAggregate = Readonly<{
+  count: number;
+  types: readonly Readonly<{ type: string | null; count: number; coverId: number }>[];
+  nearbyCandidates: readonly Readonly<{ id: number; slug: string; coordinates: CoordinatesViewModel | null }>[];
+}>;
+export type HomepageBuildingOverview = Readonly<{
+  count: number;
+  representatives: readonly Building[];
+  areas: readonly Readonly<{ slug: string; names: readonly string[] }>[];
+}>;
+
 export interface SupplyAdapter {
+  findBuildingPageSelection?(input: BuildingSearchInput, ctx: SearchContext): Promise<BuildingPageSelection>;
+  findEffectiveBuildingsByIds?(ids: readonly number[], ctx: SearchContext): Promise<readonly Building[]>;
+  /** 首页楼盘计数与商圈代表摘要，不水合城市内所有楼盘。 */
+  findHomepageBuildingOverview?(ctx: SearchContext, visibleAreaSlugs: readonly string[]): Promise<HomepageBuildingOverview>;
+  /** 数据库端筛选、稳定排序与分页；只返回当前页 ID。 */
+  findListingPage?(input: ListingSearchInput, ctx: SearchContext): Promise<ListingPageSelection>;
+  /** 与目录同谓词的筛选计数，不返回全量候选。 */
+  findListingFacets?(input: ListingSearchInput, ctx: SearchContext): Promise<ScanFacets>;
+  /** 首页聚合计数及附近候选，只读取 ID / 坐标，不展开完整供给集合。 */
+  findHomepageListingAggregate?(
+    buildingIds: readonly number[] | null, ctx: SearchContext, includeNearby: boolean,
+  ): Promise<HomepageListingAggregate>;
   /** 按搜索条件返回有效房源文档（已过谓词，未排序、未分页） */
-  findEffectiveListings(input: ListingSearchInput, ctx: SearchContext): Promise<readonly Listing[]>
+  findEffectiveListings(
+    input: ListingSearchInput,
+    ctx: SearchContext,
+  ): Promise<readonly Listing[]>;
 
   /**
    * OPT-068 轻量扫描：与 `findEffectiveListings` 同一套 where / 举报排除 / 精筛，
@@ -61,14 +108,30 @@ export interface SupplyAdapter {
    * 返回紧凑的 `ListingScanRow`。可选：测试 fake 不实现时，facade 用
    * `findEffectiveListings` 的结果投影成行（见 facade.ts#scanListings）。
    */
-  scanEffectiveListings?(input: ListingSearchInput, ctx: SearchContext): Promise<readonly ListingScanRow[]>
+  scanEffectiveListings?(
+    input: ListingSearchInput,
+    ctx: SearchContext,
+  ): Promise<readonly ListingScanRow[]>;
+
+  /** 一页粗筛候选精筛后的扫描行；nextPage 按候选页推进，不能按有效行数提前结束。 */
+  scanEffectiveListingsPage?(
+    input: ListingSearchInput,
+    ctx: SearchContext,
+    page: number,
+    knownTotalPages?: number,
+  ): Promise<
+    Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>
+  >;
 
   /**
    * OPT-068 按 id 回捞本页房源（depth 2，供 mapListingCard）。仍过完整有效供给
    * 谓词：扫描之后才失效的房源在这里被静默丢掉，不会以过期数据出现在页面上。
    * 结果顺序不保证，调用方按 ids 顺序重排。
    */
-  findEffectiveListingsByIds?(ids: readonly number[], ctx: SearchContext): Promise<readonly Listing[]>
+  findEffectiveListingsByIds?(
+    ids: readonly number[],
+    ctx: SearchContext,
+  ): Promise<readonly Listing[]>;
 
   /**
    * sitemap 专用：一页有效房源，只取 slug / updatedAt / businessType。
@@ -87,26 +150,32 @@ export interface SupplyAdapter {
   findEffectiveListingsSitemapPage(
     ctx: SearchContext,
     options: Readonly<{ page: number; limit: number }>,
-  ): Promise<EffectiveListingSitemapPage>
+  ): Promise<EffectiveListingSitemapPage>;
 
   /** 按 slug 返回单个有效房源；不存在或失效返回 null */
-  findEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
+  findEffectiveListingBySlug(
+    slug: string,
+    ctx: SearchContext,
+  ): Promise<Listing | null>;
 
   /** Cityless legacy-route exception; returns no display or inventory data. */
-  findListingRouteIdentity(slug: string): Promise<PublicRouteIdentity | null>
+  findListingRouteIdentity(slug: string): Promise<PublicRouteIdentity | null>;
 
   /** 按 slug 返回有效楼盘；停用、不存在返回 null */
-  findEffectiveBuildingBySlug(slug: string, ctx: SearchContext): Promise<Building | null>
+  findEffectiveBuildingBySlug(
+    slug: string,
+    ctx: SearchContext,
+  ): Promise<Building | null>;
 
   /** Cityless legacy-route exception; returns no display or inventory data. */
-  findBuildingRouteIdentity(slug: string): Promise<PublicRouteIdentity | null>
+  findBuildingRouteIdentity(slug: string): Promise<PublicRouteIdentity | null>;
 
   /** 楼盘内有效房源（用于楼内列表、聚合和相关推荐） */
   findEffectiveListingsByBuilding(
     buildingId: number | string,
     ctx: SearchContext,
     excludeListingId?: number | string,
-  ): Promise<readonly Listing[]>
+  ): Promise<readonly Listing[]>;
 
   /**
    * 批量聚合多个楼盘的在租面积与在租套数（楼盘卡片「在租 xxx ㎡」「N 套在租」用）。
@@ -130,29 +199,38 @@ export interface SupplyAdapter {
   aggregateEffectiveSupplyByBuildings(
     buildingIds: readonly (number | string)[],
     ctx: SearchContext,
-  ): Promise<ReadonlyMap<string, Readonly<{ area: number; count: number }>>>
+  ): Promise<ReadonlyMap<string, Readonly<{ area: number; count: number }>>>;
 
   /** 当前楼盘周边的有效公开楼盘（排除自身，稳定收束）。 */
   findEffectiveBuildingsNear(
     buildingId: number | string,
     ctx: SearchContext,
     limit: number,
-  ): Promise<readonly Building[]>
+  ): Promise<readonly Building[]>;
 
   /** 返回所有有效公开楼盘（用于楼盘列表页，按 updatedAt 倒序） */
-  findEffectiveBuildings(ctx: SearchContext, limit?: number): Promise<readonly Building[]>
+  findEffectiveBuildings(
+    ctx: SearchContext,
+    limit?: number,
+  ): Promise<readonly Building[]>;
+
+  /** 平台首页计数专用：完整枚举公开楼盘，只读取标识及公开资格字段。 */
+  findEffectiveBuildingIdentities?(ctx: SearchContext): Promise<readonly Building[]>;
 
   /** 返回一页有效公开楼盘（用于 sitemap 等有界全量枚举）。 */
   findEffectiveBuildingsPage(
     ctx: SearchContext,
     options: Readonly<{ page: number; limit: number }>,
-  ): Promise<EffectiveBuildingPage>
+  ): Promise<EffectiveBuildingPage>;
 
   /** 首页精选有效房源（按 isFeatured + updatedAt desc） */
-  findFeaturedListings(ctx: SearchContext, limit?: number): Promise<readonly Listing[]>
+  findFeaturedListings(
+    ctx: SearchContext,
+    limit?: number,
+  ): Promise<readonly Listing[]>;
 
   /** 当前城市的有效行政区列表（用于 facet 和筛选器） */
-  findEffectiveDistricts(ctx: SearchContext): Promise<readonly Location[]>
+  findEffectiveDistricts(ctx: SearchContext): Promise<readonly Location[]>;
 
   /**
    * 当前城市的前台可见商圈（用于首页「热门商圈」）。
@@ -162,17 +240,22 @@ export interface SupplyAdapter {
    * 库中商圈达 205 个且多数暂无楼盘，故一律要求 frontendVisible=true，由运营
    * 按需放出。
    */
-  findEffectiveBusinessAreas(ctx: SearchContext): Promise<readonly Location[]>
+  findEffectiveBusinessAreas(ctx: SearchContext): Promise<readonly Location[]>;
 
   /**
    * 城市中心坐标（locations 表 type=city 行的 centerLatitude/Longitude）。
    * 未配置或不成对时返回 null——首页「核心商圈房源」整段不渲染。
    * 可选方法：既有测试假适配器无需实现。
    */
-  findCityCenter?(ctx: SearchContext): Promise<Readonly<{ latitude: number; longitude: number }> | null>
+  findCityCenter?(
+    ctx: SearchContext,
+  ): Promise<Readonly<{ latitude: number; longitude: number }> | null>;
 
   /** 按 listing slug 复核有效性（用于询盘目标校验）；不抛错，失效返回 null */
-  assertEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
+  assertEffectiveListingBySlug(
+    slug: string,
+    ctx: SearchContext,
+  ): Promise<Listing | null>;
 
   /**
    * 按 slug 返回全站已发布公开页面；草稿、删除或不存在返回 null
@@ -180,7 +263,7 @@ export interface SupplyAdapter {
    * F6.1：只读取 status=published 的页面，草稿/删除/不存在返回 null。
    * 用于内容页路由 /pages/[slug] 与首页 slug='home' 渲染。
    */
-  findPublishedPageBySlug(slug: string): Promise<Page | null>
+  findPublishedPageBySlug(slug: string): Promise<Page | null>;
 
   /**
    * 返回全站所有已发布公开页面（用于 sitemap）
@@ -188,7 +271,7 @@ export interface SupplyAdapter {
    * F6.4：仅返回 status=published 且未逻辑删除的页面，按 updatedAt 倒序。
    * limit 用于规模拆分；MVP 单文件 sitemap，默认 1000。
    */
-  findPublishedPages(limit?: number): Promise<readonly Page[]>
+  findPublishedPages(limit?: number): Promise<readonly Page[]>;
 
   /**
    * 首页精选楼盘（用于「精选楼盘」分区）
@@ -198,7 +281,10 @@ export interface SupplyAdapter {
    * updatedAt 倒序兜底，保证既有运营手填权重、又有近更新自然顺序。
    * depth=2 以便 coverImage / district 在 mapper 一次填充到位。
    */
-  findFeaturedBuildings(ctx: SearchContext, limit?: number): Promise<readonly Building[]>
+  findFeaturedBuildings(
+    ctx: SearchContext,
+    limit?: number,
+  ): Promise<readonly Building[]>;
 
   /**
    * 全站首页资讯（用于「资讯中心」分区）
@@ -206,7 +292,7 @@ export interface SupplyAdapter {
    * 仅返回 status=published 且未逻辑删除的资讯，按 publishedAt 倒序。
    * depth=2 以便 coverImage 填充为 Media。草稿、未来发布、删除均不返回。
    */
-  findLatestArticles(limit?: number): Promise<readonly Article[]>
+  findLatestArticles(limit?: number): Promise<readonly Article[]>;
 
   /**
    * 首页主推资讯（用于「资讯中心」左侧大图）
@@ -214,7 +300,7 @@ export interface SupplyAdapter {
    * 仅返回 status=published、isHomeFeatured=true 且未逻辑删除的资讯。
    * depth=2 以便 coverImage 填充为 Media。若无主推返回 null。
    */
-  findHomeFeaturedArticle?(): Promise<Article | null>
+  findHomeFeaturedArticle?(): Promise<Article | null>;
 
   /**
    * 全站资讯列表（用于 /news 列表页，分页）
@@ -224,7 +310,7 @@ export interface SupplyAdapter {
    */
   findPublishedArticles(
     options: Readonly<{ page?: number; pageSize?: number }>,
-  ): Promise<{ docs: readonly Article[]; totalDocs: number }>
+  ): Promise<{ docs: readonly Article[]; totalDocs: number }>;
 
   /**
    * 按 slug 返回全站已发布资讯（用于 /news/[slug] 详情页）
@@ -232,7 +318,7 @@ export interface SupplyAdapter {
    * 仅 status=published 且未逻辑删除；depth=3 以便关联楼盘/区域填充。
    * 草稿、删除、不存在返回 null。
    */
-  findPublishedArticleBySlug(slug: string): Promise<Article | null>
+  findPublishedArticleBySlug(slug: string): Promise<Article | null>;
 }
 
 /**
@@ -242,24 +328,26 @@ export interface SupplyAdapter {
  * 顺手多读字段，下一次「只加一个字段」就把成本又加回来了。
  */
 export type EffectiveListingSitemapEntry = Readonly<{
-  slug: string
-  updatedAt: string | null
-  businessType: string | null
-}>
+  slug: string;
+  updatedAt: string | null;
+  businessType: string | null;
+}>;
 
 export type EffectiveListingSitemapPage = Readonly<{
-  docs: readonly EffectiveListingSitemapEntry[]
-  page: number
-  hasNextPage: boolean
-  nextPage: number | null
-}>
+  docs: readonly EffectiveListingSitemapEntry[];
+  totalPages?: number;
+  page: number;
+  hasNextPage: boolean;
+  nextPage: number | null;
+}>;
 
 export type EffectiveBuildingPage = Readonly<{
-  docs: readonly Building[]
-  page: number
-  hasNextPage: boolean
-  nextPage: number | null
-}>
+  docs: readonly Building[];
+  totalPages?: number;
+  page: number;
+  hasNextPage: boolean;
+  nextPage: number | null;
+}>;
 
 /**
  * 适配器调用上下文：包含 search 输入与 SearchContext
@@ -267,16 +355,16 @@ export type EffectiveBuildingPage = Readonly<{
  * Facade 内部使用，将 input + ctx 一并传给 adapter。
  */
 export type AdapterCallContext = {
-  input: ListingSearchInput
-  ctx: SearchContext
-}
+  input: ListingSearchInput;
+  ctx: SearchContext;
+};
 
 /**
  * 适配器工厂类型
  *
  * Facade 接受工厂函数（懒构造）或实例；默认使用 `createPayloadSupplyAdapter()`。
  */
-export type SupplyAdapterFactory = () => SupplyAdapter
+export type SupplyAdapterFactory = () => SupplyAdapter;
 
 /**
  * 默认适配器实例（懒单例）
@@ -284,19 +372,23 @@ export type SupplyAdapterFactory = () => SupplyAdapter
  * 生产路径使用 PayloadSupplyAdapter（消费统一有效供给服务输出）。
  * 测试与页面可通过 setDefaultSupplyAdapterFactory 注入替换实现。
  */
-let defaultAdapter: SupplyAdapter | null = null
-let defaultFactory: SupplyAdapterFactory | null = null
+let defaultAdapter: SupplyAdapter | null = null;
+let defaultFactory: SupplyAdapterFactory | null = null;
 
-export function setDefaultSupplyAdapterFactory(factory: SupplyAdapterFactory | null): void {
-  defaultFactory = factory
-  defaultAdapter = null
+export function setDefaultSupplyAdapterFactory(
+  factory: SupplyAdapterFactory | null,
+): void {
+  defaultFactory = factory;
+  defaultAdapter = null;
 }
 
 export function getDefaultSupplyAdapter(): SupplyAdapter {
   if (!defaultAdapter) {
-    defaultAdapter = defaultFactory ? defaultFactory() : createPayloadSupplyAdapter()
+    defaultAdapter = defaultFactory
+      ? defaultFactory()
+      : createPayloadSupplyAdapter();
   }
-  return defaultAdapter
+  return defaultAdapter;
 }
 
 /**
@@ -305,25 +397,20 @@ export function getDefaultSupplyAdapter(): SupplyAdapter {
  * 生产路径不应调用。
  */
 export function __resetDefaultSupplyAdapterForTest(): void {
-  defaultAdapter = null
+  defaultAdapter = null;
 }
 
 // ---------------------------------------------------------------------------
 // 生产实现：统一有效供给谓词 + 逐条精筛
 // ---------------------------------------------------------------------------
 
-const QUERY_PAGE_SIZE = 200
-export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000
+const QUERY_PAGE_SIZE = 200;
+export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000;
 
 /**
- * OPT-068 轻量扫描：每页 1000、封顶 5000。
- *
- * 封顶数由 `unstable_cache` 的 2MB 单条硬上限反推：`ListingScanRow` ≤ 300 字节，
- * 5000 行 ≈ 1.5MB，留有余量；超限时 Next 是**静默**写不进去，页面会退化成每次
- * 请求都冷扫描，所以这个数不能顺手调大。上海现有 2181 条房源，远未触顶。
+ * 每页 1000 个候选，精筛后独立缓存紧凑行，避免全城数据超过缓存单条 2MB 上限。
  */
-export const LISTING_SCAN_PAGE_SIZE = 1_000
-export const LISTING_SCAN_CANDIDATE_LIMIT = 5_000
+export const LISTING_SCAN_PAGE_SIZE = 1_000;
 
 /**
  * 扫描只取行模型（`listing-scan.ts#rowFromListing`）、精筛（`buildEffectiveSnapshot`
@@ -345,7 +432,7 @@ export const LISTING_SCAN_SELECT = {
   updatedAt: true,
   building: true,
   merchant: true,
-} satisfies ListingsSelect<true>
+} satisfies ListingsSelect<true>;
 
 /**
  * 关联文档同样只展开判定字段：楼盘 → 城市 / 区域 / 商圈 / 坐标（facet、推荐候选、
@@ -369,30 +456,70 @@ export const LISTING_SCAN_POPULATE = {
     qualificationExpiresAt: true,
     serviceCities: true,
   },
-} satisfies PopulateType
-const RELATED_BUILDING_CANDIDATE_LIMIT = 500
+} satisfies PopulateType;
+const RELATED_BUILDING_CANDIDATE_LIMIT = 500;
+
+/** 目录与 sitemap 只消费楼盘摘要；画廊、媒体列表与编辑内容留给详情查询。 */
+const BUILDING_SUMMARY_SELECT = {
+  slug: true,
+  name: true,
+  address: true,
+  grade: true,
+  summary: true,
+  status: true,
+  operationalStatus: true,
+  deletedAt: true,
+  updatedAt: true,
+  city: true,
+  district: true,
+  businessDistrict: true,
+  nearestMetro: true,
+  coverImage: true,
+  latitude: true,
+  longitude: true,
+  completionDate: true,
+  developerAndScale: { typicalFloorArea: true },
+  buildingServices: { airConditioning: true, network: true, parkingFee: true },
+} satisfies BuildingsSelect<true>;
+
+const BUILDING_SUMMARY_POPULATE = {
+  locations: { name: true, slug: true, type: true, status: true },
+  media: {
+    alt: true,
+    url: true,
+    filename: true,
+    mimeType: true,
+    prefix: true,
+    width: true,
+    height: true,
+    blurDataUrl: true,
+    sizes: true,
+    focalX: true,
+    focalY: true,
+  },
+} satisfies PopulateType;
 
 const ROUTE_CITY_POPULATE = {
   locations: { name: true, slug: true, type: true, status: true },
-} satisfies PopulateType
+} satisfies PopulateType;
 
 const LISTING_ROUTE_IDENTITY_POPULATE = {
   buildings: { city: true },
   ...ROUTE_CITY_POPULATE,
-} satisfies PopulateType
+} satisfies PopulateType;
 
 type ListingRouteProjection = Readonly<{
-  slug: string
-  building: Record<string, unknown>
-}>
+  slug: string;
+  building: Record<string, unknown>;
+}>;
 
 type BuildingRouteProjection = Readonly<{
-  slug: string
-  city: Record<string, unknown>
-}>
+  slug: string;
+  city: Record<string, unknown>;
+}>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /**
@@ -427,34 +554,49 @@ function filterByPrice(
 ): Listing[] {
   // OPT-068：判定本体在 listing-scan.ts#matchesPriceFilter（扫描行也用它），
   // 这里只负责把原始文档的价格归一后交给同一条裁定。
-  if (!input.priceUnit) return [...listings]
-  return listings.filter((listing) => matchesPriceFilter(resolveListingPrice(listing), input))
+  if (!input.priceUnit) return [...listings];
+  return listings.filter((listing) =>
+    matchesPriceFilter(resolveListingPrice(listing), input),
+  );
 }
 
-function readListingRouteProjection(value: unknown): ListingRouteProjection | null {
-  if (!isRecord(value) || typeof value.slug !== 'string' || !isRecord(value.building)) {
-    return null
+function readListingRouteProjection(
+  value: unknown,
+): ListingRouteProjection | null {
+  if (
+    !isRecord(value) ||
+    typeof value.slug !== "string" ||
+    !isRecord(value.building)
+  ) {
+    return null;
   }
-  return { slug: value.slug, building: value.building }
+  return { slug: value.slug, building: value.building };
 }
 
-function readBuildingRouteProjection(value: unknown): BuildingRouteProjection | null {
-  if (!isRecord(value) || typeof value.slug !== 'string' || !isRecord(value.city)) {
-    return null
+function readBuildingRouteProjection(
+  value: unknown,
+): BuildingRouteProjection | null {
+  if (
+    !isRecord(value) ||
+    typeof value.slug !== "string" ||
+    !isRecord(value.city)
+  ) {
+    return null;
   }
-  return { slug: value.slug, city: value.city }
+  return { slug: value.slug, city: value.city };
 }
 
 function proximitySquared(a: Building, b: Building): number | null {
   if (
-    typeof a.latitude !== 'number' ||
-    typeof a.longitude !== 'number' ||
-    typeof b.latitude !== 'number' ||
-    typeof b.longitude !== 'number'
-  ) return null
-  const latitude = a.latitude - b.latitude
-  const longitude = a.longitude - b.longitude
-  return latitude * latitude + longitude * longitude
+    typeof a.latitude !== "number" ||
+    typeof a.longitude !== "number" ||
+    typeof b.latitude !== "number" ||
+    typeof b.longitude !== "number"
+  )
+    return null;
+  const latitude = a.latitude - b.latitude;
+  const longitude = a.longitude - b.longitude;
+  return latitude * latitude + longitude * longitude;
 }
 
 /** Rank the complete locality-bounded candidate set before applying a limit. */
@@ -466,14 +608,14 @@ export function rankRelatedBuildingsByProximity(
   return candidates
     .filter((building) => String(building.id) !== String(current.id))
     .sort((a, b) => {
-      const pa = proximitySquared(current, a)
-      const pb = proximitySquared(current, b)
-      if (pa != null && pb != null && pa !== pb) return pa - pb
-      if (pa != null && pb == null) return -1
-      if (pa == null && pb != null) return 1
-      return a.id - b.id
+      const pa = proximitySquared(current, a);
+      const pb = proximitySquared(current, b);
+      if (pa != null && pb != null && pa !== pb) return pa - pb;
+      if (pa != null && pb == null) return -1;
+      if (pa == null && pb != null) return 1;
+      return a.id - b.id;
     })
-    .slice(0, limit)
+    .slice(0, limit);
 }
 
 /**
@@ -482,173 +624,292 @@ export function rankRelatedBuildingsByProximity(
  */
 export function createPayloadSupplyAdapter(): SupplyAdapter {
   // 懒加载 payload，避免在模块顶层触发配置初始化
-  let payloadCache: Awaited<ReturnType<typeof import('payload')['getPayload']>> | null = null
+  let payloadCache: Awaited<
+    ReturnType<(typeof import("payload"))["getPayload"]>
+  > | null = null;
 
   async function getPayload() {
     if (!payloadCache) {
-      const { getPayload } = await import('payload')
-      const config = (await import('@/payload.config')).default
-      payloadCache = await getPayload({ config })
+      const { getPayload } = await import("payload");
+      const config = (await import("@/payload.config")).default;
+      payloadCache = await getPayload({ config });
     }
-    return payloadCache
+    return payloadCache;
   }
 
   /** 单一 Payload 查询端口边界，供统一有效供给服务复用。 */
   async function getPayloadQueryPort() {
-    return createEffectiveSupplyPayloadPort(await getPayload())
+    return createEffectiveSupplyPayloadPort(await getPayload());
   }
 
-  /**
-   * OPT-068 轻量扫描分页读取：select + populate 收窄字段，按 id 稳定翻页，
-   * 到 `LISTING_SCAN_CANDIDATE_LIMIT` 封顶。粗筛 where 由调用方给定。
-   */
-  async function scanListingPages(where: Where): Promise<Listing[]> {
-    const payload = await getPayload()
-    // 与 findAllListings 同样写成递归翻页而不是循环：tests/f7-4-6 的 N+1 守卫按
-    // 「循环体内 await find」的形状扫源码，翻页不是 N+1，但形状上分不开。
-    async function readPage(page: number, docs: Listing[]): Promise<Listing[]> {
-      const result = await payload.find({
-        collection: 'listings',
-        where,
-        depth: 2,
-        select: LISTING_SCAN_SELECT,
-        populate: LISTING_SCAN_POPULATE,
-        sort: 'id',
-        limit: LISTING_SCAN_PAGE_SIZE,
-        page,
-      })
-      docs.push(...(result.docs as unknown as Listing[]))
-      if (docs.length >= LISTING_SCAN_CANDIDATE_LIMIT) return docs.slice(0, LISTING_SCAN_CANDIDATE_LIMIT)
-      if (!result.hasNextPage || result.nextPage == null) return docs
-      return readPage(result.nextPage, docs)
+  async function hydrateScanRelations(docs: readonly Record<string, unknown>[]) {
+    const payload = await getPayload();
+    const ids = (field: "building" | "merchant") => [...new Set(docs
+      .map(doc => doc[field])
+      .filter((id): id is number | string => typeof id === "number" || typeof id === "string"))];
+    const buildingIds = ids("building");
+    const merchantIds = ids("merchant");
+    // 批量读取唯一关系，避免 Payload 为每条房源重复展开同一楼盘和商户。
+    const [buildings, merchants] = await Promise.all([
+      buildingIds.length ? payload.find({ collection: "buildings",
+        where: { id: { in: buildingIds } }, depth: 1,
+        select: LISTING_SCAN_POPULATE.buildings,
+        populate: { locations: LISTING_SCAN_POPULATE.locations },
+        limit: buildingIds.length, pagination: false }) : { docs: [] },
+      merchantIds.length ? payload.find({ collection: "merchants",
+        where: { id: { in: merchantIds } }, depth: 0,
+        select: LISTING_SCAN_POPULATE.merchants,
+        limit: merchantIds.length, pagination: false }) : { docs: [] },
+    ]);
+    const byBuilding = new Map(buildings.docs.map(doc => [String(doc.id), doc]));
+    const byMerchant = new Map(merchants.docs.map(doc => [String(doc.id), doc]));
+    return docs.map(doc => ({ ...doc,
+      building: typeof doc.building === "object" ? doc.building : byBuilding.get(String(doc.building)) ?? null,
+      merchant: typeof doc.merchant === "object" ? doc.merchant : byMerchant.get(String(doc.merchant)) ?? null,
+    }));
+  }
+
+  async function scanEffectiveListingsPage(
+    input: ListingSearchInput,
+    ctx: SearchContext,
+    page: number,
+    knownTotalPages?: number,
+  ): Promise<
+    Readonly<{ rows: readonly ListingScanRow[]; nextPage: number | null; totalPages?: number }>
+  > {
+    if (!Number.isSafeInteger(page) || page < 1)
+      throw new Error("无效的房源扫描页码");
+    if (knownTotalPages != null && (!Number.isSafeInteger(knownTotalPages) || knownTotalPages < page))
+      throw new Error("无效的房源扫描总页数");
+    const where = await buildListingWhere(input, ctx);
+    if (!where) return { rows: [], nextPage: null };
+    const payload = await getPayload();
+    const result = await payload.find({
+      collection: "listings",
+      where,
+      depth: 0,
+      select: LISTING_SCAN_SELECT,
+      sort: "id",
+      limit: LISTING_SCAN_PAGE_SIZE,
+      page,
+      ...(knownTotalPages != null ? { pagination: false } : {}),
+    });
+    if (knownTotalPages != null) {
+      if (result.docs.length === 0 || (page < knownTotalPages && result.docs.length !== LISTING_SCAN_PAGE_SIZE)) {
+        throw new Error("房源扫描分页缺少粗筛候选");
+      }
+      if (page === knownTotalPages) {
+        // 无计数查询仍使用固定页偏移；额外检查末尾边界，拒绝扫描期间新增的下一页。
+        const boundary = await payload.find({ collection: "listings", where,
+          depth: 0, select: {}, sort: "id", limit: 1,
+          page: knownTotalPages * LISTING_SCAN_PAGE_SIZE + 1, pagination: false });
+        if (boundary.docs.length > 0) throw new Error("房源扫描总页数发生变化");
+      }
     }
-    return readPage(1, [])
+    const nextPage = knownTotalPages != null
+      ? (page < knownTotalPages ? page + 1 : null)
+      : (result.hasNextPage ? (result.nextPage ?? null) : null);
+    if (
+      knownTotalPages == null && result.hasNextPage &&
+      (nextPage == null ||
+        !Number.isSafeInteger(nextPage) ||
+        nextPage !== page + 1)
+    ) {
+      throw new Error("房源扫描分页未按顺序推进");
+    }
+    const kept = await fineFilter(
+      await hydrateScanRelations(result.docs as unknown as Record<string, unknown>[]),
+      new Date(ctx.asOf),
+    );
+    return { rows: rowsFromListings(filterByPrice(kept, input)), nextPage, totalPages: knownTotalPages ?? result.totalPages };
   }
 
   async function findAllListings(
     where: Where,
     depth: number,
-    sort = 'id',
+    sort = "id",
   ): Promise<Listing[]> {
-    const payload = await getPayload()
+    const payload = await getPayload();
     async function readPage(page: number, docs: Listing[]): Promise<Listing[]> {
       const result = await payload.find({
-        collection: 'listings',
+        collection: "listings",
         where,
         depth,
         sort,
         limit: QUERY_PAGE_SIZE,
         page,
-      })
-      docs.push(...(result.docs as Listing[]))
+      });
+      docs.push(...(result.docs as Listing[]));
       if (docs.length >= PUBLIC_CATALOG_CANDIDATE_LIMIT) {
-        return docs.slice(0, PUBLIC_CATALOG_CANDIDATE_LIMIT)
+        return docs.slice(0, PUBLIC_CATALOG_CANDIDATE_LIMIT);
       }
-      if (!result.hasNextPage || result.nextPage == null) return docs
-      return readPage(result.nextPage, docs)
+      if (!result.hasNextPage || result.nextPage == null) return docs;
+      return readPage(result.nextPage, docs);
     }
-    return readPage(1, [])
+    return readPage(1, []);
   }
 
   function relationId(value: unknown): number | string | null {
-    if (typeof value === 'number' || typeof value === 'string') return value
-    if (value && typeof value === 'object' && 'id' in value) {
-      const id = (value as { id?: unknown }).id
-      if (typeof id === 'number' || typeof id === 'string') return id
+    if (typeof value === "number" || typeof value === "string") return value;
+    if (value && typeof value === "object" && "id" in value) {
+      const id = (value as { id?: unknown }).id;
+      if (typeof id === "number" || typeof id === "string") return id;
     }
-    return null
+    return null;
   }
 
   function relationSlug(value: unknown): string | null {
-    if (value && typeof value === 'object' && 'slug' in value) {
-      const slug = (value as { slug?: unknown }).slug
-      if (typeof slug === 'string') return slug
+    if (value && typeof value === "object" && "slug" in value) {
+      const slug = (value as { slug?: unknown }).slug;
+      if (typeof slug === "string") return slug;
     }
-    return null
+    return null;
   }
 
   function normalizeNearbyBuildingLimit(limit: number): number {
-    if (!Number.isFinite(limit)) return 0
-    return Math.max(0, Math.floor(limit))
+    if (!Number.isFinite(limit)) return 0;
+    return Math.max(0, Math.floor(limit));
   }
 
   async function findPublicBuildingsPage(
     ctx: SearchContext,
     options: Readonly<{ page: number; limit: number }>,
     stablePagination: boolean,
+    identitiesOnly = false,
   ): Promise<EffectiveBuildingPage> {
-    const payload = await getPayload()
-    const page = Math.max(1, Math.floor(options.page))
-    const limit = Math.min(500, Math.max(1, Math.floor(options.limit)))
+    const payload = await getPayload();
+    const page = Math.max(1, Math.floor(options.page));
+    const limit = Math.min(500, Math.max(1, Math.floor(options.limit)));
     const result = await payload.find({
-      collection: 'buildings',
+      collection: "buildings",
       where: {
         ...getPublicBuildingWhere(),
-        'city.slug': { equals: ctx.city },
+        "city.slug": { equals: ctx.city },
       } as unknown as Where,
-      depth: 2,
+      depth: identitiesOnly ? 1 : 2,
       limit,
       page,
-      sort: stablePagination ? ['-updatedAt', 'id'] : '-updatedAt',
-    })
+      sort: stablePagination ? ["-updatedAt", "id"] : "-updatedAt",
+      select: identitiesOnly ? {
+        slug: true, name: true, status: true, operationalStatus: true,
+        deletedAt: true, city: true, district: true,
+      } : BUILDING_SUMMARY_SELECT,
+      populate: identitiesOnly ? ROUTE_CITY_POPULATE : BUILDING_SUMMARY_POPULATE,
+    });
     return {
-      docs: (result.docs as Building[]).filter((building) => isPublicBuilding(building)),
+      docs: (result.docs as Building[]).filter((building) =>
+        isPublicBuilding(building),
+      ),
+      totalPages: result.totalPages,
       page,
       hasNextPage: result.hasNextPage,
       nextPage: result.nextPage ?? null,
-    }
+    };
   }
 
   async function resolveBuildingIdsByDistrict(
     districtSlugs: readonly string[],
     ctx: SearchContext,
   ): Promise<number[] | undefined> {
-    if (districtSlugs.length === 0) return undefined
-    const payload = await getPayload()
-    const result = await payload.find({
-      collection: 'buildings',
-      where: {
-        'city.slug': { equals: ctx.city },
-        'district.slug': { in: [...districtSlugs] },
+    if (districtSlugs.length === 0) return undefined;
+    return collectBuildingIds(
+      {
+        "city.slug": { equals: ctx.city },
+        "district.slug": { in: [...districtSlugs] },
       },
-      limit: PUBLIC_CATALOG_CANDIDATE_LIMIT,
-    })
-    return result.docs.map((d) => d.id)
+      "区域",
+    );
+  }
+
+  async function findAllPublicBuildings(ctx: SearchContext, identitiesOnly = false): Promise<readonly Building[]> {
+    const docs: Building[] = [];
+    const seen = new Set<number>();
+    const append = (entries: readonly Building[]) => {
+      for (const entry of entries) {
+        if (seen.has(entry.id)) throw new Error("公开楼盘目录出现跨页重复");
+        seen.add(entry.id);
+        docs.push(entry);
+      }
+    };
+    const pageSize = identitiesOnly ? 500 : 200;
+    let expectedPages: number | undefined;
+    let page = 1;
+    while (true) {
+      const result = await findPublicBuildingsPage(ctx, { page, limit: pageSize }, true, identitiesOnly);
+      if (page === 1 && typeof result.totalPages === "number") expectedPages = result.totalPages;
+      if (expectedPages !== undefined && (result.totalPages !== expectedPages
+        || result.hasNextPage !== (page < expectedPages))) throw new Error("公开楼盘目录分页未连续推进");
+      append(result.docs);
+      if (!result.hasNextPage) return docs;
+      // 触顶或缺页时显式失败，不能把部分结果当作完整目录。
+      if (page * pageSize >= 250_000) throw new Error("公开楼盘目录超过安全枚举上限");
+      if (result.nextPage !== page + 1) throw new Error("公开楼盘目录分页未连续推进");
+      page = result.nextPage;
+    }
+  }
+
+  /** 仅枚举 ID；Payload 的 include select 自动保留 id，空选择不加载展示字段。 */
+  async function collectBuildingIds(
+    where: Where,
+    label: string,
+  ): Promise<number[]> {
+    const payload = await getPayload();
+    const ids: number[] = [];
+    const pageSize = PUBLIC_CATALOG_CANDIDATE_LIMIT;
+    const maximumCandidates = 250_000;
+    async function readPage(page: number): Promise<number[]> {
+      const result = await payload.find({
+        collection: "buildings",
+        where,
+        depth: 0,
+        select: {},
+        limit: pageSize,
+        page,
+        sort: "id",
+      });
+      ids.push(
+        ...result.docs.flatMap((doc) => {
+          const id = toId(doc.id);
+          return typeof id === "number" ? [id] : [];
+        }),
+      );
+      if (!result.hasNextPage) return ids;
+      if (page * pageSize >= maximumCandidates) {
+        throw new Error(`${label}楼盘超过安全枚举上限`);
+      }
+      if (
+        result.nextPage == null ||
+        !Number.isSafeInteger(result.nextPage) ||
+        result.nextPage !== page + 1
+      ) {
+        throw new Error(`${label}楼盘分页未按顺序推进`);
+      }
+      return readPage(result.nextPage);
+    }
+    return readPage(1);
   }
 
   /**
-   * 关键词关联命中只在当前城市的前台可见楼盘中执行，且受公共目录
-   * 候选上限约束。这里只返回 ID，不展开媒体/供给，避免把一次首页搜索
-   * 变成无界全表水合。
+   * 关键词关联命中只在当前城市的前台可见楼盘中执行，分页收集 ID，
+   * 不展开媒体/供给，避免一次搜索水合整份楼盘目录。
    */
   async function resolveBuildingIdsByKeyword(
     keyword: string,
     ctx: SearchContext,
   ): Promise<number[]> {
-    const payload = await getPayload()
-    const result = await payload.find({
-      collection: 'buildings',
-      where: {
+    return collectBuildingIds(
+      {
         ...getPublicBuildingWhere(),
-        'city.slug': { equals: ctx.city },
+        "city.slug": { equals: ctx.city },
         or: [
           { name: { contains: keyword } },
-          { 'district.name': { contains: keyword } },
-          { 'businessDistrict.name': { contains: keyword } },
-          { 'nearestMetro.name': { contains: keyword } },
+          { "district.name": { contains: keyword } },
+          { "businessDistrict.name": { contains: keyword } },
+          { "nearestMetro.name": { contains: keyword } },
         ],
       },
-      depth: 0,
-      limit: PUBLIC_CATALOG_CANDIDATE_LIMIT,
-      sort: 'id',
-    })
-    if (result.hasNextPage) {
-      throw new Error('关键词匹配楼盘超过安全候选上限')
-    }
-    return result.docs.flatMap((doc) => {
-      const id = toId(doc.id)
-      return typeof id === 'number' ? [id] : []
-    })
+      "关键词",
+    );
   }
 
   /**
@@ -657,18 +918,21 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
    */
   async function baseEffectiveWhereWithoutCity(
     asOf: Date,
-    businessType?: SearchContext['businessType'],
+    businessType?: SearchContext["businessType"],
   ): Promise<Where> {
-    const payload = await getPayloadQueryPort()
+    const payload = await getPayloadQueryPort();
     const where: Where = {
-      ...getEffectiveSupplyWhere(asOf, businessType ? { businessType } : undefined),
-    }
+      ...getEffectiveSupplyWhere(
+        asOf,
+        businessType ? { businessType } : undefined,
+      ),
+    };
     // §5 举报暂停：查 listing-reports 拿到被暂停的 listing IDs，not_in 排除
-    const pausedIds = await getPausedListingIds(payload)
+    const pausedIds = await getPausedListingIds(payload);
     if (pausedIds.length > 0) {
-      where.id = { not_in: pausedIds }
+      where.id = { not_in: pausedIds };
     }
-    return where
+    return where;
   }
 
   // ctx.businessType 在此生效：所有绑定城市的公开查询（列表、精选、推荐、在租面积
@@ -676,9 +940,12 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   // 访问任何有效房源，租售都要，故那里刻意不过滤。
   async function baseEffectiveWhere(ctx: SearchContext): Promise<Where> {
     return {
-      ...await baseEffectiveWhereWithoutCity(new Date(ctx.asOf), ctx.businessType),
-      'building.city.slug': { equals: ctx.city },
-    }
+      ...(await baseEffectiveWhereWithoutCity(
+        new Date(ctx.asOf),
+        ctx.businessType,
+      )),
+      "building.city.slug": { equals: ctx.city },
+    };
   }
 
   /**
@@ -690,33 +957,37 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     docs: readonly Record<string, unknown>[],
     asOf: Date,
   ): Promise<Listing[]> {
-    const payload = await getPayloadQueryPort()
-    const supplies = await resolveEffectiveSupplies(payload, docs, asOf)
-    const kept: Listing[] = []
+    const payload = await getPayloadQueryPort();
+    const supplies = await resolveEffectiveSupplies(payload, docs, asOf);
+    const kept: Listing[] = [];
     for (const doc of docs) {
-      const listingId = toId(doc.id)
-      const supply = listingId === null ? null : supplies.get(String(listingId)) ?? null
-      if (supply?.eligible) kept.push(doc as unknown as Listing)
+      const listingId = toId(doc.id);
+      const supply =
+        listingId === null ? null : (supplies.get(String(listingId)) ?? null);
+      if (supply?.eligible) kept.push(doc as unknown as Listing);
     }
-    return kept
+    return kept;
   }
 
   async function findEffectiveListingBySlugInCity(
     slug: string,
     ctx: SearchContext,
   ): Promise<Listing | null> {
-    const payload = await getPayload()
-    const asOf = new Date(ctx.asOf)
-    const where = await baseEffectiveWhere(ctx)
-    where.slug = { equals: slug }
+    const payload = await getPayload();
+    const asOf = new Date(ctx.asOf);
+    const where = await baseEffectiveWhere(ctx);
+    where.slug = { equals: slug };
     const result = await payload.find({
-      collection: 'listings',
+      collection: "listings",
       where,
       limit: 1,
       depth: 3,
-    })
-    const kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
-    return kept[0] ?? null
+    });
+    const kept = await fineFilter(
+      result.docs as unknown as Record<string, unknown>[],
+      asOf,
+    );
+    return kept[0] ?? null;
   }
 
   /**
@@ -730,32 +1001,32 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     ctx: SearchContext,
   ): Promise<Where | null> {
     // 解析 district → building IDs
-    let buildingIds: number[] | undefined
+    let buildingIds: number[] | undefined;
     if (input.district && input.district.length > 0) {
-      const resolved = await resolveBuildingIdsByDistrict(input.district, ctx)
-      if (!resolved || resolved.length === 0) return null
-      buildingIds = resolved
+      const resolved = await resolveBuildingIdsByDistrict(input.district, ctx);
+      if (!resolved || resolved.length === 0) return null;
+      buildingIds = resolved;
     }
 
-    const where = await baseEffectiveWhere(ctx)
+    const where = await baseEffectiveWhere(ctx);
 
     if (input.listingType && input.listingType.length > 0) {
-      where.listingType = { in: [...input.listingType] }
+      where.listingType = { in: [...input.listingType] };
     }
     if (input.buildingForm && input.buildingForm.length > 0) {
-      where.buildingForm = { in: [...input.buildingForm] }
+      where.buildingForm = { in: [...input.buildingForm] };
     }
     if (input.businessArea && input.businessArea.length > 0) {
-      where['building.businessDistrict.slug'] = { in: [...input.businessArea] }
+      where["building.businessDistrict.slug"] = { in: [...input.businessArea] };
     }
     if (input.metro && input.metro.length > 0) {
-      where['building.nearestMetro.slug'] = { in: [...input.metro] }
+      where["building.nearestMetro.slug"] = { in: [...input.metro] };
     }
     if (input.areaMin != null || input.areaMax != null) {
-      const areaWhere: Record<string, number> = {}
-      if (input.areaMin != null) areaWhere.greater_than_equal = input.areaMin
-      if (input.areaMax != null) areaWhere.less_than_equal = input.areaMax
-      where.area = areaWhere
+      const areaWhere: Record<string, number> = {};
+      if (input.areaMin != null) areaWhere.greater_than_equal = input.areaMin;
+      if (input.areaMax != null) areaWhere.less_than_equal = input.areaMax;
+      where.area = areaWhere;
     }
     // 价格的三个条件（`priceUnit` / `priceMin` / `priceMax`）**整组不下推**到
     // where，全部交给 `filterByPrice` 在内存里做。三条理由各自独立成立：
@@ -789,10 +1060,13 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       where.or = [
         { availableFrom: { exists: false } },
         { availableFrom: { less_than_equal: input.availableBefore } },
-      ]
+      ];
     }
     if (input.q) {
-      const keywordBuildingIds = await resolveBuildingIdsByKeyword(input.q, ctx)
+      const keywordBuildingIds = await resolveBuildingIdsByKeyword(
+        input.q,
+        ctx,
+      );
       const keywordWhere: Where = {
         or: [
           { title: { contains: input.q } },
@@ -800,64 +1074,198 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
             ? [{ building: { in: keywordBuildingIds } }]
             : []),
         ],
-      }
-      const existingAnd = Array.isArray(where.and) ? where.and : []
-      where.and = [...existingAnd, keywordWhere]
+      };
+      const existingAnd = Array.isArray(where.and) ? where.and : [];
+      where.and = [...existingAnd, keywordWhere];
     }
     if (buildingIds) {
-      where.building = { in: buildingIds }
+      where.building = { in: buildingIds };
     }
 
     // Read every coarse candidate in stable ID order. The Facade performs the
     // requested global sort and pagination only after the fine filter.
-    return where
+    return where;
+  }
+
+  async function readBuildingMetadata(ctx: SearchContext): Promise<BuildingMetadataRow[]> {
+    const payload = await getPayload();
+    const result = await payload.db.pool.query<BuildingMetadataRow>(PUBLIC_BUILDING_METADATA_SQL, [ctx.city]);
+    if (result.rows.length > 250_000) throw new Error("公开楼盘目录超过安全枚举上限");
+    return result.rows.filter(row => {
+      if (!Number.isSafeInteger(row.id) || typeof row.slug !== "string" || typeof row.name !== "string") {
+        throw new Error("无效的公开楼盘摘要");
+      }
+      return mapBuildingCity({ city: row.city })?.citySlug === ctx.city;
+    });
+  }
+
+  async function hydrateBuildingIds(ids: readonly number[], ctx: SearchContext): Promise<Building[]> {
+    const payload = await getPayload();
+    const documents: Building[] = [];
+    const readChunk = async (chunk: readonly number[]) => {
+      const page = await payload.find({ collection: "buildings",
+        where: { ...getPublicBuildingWhere(), "city.slug": { equals: ctx.city }, id: { in: chunk } } as unknown as Where,
+        depth: 2, limit: chunk.length, pagination: false,
+        select: BUILDING_SUMMARY_SELECT, populate: BUILDING_SUMMARY_POPULATE,
+      });
+      return (page.docs as Building[]).filter(building =>
+        isPublicBuilding(building) && mapBuildingCity(building)?.citySlug === ctx.city);
+    };
+    for (let start = 0; start < ids.length; start += 200) {
+      documents.push(...await readChunk(ids.slice(start, start + 200)));
+    }
+    return documents;
   }
 
   return {
+    async findBuildingPageSelection(input, ctx) {
+      const identities = await readBuildingMetadata(ctx);
+      const ordered = [...identities].sort((a, b) => a.slug.localeCompare(b.slug)).map(row => row.id);
+      const query = buildBuildingPageQuery(input, ctx, ordered);
+      const payload = await getPayload();
+      const result = await payload.db.pool.query<{ result: BuildingSqlResult }>(query.text, query.values);
+      const row = result.rows[0]?.result;
+      if (!row || ![row.totalDocs, row.withStockTotal, row.withoutStockTotal, row.unfilteredTotalDocs]
+        .every(value => Number.isSafeInteger(value) && value >= 0) || !Array.isArray(row.supply)) {
+        throw new Error("无效的楼盘目录分页结果");
+      }
+      return { ...row, page: Math.max(1, input.page), totalPages: Math.max(1, Math.ceil(row.totalDocs / input.pageSize)) };
+    },
+    findEffectiveBuildingsByIds: hydrateBuildingIds,
+    async findHomepageBuildingOverview(ctx, visibleAreaSlugs) {
+      const rows = await readBuildingMetadata(ctx);
+      const visible = new Set(visibleAreaSlugs);
+      const areas = new Map<string, { slug: string; names: string[]; candidates: number[]; index: number }>();
+      let count = 0;
+      for (const row of rows) {
+        count++;
+        if (!row.area_slug || !visible.has(row.area_slug)) continue;
+        const entry = areas.get(row.area_slug) ?? { slug: row.area_slug, names: [], candidates: [], index: 0 };
+        if (entry.names.length < 4) entry.names.push(row.name);
+        if (row.cover_id !== null) entry.candidates.push(row.id);
+        areas.set(row.area_slug, entry);
+      }
+      const representatives: Building[] = [];
+      let pending = [...areas.values()].filter(area => area.candidates.length > 0);
+      // 封面资格交给实际媒体 mapper；无效媒体按旧顺序继续寻找下一楼盘。
+      while (pending.length > 0) {
+        const docs = await hydrateBuildingIds(pending.map(area => area.candidates[area.index]), ctx);
+        const byId = new Map(docs.map(doc => [doc.id, doc]));
+        pending = pending.filter(area => {
+          const doc = byId.get(area.candidates[area.index]);
+          if (doc && mapMedia(doc.coverImage, doc.name)) {
+            representatives.push(doc);
+            return false;
+          }
+          area.index++;
+          return area.index < area.candidates.length;
+        });
+      }
+      return { count, representatives, areas: [...areas.values()].map(({ slug, names }) => ({ slug, names })) };
+    },
+    async findListingPage(input, ctx) {
+      const payload = await getPayload();
+      const query = buildListingPageQuery(input, ctx);
+      const result = await payload.db.pool.query<{ ids: number[]; total: number; filtered: boolean }>(query.text, query.values);
+      const row = result.rows[0];
+      if (!row || !Number.isSafeInteger(Number(row.total)) || Number(row.total) < 0 || !Array.isArray(row.ids)) {
+        throw new Error("目录分页查询返回无效计数");
+      }
+      return { ids: row.ids, pagination: buildPagination(Number(row.total), input.page, input.pageSize), filteredByRentUnit: row.filtered };
+    },
+    async findListingFacets(input, ctx) {
+      const payload = await getPayload();
+      const query = buildListingFacetsQuery(input, ctx);
+      const result = await payload.db.pool.query<{ facets: ScanFacets }>(query.text, query.values);
+      const facets = result.rows[0]?.facets;
+      if (!facets || !Number.isSafeInteger(facets.totalDocs) || facets.totalDocs < 0) {
+        throw new Error("目录筛选查询返回无效计数");
+      }
+      return facets;
+    },
+    async findHomepageListingAggregate(buildingIds, ctx, includeNearby) {
+      if (buildingIds?.length === 0) return { count: 0, types: [], nearbyCandidates: [] };
+      const payload = await getPayload();
+      const pool = (payload.db as unknown as { pool: {
+        query: (text: string, values: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>
+      } }).pool;
+      const values = [new Date(ctx.asOf).toISOString(), buildingIds, ctx.city, ctx.businessType ?? null];
+      const grouped = await pool.query(`SELECT l.listing_type::text AS type,
+        COUNT(*)::int AS cnt, MIN(l.id)::int AS cover_id
+        ${EFFECTIVE_SUPPLY_AGGREGATE_FROM} GROUP BY l.listing_type`, values);
+      const types = grouped.rows.map(row => {
+        if ((row.type != null && typeof row.type !== "string") ||
+          !Number.isSafeInteger(row.cnt) || Number(row.cnt) < 1 ||
+          !Number.isSafeInteger(row.cover_id)) throw new Error("无效的首页供给聚合结果");
+        return { type: row.type == null ? null : String(row.type), count: Number(row.cnt), coverId: Number(row.cover_id) };
+      });
+      const nearby = includeNearby ? await pool.query(`SELECT l.id, l.slug,
+        b.latitude::float8 AS latitude, b.longitude::float8 AS longitude
+        ${EFFECTIVE_SUPPLY_AGGREGATE_FROM}
+        AND b.latitude IS NOT NULL AND b.longitude IS NOT NULL`, values) : { rows: [] };
+      const nearbyCandidates = nearby.rows.map(row => {
+        if (!Number.isSafeInteger(row.id) || typeof row.slug !== "string") throw new Error("无效的首页附近候选");
+        return { id: Number(row.id), slug: row.slug, coordinates: mapCoordinates(row.latitude, row.longitude) ?? null };
+      });
+      return { count: types.reduce((sum, type) => sum + type.count, 0), types, nearbyCandidates };
+    },
     async findEffectiveListings(input, ctx) {
-      const asOf = new Date(ctx.asOf)
-      const where = await buildListingWhere(input, ctx)
-      if (!where) return []
-      const docs = await findAllListings(where, 2)
-      const kept = await fineFilter(docs as unknown as Record<string, unknown>[], asOf)
-      return filterByPrice(kept, input)
+      const asOf = new Date(ctx.asOf);
+      const where = await buildListingWhere(input, ctx);
+      if (!where) return [];
+      const docs = await findAllListings(where, 2);
+      const kept = await fineFilter(
+        docs as unknown as Record<string, unknown>[],
+        asOf,
+      );
+      return filterByPrice(kept, input);
     },
 
     async scanEffectiveListings(input, ctx) {
-      const asOf = new Date(ctx.asOf)
-      const where = await buildListingWhere(input, ctx)
-      if (!where) return []
-      const docs = await scanListingPages(where)
-      const kept = await fineFilter(docs as unknown as Record<string, unknown>[], asOf)
-      return rowsFromListings(filterByPrice(kept, input))
+      const rows: ListingScanRow[] = [];
+      async function readPage(
+        page: number,
+      ): Promise<readonly ListingScanRow[]> {
+        const result = await scanEffectiveListingsPage(input, ctx, page);
+        rows.push(...result.rows);
+        return result.nextPage === null ? rows : readPage(result.nextPage);
+      }
+      return readPage(1);
     },
 
+    scanEffectiveListingsPage,
+
     async findEffectiveListingsByIds(ids, ctx) {
-      if (ids.length === 0) return []
-      const payload = await getPayload()
-      const asOf = new Date(ctx.asOf)
+      if (ids.length === 0) return [];
+      const payload = await getPayload();
+      const asOf = new Date(ctx.asOf);
       // baseEffectiveWhere 可能已经用 `id.not_in` 排除了举报暂停的房源，
       // 不能直接覆盖 `where.id`，用 and 合并两条 id 约束。
-      const where: Where = { and: [await baseEffectiveWhere(ctx), { id: { in: [...ids] } }] }
+      const where: Where = {
+        and: [await baseEffectiveWhere(ctx), { id: { in: [...ids] } }],
+      };
       const result = await payload.find({
-        collection: 'listings',
+        collection: "listings",
         where,
         depth: 2,
         limit: ids.length,
-        sort: 'id',
-      })
-      return fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+        sort: "id",
+      });
+      return fineFilter(
+        result.docs as unknown as Record<string, unknown>[],
+        asOf,
+      );
     },
 
     async findEffectiveListingsSitemapPage(ctx, options) {
-      const payload = await getPayload()
-      const asOf = new Date(ctx.asOf)
-      const where = await baseEffectiveWhere(ctx)
-      const page = Math.max(1, Math.floor(options.page))
-      const limit = Math.min(500, Math.max(1, Math.floor(options.limit)))
+      const payload = await getPayload();
+      const asOf = new Date(ctx.asOf);
+      const where = await baseEffectiveWhere(ctx);
+      const page = Math.max(1, Math.floor(options.page));
+      const limit = Math.min(500, Math.max(1, Math.floor(options.limit)));
 
       const result = await payload.find({
-        collection: 'listings',
+        collection: "listings",
         where: where as Where,
         // depth 1 而不是 2：精筛只需要 building.city 的 id 与 merchant 本身，
         // toId() 同时接受 id 与对象，所以一层足够。depth 2 会把城市、行政区、
@@ -877,105 +1285,122 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
           building: true,
           merchant: true,
         },
-        sort: 'id',
+        populate: {
+          buildings: { city: true },
+          merchants: {
+            status: true,
+            qualificationStatus: true,
+            qualificationExpiresAt: true,
+            serviceCities: true,
+          },
+        },
+        sort: "id",
         limit,
         page,
-      })
+      });
 
       const kept = await fineFilter(
         result.docs as unknown as Record<string, unknown>[],
         asOf,
-      )
+      );
 
       return {
-        docs: kept.map((doc) => {
-          const raw = doc as unknown as Record<string, unknown>
-          return {
-            slug: typeof raw.slug === 'string' ? raw.slug : '',
-            updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
-            businessType: typeof raw.businessType === 'string' ? raw.businessType : null,
-          }
-        }).filter((entry) => entry.slug !== ''),
+        docs: kept
+          .map((doc) => {
+            const raw = doc as unknown as Record<string, unknown>;
+            return {
+              slug: typeof raw.slug === "string" ? raw.slug : "",
+              updatedAt:
+                typeof raw.updatedAt === "string" ? raw.updatedAt : null,
+              businessType:
+                typeof raw.businessType === "string" ? raw.businessType : null,
+            };
+          })
+          .filter((entry) => entry.slug !== ""),
+        totalPages: result.totalPages,
         page,
         hasNextPage: Boolean(result.hasNextPage),
         nextPage: result.nextPage ?? null,
-      }
+      };
     },
 
     async findEffectiveListingBySlug(slug, ctx) {
-      return findEffectiveListingBySlugInCity(slug, ctx)
+      return findEffectiveListingBySlugInCity(slug, ctx);
     },
 
     async findListingRouteIdentity(slug) {
-      const payload = await getPayload()
-      const asOf = new Date()
-      const where = await baseEffectiveWhereWithoutCity(asOf)
-      where.slug = { equals: slug }
+      const payload = await getPayload();
+      const asOf = new Date();
+      const where = await baseEffectiveWhereWithoutCity(asOf);
+      where.slug = { equals: slug };
       const result = await payload.find({
-        collection: 'listings',
+        collection: "listings",
         where,
         limit: 1,
         depth: 2,
         select: { slug: true, building: true },
         populate: LISTING_ROUTE_IDENTITY_POPULATE,
-      })
-      const candidate = readListingRouteProjection(result.docs[0])
-      if (!candidate) return null
-      const candidateCity = mapBuildingCity(candidate.building)
-      if (!candidateCity) return null
+      });
+      const candidate = readListingRouteProjection(result.docs[0]);
+      if (!candidate) return null;
+      const candidateCity = mapBuildingCity(candidate.building);
+      if (!candidateCity) return null;
 
       const effective = await findEffectiveListingBySlugInCity(
         candidate.slug,
         createSearchContext(candidateCity.citySlug, asOf),
-      )
-      if (!effective) return null
-      const effectiveCity = mapBuildingCity(effective.building)
-      if (!effectiveCity || effectiveCity.citySlug !== candidateCity.citySlug) return null
-      return { slug: effective.slug, citySlug: effectiveCity.citySlug }
+      );
+      if (!effective) return null;
+      const effectiveCity = mapBuildingCity(effective.building);
+      if (!effectiveCity || effectiveCity.citySlug !== candidateCity.citySlug)
+        return null;
+      return { slug: effective.slug, citySlug: effectiveCity.citySlug };
     },
 
     async findEffectiveBuildingBySlug(slug, ctx) {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'buildings',
+        collection: "buildings",
         where: {
           ...getPublicBuildingWhere(),
-          'city.slug': { equals: ctx.city },
+          "city.slug": { equals: ctx.city },
           slug: { equals: slug },
         },
         limit: 1,
         depth: 2,
-      })
-      return (result.docs[0] as Building | undefined) ?? null
+      });
+      return (result.docs[0] as Building | undefined) ?? null;
     },
 
     async findBuildingRouteIdentity(slug) {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const where: Where = {
         ...getPublicBuildingWhere(),
         slug: { equals: slug },
-      }
+      };
       const result = await payload.find({
-        collection: 'buildings',
+        collection: "buildings",
         where,
         limit: 1,
         depth: 1,
         select: { slug: true, city: true },
         populate: ROUTE_CITY_POPULATE,
-      })
-      const building = readBuildingRouteProjection(result.docs[0])
-      if (!building) return null
-      const city = mapBuildingCity(building)
-      return city ? { slug: building.slug, citySlug: city.citySlug } : null
+      });
+      const building = readBuildingRouteProjection(result.docs[0]);
+      if (!building) return null;
+      const city = mapBuildingCity(building);
+      return city ? { slug: building.slug, citySlug: city.citySlug } : null;
     },
 
     async findEffectiveListingsByBuilding(buildingId, ctx, excludeListingId) {
-      const payload = await getPayload()
-      const asOf = new Date(ctx.asOf)
-      const numericBuildingId = Number(buildingId)
-      if (!Number.isSafeInteger(numericBuildingId)) return []
-      const excludedListingId = excludeListingId == null ? null : Number(excludeListingId)
-      if (excludeListingId != null && !Number.isSafeInteger(excludedListingId)) return []
+      const payload = await getPayload();
+      const asOf = new Date(ctx.asOf);
+      const numericBuildingId = Number(buildingId);
+      if (!Number.isSafeInteger(numericBuildingId)) return [];
+      const excludedListingId =
+        excludeListingId == null ? null : Number(excludeListingId);
+      if (excludeListingId != null && !Number.isSafeInteger(excludedListingId))
+        return [];
 
       // Keep the effective-supply predicate in SQL for this detail-page path.
       // Payload's nested relationship where can be very slow in local dev when
@@ -1012,40 +1437,49 @@ WHERE l.building_id = $2
   )
 ORDER BY l.id
 LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
-`
-      const pool = (payload.db as unknown as {
-        pool: { query: (text: string, values: unknown[]) => Promise<{ rows: Array<{ id: number }> }> }
-      }).pool
+`;
+      const pool = (
+        payload.db as unknown as {
+          pool: {
+            query: (
+              text: string,
+              values: unknown[],
+            ) => Promise<{ rows: Array<{ id: number }> }>;
+          };
+        }
+      ).pool;
       const idResult = await pool.query(sql, [
         asOf.toISOString(),
         numericBuildingId,
         excludedListingId,
         ctx.city,
-      ])
-      const ids = idResult.rows.map((row) => row.id)
-      if (ids.length === 0) return []
+      ]);
+      const ids = idResult.rows.map((row) => row.id);
+      if (ids.length === 0) return [];
 
       const result = await payload.find({
-        collection: 'listings',
+        collection: "listings",
         where: { id: { in: ids } } as Where,
         depth: 2,
-        sort: 'id',
+        sort: "id",
         limit: ids.length,
-      })
-      const byId = new Map((result.docs as Listing[]).map((doc) => [String(doc.id), doc]))
-      const kept: Listing[] = []
+      });
+      const byId = new Map(
+        (result.docs as Listing[]).map((doc) => [String(doc.id), doc]),
+      );
+      const kept: Listing[] = [];
       for (const id of ids) {
-        const doc = byId.get(String(id))
-        if (doc) kept.push(doc)
+        const doc = byId.get(String(id));
+        if (doc) kept.push(doc);
       }
-      return kept
+      return kept;
     },
 
     async aggregateEffectiveSupplyByBuildings(buildingIds, ctx) {
-      const aggregates = new Map<string, { area: number; count: number }>()
-      if (buildingIds.length === 0) return aggregates
-      const payload = await getPayload()
-      const asOf = new Date(ctx.asOf).toISOString()
+      const aggregates = new Map<string, { area: number; count: number }>();
+      if (buildingIds.length === 0) return aggregates;
+      const payload = await getPayload();
+      const asOf = new Date(ctx.asOf).toISOString();
 
       // 每个 WHERE / JOIN 子句对应一条有效供给规则，与 getEffectiveSupplyWhere +
       // isListingEffectivelySupplied 的业务口径一一对应（这条对应关系是设计
@@ -1067,358 +1501,352 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       // 不会出现「面积聚合漏了某条件、套数聚合又漏了另一条」这种口径分叉。
       const sql = `
 SELECT l.building_id AS bid, SUM(l.area)::float8 AS total, COUNT(*)::int AS cnt
-FROM listings l
-JOIN buildings  b    ON b.id = l.building_id
-JOIN locations  city ON city.id = b.city_id
-JOIN locations  dist ON dist.id = b.district_id
-JOIN merchants  m    ON m.id = l.merchant_id
-WHERE l.building_id = ANY($2)
-  AND l.deleted_at IS NULL
-  AND l.publication_status = 'published'
-  AND l.review_status = 'approved'
-  AND l.supply_visibility_hold = 'normal'
-  AND b.status = 'published'
-  AND b.operational_status = 'active'
-  AND b.deleted_at IS NULL
-  AND city.status = 'active'
-  AND city.slug = $3
-  AND dist.status = 'active'
-  -- 租售维度：$4 为 NULL 时不过滤（保持改造前口径），否则只算该类型。
-  -- 楼盘卡片的「在租 X ㎡ / N 套」必须传 'lease'，否则一套待售整层会被算进去。
-  -- business_type 是 ENUM，与 text 参数比较必须显式转型：PG 不做
-  -- enum = text 的隐式转换，否则报「操作符不存在」。
-  AND ($4::text IS NULL OR l.business_type::text = $4::text)
-  AND m.status = 'active'
-  AND m.qualification_status = 'valid'
-  AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)
-  AND EXISTS (
-    SELECT 1 FROM merchants_rels mr
-    WHERE mr.parent_id = m.id AND mr.path = 'serviceCities' AND mr.locations_id = b.city_id
-  )
-  AND NOT EXISTS (
-    SELECT 1 FROM listing_reports rep
-    WHERE rep.target_listing_id = l.id AND rep.supply_paused = true
-  )
+${EFFECTIVE_SUPPLY_AGGREGATE_FROM}
 GROUP BY l.building_id
-`
-      const pool = (payload.db as unknown as {
-        pool: { query: (text: string, values: unknown[]) => Promise<{ rows: Array<{ bid: number; total: number; cnt: number }> }> }
-      }).pool
+`;
+      const pool = (
+        payload.db as unknown as {
+          pool: {
+            query: (
+              text: string,
+              values: unknown[],
+            ) => Promise<{
+              rows: Array<{ bid: number; total: number; cnt: number }>;
+            }>;
+          };
+        }
+      ).pool;
       const result = await pool.query(sql, [
         asOf,
         buildingIds.map((id) => Number(id)),
         ctx.city,
         ctx.businessType ?? null,
-      ])
+      ]);
 
       for (const row of result.rows) {
-        const cnt = Math.trunc(Number(row.cnt))
+        const cnt = Math.trunc(Number(row.cnt));
         // GROUP BY 只会为至少有一条匹配行的楼盘产出一行，cnt 恒 >= 1；这里仍防御性
         // 校验，非法/非正值一律视为该楼盘无有效供给，不进 Map（调用方按缺失判「暂无在租」）。
-        if (!Number.isFinite(cnt) || cnt <= 0) continue
-        const total = Number(row.total)
+        if (!Number.isFinite(cnt) || cnt <= 0) continue;
+        const total = Number(row.total);
         // area 单独判定「非正/非法即视为 0」：面积字段的数据质量问题（缺失/0）不该
         // 连累套数——套数来自同一批真实存在的有效房源行，与面积是否可信无关。
         // numeric 逐条相加会积累出 160846.65999999997 这类尾数，收敛到 2 位小数。
-        const area = Number.isFinite(total) && total > 0 ? Math.round(total * 100) / 100 : 0
-        aggregates.set(String(row.bid), { area, count: cnt })
+        const area =
+          Number.isFinite(total) && total > 0
+            ? Math.round(total * 100) / 100
+            : 0;
+        aggregates.set(String(row.bid), { area, count: cnt });
       }
-      return aggregates
+      return aggregates;
     },
 
     async findEffectiveBuildingsNear(buildingId, ctx, limit) {
-      const normalizedLimit = normalizeNearbyBuildingLimit(limit)
-      if (normalizedLimit === 0) return []
-      const payload = await getPayload()
-      const current = await payload.findByID({
-        collection: 'buildings',
+      const normalizedLimit = normalizeNearbyBuildingLimit(limit);
+      if (normalizedLimit === 0) return [];
+      const payload = await getPayload();
+      const current = (await payload.findByID({
+        collection: "buildings",
         id: buildingId,
         depth: 1,
-      }) as Building
-      if (!isPublicBuilding(current)) return []
-      if (relationSlug(current.city) !== ctx.city) return []
+      })) as Building;
+      if (!isPublicBuilding(current)) return [];
+      if (relationSlug(current.city) !== ctx.city) return [];
 
       // Prefer the more precise business district; an administrative district
       // is the documented fallback when the former is absent.
-      const businessDistrictId = relationId(current.businessDistrict)
-      const districtId = relationId(current.district)
-      const locality = businessDistrictId != null
-        ? { businessDistrict: { equals: businessDistrictId } }
-        : districtId != null
-          ? { district: { equals: districtId } }
-          : null
-      if (!locality) return []
+      const businessDistrictId = relationId(current.businessDistrict);
+      const districtId = relationId(current.district);
+      const locality =
+        businessDistrictId != null
+          ? { businessDistrict: { equals: businessDistrictId } }
+          : districtId != null
+            ? { district: { equals: districtId } }
+            : null;
+      if (!locality) return [];
 
       const result = await payload.find({
-        collection: 'buildings',
+        collection: "buildings",
         where: {
           ...getPublicBuildingWhere(),
-          'city.slug': { equals: ctx.city },
+          "city.slug": { equals: ctx.city },
           ...locality,
         } as unknown as Where,
         depth: 1,
         limit: RELATED_BUILDING_CANDIDATE_LIMIT,
-        sort: 'id',
-      })
+        sort: "id",
+      });
       return rankRelatedBuildingsByProximity(
         current,
-        (result.docs as Building[]).filter((building) => isPublicBuilding(building)),
+        (result.docs as Building[]).filter((building) =>
+          isPublicBuilding(building),
+        ),
         normalizedLimit,
-      )
+      );
     },
 
     async findEffectiveBuildings(ctx, limit) {
       if (limit !== undefined) {
-        return (await findPublicBuildingsPage(ctx, { page: 1, limit }, false)).docs
+        return (await findPublicBuildingsPage(ctx, { page: 1, limit }, false))
+          .docs;
       }
 
-      const docs: Building[] = []
-      let page = 1
-      const pageSize = 200
-      while (true) {
-        const result = await findPublicBuildingsPage(ctx, { page, limit: pageSize }, true)
-        docs.push(...result.docs)
-        if (!result.hasNextPage) return docs
-        // 公开目录不允许无界扫库，也不允许在触顶时伪装成“全部”。
-        // 超过安全上限就显式失败，由路由返回可重试的服务错误。
-        if (page * pageSize >= PUBLIC_CATALOG_CANDIDATE_LIMIT) {
-          throw new Error('公开楼盘目录超过安全枚举上限')
-        }
-        page = result.nextPage ?? page + 1
-      }
+      return findAllPublicBuildings(ctx);
     },
 
     async findEffectiveBuildingsPage(ctx, options) {
-      return findPublicBuildingsPage(ctx, options, true)
+      return findPublicBuildingsPage(ctx, options, true);
+    },
+
+    async findEffectiveBuildingIdentities(ctx) {
+      return findAllPublicBuildings(ctx, true);
     },
 
     async findFeaturedBuildings(ctx, limit = 8) {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'buildings',
+        collection: "buildings",
         where: {
           ...getPublicBuildingWhere(),
-          'city.slug': { equals: ctx.city },
+          "city.slug": { equals: ctx.city },
         } as unknown as Where,
         depth: 2, // coverImage + district 一次填充；缺封面楼盘由卡片降级占位
         limit: Math.min(Math.max(limit, 1), 50),
-        sort: ['recommendedOrder', '-updatedAt'],
-      })
-      return (result.docs as Building[]).filter((building) => isPublicBuilding(building))
+        sort: ["recommendedOrder", "-updatedAt"],
+      });
+      return (result.docs as Building[]).filter((building) =>
+        isPublicBuilding(building),
+      );
     },
 
     async findFeaturedListings(ctx, limit = 6) {
-      const payload = await getPayload()
-      const asOf = new Date(ctx.asOf)
-      const where = await baseEffectiveWhere(ctx)
-      where.isFeatured = { equals: true }
+      const payload = await getPayload();
+      const asOf = new Date(ctx.asOf);
+      const where = await baseEffectiveWhere(ctx);
+      where.isFeatured = { equals: true };
       const result = await payload.find({
-        collection: 'listings',
+        collection: "listings",
         where: where as Where,
         limit: Math.max(limit * 5, limit),
         depth: 2,
-        sort: '-updatedAt',
-      })
-      let kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+        sort: "-updatedAt",
+      });
+      let kept = await fineFilter(
+        result.docs as unknown as Record<string, unknown>[],
+        asOf,
+      );
       // 回填：精选不足 limit 时，用非精选的有效房源补足（按 updatedAt 倒序），
       // 保证首页「推荐房源」两行布局在精选数据稀缺时仍能填满，不出现稀疏单行。
       if (kept.length < limit) {
-        const excludeIds = kept.map((l) => l.id)
-        const fallbackWhere = await baseEffectiveWhere(ctx)
-        if (excludeIds.length) fallbackWhere.id = { not_in: excludeIds }
+        const excludeIds = kept.map((l) => l.id);
+        const fallbackWhere = await baseEffectiveWhere(ctx);
+        if (excludeIds.length) fallbackWhere.id = { not_in: excludeIds };
         const more = await payload.find({
-          collection: 'listings',
+          collection: "listings",
           where: fallbackWhere as Where,
           limit: (limit - kept.length) * 3,
           depth: 2,
-          sort: '-updatedAt',
-        })
+          sort: "-updatedAt",
+        });
         const moreKept = await fineFilter(
           more.docs as unknown as Record<string, unknown>[],
           asOf,
-        )
-        kept = [...kept, ...moreKept].slice(0, limit)
+        );
+        kept = [...kept, ...moreKept].slice(0, limit);
       }
-      return kept
+      return kept;
     },
 
     async findEffectiveDistricts(ctx) {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'locations',
+        collection: "locations",
         where: {
-          type: { equals: 'district' },
-          status: { equals: 'active' },
+          type: { equals: "district" },
+          status: { equals: "active" },
           // Locations 的「前台可见」开关此前只被后台地区树用来画标记，C 端查询
           // 没读过它——运营勾掉不生效。接上后运营即可控制哪些商圈进入 C 端。
           // location-protect 保证停用节点会被强制取消勾选，故与 status 不冲突。
           frontendVisible: { equals: true },
-          'parent.slug': { equals: ctx.city },
+          "parent.slug": { equals: ctx.city },
         },
         limit: 100,
-        sort: 'sortOrder',
-      })
-      return result.docs as readonly Location[]
+        sort: "sortOrder",
+      });
+      return result.docs as readonly Location[];
     },
 
     async findEffectiveBusinessAreas(ctx) {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'locations',
+        collection: "locations",
         where: {
-          type: { equals: 'business_area' },
-          status: { equals: 'active' },
+          type: { equals: "business_area" },
+          status: { equals: "active" },
           frontendVisible: { equals: true },
           // 商圈的 parent 是行政区，城市在再上一层，故按祖父的 slug 过滤
-          'parent.parent.slug': { equals: ctx.city },
+          "parent.parent.slug": { equals: ctx.city },
         },
         limit: 200,
-        sort: 'sortOrder',
+        sort: "sortOrder",
         depth: 1, // coverImage 一次填充；缺封面的商圈由 facade 回退到楼盘封面
-      })
-      return result.docs as readonly Location[]
+      });
+      return result.docs as readonly Location[];
     },
 
     async findCityCenter(ctx) {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'locations',
+        collection: "locations",
         where: {
           slug: { equals: ctx.city },
-          type: { equals: 'city' },
-          status: { equals: 'active' },
+          type: { equals: "city" },
+          status: { equals: "active" },
         } as unknown as Where,
         depth: 0,
         limit: 1,
-      })
-      const doc = result.docs[0] as { centerLatitude?: unknown; centerLongitude?: unknown } | undefined
-      const lat = typeof doc?.centerLatitude === 'number' ? doc.centerLatitude : null
-      const lng = typeof doc?.centerLongitude === 'number' ? doc.centerLongitude : null
-      if (lat == null || lng == null) return null
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
-      return { latitude: lat, longitude: lng }
+      });
+      const doc = result.docs[0] as
+        { centerLatitude?: unknown; centerLongitude?: unknown } | undefined;
+      const lat =
+        typeof doc?.centerLatitude === "number" ? doc.centerLatitude : null;
+      const lng =
+        typeof doc?.centerLongitude === "number" ? doc.centerLongitude : null;
+      if (lat == null || lng == null) return null;
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+      return { latitude: lat, longitude: lng };
     },
 
     async findLatestArticles(limit = 5) {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'articles',
+        collection: "articles",
         where: {
-          status: { equals: 'published' },
+          status: { equals: "published" },
           deletedAt: { exists: false }, // articles 启用 trash，排除逻辑删除
         },
         depth: 2, // coverImage 填充为 Media
         limit: Math.min(Math.max(limit, 1), 50),
-        sort: '-publishedAt',
-      })
-      return result.docs as readonly Article[]
+        sort: "-publishedAt",
+      });
+      return result.docs as readonly Article[];
     },
 
     async findHomeFeaturedArticle() {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'articles',
+        collection: "articles",
         where: {
-          status: { equals: 'published' },
+          status: { equals: "published" },
           deletedAt: { exists: false },
           isHomeFeatured: { equals: true },
         },
         depth: 2,
         limit: 1,
-        sort: '-publishedAt',
-      })
-      return (result.docs[0] as Article | undefined) ?? null
+        sort: "-publishedAt",
+      });
+      return (result.docs[0] as Article | undefined) ?? null;
     },
 
     async findPublishedArticles(options = {}) {
-      const payload = await getPayload()
-      const page = Math.max(options.page ?? 1, 1)
-      const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48)
+      const payload = await getPayload();
+      const page = Math.max(options.page ?? 1, 1);
+      const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48);
       const result = await payload.find({
-        collection: 'articles',
+        collection: "articles",
         where: {
-          status: { equals: 'published' },
+          status: { equals: "published" },
           deletedAt: { exists: false },
         },
         depth: 2, // coverImage 填充为 Media
         limit: pageSize,
         page,
-        sort: '-publishedAt',
-      })
-      return { docs: result.docs as readonly Article[], totalDocs: result.totalDocs }
+        sort: "-publishedAt",
+      });
+      return {
+        docs: result.docs as readonly Article[],
+        totalDocs: result.totalDocs,
+      };
     },
 
     async findPublishedArticleBySlug(slug) {
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'articles',
+        collection: "articles",
         where: {
           slug: { equals: slug },
-          status: { equals: 'published' },
+          status: { equals: "published" },
           deletedAt: { exists: false },
         },
         depth: 3, // 关联楼盘/区域填充
         limit: 1,
-      })
-      return (result.docs[0] as Article | undefined) ?? null
+      });
+      return (result.docs[0] as Article | undefined) ?? null;
     },
 
     async assertEffectiveListingBySlug(slug, ctx) {
       // 与 findEffectiveListingBySlug 同口径（含完整精筛），用于询盘目标校验
-      const payload = await getPayload()
-      const asOf = new Date(ctx.asOf)
-      const where = await baseEffectiveWhere(ctx)
-      where.slug = { equals: slug }
+      const payload = await getPayload();
+      const asOf = new Date(ctx.asOf);
+      const where = await baseEffectiveWhere(ctx);
+      where.slug = { equals: slug };
       const result = await payload.find({
-        collection: 'listings',
+        collection: "listings",
         where: where as Where,
         limit: 1,
         depth: 2, // 精筛需要 building + merchant + gallery
-      })
-      const kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
-      return kept[0] ?? null
+      });
+      const kept = await fineFilter(
+        result.docs as unknown as Record<string, unknown>[],
+        asOf,
+      );
+      return kept[0] ?? null;
     },
 
     async findPublishedPageBySlug(slug) {
       // F6.1：只读取 status=published 且未逻辑删除的页面
       // Pages collection 启用 trash，删除的文档 deletedAt 非空，需排除
-      const payload = await getPayload()
+      const payload = await getPayload();
       const result = await payload.find({
-        collection: 'pages',
+        collection: "pages",
         where: {
           slug: { equals: slug },
-          status: { equals: 'published' },
+          status: { equals: "published" },
           deletedAt: { exists: false },
         },
         limit: 1,
         depth: 2, // hero.image 填充为 Media
-      })
-      return (result.docs[0] as Page | undefined) ?? null
+      });
+      return (result.docs[0] as Page | undefined) ?? null;
     },
 
     async findPublishedPages(limit) {
       // F6.4：sitemap 用，仅返回已发布且未删除的页面
-      const payload = await getPayload()
-      const requestedLimit = limit ?? Number.POSITIVE_INFINITY
+      const payload = await getPayload();
+      const requestedLimit = limit ?? Number.POSITIVE_INFINITY;
       async function readPage(page: number, docs: Page[]): Promise<Page[]> {
         const result = await payload.find({
-          collection: 'pages',
+          collection: "pages",
           where: {
-            status: { equals: 'published' },
+            status: { equals: "published" },
             deletedAt: { exists: false },
           },
           limit: Math.min(QUERY_PAGE_SIZE, requestedLimit - docs.length),
           page,
           depth: 0,
-          sort: '-updatedAt',
-        })
-        docs.push(...(result.docs as Page[]))
-        if (docs.length >= requestedLimit || !result.hasNextPage || result.nextPage == null) {
-          return docs
+          sort: "-updatedAt",
+        });
+        docs.push(...(result.docs as Page[]));
+        if (
+          docs.length >= requestedLimit ||
+          !result.hasNextPage ||
+          result.nextPage == null
+        ) {
+          return docs;
         }
-        return readPage(result.nextPage, docs)
+        return readPage(result.nextPage, docs);
       }
-      return readPage(1, [])
+      return readPage(1, []);
     },
-  }
+  };
 }

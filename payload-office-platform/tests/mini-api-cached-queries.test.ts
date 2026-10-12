@@ -62,7 +62,7 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
       city: context.city,
       dimensions,
     })),
-    scanListings: vi.fn(async () => actual.rowsFromListings([LISTING_MONTHLY_STANDARD])),
+    scanListingsPage: vi.fn(async () => ({ rows: actual.rowsFromListings([LISTING_MONTHLY_STANDARD]), nextPage: null })),
     hydrateListingCards: vi.fn(async () => [actual.mapListingCard(LISTING_MONTHLY_STANDARD)]),
     searchBuildingsFiltered: vi.fn(async (input, context) => ({
       kind: 'buildings',
@@ -98,7 +98,7 @@ import {
   getSearchFacetsIgnoring,
   parseBuildingSearchInput,
   parseListingSearchInput,
-  scanListings,
+  scanListingsPage,
   toScanInput,
 } from '@/domain/public-catalog'
 import {
@@ -167,10 +167,10 @@ describe('Mini API cached queries', () => {
 
     expect(first.asOf).toBe('2026-08-26T00:00:00.000Z')
     expect(cached).toEqual(first)
-    expect(scanListings).toHaveBeenCalledTimes(1)
-    expect(scanListings).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({
+    expect(scanListingsPage).toHaveBeenCalledTimes(1)
+    expect(scanListingsPage).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({
       city: 'hangzhou', businessType: 'lease', asOf: first.asOf,
-    }))
+    }), 1)
     expect(getSearchFacetsIgnoring).not.toHaveBeenCalled()
     expect(first.data.facets).toMatchObject({
       district: { totalDocs: 1, districts: [{ slug: 'jingan', count: 1 }] },
@@ -179,9 +179,9 @@ describe('Mini API cached queries', () => {
     })
 
     expect(first.data.result.canonical).toBe(canonical)
-    const listingsCache = registration('listing-scan', 'hangzhou')
+    const listingsCache = registration('listing-scan-page', 'hangzhou')
     expect(listingsCache.calls).toEqual([
-      ['', toScanInput(input), 'lease'], ['', toScanInput(input), 'lease'],
+      ['', toScanInput(input), 'lease', 1, ''], ['', toScanInput(input), 'lease', 1, ''],
     ])
     expect(listingsCache.options.revalidate).toBe(300)
     expect(listingsCache.options.tags).toEqual(expect.arrayContaining([
@@ -230,12 +230,12 @@ describe('Mini API cached queries', () => {
 
     expect(guangzhou.data.result.pagination.totalDocs).toBe(1)
     expect(shenzhen.data.result.pagination.totalDocs).toBe(1)
-    expect(scanListings).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({ city: 'guangzhou' }))
-    expect(scanListings).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({ city: 'shenzhen' }))
+    expect(scanListingsPage).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({ city: 'guangzhou' }), 1)
+    expect(scanListingsPage).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({ city: 'shenzhen' }), 1)
     expect(guangzhouDetail.data?.detail).toMatchObject({ city: 'guangzhou' })
     expect(shenzhenDetail.data?.detail).toMatchObject({ city: 'shenzhen' })
-    expect(registration('listing-scan', 'guangzhou')).not.toBe(
-      registration('listing-scan', 'shenzhen'),
+    expect(registration('listing-scan-page', 'guangzhou')).not.toBe(
+      registration('listing-scan-page', 'shenzhen'),
     )
     expect(registration('mini-v1-listing-detail', 'guangzhou')).not.toBe(
       registration('mini-v1-listing-detail', 'shenzhen'),

@@ -101,6 +101,8 @@ export const recordAdminAutoPublish: CollectionAfterChangeHook = async ({ doc, r
     fn: async () => {
       const record = await req.payload.create({
         collection: 'listing-reviews',
+        // 返回值仅用于审计结果，不需要再次展开房源及其媒体关系。
+        depth: 0,
         data: {
           listing: listingId,
           decision: 'fast_track',

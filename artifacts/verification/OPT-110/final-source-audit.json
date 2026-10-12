@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-12T06:37:23.326Z",
+  "buildings": {
+    "total": 4442,
+    "unique_ids": 4442,
+    "published": 4442
+  },
+  "listings": {
+    "total": 57500,
+    "unique_ids": 57500,
+    "published": 57500,
+    "drafts": 0,
+    "deleted": 0,
+    "held": 0,
+    "leased": 0,
+    "paused": 0
+  },
+  "reviews": {
+    "with_fast_track_review": 55381
+  }
+}
