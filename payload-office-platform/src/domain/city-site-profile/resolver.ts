@@ -37,12 +37,12 @@ export function createCityContextResolver(
     const normalizedSlug = normalizeCitySlug(slug)
     if (!normalizedSlug) return null
 
-    let profile: PublicCitySiteProfile | null
-    try {
-      profile = await lookup(normalizedSlug)
-    } catch {
-      return null
-    }
+    // 查库失败必须向上抛，不能报成 null（「城市不存在」）。null 会让页面 notFound() 出 404，
+    // 而调用方外面包着 5 分钟的 unstable_cache——它缓存 resolve 的值、不缓存 reject——
+    // 于是一次连接超时就变成整站首页 / 城市页 404 至少 5 分钟（2026-10-13 生产冒烟实测 `/` 404）。
+    // 抛出时页面走错误页（暂时性 5xx），缓存未命中时下一次请求照常重查；已有缓存则
+    // 后台刷新失败、继续用旧值。「不存在 / 未启用」仍然 fail closed 返回 null。
+    const profile = await lookup(normalizedSlug)
     if (!profile || !isCityProfile(profile) || profile.citySlug !== normalizedSlug) return null
 
     return {

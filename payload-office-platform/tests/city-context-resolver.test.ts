@@ -1,18 +1,31 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const { findCityProfiles, stalePublicProfiles, unstableCache } = vi.hoisted(() => {
+const { findCityProfiles, memoizeCityProfile, stalePublicProfiles, unstableCache } = vi.hoisted(() => {
   const stalePublicProfiles: { enabled: boolean; value: readonly unknown[] } = {
     enabled: false,
     value: [],
   }
+  // 按 Next unstable_cache 的真实语义模拟单城缓存：只记住 resolve 出来的值，
+  // reject 不入缓存（下一次照常重算）。用来证明「查库报错」不会被缓存成「城市不存在」。
+  const memoizeCityProfile = { enabled: false }
   return {
     findCityProfiles: vi.fn(),
+    memoizeCityProfile,
     stalePublicProfiles,
     unstableCache: vi.fn((
       fn: (...args: unknown[]) => unknown,
       keyParts: readonly string[],
       _options: Readonly<{ revalidate?: number; tags?: readonly string[] }>,
     ) => {
+      if (keyParts[0] === 'public-city-profile' && memoizeCityProfile.enabled) {
+        let stored: { value: unknown } | null = null
+        return async (...args: unknown[]) => {
+          if (stored) return stored.value
+          const value = await fn(...args)
+          stored = { value }
+          return value
+        }
+      }
       if (keyParts[0] !== 'public-city-profiles') return fn
       return (...args: unknown[]) =>
         stalePublicProfiles.enabled ? Promise.resolve(stalePublicProfiles.value) : fn(...args)
@@ -102,6 +115,7 @@ function cityProfileDocuments(prefix: string, count: number): readonly Record<st
 
 afterEach(() => {
   stalePublicProfiles.enabled = false
+  memoizeCityProfile.enabled = false
   stalePublicProfiles.value = []
 })
 
@@ -146,12 +160,35 @@ describe('city context resolver', () => {
     await expect(resolver('hangzhou')).resolves.toBeNull()
   })
 
-  it('fails closed when the profile lookup is unavailable', async () => {
+  it('查库失败向上抛出，而不是报成「城市不存在」', async () => {
+    // 报成 null 的后果：页面 notFound() → 404，且被 5 分钟的 unstable_cache 记住。
+    // 抛出时页面走错误页（5xx，暂时性），缓存不收 reject，下一次请求照常重查。
     const resolver = createCityContextResolver(async () => {
       throw new Error('database unavailable')
     })
 
-    await expect(resolver('hangzhou')).resolves.toBeNull()
+    await expect(resolver('hangzhou')).rejects.toThrow('database unavailable')
+  })
+
+  it('数据库恢复后立即解析出城市，不会把一次查库失败缓存成 404（2026-10-13 生产首页 404）', async () => {
+    memoizeCityProfile.enabled = true
+    findCityProfiles.mockRejectedValueOnce(new Error('timeout exceeded when trying to connect'))
+
+    await expect(resolveCityContext('suzhou')).rejects.toThrow('timeout exceeded when trying to connect')
+
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument({
+          city: { id: 7, slug: 'suzhou', name: 'Suzhou', type: 'city', status: 'active' },
+          seoTitle: 'Suzhou office leasing',
+          seoDescription: 'A public city profile for Suzhou office leasing and site selection now.',
+        }),
+      ],
+    })
+
+    await expect(resolveCityContext('suzhou')).resolves.toEqual(
+      expect.objectContaining({ slug: 'suzhou', serviceStatus: 'live' }),
+    )
   })
 
   it('returns visible city options in deterministic profile sort order', async () => {
