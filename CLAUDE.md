@@ -130,6 +130,10 @@ gh workflow run deploy.yml -f promote=true --ref master
 
   - `tcb cloudrun deploy` **没有** **`--env-vars`**，服务级环境变量（`DATABASE_URL` / `PAYLOAD_SECRET` / `NODE_ENV`）跨代码部署保留，CI 不重传，只能在控制台 / MCP 改。
 
+  - **语句超时 `DB_STATEMENT_TIMEOUT_MS` 只能注入给 Web 服务**（Dockerfile CMD 里 `exec env ... pnpm start` 那一步），别写进 `ENV` 或服务级环境变量：迁移进程加载同一份 `payload.config`，长 DDL 会被误杀。守卫在 `tests/production-deploy-config.test.ts`。
+
+  - **「首页正常、图片和其它页面挂死」是连接池被占满的指纹**（2026-08-24、2026-10-13 两次）：冒烟会跟着失败并回滚到坏版本，先在控制台重启止血，处置见 `DEPLOYMENT.md`。
+
 - 部署细节见 `DEPLOYMENT.md`。
 
 ## 本地闸门（机器强制，对所有 IDE 生效）

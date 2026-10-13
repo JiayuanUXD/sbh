@@ -109,4 +109,8 @@ EXPOSE 80
 # pool.end() 因此永不返回，脚本必须自己 process.exit(0)（见 src/lib/runtime/migrate-lock.ts），
 # 否则 Shell 卡在这一步、Next.js 永不启动、80 端口无人监听（sbh-011 / sbh-012 的失败原因）。
 # exec：让 next server 取代 shell 成为 PID 1，CloudRun 的 SIGTERM 才能直达进程做优雅退出。
-CMD ["sh", "-c", "pnpm exec tsx scripts/migrate-locked.ts && exec pnpm start"]
+# DB_STATEMENT_TIMEOUT_MS 只注入给 Web 服务这一步（env 随后 exec 成 pnpm，不多一层进程）：
+# 迁移进程加载同一份 payload.config，长 DDL 不能被 30s 语句超时误杀；
+# Web 侧失控查询则必须有上限，否则网关 60s 超时后语句仍占着连接与共享库 CPU
+# （2026-10-13 池满故障，取值理由见 src/lib/runtime/db-pool-options.ts）。
+CMD ["sh", "-c", "pnpm exec tsx scripts/migrate-locked.ts && exec env DB_STATEMENT_TIMEOUT_MS=30000 pnpm start"]

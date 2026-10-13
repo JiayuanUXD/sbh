@@ -14,7 +14,7 @@
  * 都会让整个容器崩掉，而不是丢一条连接、由池子补一条新的。
  *
  * 这是与业务无关的潜伏缺陷，本身就该修；同时它也是
- * `idle_in_transaction_session_timeout`（见 payload.config.ts 的 pool 配置）
+ * `idle_in_transaction_session_timeout`（见 db-pool-options.ts）
  * 能安全启用的前提——那个超时被触发时，PG 正是通过连接级错误通知客户端的。
  *
  * ## 为什么池级错误只记日志，而借出连接错误还要兜底 `release(err)`

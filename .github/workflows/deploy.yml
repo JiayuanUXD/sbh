@@ -22,7 +22,8 @@
 #              **默认到此为止**：不勾 promote 只提交 GRAY 版本，不碰线上流量。
 #              放量需勾选 promote，届时才走
 #              切 10% 灰度 -> 冒烟（/api/health + /）-> traffic promote 全量，
-#              失败则 traffic rollback。
+#              失败则 traffic rollback。冒烟与全量后验证里单次网络层失败（curl 超时）
+#              只计数、不中断步骤，累计超过上限才判失败（2026-10-13 run 38364936280）。
 #              等构建就绪的轮询：记录状态 normal 才往下走；build_failed / deploy_failed /
 #              create_failed（及任何 *failed* 态）立刻让 job 红，其中 create_failed 分支
 #              打印部署记录 + processLogs + rerun 命令，不再空转（2026-09-17 sbh-194
@@ -424,9 +425,30 @@ jobs:
           echo "期望灰度版本 version=$expected"
           fail=0
           canary_ok=0
+          # 网络层失败（curl 超时 / 连不上，http_code=000）单独计数，超过上限才判失败。
+          # 病根（run 38364936280，2026-10-13 三次尝试）：step 跑在 `bash -e` 下，
+          # `code=$(curl ...)` 里 curl 超时退出 28 会让整句赋值失败、直接中断步骤——
+          # 第 1 个请求 15s 超时就判发布失败、触发回滚，后面 49 次根本没发出去。
+          # 上限 5 次：服务真挂了会连续超时，6 次（约 90s）内就会判死，不会白等 50 轮。
+          transport_fail=0
+          max_transport_fail=5
           for i in $(seq 1 50); do
             body_file="$RUNNER_TEMP/health-$i.json"
-            code=$(curl -sS --max-time 15 -o "$body_file" -w "%{http_code}" "$URL/api/health")
+            # 退出码单独记：`|| curl_exit=$?` 让 `bash -e` 不中断，又不丢信号。
+            # 只看 http_code 不够——响应头 200 之后正文卡住/截断时 curl 退出 28，
+            # -w 仍打印 200（PR #211 Codex 审查指出）。非零退出一律按网络层失败计数。
+            curl_exit=0
+            code=$(curl -sS --max-time 15 -o "$body_file" -w "%{http_code}" "$URL/api/health") || curl_exit=$?
+            if [ "$curl_exit" != "0" ] || [ "$code" = "000" ] || [ -z "$code" ]; then
+              transport_fail=$((transport_fail + 1))
+              echo "[$i] GET /api/health 网络层失败（HTTP $code curl_exit=$curl_exit，累计 $transport_fail 次）"
+              if [ "$transport_fail" -gt "$max_transport_fail" ]; then
+                echo "::error::/api/health 网络层失败超过 $max_transport_fail 次，判定服务不可用"
+                fail=1
+                break
+              fi
+              continue
+            fi
             if [ "$code" = "200" ]; then
               if jq -e '.status == "ok"' "$body_file" >/dev/null; then
                 version=$(jq -r '.version // ""' "$body_file")
@@ -462,11 +484,21 @@ jobs:
             echo "::notice::50 次请求未命中 version=$expected 的灰度版本（可能是路由未收敛或同 IP 粘连）"
             echo "::notice::不阻断发布；是否真正上线由 promote 之后的版本校验判定"
           fi
-          echo "命中灰度版本 $canary_ok/50 次"
-          # 首页可达（跟随重定向后 200，支持单城市模式与多城市路由重定向）
-          home=$(curl -sSL -o /dev/null -w "%{http_code}" "$URL/")
-          echo "GET / -> HTTP $home"
-          if [ "$home" != "200" ]; then fail=1; fi
+          echo "命中灰度版本 $canary_ok/50 次（网络层失败 $transport_fail 次）"
+          # 首页可达（跟随重定向后 200，支持单城市模式与多城市路由重定向）。
+          # 冷缓存首页实测可到 20s，给到网关上限 60s 并重试一次；原先不带 --max-time，
+          # 网络层失败同样会在 `bash -e` 下直接中断步骤。
+          # 必须同时要求 curl 退出码为 0：响应头 200 之后正文卡住（流式页面挂在
+          # Suspense 上）时 http_code 仍是 200，只看它会把半截页面当成通过。
+          home=000
+          home_exit=1
+          for attempt in 1 2; do
+            home_exit=0
+            home=$(curl -sSL --max-time 60 -o /dev/null -w "%{http_code}" "$URL/") || home_exit=$?
+            echo "GET / -> HTTP $home curl_exit=$home_exit（第 $attempt 次）"
+            if [ "$home" = "200" ] && [ "$home_exit" = "0" ]; then break; fi
+          done
+          if [ "$home" != "200" ] || [ "$home_exit" != "0" ]; then fail=1; fi
           if [ "$fail" = "1" ]; then
             echo "::error::冒烟失败，将触发回滚"
             exit 1
@@ -483,8 +515,6 @@ jobs:
         if: success() && env.SHOULD_PROMOTE == 'true'
         run: |
           URL="https://sbh-286300-10-1253925058.sh.run.tcloudbase.com"
-          health=$(curl -sS --max-time 15 "$URL/api/health")
-          echo "$health" | jq -e '.status == "ok"' >/dev/null
 
           # 这是整条流水线唯一的硬门槛，也是堵死"假成功"的地方。
           # promote 后 100% 流量都是新版本，判定确定无疑——不像灰度期那样受路由收敛
@@ -494,8 +524,11 @@ jobs:
           expected="$GITHUB_SHA"
           matched=0
           # 切流后允许收敛：最多等 100 秒，出现 3 次连续匹配才算数（防抖动误判）。
+          # status 必须是 ok 才取 version：原先循环前单独打一次 /api/health 判 status，
+          # 那一次网络层失败就会在 `bash -e` 下直接中断步骤（与冒烟同一个坑），现并入循环。
           for i in $(seq 1 20); do
-            version=$(curl -sS --max-time 15 "$URL/api/health" | jq -r '.version // ""')
+            body=$(curl -sS --max-time 15 "$URL/api/health" || true)
+            version=$(printf '%s' "$body" | jq -r 'select(.status == "ok") | .version // ""' 2>/dev/null || true)
             if [ "$version" = "$expected" ]; then
               matched=$((matched + 1))
               echo "[$i] version=$version ✓（连续匹配 $matched/3）"
@@ -514,10 +547,23 @@ jobs:
           fi
           echo "✅ 全量流量已是本次版本 $expected"
 
+          # 刚切全量的新实例缓存是空的，冷页面实测 2–21s：给到网关上限 60s、每页重试一次。
+          # 判通过要 HTTP 200 **且** curl 退出码 0：正文卡住/截断时 http_code 仍是 200
+          # （PR #211 Codex 审查指出），只看状态码会把半截页面放行、发布照样成功。
+          # 用显式 if + exit 1：`test a && test b` 前一项失败时 `bash -e` 不会退出。
           for path in / /shanghai /admin; do
-            code=$(curl -sSL --max-time 15 -o /dev/null -w "%{http_code}" "$URL$path")
-            echo "GET $path -> HTTP $code"
-            test "$code" = "200"
+            code=000
+            curl_exit=1
+            for attempt in 1 2; do
+              curl_exit=0
+              code=$(curl -sSL --max-time 60 -o /dev/null -w "%{http_code}" "$URL$path") || curl_exit=$?
+              echo "GET $path -> HTTP $code curl_exit=$curl_exit（第 $attempt 次）"
+              if [ "$code" = "200" ] && [ "$curl_exit" = "0" ]; then break; fi
+            done
+            if [ "$code" != "200" ] || [ "$curl_exit" != "0" ]; then
+              echo "::error::GET $path 未完整返回 200（HTTP $code，curl_exit=$curl_exit），触发回滚"
+              exit 1
+            fi
           done
 
       - name: Rollback（冒烟或 promote 失败时切回稳定版本）

@@ -55,7 +55,7 @@
 
 | 怎么做 | 结果 |
 |---|---|
-| 合并到 `master`，改动命中 `quality.yml` 的 `paths` | 构建 → 切 10% 灰度 → 冒烟（`/api/health` + `/`）→ **全量切流**；失败则 rollback |
+| 合并到 `master`，改动命中 `quality.yml` 的 `paths` | 构建 → 切 10% 灰度 → 冒烟（`/api/health` + `/`）→ **全量切流**；失败则 rollback。冒烟中单次 curl 超时只计数，`/api/health` 网络层失败超过 5 次才判失败 |
 | 合并到 `master`，改动全在 `paths` 之外（`specs/`、根级 md 等） | 闸门不跑，因此不部署 |
 | 闸门红 | 不部署（job 自己判 `workflow_run.conclusion == 'success'`） |
 | Actions 手动触发，`promote` 勾上 | 同第一行，用于重发某个历史 ref |
@@ -144,6 +144,15 @@ gh workflow run deploy.yml -f promote=true --ref master
 > 大陆自托管 runner。`tcb cloudrun deploy` 走的是同一个 UploadUrl（CLI 的 `uploadZip` 就是一次 fetch PUT，
 > 无重试无超时），换它没有收益；CloudBase 那个收包桶也没开全球加速（`cos.accelerate` 端点回
 > `BucketAccelerateNotEnabled`），客户端这边没有更快的入口可选。
+
+> ⚠️ **「首页正常、图片和其它页面全部挂死」= 连接池被占满**（2026-08-24 OPT-046、2026-10-13 两次同一指纹）。
+> 首页命中实例内缓存不查库，图片走 `/api/media/file`、其它页面要查库，排队等连接。此时冒烟的
+> `/api/health` 打到稳定版本也会超时，发布会被判失败并回滚到这个坏掉的版本。
+> 处置：先在控制台重启当前承接流量的版本止血；仍复发就直接把流量切到已构建好的新版本。
+> 防线（2026-10-13 加固）：连接池上限 20（`DB_POOL_MAX` 可覆盖）、空闲 60s 回收；
+> Web 服务单条语句 30s 超时（`DB_STATEMENT_TIMEOUT_MS`，**只**在 Dockerfile CMD 的 `pnpm start`
+> 那一步注入，迁移进程不带）；`/api/health` 只做 `select 1`；冒烟单次 curl 超时不再直接判失败。
+> 取值理由见 `payload-office-platform/src/lib/runtime/db-pool-options.ts`。
 
 机制：GitHub Actions 用 CloudBase CLI（`tcb`）上传 `payload-office-platform/` 的 ZIP 到云端，平台在线 `docker build` 并发布新版本（与 MCP `manageCloudRun(deploy)` 同一底层）。CI 端不装依赖、不构建。服务级环境变量（`DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV`）在控制台/MCP 配好后由服务保留，代码部署不清空，无需每次重传。
 

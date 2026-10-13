@@ -63,13 +63,15 @@ export async function GET() {
   }
 
   if (payloadInstance) {
+    // 只做 `select 1`：原先的 `find({ collection: 'users', limit: 0 })` 被 drizzle 当成
+    // 不限条数，每次探活都读整张用户表；探活本该只证明「能借到连接、库能应答」。
+    // 池满时这里会在 connectionTimeoutMillis（pool-error-handler，10s）后抛错 → 503，
+    // 正是冒烟与探针需要看到的信号（2026-10-13 池满故障）。
+    const pool = (payloadInstance.db as unknown as { pool?: { query: (sql: string) => Promise<unknown> } })
+      .pool
     try {
-      await payloadInstance.find({
-        collection: 'users',
-        limit: 0,
-        depth: 0,
-        overrideAccess: true,
-      })
+      if (!pool) throw new Error('db pool unavailable')
+      await pool.query('select 1')
       checks.db = 'ok'
     } catch {
       checks.db = 'fail'

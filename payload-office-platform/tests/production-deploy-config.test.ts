@@ -174,8 +174,21 @@ describe('生产部署配置', () => {
     // `&&`：迁移失败（退出码 1）时绝不启动服务
     // `exec`：next server 取代 shell 成为 PID 1，SIGTERM 才能直达
     expect(dockerfile).toContain(
-      'CMD ["sh", "-c", "pnpm exec tsx scripts/migrate-locked.ts && exec pnpm start"]',
+      'CMD ["sh", "-c", "pnpm exec tsx scripts/migrate-locked.ts && exec env DB_STATEMENT_TIMEOUT_MS=30000 pnpm start"]',
     )
+  })
+
+  it('语句超时只给 Web 服务，迁移步骤不带（长 DDL 不能被误杀）', () => {
+    const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
+    const cmd = dockerfile.split('\n').find((line) => line.startsWith('CMD '))
+    expect(cmd, 'Dockerfile 缺少 CMD').toBeDefined()
+    const [migrateStep, startStep] = (cmd ?? '').split('&&')
+
+    expect(migrateStep).toContain('scripts/migrate-locked.ts')
+    expect(migrateStep).not.toContain('DB_STATEMENT_TIMEOUT_MS')
+    expect(startStep).toContain('DB_STATEMENT_TIMEOUT_MS=30000')
+    // 不能写进 ENV：那样迁移进程同样会继承。
+    expect(dockerfile).not.toMatch(/^ENV\s+DB_STATEMENT_TIMEOUT_MS/m)
   })
 
   it('迁移脚本在两条收尾路径上都显式退出进程', () => {
@@ -266,6 +279,46 @@ describe('生产部署配置', () => {
     // 允许收敛但要求连续匹配，避免抖动期误判成功。
     expect(workflow).toContain('if [ "$matched" -ge 3 ]; then break; fi')
     expect(workflow).toContain('if [ "$matched" -lt 3 ]; then')
+  })
+
+  it('冒烟与全量后验证不会因单次网络层失败直接中断步骤', () => {
+    // run 38364936280（2026-10-13）三次尝试：step 跑在 `bash -e` 下，`code=$(curl ...)`
+    // 里 curl 超时退出 28 让整句赋值失败、步骤立即退出——第 1 个 /api/health 15s
+    // 超时就判发布失败并回滚，后面 49 次根本没发出去。
+    for (const name of ['Smoke test（灰度版本健康检查）', '全量发布后验证']) {
+      const block = stepBlock(workflow(), name)
+      const curlAssignments = block
+        .split('\n')
+        .filter((line) => !line.trim().startsWith('#') && line.includes('$(curl'))
+      expect(curlAssignments.length, `${name} 里应有 curl 调用`).toBeGreaterThan(0)
+      for (const line of curlAssignments) {
+        // 要么显式丢弃（结果另有校验，如 jq 解析），要么把退出码记进变量再判。
+        expect(line, `${name}：curl 失败不能中断步骤`).toMatch(/\|\| (true\)|\w+_exit=\$\?)/)
+      }
+    }
+
+    // 网络层失败要计数并设上限：服务真挂了仍须判失败，而不是被兜底吞掉。
+    const smoke = stepBlock(workflow(), 'Smoke test（灰度版本健康检查）')
+    expect(smoke).toContain('max_transport_fail=5')
+    expect(smoke).toContain('if [ "$transport_fail" -gt "$max_transport_fail" ]; then')
+
+    // 全量后验证：status 必须为 ok 才认 version，不能因并入循环丢掉这条判定。
+    const verify = stepBlock(workflow(), '全量发布后验证')
+    expect(verify).toContain(`select(.status == "ok") | .version // ""`)
+  })
+
+  it('页面可达性检查要求 curl 退出码为 0，不能只看 http_code', () => {
+    // PR #211 Codex 审查：响应头 200 之后正文卡住/截断时 curl 退出 28，-w 仍打印 200。
+    // 只看 http_code 会把半截页面当成通过，发布照样成功、不回滚。
+    const smoke = stepBlock(workflow(), 'Smoke test（灰度版本健康检查）')
+    expect(smoke).toContain('|| curl_exit=$?')
+    expect(smoke).toContain('if [ "$curl_exit" != "0" ] || [ "$code" = "000" ] || [ -z "$code" ]; then')
+    expect(smoke).toContain('if [ "$home" != "200" ] || [ "$home_exit" != "0" ]; then fail=1; fi')
+
+    const verify = stepBlock(workflow(), '全量发布后验证')
+    expect(verify).toContain('if [ "$code" != "200" ] || [ "$curl_exit" != "0" ]; then')
+    // `test a && test b` 在 bash -e 下前一项失败不会退出，不能用来当门槛。
+    expect(verify).not.toMatch(/^\s*test "\$code" = "200"/m)
   })
 
   it('等待部署记录就绪后再切流，并允许稳定旧版本健康接口返回 404', () => {

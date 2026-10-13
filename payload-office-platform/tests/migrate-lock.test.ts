@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
+  CLOSE_DB_TIMEOUT_MS,
   closeMigrationDb,
   flushProcessOutput,
   runMigrateLocked,
@@ -168,6 +169,18 @@ describe('closeMigrationDb: 迁移脚本退出前尽力释放连接池', () => {
     )
 
     expect(result).toBe('timeout')
+  })
+
+  it('默认等待上界不超过 1 秒：生产上 pool.end() 必然等不到，这段每次冷启动都要付满', async () => {
+    // 原值 5s，runtime-diagnostics-218 实测迁移完成到 next start 之间固定空等 5s。
+    expect(CLOSE_DB_TIMEOUT_MS).toBeLessThanOrEqual(1_000)
+
+    // 用默认 timeoutMs 跑真实计时器：上界要落在默认值上，而不是被调用方另传的值掩盖。
+    const end = vi.fn(() => new Promise<void>(() => {}))
+    const startedAt = Date.now()
+    const result = await closeMigrationDb({ pool: { end } })
+    expect(result).toBe('timeout')
+    expect(Date.now() - startedAt).toBeLessThan(2_000)
   })
 
   it('pool.end() 抛错时返回 failed，不向上抛', async () => {
