@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "cloudbase": {
+      "type": "http",
+      "url": "https://tcb-api.cloud.tencent.com/mcp/v1?env_id=sbh-d9gnr8h5ef7e22e30",
+      "headers": {
+        "X-TencentCloud-SecretId": "${TENCENTCLOUD_SECRETID:-}",
+        "X-TencentCloud-SecretKey": "${TENCENTCLOUD_SECRETKEY:-}"
+      }
+    }
+  }
+}
