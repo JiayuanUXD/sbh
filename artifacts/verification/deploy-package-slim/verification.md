@@ -11,6 +11,7 @@ run 38222193643 / 38266385896：包 2.99MB，按 COS 单次 PUT 200s 上限要�
 |---|---|---|
 | 改前 `81463bf` | 2,990,172 | 14.9KB/s |
 | 改后 `d7ba7b1` | 2,465,722 | 12.3KB/s |
+| 再改 `3167658`（兜底图去水印 + q50） | 2,393,249 | 12.0KB/s |
 
 包内确认：`scripts/` 只剩 `migrate-locked.ts`；`seed/`、`.agent/`、根级 md、dev-story 页面与演示组件均不在包内；
 `Dockerfile`、`src/test/factory/roles.ts` 仍在。
@@ -29,6 +30,7 @@ run 38222193643 / 38266385896：包 2.99MB，按 COS 单次 PUT 200s 上限要�
 ## 浏览器（Playwright Chromium，`next start` 生产 server，`pnpm seed` 夹具数据）
 
 - `/` 200；hero `<img>` 指向 `/_next/static/media/hero-poster.*.jpg`，naturalWidth×Height = 1600×900，资源 200 / image/jpeg / 157,434B。截图：`home-1440.jpg`、`home-375.jpg`。
+  兜底图第二版：从 master 原图裁掉底部 40px（「可灵AI」水印在 y 1050–1079）与左右各 35px（保持 16:9），1600×900 q50，85,914B；重新构建后复验同上，截图 `home-1440-v2.jpg`。
 - `/entrust` 200；`og:image` = `https://shangban.cc/_next/static/media/hero-poster.*.jpg`，本地取同路径 200 image/jpeg。
 - `/dev-story` 404（与改前生产行为一致：生产环境 `notFound()`）。
 - `/admin/login` 200，登录表单渲染。
