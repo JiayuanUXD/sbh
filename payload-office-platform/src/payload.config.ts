@@ -88,6 +88,11 @@ import {
 } from './domain/shared/payload-after-error'
 import { assertProductionConfig } from './lib/runtime/config-guard'
 import { attachPoolErrorHandler } from './lib/runtime/pool-error-handler'
+import {
+  POOL_IDLE_TIMEOUT_MS,
+  buildPgSessionOptions,
+  resolvePoolMax,
+} from './lib/runtime/db-pool-options'
 import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
 import { watermarkPlugin } from './plugins/watermark'
 import {
@@ -481,7 +486,12 @@ const configPromise = buildConfig({
       // 取值 120s：正常事务里两条语句之间的空闲远小于此（导入按 20 行分片，
       // 每行若干条查询，间隔都是亚秒级）；空闲超过两分钟的事务本身就是缺陷。
       // 注意这只管「事务内空闲」，正在执行的长语句（如迁移）不受影响。
-      options: '-c idle_in_transaction_session_timeout=120000',
+      //
+      // 2026-10-13 同一指纹再次出现后，池上限、空闲回收与 Web 进程专用的语句超时
+      // 一并收口到 db-pool-options（取值理由见该文件）。
+      max: resolvePoolMax(process.env),
+      idleTimeoutMillis: POOL_IDLE_TIMEOUT_MS,
+      options: buildPgSessionOptions(process.env),
     },
     // CloudBase PG 是共享库，public schema 里除 Payload 表外还有腾讯云拨测表
     // (tencentdb_tbl_dial_test_*)。dev 模式下 Payload 默认会 pushDevSchema 扫全库，

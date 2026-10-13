@@ -2,7 +2,8 @@
  * OPT-016 迁移互斥锁脚本入口
  *
  * 用法：pnpm exec tsx scripts/migrate-locked.ts
- * Dockerfile CMD: pnpm exec tsx scripts/migrate-locked.ts && pnpm start
+ * Dockerfile CMD: pnpm exec tsx scripts/migrate-locked.ts && exec env DB_STATEMENT_TIMEOUT_MS=30000 pnpm start
+ *（语句超时只给 Web 服务；本进程不带，迁移里的长 DDL 不受限）
  *
  * 用 PG advisory lock（会话级）确保 CloudRun 多实例只有一个执行 payload migrate：
  *   - 首个实例拿锁 -> 执行 migrate -> 释放锁

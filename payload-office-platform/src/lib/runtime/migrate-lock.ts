@@ -99,8 +99,15 @@ export type CloseMigrationDbOptions = {
   schedule?: TimerScheduler
 }
 
-/** 关闭连接池的等待上界：超过就放弃优雅关闭，交由调用方强制退出 */
-export const CLOSE_DB_TIMEOUT_MS = 5_000
+/**
+ * 关闭连接池的等待上界：超过就放弃优雅关闭，交由调用方强制退出。
+ *
+ * 取 500ms 而不是原先的 5s：下面第 2 条决定了生产上 pool.end() **必然**等不到，
+ * 这段等待每次容器启动都会被付满（runtime-diagnostics-218 实测迁移完成到
+ * next start 之间固定空等 5s），白白拉长冷启动与扩容。500ms 足够 destroy()
+ * 这类同步清理跑完；等不到就照原逻辑如实返回 timeout、由脚本显式退出。
+ */
+export const CLOSE_DB_TIMEOUT_MS = 500
 
 /**
  * 尽力关闭迁移用的数据库连接，**带超时上界且绝不抛错**。
