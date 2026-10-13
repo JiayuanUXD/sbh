@@ -434,11 +434,14 @@ jobs:
           max_transport_fail=5
           for i in $(seq 1 50); do
             body_file="$RUNNER_TEMP/health-$i.json"
-            # `|| true` 不吞信号：curl 失败时 -w 仍输出 000，下面按 000 计数。
-            code=$(curl -sS --max-time 15 -o "$body_file" -w "%{http_code}" "$URL/api/health" || true)
-            if [ "$code" = "000" ] || [ -z "$code" ]; then
+            # 退出码单独记：`|| curl_exit=$?` 让 `bash -e` 不中断，又不丢信号。
+            # 只看 http_code 不够——响应头 200 之后正文卡住/截断时 curl 退出 28，
+            # -w 仍打印 200（PR #211 Codex 审查指出）。非零退出一律按网络层失败计数。
+            curl_exit=0
+            code=$(curl -sS --max-time 15 -o "$body_file" -w "%{http_code}" "$URL/api/health") || curl_exit=$?
+            if [ "$curl_exit" != "0" ] || [ "$code" = "000" ] || [ -z "$code" ]; then
               transport_fail=$((transport_fail + 1))
-              echo "[$i] GET /api/health 网络层失败（超时或连接失败，累计 $transport_fail 次）"
+              echo "[$i] GET /api/health 网络层失败（HTTP $code curl_exit=$curl_exit，累计 $transport_fail 次）"
               if [ "$transport_fail" -gt "$max_transport_fail" ]; then
                 echo "::error::/api/health 网络层失败超过 $max_transport_fail 次，判定服务不可用"
                 fail=1
@@ -485,13 +488,17 @@ jobs:
           # 首页可达（跟随重定向后 200，支持单城市模式与多城市路由重定向）。
           # 冷缓存首页实测可到 20s，给到网关上限 60s 并重试一次；原先不带 --max-time，
           # 网络层失败同样会在 `bash -e` 下直接中断步骤。
+          # 必须同时要求 curl 退出码为 0：响应头 200 之后正文卡住（流式页面挂在
+          # Suspense 上）时 http_code 仍是 200，只看它会把半截页面当成通过。
           home=000
+          home_exit=1
           for attempt in 1 2; do
-            home=$(curl -sSL --max-time 60 -o /dev/null -w "%{http_code}" "$URL/" || true)
-            echo "GET / -> HTTP $home（第 $attempt 次）"
-            if [ "$home" = "200" ]; then break; fi
+            home_exit=0
+            home=$(curl -sSL --max-time 60 -o /dev/null -w "%{http_code}" "$URL/") || home_exit=$?
+            echo "GET / -> HTTP $home curl_exit=$home_exit（第 $attempt 次）"
+            if [ "$home" = "200" ] && [ "$home_exit" = "0" ]; then break; fi
           done
-          if [ "$home" != "200" ]; then fail=1; fi
+          if [ "$home" != "200" ] || [ "$home_exit" != "0" ]; then fail=1; fi
           if [ "$fail" = "1" ]; then
             echo "::error::冒烟失败，将触发回滚"
             exit 1
@@ -540,16 +547,23 @@ jobs:
           fi
           echo "✅ 全量流量已是本次版本 $expected"
 
-          # 刚切全量的新实例缓存是空的，冷页面实测 2–21s：给到网关上限 60s、每页重试一次，
-          # 仍非 200 才判失败；网络层失败计为 000，不再中断步骤。
+          # 刚切全量的新实例缓存是空的，冷页面实测 2–21s：给到网关上限 60s、每页重试一次。
+          # 判通过要 HTTP 200 **且** curl 退出码 0：正文卡住/截断时 http_code 仍是 200
+          # （PR #211 Codex 审查指出），只看状态码会把半截页面放行、发布照样成功。
+          # 用显式 if + exit 1：`test a && test b` 前一项失败时 `bash -e` 不会退出。
           for path in / /shanghai /admin; do
             code=000
+            curl_exit=1
             for attempt in 1 2; do
-              code=$(curl -sSL --max-time 60 -o /dev/null -w "%{http_code}" "$URL$path" || true)
-              echo "GET $path -> HTTP $code（第 $attempt 次）"
-              if [ "$code" = "200" ]; then break; fi
+              curl_exit=0
+              code=$(curl -sSL --max-time 60 -o /dev/null -w "%{http_code}" "$URL$path") || curl_exit=$?
+              echo "GET $path -> HTTP $code curl_exit=$curl_exit（第 $attempt 次）"
+              if [ "$code" = "200" ] && [ "$curl_exit" = "0" ]; then break; fi
             done
-            test "$code" = "200"
+            if [ "$code" != "200" ] || [ "$curl_exit" != "0" ]; then
+              echo "::error::GET $path 未完整返回 200（HTTP $code，curl_exit=$curl_exit），触发回滚"
+              exit 1
+            fi
           done
 
       - name: Rollback（冒烟或 promote 失败时切回稳定版本）

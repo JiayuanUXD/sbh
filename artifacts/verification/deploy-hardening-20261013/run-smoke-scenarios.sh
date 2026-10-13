@@ -25,3 +25,8 @@ run first_hang old_verify.sh 3905   # 改前：promote 后第 1 个请求超时�
 run first_hang new_verify.sh 3906   # 改后：通过
 run ok         new_verify.sh 3907 wrong  # 改后：版本不符仍判失败
 run all_hang   new_verify.sh 3908   # 改后：判失败
+# PR #211 Codex 审查：页面先回 200 响应头、正文卡住（curl 退出 28，-w 仍打印 200）
+run stall_pages old_smoke.sh 3909   # 改前（传入 e2d6c1f 时）：只看 http_code，误判通过
+run stall_pages new_smoke.sh 3910   # 改后：要求 curl 退出码 0，判失败
+run stall_pages old_verify.sh 3911  # 改前（传入 e2d6c1f 时）：误判通过
+run stall_pages new_verify.sh 3912  # 改后：判失败

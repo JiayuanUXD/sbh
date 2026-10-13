@@ -18,6 +18,10 @@
 | 全量后版本号不符 | — | exit 1，照常判失败 |
 | 全量后服务全部超时 | — | exit 1 |
 
+PR #211 Codex 审查补充（对照 PR 头 `e2d6c1f`：`bash run-smoke-scenarios.sh e2d6c1f`）：页面先回 200 响应头、
+正文卡住时 curl 退出 28 而 `-w` 仍打印 200。`e2d6c1f` 的 `|| true` 只看 http_code，冒烟与全量后验证都误判通过
+（exit 0）；改为记录 curl 退出码并要求为 0 后，两者均 exit 1。其余场景结果不变。
+
 ## 部署包按容器方式复现（本地 PG，57,552 条房源的放大数据）
 
 照 Dockerfile 构建部署包，用 Dockerfile 里原样的 CMD 经 `sh`（dash）启动：

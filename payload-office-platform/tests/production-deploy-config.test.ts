@@ -292,11 +292,12 @@ describe('生产部署配置', () => {
         .filter((line) => !line.trim().startsWith('#') && line.includes('$(curl'))
       expect(curlAssignments.length, `${name} 里应有 curl 调用`).toBeGreaterThan(0)
       for (const line of curlAssignments) {
-        expect(line, `${name}：curl 失败不能中断步骤`).toContain('|| true')
+        // 要么显式丢弃（结果另有校验，如 jq 解析），要么把退出码记进变量再判。
+        expect(line, `${name}：curl 失败不能中断步骤`).toMatch(/\|\| (true\)|\w+_exit=\$\?)/)
       }
     }
 
-    // 网络层失败要计数并设上限：服务真挂了仍须判失败，而不是被 `|| true` 吞掉。
+    // 网络层失败要计数并设上限：服务真挂了仍须判失败，而不是被兜底吞掉。
     const smoke = stepBlock(workflow(), 'Smoke test（灰度版本健康检查）')
     expect(smoke).toContain('max_transport_fail=5')
     expect(smoke).toContain('if [ "$transport_fail" -gt "$max_transport_fail" ]; then')
@@ -304,6 +305,20 @@ describe('生产部署配置', () => {
     // 全量后验证：status 必须为 ok 才认 version，不能因并入循环丢掉这条判定。
     const verify = stepBlock(workflow(), '全量发布后验证')
     expect(verify).toContain(`select(.status == "ok") | .version // ""`)
+  })
+
+  it('页面可达性检查要求 curl 退出码为 0，不能只看 http_code', () => {
+    // PR #211 Codex 审查：响应头 200 之后正文卡住/截断时 curl 退出 28，-w 仍打印 200。
+    // 只看 http_code 会把半截页面当成通过，发布照样成功、不回滚。
+    const smoke = stepBlock(workflow(), 'Smoke test（灰度版本健康检查）')
+    expect(smoke).toContain('|| curl_exit=$?')
+    expect(smoke).toContain('if [ "$curl_exit" != "0" ] || [ "$code" = "000" ] || [ -z "$code" ]; then')
+    expect(smoke).toContain('if [ "$home" != "200" ] || [ "$home_exit" != "0" ]; then fail=1; fi')
+
+    const verify = stepBlock(workflow(), '全量发布后验证')
+    expect(verify).toContain('if [ "$code" != "200" ] || [ "$curl_exit" != "0" ]; then')
+    // `test a && test b` 在 bash -e 下前一项失败不会退出，不能用来当门槛。
+    expect(verify).not.toMatch(/^\s*test "\$code" = "200"/m)
   })
 
   it('等待部署记录就绪后再切流，并允许稳定旧版本健康接口返回 404', () => {
