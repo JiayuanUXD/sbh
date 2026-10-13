@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -38,6 +39,54 @@ describe('生产部署配置', () => {
 
     expect(attributes).toMatch(/^artifacts\/ export-ignore$/m)
     expect(attributes).toMatch(/^tests\/ export-ignore$/m)
+  })
+
+  it('瘦身规则不误伤构建与容器运行必需的文件', () => {
+    // 读 git 实际解析出的属性，而不是对 .gitattributes 做正则：`scripts/**` 加
+    // `-export-ignore` 例外这类组合，只有 git 自己算得准。
+    const exportIgnore = (paths: string[]) =>
+      new Map(
+        execFileSync('git', ['check-attr', 'export-ignore', '--', ...paths], {
+          cwd: appRoot,
+          encoding: 'utf8',
+        })
+          .trim()
+          .split('\n')
+          .map((line) => {
+            const [path, , value] = line.split(': ')
+            return [path, value] as const
+          }),
+      )
+
+    const required = [
+      'Dockerfile',
+      'package.json',
+      'pnpm-lock.yaml',
+      'patches/payload@3.86.0.patch',
+      'next.config.ts',
+      'tsconfig.json',
+      'src/payload.config.ts',
+      'src/migrations/index.ts',
+      'src/assets/hero-poster.jpg',
+      // 容器 CMD 第一步：scripts/ 整体排除，唯独它必须留在包里。
+      'scripts/migrate-locked.ts',
+      // 名字像测试夹具，实际被 sync-builtin-roles 与两条迁移在运行时 import。
+      'src/test/factory/roles.ts',
+    ]
+    for (const [path, value] of exportIgnore(required)) {
+      expect(value, `${path} 不能被 export-ignore`).not.toBe('set')
+    }
+
+    const slimmed = [
+      'scripts/seed.ts',
+      'seed/geography/shanghai.json',
+      'src/app/(frontend)/dev-story/page.tsx',
+      '.agent/core.md',
+      'CLAUDE.md',
+    ]
+    for (const [path, value] of exportIgnore(slimmed)) {
+      expect(value, `${path} 应被 export-ignore`).toBe('set')
+    }
   })
 
   it('本地发布脚本在 pipefail 下完整读取归档清单', () => {

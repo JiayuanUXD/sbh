@@ -158,8 +158,9 @@ jobs:
 
           # 包体积是这条通道的命门：跨境传到腾讯云 COS，单次 PUT 有 200s 上限（见下），
           # 包越大、要求的最低吞吐越高。2.6MB 要 13KB/s，3MB 就要 15.4KB/s。
-          # payload-office-platform/.gitattributes 用 export-ignore 把 tests/
-          # 与 src/migrations/*.json 快照（仅 migrate:create 用，运行时不读）挡在包外。
+          # payload-office-platform/.gitattributes 用 export-ignore 把 tests/、
+          # src/migrations/*.json 快照（仅 migrate:create 用，运行时不读）、本地运维脚本、
+          # 地理种子、dev-story 与文档挡在包外（清单与理由见该文件）。
           # 这里加硬阈值：再有大文件混进来立刻失败，而不是耗十几分钟超时后才暴露。
           git archive --format=zip HEAD:payload-office-platform > "$archive"
 
