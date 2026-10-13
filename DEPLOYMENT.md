@@ -114,6 +114,7 @@ gh workflow run deploy.yml -f promote=true --ref master
 >
 > 现在的防线（2026-07-28）：
 > - `payload-office-platform/.gitattributes` 用 `export-ignore` 把 `tests/` 与 `src/migrations/*.json` 挡在包外（**`.dockerignore` 在这一步不生效**——平台是先收包、再在云端 build）。包回到 869 KB。历史视觉回归 `artifacts/` 目录已整体删除，不再需要排除。
+> - 2026-10-13 第二轮瘦身：包涨到 2.99 MB 后连续两次部署（run 38222193643 / 38266385896）上传均速卡在 12–15 KB/s 全挂。追加排除 `scripts/`（唯独保留容器 CMD 用的 `migrate-locked.ts`）、`seed/`、dev-story 走查页、`.agent/` 与根级 md，首页兜底图 `hero-poster.jpg` 由 1920×1080 q94（217 KB）裁掉底部水印后重压为 1600×900 q50（86 KB）。包 2.99 MB → 2.39 MB，要求均速 14.9 → 12.0 KB/s（验证见 `artifacts/verification/deploy-package-slim/`）。哪些文件绝不能排除由 `tests/production-deploy-config.test.ts` 守卫（注意 `src/test/factory/roles.ts` 运行时被迁移 import，看名字像测试夹具但排不得）。
 > - deploy 步骤有 3 MB 硬阈值，超了立刻失败并提示，而不是耗 15 分钟超时才暴露。
 >
 > 再遇到上传超时，**先看日志里打印的「代码包体积」**，别急着怀疑 Runner。自托管 Runner 仍是值得做的长期优化（跨境延迟客观存在），但不是这次的阻塞项。CI 不通时的正式发布路径见上面的[本地发布](#本地发布ci-上传通道不可用时的正式路径)。

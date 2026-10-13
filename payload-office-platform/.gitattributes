@@ -22,3 +22,26 @@ src/migrations/*.json export-ignore
 # 前端改引 /api/media/file/hero-bg.mp4?prefix=media，
 # 不再随部署包上传。
 public/hero/ export-ignore
+
+# 2026-10-13 第二轮瘦身：包涨到 2.99MB、要求 ≥14.9KB/s，run 38222193643 / 38266385896
+# 两台 runner 十次上传均速都卡在 12–15KB/s，全部失败。下面几类都随包上传、
+# 但云端构建与容器运行都用不到，合计约 450KB。
+#
+# scripts/：除容器 CMD 第一步的 migrate-locked.ts，其余都是带 .env.local 本地跑的
+# 运维 / 种子 / 核验脚本。Dockerfile 仍 COPY scripts/，**migrate-locked.ts 必须留**，
+# 少了它容器启动即失败（守卫：tests/production-deploy-config.test.ts）。
+scripts/** export-ignore
+scripts/migrate-locked.ts -export-ignore
+
+# seed/：七城地理种子，只给本地 import:geography / collect:geography 用，src/ 不读。
+seed/** export-ignore
+
+# dev-story 走查页（及只被它引用的演示组件）：生产环境 notFound()。
+# E2E 跑的是完整仓库，不受部署包影响。
+src/app/(frontend)/dev-story/** export-ignore
+src/components/frontend/dev/** export-ignore
+public/dev-story/** export-ignore
+
+# 纯文档：agent 规则与根级 md，构建与运行都不读。
+.agent/** export-ignore
+/*.md export-ignore
