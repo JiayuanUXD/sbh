@@ -136,6 +136,8 @@ gh workflow run deploy.yml -f promote=true --ref master
 
 - 部署细节见 `DEPLOYMENT.md`。
 
+- **CloudBase MCP 分两套配置**：本地会话用 local scope 的 `npx @cloudbase/cloudbase-mcp@latest`（浏览器登录，同名覆盖项目配置）；云端会话（claude.ai/code）只认仓库根 `.mcp.json`，走远端 HTTP `tcb-api.cloud.tencent.com/mcp/v1` + 静态密钥。云端要用，须在云环境设置里：① 环境变量填 `TENCENTCLOUD_SECRETID` / `TENCENTCLOUD_SECRETKEY`（用最小权限的 CAM 子账号，别用主账号密钥）；② 网络访问选 Custom，放行 `tcb-api.cloud.tencent.com` 并勾选默认包管理器列表（默认的 Trusted 不含任何腾讯云域名，请求会 `403 host_not_allowed`）。改完要新开会话才生效。
+
 ## 本地闸门（机器强制，对所有 IDE 生效）
 
 `.githooks/` 里的 git hook 把下面几条从"文档建议"变成"提交/推送时真的过不去"，任何 agent、任何 IDE、包括手工操作都一样：
