@@ -6,6 +6,7 @@ import {
 } from '@/domain/media/media-cache-hook'
 import { unmountMediaReferences } from '@/domain/media/media-delete-cleanup'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
+import { withMediaFileCacheControl } from '@/lib/storage/media-file-cache'
 import { createMenuAccess } from '@/domain/auth/access'
 
 /**
@@ -159,6 +160,8 @@ export const Media: CollectionConfig = {
    */
   upload: {
     focalPoint: true,
+    // 浏览器缓存一天；为什么不是 immutable、哪些响应会带上，见该模块头注释。
+    modifyResponseHeaders: withMediaFileCacheControl,
     imageSizes: [
       { name: 'thumb', width: 320, withoutEnlargement: true, formatOptions: { format: 'webp' } },
       { name: 'card', width: 768, withoutEnlargement: true, formatOptions: { format: 'webp' } },
