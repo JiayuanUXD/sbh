@@ -287,6 +287,10 @@ export default function ListingsListViewClient({
       if (merged.missingCover) qs.set('missingCover', '1')
       if (merged.pendingRecheck) qs.set('pendingRecheck', '1')
       const query = qs.toString()
+      // 翻页 / 改筛选 / 改每页条数都走这里：离开当前结果集时显式清空勾选。
+      // 实测（OPT-113 评审）目前导航会让本组件整体重新挂载，勾选本就会丢；这里不依赖这一实现
+      // 细节——将来若改成不重挂，只靠 rowsKey 隐藏会让翻回原页时旧勾选重新冒出来。
+      setSelection({ rowsKey: '', ids: [] })
       router.push(
         query ? `/admin/collections/listings?${query}` : '/admin/collections/listings',
       )

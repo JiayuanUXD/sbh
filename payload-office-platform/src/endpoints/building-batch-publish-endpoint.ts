@@ -2,6 +2,7 @@ import type { Endpoint, PayloadRequest } from 'payload'
 
 import { requireOperationPermission, type RequestContext } from '@/domain/auth/access'
 import { withAudit } from '@/domain/audit/with-audit'
+import { runInRequestTransaction } from '@/domain/shared/transaction-safety'
 import {
   batchFailureFromError,
   parseBatchItems,
@@ -34,7 +35,8 @@ import { readEndpointBody } from './read-endpoint-body'
  *   - 权限 `building:update`：编辑页里「发布状态」就是个普通字段，能改楼盘就能改它；
  *     批量不比单条更宽也不更严。停用（building:freeze）是另一回事，不在这里。
  *   - 每条成功写一行 `building.update` 审计（changedFields ['status']）——复用已有枚举值，
- *     不为此加迁移。审计失败按 M8.2 视为这条失败。
+ *     不为此加迁移。业务写与审计写同一事务，审计失败则这条回滚并记为失败（M8.2）。
+ *   - 带了 expectedVersion 时版本号随写入提交，由 protectBuilding 在写入时再校验一次。
  *   - 逐条执行、逐条出结果；每条自开自提事务，一条失败不连累其它条。
  *
  * 响应：
@@ -127,31 +129,38 @@ async function applyToBuilding(
     }
   }
 
-  const result = await withAudit({
-    req,
-    action: 'building.update',
-    object: {
-      collection: 'buildings',
-      objectId: item.id,
-      objectVersion: typeof building.version === 'number' ? building.version : 1,
-    },
-    before: building,
-    fn: async () => {
-      const updated = await req.payload.update({
+  // 业务写与审计写同一事务：审计写失败则发布状态一并回滚（M8.2）。
+  const result = await runInRequestTransaction(req, 'building-batch-publish', () =>
+    withAudit({
+      req,
+      action: 'building.update',
+      object: {
         collection: 'buildings',
-        id: item.id,
-        data: { status: next },
-        req, // 透传 req → auditFieldsPlugin 记录 lastModifiedBy；afterChange 失效公开缓存
-      })
-      return {
-        ok: true as const,
-        data: next,
-        after: updated as unknown as Record<string, unknown>,
-        changedFields: ['status'],
-      }
-    },
-    throwOnError: false,
-  })
+        objectId: item.id,
+        objectVersion: typeof building.version === 'number' ? building.version : 1,
+      },
+      before: building,
+      fn: async () => {
+        const updated = await req.payload.update({
+          collection: 'buildings',
+          id: item.id,
+          // 带上已校验的版本号：protectBuilding 在写入时按 originalDoc 再比一次，读写之间有人改过就 409。
+          data:
+            item.expectedVersion !== null
+              ? { status: next, version: item.expectedVersion }
+              : { status: next },
+          req, // 透传 req → auditFieldsPlugin 记录 lastModifiedBy；afterChange 失效公开缓存
+        })
+        return {
+          ok: true as const,
+          data: next,
+          after: updated as unknown as Record<string, unknown>,
+          changedFields: ['status'],
+        }
+      },
+      throwOnError: false,
+    }),
+  )
 
   if (result === null) {
     return { id: item.id, ok: false, error: '写入失败，请重试' }

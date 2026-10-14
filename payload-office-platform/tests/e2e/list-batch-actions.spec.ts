@@ -7,6 +7,7 @@
  *      再勾选（含一条不适用的已发布行）→ 批量上架 → 弹层明示「将跳过 1 条」→ 恢复上架；
  *   2. 楼盘库列表：勾选 → 批量下架 → 批量上架；行内「停用」先预检再确认 → 行翻成「启用」→ 再启用；
  *      勾选两个楼盘 → 批量停用（弹层先展示汇总预检）→ 批量启用（跳过已启用的行）；
+ *   2b. 勾选在翻页后真正清空；批量请求进行中弹层关不掉（OPT-113 评审）；
  *   3. OPS（有 building:update、无 building:freeze）：看得到批量上下架、看不到「停用」与批量停用 / 启用，
  *      直调启停端点（单条、批量）都 403。
  *
@@ -367,6 +368,63 @@ test.describe('OPT-113 列表批量上下架与楼盘停用', () => {
       }
     } finally {
       for (const b of buildings) await restoreBuilding(page.request, b.id)
+    }
+  })
+
+  // 行为守卫：翻页清空勾选是工作项 D7 的约定。目前导航会重挂列表组件，修复前这条也是绿的；
+  // 它守的是「不管组件是否重挂，翻页后都不能带着旧勾选」这件事本身。
+  test('勾选在翻页后真正清空（翻回原页不复现）', async ({ page }) => {
+    await login(page.request, ADM)
+    const total = await getJson(page.request, '/api/listings?limit=1&depth=0')
+    const totalDocs = isRecord(total) && typeof total.totalDocs === 'number' ? total.totalDocs : 0
+    test.skip(totalDocs <= 10, '夹具房源不足 11 条，凑不出第二页')
+
+    await page.goto('/admin/collections/listings?limit=10')
+    const firstRow = page.locator('.arco-table-tr').filter({ has: page.locator('.arco-checkbox') }).nth(1)
+    await checkRow(page, firstRow, 1)
+
+    await page.locator('.arco-pagination-item', { hasText: /^2$/ }).click()
+    await expect(page).toHaveURL(/page=2/)
+    await expect(page.getByText('已选 0 项', { exact: true }), '翻页后勾选应清空').toBeVisible()
+
+    await page.locator('.arco-pagination-item', { hasText: /^1$/ }).click()
+    await expect(page).not.toHaveURL(/page=2/)
+    await expect(
+      page.getByText('已选 0 项', { exact: true }),
+      '翻回原页，之前的勾选不应复现',
+    ).toBeVisible()
+  })
+
+  test('批量请求进行中不能关闭弹层（取消键禁用、无关闭图标）', async ({ page }) => {
+    await login(page.request, ADM)
+    const building = await pickPublishedActiveBuilding(page.request)
+    // 人为拖慢批量请求，留出「提交中」的观察窗口
+    await page.route('**/api/buildings/batch-publish', async (route) => {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 2_000)
+      })
+      await route.continue()
+    })
+
+    try {
+      await page.goto(
+        `/admin/collections/buildings?q=${encodeURIComponent(building.label)}&limit=100`,
+      )
+      const row = rowOf(page, 'buildings', building.id)
+      await expect(row).toHaveCount(1)
+      await checkRow(page, row, 1)
+      const modal = await clickUntilModalOpens(
+        page,
+        page.getByRole('button', { name: '批量下架', exact: true }),
+        '「批量下架」',
+      )
+      await modal.getByRole('button', { name: '确认下架', exact: true }).click()
+      await expect(modal.getByRole('button', { name: '取消', exact: true })).toBeDisabled()
+      await expect(modal.locator('.arco-modal-close-icon')).toHaveCount(0)
+      await expect(modal, '请求落定后弹层自行关闭').toBeHidden({ timeout: 15_000 })
+      expect(await fieldOf(page.request, 'buildings', building.id, 'status')).toBe('archived')
+    } finally {
+      await restoreBuilding(page.request, building.id)
     }
   })
 

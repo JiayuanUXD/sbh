@@ -1,6 +1,7 @@
 import type { PayloadRequest } from 'payload'
 
 import { withAudit } from '@/domain/audit/with-audit'
+import { runInRequestTransaction } from '@/domain/shared/transaction-safety'
 
 import { isBuildingOperationalStatus, type BuildingOperationalStatus } from './building'
 
@@ -15,7 +16,9 @@ import { isBuildingOperationalStatus, type BuildingOperationalStatus } from './b
  *   - 只写 `operationalStatus`，绝不触碰发布状态 `status` 与任何房源（R3：停用只从有效供给
  *     谓词的楼盘侧撤销可见性，不改写关联房源的审核 / 发布状态）。
  *   - `target` 为 null 表示「翻转」（编辑页旧调用方式）；否则按目标值写。
- *   - 已是目标状态 → 幂等成功（`changed: false`），不写库、不写审计。
+ *   - 已是目标状态 → 幂等成功（`changed: false`），不写库、不写审计；这一判断先于版本校验。
+ *   - 业务写与审计写同一事务（`runInRequestTransaction`）；带了 expectedVersion 时版本号随写入提交，
+ *     由 protectBuilding 在写入时再校验一次。
  *   - 每次实际写入记一行审计：停用 `building.freeze`，启用 `building.restore`
  *     （两个枚举值早已在 audit_logs.action 里，无需迁移）。审计失败按 M8.2 视为失败。
  *
@@ -51,11 +54,20 @@ export async function setBuildingOperationalStatus(
     return { ok: false, status: 404, error: '楼盘不存在' }
   }
 
-  if (
-    expectedVersion !== undefined &&
-    expectedVersion !== null &&
-    building.version !== expectedVersion
-  ) {
+  const current = building.operationalStatus
+  if (!isBuildingOperationalStatus(current)) {
+    return { ok: false, status: 400, error: '楼盘当前启停状态非法，无法翻转' }
+  }
+
+  const next: BuildingOperationalStatus = target ?? (current === 'active' ? 'disabled' : 'active')
+  // 幂等判断先于版本校验：列表读到 active/v1 后别人已停用成 disabled/v2，这时再提交
+  // target=disabled 的本意已经达成，应回幂等成功，而不是一个让运营困惑的「已被他人修改」。
+  if (next === current) {
+    return { ok: true, operationalStatus: current, changed: false }
+  }
+
+  const versioned = expectedVersion !== undefined && expectedVersion !== null
+  if (versioned && building.version !== expectedVersion) {
     return {
       ok: false,
       status: 409,
@@ -64,41 +76,37 @@ export async function setBuildingOperationalStatus(
     }
   }
 
-  const current = building.operationalStatus
-  if (!isBuildingOperationalStatus(current)) {
-    return { ok: false, status: 400, error: '楼盘当前启停状态非法，无法翻转' }
-  }
-
-  const next: BuildingOperationalStatus = target ?? (current === 'active' ? 'disabled' : 'active')
-  if (next === current) {
-    return { ok: true, operationalStatus: current, changed: false }
-  }
-
-  const result = await withAudit({
-    req,
-    action: next === 'disabled' ? 'building.freeze' : 'building.restore',
-    object: {
-      collection: 'buildings',
-      objectId: buildingId,
-      objectVersion: typeof building.version === 'number' ? building.version : 1,
-    },
-    before: building,
-    fn: async () => {
-      const updated = await req.payload.update({
+  // 业务写与审计写同一事务：审计写失败则启停一并回滚（M8.2）。
+  const result = await runInRequestTransaction(req, 'building-operational-action', () =>
+    withAudit({
+      req,
+      action: next === 'disabled' ? 'building.freeze' : 'building.restore',
+      object: {
         collection: 'buildings',
-        id: buildingId,
-        data: { operationalStatus: next },
-        req, // 透传 req → auditFieldsPlugin 记录 lastModifiedBy；afterChange 失效公开缓存
-      })
-      return {
-        ok: true as const,
-        data: next,
-        after: updated as unknown as Record<string, unknown>,
-        changedFields: ['operationalStatus'],
-      }
-    },
-    throwOnError: false,
-  })
+        objectId: buildingId,
+        objectVersion: typeof building.version === 'number' ? building.version : 1,
+      },
+      before: building,
+      fn: async () => {
+        const updated = await req.payload.update({
+          collection: 'buildings',
+          id: buildingId,
+          // 带上已校验的版本号：protectBuilding 在写入时按 originalDoc 再比一次，读写之间有人改过就 409。
+          data: versioned
+            ? { operationalStatus: next, version: expectedVersion }
+            : { operationalStatus: next },
+          req, // 透传 req → auditFieldsPlugin 记录 lastModifiedBy；afterChange 失效公开缓存
+        })
+        return {
+          ok: true as const,
+          data: next,
+          after: updated as unknown as Record<string, unknown>,
+          changedFields: ['operationalStatus'],
+        }
+      },
+      throwOnError: false,
+    }),
+  )
 
   if (result === null) {
     return { ok: false, status: 500, error: '写入失败，请重试' }

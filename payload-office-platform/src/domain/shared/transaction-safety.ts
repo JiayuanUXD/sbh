@@ -55,7 +55,15 @@
  * 那里没有别人的事务可拆。
  */
 
-import type { CollectionSlug, GlobalSlug, PayloadRequest, Where } from 'payload'
+import {
+  commitTransaction,
+  initTransaction,
+  killTransaction,
+  type CollectionSlug,
+  type GlobalSlug,
+  type PayloadRequest,
+  type Where,
+} from 'payload'
 
 import { DomainError } from './errors'
 
@@ -97,6 +105,40 @@ export function assertTransactionIntact(
   if (captured === undefined || captured === null) return
   if (transactionIdOf(req) === captured) return
   throw new TransactionAbortedError({ operation })
+}
+
+/**
+ * 让一段「业务写 + 审计写」落在同一笔事务里（OPT-113）。
+ *
+ * 自定义端点没有请求级事务：`payload.update({ req })` 会自开自提，`withAudit` 随后的审计写
+ * 又是另一笔。审计写失败时业务早已落库，M8.2「审计失败 = 业务失败」就成了空话。
+ *
+ * 这里借 Payload 自己的 `initTransaction`：req 上挂好事务后，fn 里的 update / create 发现
+ * req 已有事务就不再自开自提（它们的 init 返回 false），整段由这里统一提交或回滚。
+ *
+ *   - 进来时已有事务（外层在管）：不另开、不提交、不回滚。
+ *   - fn 抛错：回滚并原样抛出。Payload operation 自己出错时已经 `killTransaction` 过，
+ *     这里再 kill 是 no-op（transactionID 已删）。
+ *   - fn 正常返回、但事务已被链路里某次 `killTransaction` 拆掉：提交会静默 no-op（文件头），
+ *     于是抛 `TransactionAbortedError`——宁可 500，也不返回假成功。
+ *   - 适配器不支持事务（`beginTransaction` 不存在）：直接执行 fn。
+ */
+export async function runInRequestTransaction<T>(
+  req: PayloadRequest,
+  operation: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const owns = await initTransaction(req)
+  const captured = transactionIdOf(req)
+  try {
+    const result = await fn()
+    assertTransactionIntact(req, captured, operation)
+    if (owns) await commitTransaction(req)
+    return result
+  } catch (err) {
+    if (owns) await killTransaction(req)
+    throw err
+  }
 }
 
 export interface FindByIdSafeArgs {

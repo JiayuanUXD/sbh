@@ -1,6 +1,7 @@
 import type { PayloadRequest } from 'payload'
 
 import { withAudit } from '@/domain/audit/with-audit'
+import { runInRequestTransaction } from '@/domain/shared/transaction-safety'
 import { resolveEffectiveSupply } from '@/domain/review/effective-supply-snapshot'
 import {
   canTransitionPublication,
@@ -170,6 +171,12 @@ export async function executeListingPublishAction(
     action === 'unpublish' ? 'listing.unpublish' :
     'listing.unpublish' // mark_leased / mark_sold 也归为下架类审计
   const data: Record<string, unknown> = { publicationStatus: next }
+  // 调用方给了 expectedVersion（上面已与读到的 version 比对过）就把它带进写入：
+  // listing-protect 会在 update 自己读到的 originalDoc 上再比一次，读与写之间若有人改过，
+  // 这里抛 VersionConflictError（409），而不是带着过期判断覆盖最新状态。
+  if (expectedVersion !== undefined && expectedVersion !== null) {
+    data.version = listing.version
+  }
   if (action === 'mark_leased' || action === 'mark_sold') {
     // 成交（已租 / 已售）自动撤销推荐——已售房源留在首页推荐位是比已租更明显的错误；收回前台可见由 publicationStatus 落终态保证。
     data.isFeatured = false
@@ -177,32 +184,35 @@ export async function executeListingPublishAction(
   const changedFields: string[] = ['publicationStatus']
   if (action === 'mark_leased' || action === 'mark_sold') changedFields.push('isFeatured')
 
-  const result = await withAudit({
-    req,
-    action: auditAction,
-    object: {
-      collection: 'listings',
-      objectId: listingId,
-      objectVersion: typeof listing.version === 'number' ? listing.version : 1,
-    },
-    before: listing,
-    reason: unpublishReason,
-    fn: async () => {
-      const updated = await req.payload.update({
+  // 业务写与审计写同一事务：审计写失败则发布状态一并回滚（M8.2）。
+  const result = await runInRequestTransaction(req, 'listing-publish-action', () =>
+    withAudit({
+      req,
+      action: auditAction,
+      object: {
         collection: 'listings',
-        id: listingId,
-        data,
-        req,
-      })
-      return {
-        ok: true as const,
-        data: next,
-        after: updated as unknown as Record<string, unknown>,
-        changedFields,
-      }
-    },
-    throwOnError: false,
-  })
+        objectId: listingId,
+        objectVersion: typeof listing.version === 'number' ? listing.version : 1,
+      },
+      before: listing,
+      reason: unpublishReason,
+      fn: async () => {
+        const updated = await req.payload.update({
+          collection: 'listings',
+          id: listingId,
+          data,
+          req,
+        })
+        return {
+          ok: true as const,
+          data: next,
+          after: updated as unknown as Record<string, unknown>,
+          changedFields,
+        }
+      },
+      throwOnError: false,
+    }),
+  )
 
   if (result === null) {
     return { ok: false, status: 500, error: '发布操作失败，请重试', code: 'PUBLISH_FAILED' }

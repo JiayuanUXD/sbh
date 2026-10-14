@@ -111,6 +111,9 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
   const nothingToDo = request.items.length === 0
 
   const close = () => {
+    // 提交中不许关：批量请求是串行逐条执行的，弹层一卸载，结果就无处展示、列表也不会刷新——
+    // 运营看到的是旧状态，多半会再点一次。ESC / 遮罩之外，取消键与右上角 × 也一并挡住。
+    if (submitting) return
     onClose()
     if (submitted) onDone()
   }
@@ -216,6 +219,8 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
       // 提交中不给 ESC / 点遮罩关闭：请求已发出，弹层一关运营就看不到结果（同单条弹层）。
       escToExit={!submitting}
       maskClosable={false}
+      closable={!submitting}
+      cancelButtonProps={{ disabled: submitting }}
       confirmLoading={submitting}
       okText={`确认${request.verb}`}
       cancelText="取消"

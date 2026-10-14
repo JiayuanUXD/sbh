@@ -75,10 +75,16 @@ function makeReq(params: {
   const update = vi.fn(async () => ({ id: 1 }))
   // OPT-113：启停与批量启停共用一个执行核心，每次实际写入都记一行审计（building.freeze / restore）
   const create = vi.fn(async () => ({ id: 999, auditId: 'aud_test001' }))
+  // OPT-113：业务写 + 审计写包在同一事务里（runInRequestTransaction），夹具得有事务三件套
+  const db = {
+    beginTransaction: vi.fn(async () => 'tx-1'),
+    commitTransaction: vi.fn(async () => undefined),
+    rollbackTransaction: vi.fn(async () => undefined),
+  }
   const req = {
     user: user ?? null,
     routeParams,
-    payload: { find, findByID, update, create },
+    payload: { find, findByID, update, create, db },
     ...(body !== undefined ? { data: body, json: async () => body } : {}),
   }
   return { req: req as unknown as PayloadRequest, findByID, update, create }
