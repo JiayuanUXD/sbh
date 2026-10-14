@@ -1,0 +1,62 @@
+{
+  "origin": "https://shangban.cc",
+  "measuredAt": "2026-10-14T06:15:40.573Z",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "first": {
+    "label": "first",
+    "sentinel": {
+      "pathname": "/",
+      "status": 200,
+      "statusOk": true,
+      "family": "home",
+      "missing": [],
+      "ok": true
+    },
+    "mediaRequests": 15,
+    "servedFromCache": 0,
+    "hitServer": 15,
+    "hitServerByStatus": {
+      "200": 14,
+      "206": 1
+    },
+    "bytesFromServer": 1584630,
+    "cacheControlSeen": [
+      "(none)"
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+      "[analytics-queue] drop_after_retries {count: 2, attempt: 4, error: umami tracker not ready}"
+    ],
+    "screenshot": "home-first-shangban.cc.png"
+  },
+  "revisit": {
+    "label": "revisit",
+    "sentinel": {
+      "pathname": "/",
+      "status": 200,
+      "statusOk": true,
+      "family": "home",
+      "missing": [],
+      "ok": true
+    },
+    "mediaRequests": 15,
+    "servedFromCache": 0,
+    "hitServer": 15,
+    "hitServerByStatus": {
+      "200": 14,
+      "206": 1
+    },
+    "bytesFromServer": 24133,
+    "cacheControlSeen": [
+      "(none)"
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+      "[analytics-queue] drop_after_retries {count: 2, attempt: 4, error: umami tracker not ready}"
+    ],
+    "screenshot": "home-revisit-shangban.cc.png"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "origin": "http://localhost:3780",
+  "measuredAt": "2026-10-14T06:15:01.387Z",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "first": {
+    "label": "first",
+    "sentinel": {
+      "pathname": "/",
+      "status": 200,
+      "statusOk": true,
+      "family": "home",
+      "missing": [],
+      "ok": true
+    },
+    "mediaRequests": 9,
+    "servedFromCache": 0,
+    "hitServer": 9,
+    "hitServerByStatus": {
+      "200": 8,
+      "206": 1
+    },
+    "bytesFromServer": 31441,
+    "cacheControlSeen": [
+      "public, max-age=86400, stale-while-revalidate=604800"
+    ],
+    "consoleErrors": [],
+    "screenshot": "home-first-localhost.png"
+  },
+  "revisit": {
+    "label": "revisit",
+    "sentinel": {
+      "pathname": "/",
+      "status": 200,
+      "statusOk": true,
+      "family": "home",
+      "missing": [],
+      "ok": true
+    },
+    "mediaRequests": 9,
+    "servedFromCache": 8,
+    "hitServer": 1,
+    "hitServerByStatus": {
+      "206": 1
+    },
+    "bytesFromServer": 16679,
+    "cacheControlSeen": [
+      "public, max-age=86400, stale-while-revalidate=604800"
+    ],
+    "consoleErrors": [],
+    "screenshot": "home-revisit-localhost.png"
+  }
+}
