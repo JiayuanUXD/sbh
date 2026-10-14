@@ -35,6 +35,8 @@ import ListingsListViewClient, { type ListingRow } from './ListingsListViewClien
  * 生效，后台该看见的都看得见），行内快捷编辑走 REST PATCH（access + hooks 全跑）。
  * OPT-086：操作列「下架」按 listing:unpublish 决定显隐，动作本身走
  * POST /api/listings/:id/publish（状态机、权限、原因、乐观锁、审计都在端点里）。
+ * OPT-113：批量上架 / 下架按 listing:publish / listing:unpublish 决定显隐，
+ * 动作走 POST /api/listings/batch-publish（逐条复用单条端点的同一个执行核心）。
  *
  * 仅接管「整页列表」；回收站与关系抽屉让位给 Payload 原生视图，
  * 判定与理由见 `list-view-context.ts`。
@@ -134,6 +136,7 @@ export default async function ListingsListView(props: ListViewServerProps) {
   const canUnpublish = permissionCtx
     ? hasOperationPermission(permissionCtx, 'listing:unpublish')
     : false
+  const canPublish = permissionCtx ? hasOperationPermission(permissionCtx, 'listing:publish') : false
 
   const rows: ListingRow[] = (result.docs as Listing[]).map((doc) => {
     const building = doc.building
@@ -166,6 +169,7 @@ export default async function ListingsListView(props: ListViewServerProps) {
   return (
     <ListingsListViewClient
       rows={rows}
+      canPublish={canPublish}
       canUnpublish={canUnpublish}
       page={result.page ?? 1}
       pageSize={limit}
