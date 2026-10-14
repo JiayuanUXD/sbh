@@ -343,7 +343,8 @@ export function createBakeAfterUpload(
 
       // 配置与素材一次读齐（OPT-071）。四条渲染路径共用这一个入口，
       // 各读各的会在「素材取不到怎么办」上分叉，表现为「新上传带 logo、重刷后变文字」。
-      const { config, assets } = await resolveWatermarkRenderContext(req.payload, writer)
+      // 传 req：本 hook 在上传事务里，不带 req 会另借一条连接、池子紧时自己卡自己（OPT-112）。
+      const { config, assets } = await resolveWatermarkRenderContext(req.payload, writer, req)
       if (!config.enabled) {
         await clearIfStale()
         return doc

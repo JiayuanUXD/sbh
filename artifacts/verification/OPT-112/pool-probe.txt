@@ -1,0 +1,6 @@
+# 对照组：origin/master 的 watermark-settings.ts + plugins/watermark.ts（f0c550f）
+RESULT {"poolMax":"2","ok":false,"ms":10211,"query":"site_settings","cause":"timeout exceeded when trying to connect"}
+# 实验组：本分支（12d188d）
+RESULT {"poolMax":"2","ok":true,"ms":518,"id":19,"watermarkVersion":"5f32bdadaf4dcd2d"}
+# 实验组，默认池（20）
+RESULT {"poolMax":"(default)","ok":true,"ms":643,"id":20,"watermarkVersion":"5f32bdadaf4dcd2d"}

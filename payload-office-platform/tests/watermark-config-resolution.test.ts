@@ -2,13 +2,14 @@ import { readFileSync } from 'fs'
 import path from 'path'
 
 import { describe, expect, it } from 'vitest'
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 
 import { DEFAULT_WATERMARK_CONFIG } from '@/domain/media/watermark'
 import {
   buildPreviewWatermarkConfig,
   readWatermarkSiteSettings,
   resolveWatermarkConfig,
+  resolveWatermarkRenderContext,
 } from '@/domain/media/watermark-settings'
 
 /**
@@ -68,6 +69,25 @@ describe('resolveWatermarkConfig', () => {
   it('readWatermarkSiteSettings 端出原始的 watermark / siteName，供预览端点取站点名', async () => {
     const { payload } = fakePayload({ watermark: { enabled: true }, siteName: '示例站点' })
     expect(await readWatermarkSiteSettings(payload)).toMatchObject({ siteName: '示例站点' })
+  })
+
+  /**
+   * OPT-112 E1/E2：上传 hook 跑在 `payload.update` 的事务里，那次 update 已经占住一条连接。
+   * 读设置不带 `req` 就会**另借一条**——池子紧张时事务拿着连接等第二条，自己卡自己，
+   * 生产上一天约 60 张图因此失败（`select "site_settings"` 拿连接超时）。
+   * 调用方给了 `req` 就必须原样交给 `findGlobal`，复用事务那条连接。
+   */
+  it('调用方给了 req 就透传给 findGlobal（复用事务连接，不另借）', async () => {
+    const { payload, calls } = fakePayload({ watermark: { enabled: true } })
+    const req = { transactionID: 'tx-1' } as unknown as PayloadRequest
+
+    await resolveWatermarkConfig(payload, req)
+    await resolveWatermarkRenderContext(payload, { get: async () => null, put: async () => {} }, req)
+
+    expect(calls).toHaveLength(2)
+    for (const call of calls) {
+      expect((call as { req?: unknown }).req).toBe(req)
+    }
   })
 })
 

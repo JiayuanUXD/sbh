@@ -1,0 +1,30 @@
+{
+  "origin": "http://localhost:3790",
+  "phase": "view",
+  "measuredAt": "2026-10-14T09:52:19.936Z",
+  "steps": [
+    {
+      "label": "loaded",
+      "buttonText": "重刷全部房源图",
+      "buttonDisabled": false,
+      "lines": [
+        "已完成 47 / 47 张",
+        "全部已是当前参数。改了上面的参数并保存后，再点这里重刷。",
+        "先保存上面的参数，再点这里。只处理「素材用途 = 房源/楼盘实景」的图片。"
+      ],
+      "screenshot": "walk-view-loaded.png"
+    }
+  ],
+  "consoleErrors": [
+    "http://localhost:3790/admin :: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+    "http://localhost:3790/admin/globals/site-settings :: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+  ],
+  "failedRequests": [
+    "http://localhost:3790/api/admin-navigation :: net::ERR_ABORTED",
+    "http://localhost:3790/api/dashboard-stats :: net::ERR_ABORTED",
+    "https://www.gravatar.com/avatar/938804e3afdf0126de83e574aedbe300 :: net::ERR_TUNNEL_CONNECTION_FAILED",
+    "http://localhost:3790/api/dashboard-stats :: net::ERR_ABORTED",
+    "http://localhost:3790/api/admin-navigation :: net::ERR_ABORTED",
+    "https://www.gravatar.com/avatar/938804e3afdf0126de83e574aedbe300 :: net::ERR_TUNNEL_CONNECTION_FAILED"
+  ]
+}

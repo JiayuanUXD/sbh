@@ -303,6 +303,35 @@ describe('bakeAfterUpload 维持 watermark.version 不变量', () => {
 })
 
 /**
+ * OPT-112 E1/E2：本 hook 跑在 `payload.update` 的事务里。读水印设置若不带 `req`，
+ * `findGlobal` 会另借一条连接——事务那条还被自己占着，池子一紧就互等到超时，
+ * 生产上一天约 60 张图因此重刷失败。必须把 hook 自己的 `req` 交下去。
+ */
+describe('bakeAfterUpload 读水印设置复用上传事务的连接', () => {
+  it('findGlobal 拿到的就是 hook 的 req', async () => {
+    const globalCalls: Array<Record<string, unknown>> = []
+    const req = {
+      context: { [WATERMARK_CONTEXT_KEY]: Buffer.from('fresh') } as Record<string, unknown>,
+      transactionID: 'tx-upload',
+      payload: {
+        findGlobal: async (args: Record<string, unknown>) => {
+          globalCalls.push(args)
+          return { watermark: { enabled: false }, siteName: '商办荟' }
+        },
+        update: async () => ({}),
+      },
+    }
+    const hook = createBakeAfterUpload(() => ({ put: async () => {}, get: async () => null }))
+    const doc = { id: 3, filename: 'office.jpg', mimeType: 'image/jpeg', usage: 'listing-photo', watermark: null }
+
+    await hook({ doc, req, operation: 'update' } as unknown as Parameters<typeof bakeAfterUpload>[0])
+
+    expect(globalCalls).toHaveLength(1)
+    expect(globalCalls[0].req).toBe(req)
+  })
+})
+
+/**
  * Payload 的 Local API **每次**嵌套调用都会把 `req.context` 换成新对象
  * （`utilities/createLocalReq.js:86` 调 `getRequestContext`，第 4-20 行三个分支
  * 全部返回新对象，从不复用同一个引用），并且是在**调用方传进去的那个 req 上原地改**

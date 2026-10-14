@@ -13,7 +13,7 @@
  * 与共享实现一致，漂移要几个月后才显形。
  */
 
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 
 import {
   DEFAULT_WATERMARK_CONFIG,
@@ -37,12 +37,23 @@ export type WatermarkSiteSettings = { watermark?: unknown; siteName?: string | n
  * `resolveWatermarkRenderContext` 因此不需要为读素材再查一次库。
  *
  * `tests/watermark-config-resolution.test.ts` 钉住这条：改回 depth 0 会红。
+ *
+ * ## `req`：在事务里调用就必须传（OPT-112）
+ *
+ * 上传 hook 跑在 `payload.update` 开的事务里，事务已经占住一条连接。不带 `req` 的
+ * `findGlobal` 会**另借一条**：池子紧张时事务拿着连接等第二条，自己卡自己，直到
+ * 「timeout exceeded when trying to connect」——2026-10 生产重刷一天约 60 张图就是这么失败的。
+ * 带上 `req` 即复用事务那条连接。不在事务里的调用方（路由、任务入口、脚本）不必传。
  */
-export async function readWatermarkSiteSettings(payload: Payload): Promise<WatermarkSiteSettings> {
+export async function readWatermarkSiteSettings(
+  payload: Payload,
+  req?: PayloadRequest,
+): Promise<WatermarkSiteSettings> {
   return (await payload.findGlobal({
     slug: 'site-settings',
     depth: 1,
     overrideAccess: true,
+    ...(req ? { req } : {}),
   })) as WatermarkSiteSettings
 }
 
@@ -53,8 +64,8 @@ export async function readWatermarkSiteSettings(payload: Payload): Promise<Water
  * 这种极难查的错位；`watermark.version` 是这份配置的哈希，读法不同还会让版本判定永远不命中，
  * 续跑退化成全量重烘且没有任何报错。
  */
-export async function resolveWatermarkConfig(payload: Payload): Promise<WatermarkConfig> {
-  const settings = await readWatermarkSiteSettings(payload)
+export async function resolveWatermarkConfig(payload: Payload, req?: PayloadRequest): Promise<WatermarkConfig> {
+  const settings = await readWatermarkSiteSettings(payload, req)
   return mergeWatermarkConfig(settings?.watermark, settings?.siteName)
 }
 
@@ -221,8 +232,9 @@ async function loadAsset(doc: WatermarkMediaDoc, writer: MediaWriter): Promise<W
 export async function resolveWatermarkRenderContext(
   payload: Payload,
   writer: MediaWriter,
+  req?: PayloadRequest,
 ): Promise<WatermarkRenderContext> {
-  const settings = await readWatermarkSiteSettings(payload)
+  const settings = await readWatermarkSiteSettings(payload, req)
   const config = mergeWatermarkConfig(settings?.watermark, settings?.siteName)
 
   const stored = (settings?.watermark ?? {}) as Record<string, any>

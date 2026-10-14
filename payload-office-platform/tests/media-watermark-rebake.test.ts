@@ -343,6 +343,16 @@ describe('rebakeWatermarkTask 的游标推进', () => {
       // watermark: null，与具体哈希无关。
       findGlobal: async () => ({ watermark: { enabled } }),
       find: async () => ({ docs, hasNextPage }),
+      // 段锁（OPT-112 T5，`runWithSegmentLock`）：本组只锁游标算术，锁恒能拿到、job 恒在。
+      db: {
+        pool: {
+          connect: async () => ({
+            query: async (text: string) =>
+              text.includes('pg_try_advisory_xact_lock') ? { rows: [{ locked: true }] } : { rows: [{}], rowCount: 1 },
+            release: () => {},
+          }),
+        },
+      },
       findByID: async ({ id }: { id: number }) => {
         findByIdCalls.push(id)
         return byId.get(id)
@@ -357,6 +367,7 @@ describe('rebakeWatermarkTask 的游标推进', () => {
       },
       logger: {
         error: () => {},
+        info: () => {},
         warn: (...args: unknown[]) => {
           warnings.push(args.map((arg) => (typeof arg === 'string' ? arg : String(arg))).join(' '))
         },
@@ -389,7 +400,7 @@ describe('rebakeWatermarkTask 的游标推进', () => {
   async function run(payload: Payload, startAfterId?: number) {
     const { handler } = rebakeWatermarkTask
     if (typeof handler !== 'function') throw new Error('handler 必须是函数')
-    const result = (await handler({ input: { startAfterId }, req: { payload } } as never)) as {
+    const result = (await handler({ input: { startAfterId }, job: { id: 1 }, req: { payload } } as never)) as {
       output: { lastScannedId: number; hasNextPage: boolean; skipped: number; processed: number }
     }
     return result.output

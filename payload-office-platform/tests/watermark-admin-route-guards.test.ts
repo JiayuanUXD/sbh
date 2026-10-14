@@ -13,9 +13,11 @@ const authMock = vi.fn()
 const findMock = vi.fn()
 const findGlobalMock = vi.fn()
 const jobsQueueMock = vi.fn()
+const countMock = vi.fn()
 
 const payload = {
   auth: authMock,
+  count: countMock,
   find: findMock,
   findGlobal: findGlobalMock,
   jobs: { queue: jobsQueueMock },
@@ -29,8 +31,10 @@ vi.mock('payload', async (importOriginal) => {
   }
 })
 
+import { getPayload } from 'payload'
+
 import { GET as watermarkPreviewGet } from '@/app/api/watermark-preview/route'
-import { POST as watermarkRebakePost } from '@/app/api/watermark-rebake/route'
+import { GET as watermarkRebakeGet, POST as watermarkRebakePost } from '@/app/api/watermark-rebake/route'
 
 /** 登录态有效、但没有任何角色——`site_settings:manage` 自然不在权限集合里。 */
 const NO_PERMISSION_USER = {
@@ -69,6 +73,9 @@ beforeEach(() => {
   findMock.mockReset()
   findGlobalMock.mockReset()
   jobsQueueMock.mockReset()
+  countMock.mockReset()
+  // 缺省：没有在跑的重刷链。
+  countMock.mockResolvedValue({ totalDocs: 0 })
 })
 
 describe('GET /api/watermark-preview 权限守卫', () => {
@@ -126,6 +133,106 @@ describe('POST /api/watermark-rebake 水印开关状态', () => {
     expect(response.status).toBe(200)
     expect(body.queued).toBe(true)
     expect(jobsQueueMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * OPT-112 E5/E6：生产上运营「点了没反应」就再点，每点一次就多开一条从 id 0 起步的链，
+ * 多链并行既浪费又有竞态。已有未结束的链时，路由必须如实回「在跑」而不是再排一条。
+ */
+describe('POST /api/watermark-rebake 已有链在跑', () => {
+  it('有未结束的重刷段 → 不排队，返回 queued:false / reason:running', async () => {
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockResolvedValue({ watermark: { enabled: true }, siteName: '商办荟' })
+    countMock.mockImplementation(async ({ collection }: { collection: string }) => ({
+      totalDocs: collection === 'payload-jobs' ? 1 : 0,
+    }))
+
+    const response = await watermarkRebakePost(
+      new Request('http://localhost/api/watermark-rebake', { method: 'POST' }),
+    )
+    const body = (await response.json()) as { queued: boolean; reason?: string }
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({ queued: false, reason: 'running' })
+    expect(jobsQueueMock).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * OPT-112 本地验收时发现：Payload 只在 `getPayload({ cron: true })` 时启动任务 cron
+ * （后台页面经 `initReq` 会带上，自定义路由默认不带）。新实例若只收到本路由的请求，
+ * 排进去的重刷段、要回收的陈旧段都没人跑。与 `supply-submissions` 路由同一做法。
+ */
+describe('/api/watermark-rebake 启动本实例的任务 cron', () => {
+  it('POST 与 GET 都以 cron: true 取 payload', async () => {
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockResolvedValue({ watermark: { enabled: true }, siteName: '商办荟' })
+    vi.mocked(getPayload).mockClear()
+
+    await watermarkRebakePost(new Request('http://localhost/api/watermark-rebake', { method: 'POST' }))
+    await watermarkRebakeGet(new Request('http://localhost/api/watermark-rebake'))
+
+    expect(vi.mocked(getPayload).mock.calls).toHaveLength(2)
+    for (const [options] of vi.mocked(getPayload).mock.calls) {
+      expect(options).toMatchObject({ cron: true })
+    }
+  })
+})
+
+/** OPT-112 E7：按钮上要看得到「已完成 / 总数」和是否在跑。 */
+describe('GET /api/watermark-rebake 进度', () => {
+  const get = () => watermarkRebakeGet(new Request('http://localhost/api/watermark-rebake'))
+
+  it('未登录 → 401', async () => {
+    authMock.mockResolvedValue({ user: null })
+    expect((await get()).status).toBe(401)
+    expect(countMock).not.toHaveBeenCalled()
+  })
+
+  it('登录但无 site_settings:manage → 403，不查任何计数', async () => {
+    authMock.mockResolvedValue({ user: NO_PERMISSION_USER })
+    expect((await get()).status).toBe(403)
+    expect(countMock).not.toHaveBeenCalled()
+  })
+
+  it('开关关闭 → 只回 enabled:false，不数图', async () => {
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockResolvedValue({ watermark: { enabled: false }, siteName: '商办荟' })
+
+    const response = await get()
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ enabled: false })
+    expect(countMock).not.toHaveBeenCalled()
+  })
+
+  it('开关开启 → 回总数、已完成数与是否在跑', async () => {
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockResolvedValue({ watermark: { enabled: true }, siteName: '商办荟' })
+    countMock.mockImplementation(async ({ collection, where }: { collection: string; where: unknown }) => {
+      if (collection === 'payload-jobs') return { totalDocs: 1 }
+      return { totalDocs: JSON.stringify(where).includes('watermark.version') ? 40 : 100 }
+    })
+
+    const response = await get()
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ enabled: true, total: 100, done: 40, running: true })
+  })
+
+  it('计数抛错 → 500 带原因（已过权限校验），而不是让按钮卡在加载中', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockResolvedValue({ watermark: { enabled: true }, siteName: '商办荟' })
+    countMock.mockRejectedValue(new Error('timeout exceeded when trying to connect'))
+
+    const response = await get()
+    const body = (await response.json()) as { error: string; message: string }
+
+    expect(response.status).toBe(500)
+    expect(body.message).toContain('timeout exceeded')
+    consoleError.mockRestore()
   })
 })
 

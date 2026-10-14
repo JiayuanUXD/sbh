@@ -1,0 +1,4 @@
+CHECK {"filename":"opt112-fixture-1791970385855-4.jpg","storedEqualsOneLayerFromBackup":true,"storedEqualsTwoLayers":false}
+CHECK {"filename":"opt112-fixture-1791970385855-1.jpg","storedEqualsOneLayerFromBackup":true,"storedEqualsTwoLayers":false}
+CHECK {"filename":"opt112-fixture-1791970385855-20.jpg","storedEqualsOneLayerFromBackup":true,"storedEqualsTwoLayers":false}
+CHECK {"filename":"opt112-fixture-1791970385855-45.jpg","storedEqualsOneLayerFromBackup":true,"storedEqualsTwoLayers":false}

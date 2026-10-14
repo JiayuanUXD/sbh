@@ -1,0 +1,57 @@
+# Task Packet：OPT-112 水印重刷链路可靠性
+
+> 状态：**已实施，待合并**（方案 A 于 2026-10-14 获用户确认：「走 A，开工」；合并上线后由用户点一次按钮）
+> 创建日期：2026-10-14
+> 来源：用户报告「后台多次点『重刷全部房源图』均未成功」，2026-10-14 查生产日志定位根因
+>
+> **For agentic workers:** 按 Task 顺序执行，每个 Task 自带测试闭环；步骤用 `- [ ]` 勾选。
+
+**目标：** 运营在「站点设置 → 图片水印」点一次「重刷全部房源图」，链条能自己跑完全表；页面上看得到「已完成 / 总数」和是否在跑；重复点不会再开第二条链。
+
+**技术栈：** Payload 3.86 Jobs Queue（autoRun cron）、upload afterChange hook、Vitest。
+
+---
+
+## 1. 现状与证据（2026-10-14，master `f0c550f`，生产日志）
+
+| # | 事实 | 证据 |
+|---|---|---|
+| E1 | 单张失败**全部**是连接池拿不到连接：`select "site_settings" …` → `timeout exceeded when trying to connect`，一天约 60 条 | 生产日志（CloudRun `sbh`，`[watermark] media … 重刷失败`） |
+| E2 | 失败的那条查询来自上传事务**内部**：`payload.update` 开事务并占住一条连接 → afterChange 里 `resolveWatermarkRenderContext(req.payload, writer)` 调 `findGlobal` **不带 `req`** → 另借一条连接。池子紧张时，事务拿着连接等第二条，自己卡自己 | `src/plugins/watermark.ts:346`、`src/domain/media/watermark-settings.ts:readWatermarkSiteSettings` |
+| E3 | 续投下一段失败即断链：`payload.jobs.queue` 没有重试，任务级 `retries: { attempts: 2 }` 无退避，池风暴里两次失败就 `hasError` | `src/domain/media/watermark-rebake.ts`（handler 尾部） |
+| E4 | 发版会杀掉正在跑的段：旧实例缩容时 job 停在 `processing = true`，`shouldAutoRun` 里没有水印任务的陈旧租约回收，这一段永远不会再被捡起，链条就此中断 | `src/payload.config.ts` `shouldAutoRun`（只回收城市合伙人 / 导入 / 同步三类） |
+| E5 | 链条断了运营只能再点，而再点**从 id 0 重新扫**：每段扫 100 行、每分钟一段，已完成的图也要一页页扫过去；一天下来只推进到 id 2000–2153 附近 | 生产日志 `startAfterId`；handler 的 `find` 只按 `id > startAfterId` 取 |
+| E6 | 重复点击会并行多条链，各链间没有串行约束；两条链同时处理同一张「无 version、无备份」的图时，存在把已烘字节写进 `media-source/` 的竞态窗口（极窄，但后果是干净原件丢失） | `rebakeChunk` 的 `backup-and-bake` 分支（读备份与读当前文件之间无锁） |
+| E7 | 页面上看不到进度：按钮只回「已加入队列」，之后跑没跑、跑到哪、断没断全无反馈 | `src/components/admin/WatermarkRebakeButton.tsx` |
+
+排除项：HTTP 端点失败（无 5xx）、开关关闭（无对应 warn）、autoRun 未启用（日志可见 cron 在跑）。
+
+**旁支（不在本工作项）：** 同一个 job 被两个实例同时执行，引发 `payload_jobs_log` 插入失败与 `updateJobs` 的 `Cannot use 'in' operator to search for '_rels' in undefined`，影响**所有**任务类型。起初以为只发生在切流退场窗口（旧实例仍跑 cron）；独立评审读源码、本地两实例实测（`artifacts/verification/OPT-112/verification.md` §6）确认根因是 Payload 3.86 drizzle `updateJobs` 认领不复核 `processing = false`，**只要有两个以上实例就会发生**。水印重刷由 T5 的段锁兜住，其他任务单独立项。
+
+## 2. 方案
+
+| # | 改动 | 对应 |
+|---|---|---|
+| T1 | `readWatermarkSiteSettings` / `resolveWatermarkConfig` / `resolveWatermarkRenderContext` 接受可选 `req`，透传给 `findGlobal`；上传 hook 传自己的 `req`，复用事务连接 | E1 E2 |
+| T2 | 任务按「`usage = listing-photo` 且 `watermark.version ≠ 当前哈希`（含 null）」在库里过滤，不再逐页扫已完成的图；重新开链的代价因此只剩真正没做完的图 | E5 |
+| T3 | 续投带退避重试（3 次）；仍失败就抛错交给任务级重试（改为 5 次、指数退避 30s 起），重跑是幂等的（T2 让已完成的图直接被过滤掉） | E3 |
+| T4 | `shouldAutoRun` 增加水印任务的陈旧租约回收（15 分钟，与同步 / 导入同口径）；每放回一次累计一次尝试，达 3 次再死掉就标失败、不再放回（防「自己把进程弄死」的段反复弄死实例） | E4 |
+| T5 | 同一时刻只跑一段：事务级 advisory lock（`runWithSegmentLock`）。先拿 `(命名空间, job id)`：拿不到 = 同一 job 的另一份副本在跑 → 待命，持锁者跑完（行已完成）才以 duplicate 退出、不续投，持锁者死了则接手；再拿全局段锁，拿不到就推迟 45 秒重投自己。干活期间心跳维持锁，跑完在锁内标完成再提交；事务带 `idle_in_transaction_session_timeout` = 租约，心跳停了 PG 最迟一个租约后放锁；陈旧回收跳过 job 锁仍被持有的段。（初版计数式让路被独立评审否掉；副本立刻返回、超租约丢锁两处由 Codex P1 指出，已改）| E6 |
+| T6 | 路由 `POST` 发现已有未结束的链（待跑，或在租约内处理中）就不再排队，回 `{ queued: false, reason: 'running' }`；新增 `GET` 回 `{ enabled, total, done, running }` | E5 E7 |
+| T7 | 按钮挂载即取进度，显示「已完成 X / 总数 Y」；在跑时禁用按钮、每 15 秒刷新；结束后若 `done < total` 提示剩余张数（缺备份等失败见服务日志） | E7 |
+| T8 | 重刷路由以 `getPayload({ cron: true })` 取实例（验收中发现：Payload 只在这样取时启动任务 cron，自定义路由默认不带；新实例只收到本路由请求时，排的段与要回收的陈旧段没人跑）。与 `supply-submissions` 路由同一做法 | E4 |
+
+不做：任务吞吐调优（每分钟一段、每段 20 张维持不变）；旧实例重复执行（见旁支）。
+
+## 3. 验收
+
+- [x] T1：单测证明 hook 读设置时带 `req`；本地 `DB_POOL_MAX=2`（适配器常驻借走 1 条，只剩 1 条）复现「上传带水印图 → 连接超时」，修复后同条件通过
+- [x] T2–T5：单测覆盖过滤条件、续投重试、陈旧回收 SQL（含尝试上限）；段锁有真库测试；本地 `kill -9` 模拟发版杀段，回收后链条跑完，被打断的图只有一层水印；两实例共用一库跑两条链，段锁持有者恒 ≤ 1、链不翻倍，重复认领 2 次均被识别
+- [x] T6–T7：本地浏览器走一遍：进度显示、点击后转「进行中」、重复点被拒、跑完数字到齐
+- [x] T8：新进程只请求过 `/api/health` 时段不跑；一次未登录 GET 本路由后下一个整分钟即跑
+- [x] 全量闸门：typecheck / lint / test / migrate:dry-run / build
+- [ ] 合并上线后：用户点一次按钮；次日看进度与日志
+
+## 4. 证据
+
+`artifacts/verification/OPT-112/verification.md`（复现脚本、时间线、截图同目录）

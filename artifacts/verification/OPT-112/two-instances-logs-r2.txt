@@ -1,0 +1,38 @@
+# 第二轮两个进程日志里与本改动相关的行（ANSI 色码已去，堆栈省略）
+== 进程 A2
+[10:56:00] ERROR: Error running job Task: reconcile-city-partner-notification-outbox id: 105 attempt 1
+[10:56:00] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:57:15] INFO: [watermark] 重刷段 job 106 已由另一份副本处理，本副本不做事
+[10:57:15] ERROR: Error running job Task: rebake-media-watermark id: 106 attempt 1
+[10:57:15] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:58:00] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:59:00] ERROR: Error running job Task: reconcile-city-partner-notification-outbox id: 118 attempt 1
+[10:59:00] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+== 进程 B2
+[10:56:00] INFO: [watermark] 重刷段 job 102 让路：另一段正在跑，45 秒后再试
+[10:57:00] ERROR: Error running job Task: reconcile-city-partner-notification-outbox id: 110 attempt 1
+[10:57:00] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:57:00] ERROR: Error running job Task: reconcile-city-partner-notification-outbox id: 109 attempt 1
+[10:57:30] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:58:10] INFO: [watermark] 重刷段 job 107 已由另一份副本处理，本副本不做事
+[10:58:10] ERROR: Error running job Task: rebake-media-watermark id: 107 attempt 1
+[10:58:10] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:59:05] INFO: [watermark] 重刷段 job 111 已由另一份副本处理，本副本不做事
+[10:59:05] ERROR: Error running job Task: rebake-media-watermark id: 111 attempt 1
+[10:59:05] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
