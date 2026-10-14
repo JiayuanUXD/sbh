@@ -58,8 +58,23 @@ export const MEDIA_WATERMARK_CHUNK = 20
  */
 export const MEDIA_WATERMARK_JOB_LEASE_MS = 15 * 60 * 1000
 
-/** 有更早的段在跑时，本段推迟多久再试（与 cron 的 60 秒一轮对齐）。 */
-export const MEDIA_WATERMARK_DEFER_MS = 60_000
+/**
+ * 别的段正持锁时，本段推迟多久再试。
+ *
+ * 短于一分钟是刻意的：cron 每个整分钟一轮，runJobs 只捡 `waitUntil < now` 的段，
+ * 而段要在整分钟之后几秒才开跑。推迟 60 秒会落到下一个整分钟之后、再等一轮，实际两分钟。
+ */
+export const MEDIA_WATERMARK_DEFER_MS = 45_000
+
+/**
+ * 陈旧回收的上限：累计尝试（中途死掉被放回、抛错后重试都算）达到这个数之后再死掉，
+ * 就标失败、不再放回。段若是自己把进程弄死的（超大图把 sharp 撑爆内存之类），无上限地
+ * 放回去就是每 16 分钟弄死一个同时承载网页流量的实例，永远如此。
+ */
+export const MEDIA_WATERMARK_RECOVERY_MAX_TRIES = 3
+
+/** 段锁的 advisory lock 命名空间（两段式键的第一段，'WMRK'）。第二段：0 = 全局段锁，其余 = job id。 */
+export const MEDIA_WATERMARK_LOCK_NAMESPACE = 0x574d524b
 
 /**
  * 续投下一段失败后的退避（OPT-112 E3）。失败几乎都是池子拿连接超时（10s），
@@ -299,28 +314,49 @@ export async function queueRebakeSegment(
 
 /**
  * 发版杀掉的段放回队列（OPT-112 E4）。由 `shouldAutoRun` 每轮调用，写法与
- * `recoverStaleSourceSyncJobs` 相同。
+ * `recoverStaleSourceSyncJobs` 相同，另加尝试上限（见 `MEDIA_WATERMARK_RECOVERY_MAX_TRIES`）。
  *
  * 旧实例缩容时正在跑的段停在 `processing = true`，runJobs 只捡 `processing = false` 的 job，
  * 不放回去这一段就永远没人碰——链条断在这里，而且没有任何报错。
+ *
+ * 返回放回队列的段数（到上限被标失败的不算）。
  */
 export async function recoverStaleWatermarkRebakeJobs(payload: Payload, now = new Date()): Promise<number> {
   const cutoff = new Date(now.getTime() - MEDIA_WATERMARK_JOB_LEASE_MS).toISOString()
-  const result = await payload.db.pool.query<{ id: number }>(
+  const result = await payload.db.pool.query<{ id: number; has_error: boolean }>(
     `
     UPDATE payload_jobs
-    SET processing = false, updated_at = NOW()
+    SET processing = false,
+        total_tried = COALESCE(total_tried, 0) + 1,
+        has_error = COALESCE(total_tried, 0) + 1 >= $4,
+        error = CASE WHEN COALESCE(total_tried, 0) + 1 >= $4
+                     THEN jsonb_build_object('message', $5::text)
+                     ELSE error END,
+        updated_at = NOW()
     WHERE queue = $1
       AND updated_at <= $2
       AND task_slug = $3
       AND processing = true
       AND completed_at IS NULL
       AND has_error IS NOT TRUE
-    RETURNING id
+    RETURNING id, has_error
   `,
-    [MEDIA_WATERMARK_QUEUE, cutoff, MEDIA_WATERMARK_TASK],
+    [
+      MEDIA_WATERMARK_QUEUE,
+      cutoff,
+      MEDIA_WATERMARK_TASK,
+      MEDIA_WATERMARK_RECOVERY_MAX_TRIES,
+      `重刷段累计 ${MEDIA_WATERMARK_RECOVERY_MAX_TRIES} 次尝试后仍中途死掉，已停止放回`,
+    ],
   )
-  return result.rowCount ?? result.rows.length
+  const givenUp = result.rows.filter((row) => row.has_error).map((row) => row.id)
+  if (givenUp.length > 0) {
+    payload.logger.error(
+      `[watermark] 重刷段 ${givenUp.join(', ')} 累计 ${MEDIA_WATERMARK_RECOVERY_MAX_TRIES} 次尝试后仍中途死掉，` +
+        '已标失败、不再放回。多半是某张图让进程崩溃（内存等），须人工排查；排查后再点「重刷全部房源图」。',
+    )
+  }
+  return result.rows.length - givenUp.length
 }
 
 /** 未结束（未完成、未报错）的重刷段。 */
@@ -352,30 +388,99 @@ export async function hasActiveRebakeChain(payload: Payload, now = new Date()): 
   return totalDocs > 0
 }
 
+type LockClient = {
+  query: (text: string, values?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>>; rowCount?: number | null }>
+  release: (error?: Error | boolean) => void
+  on?: (event: 'error', listener: (error: Error) => void) => unknown
+  removeListener?: (event: 'error', listener: (error: Error) => void) => unknown
+}
+
+export type SegmentLockResult<T> = { status: 'ran'; value: T } | { status: 'busy' } | { status: 'duplicate' }
+
 /**
- * 有没有 id 比自己小、仍在租约内处理中的段（OPT-112 E6）。
+ * 同一时刻只跑一段（OPT-112 E6，评审 Important #1 后改为 advisory lock）。
  *
- * 多条链并行时，两段同时处理同一张「无 version、无备份」的图存在竞态：A 读备份为空之后、
- * 读当前文件之前，B 恰好烘完并覆盖了母版，A 就会把带水印的字节当干净原件写进 `media-source/`。
- * 只让 id 最小的那段跑：两段同时开跑时恰好一段让、一段跑，不会互相让到谁都不跑。
+ * ## 为什么要
  *
- * 管不到的：同一个 job 被两个实例同时捡起（切流退场窗口里的旧实例，见 OPT-112 旁支），
- * 两边 id 相同，这里看不出来。
+ * 两段同时处理同一张「无 version、无备份」的图存在竞态：A 读备份为空之后、读当前文件之前，
+ * B 恰好烘完并覆盖了母版，A 就会把带水印的字节当干净原件写进 `media-source/`。
+ *
+ * ## 为什么不是「数一数有没有别的段在跑」
+ *
+ * 初版按「有没有 id 更小、在租约内处理中的段」决定让不让，评审指出三处漏：
+ *
+ *   - id 在排队时就定了，而段因推迟 / 退避 / 回收才变得可跑：id 小的段可以在 id 大的段
+ *     跑到一半时才开跑，两边都判「没有更小的在跑」；
+ *   - 先查后跑：两个实例在同一个整分钟上同时查，都还没看见对方；
+ *   - Payload 3.86 的 drizzle `updateJobs` 认领 job 是「先查待跑的、再按 id 逐条更新」，
+ *     不复核 `processing = false`：**同一个 job** 会被两个实例同时捡起，id 相同，计数看不出来，
+ *     而每份副本各续投一段，链条就此翻倍。
+ *
+ * ## 怎么做
+ *
+ * 借一条专用连接开事务，依次 `pg_try_advisory_xact_lock`：
+ *
+ *   1. `(命名空间, job id)`：拿不到 = 这个 job 的另一份副本正在跑 → `duplicate`，调用方什么都不做、
+ *      也不续投（那份副本会续投）。拿到之后再确认这一行还在且未完成：另一份副本若已跑完，
+ *      Payload 会把它标完成并删除，迟到的副本据此识别出自己 → 同样 `duplicate`。
+ *   2. `(命名空间, 0)`：全局段锁。拿不到 = 别的段在跑 → `busy`，调用方推迟重投自己。
+ *
+ * 持锁期间这条连接处于「事务内空闲」，事务上 `SET LOCAL idle_in_transaction_session_timeout`
+ * 为租约：进程被杀时连接断开、锁随会话立即释放；主机整个消失、TCP 不回 RST 时，PG 最迟一个
+ * 租约后结束会话释放锁——与 `recoverStaleWatermarkRebakeJobs` 放回队列的时点一致。
+ * 代价是段运行期间多占一条池连接（每实例同一队列同一时刻只跑一段）。
+ *
+ * 没堵上的窗口：本段（含续投）做完、提交释放锁之后，到 Payload 把这个 job 标完成之前
+ * （毫秒级），若同一 job 的迟到副本恰好此刻拿锁，会把这一段再跑一遍、多续投一条链。后果只是
+ * 多扫几页（候选在库里按版本过滤，已烘的图不会再烘），不值得为它再加一层。
+ *
+ * `leaseMs` 只为测试注入（真库测试用 1 秒验证「会话死了锁会被放掉」）。
  */
-async function hasEarlierRunningSegment(payload: Payload, selfId: number | string, now: Date): Promise<boolean> {
-  const { totalDocs } = await payload.count({
-    collection: 'payload-jobs',
-    overrideAccess: true,
-    where: {
-      and: [
-        ...UNFINISHED_SEGMENT,
-        { processing: { equals: true } },
-        { updatedAt: { greater_than: leaseCutoff(now) } },
-        { id: { less_than: selfId } },
-      ],
-    },
-  })
-  return totalDocs > 0
+export async function runWithSegmentLock<T>(
+  payload: Payload,
+  jobId: number,
+  work: () => Promise<T>,
+  { leaseMs = MEDIA_WATERMARK_JOB_LEASE_MS }: { leaseMs?: number } = {},
+): Promise<SegmentLockResult<T>> {
+  const client = (await payload.db.pool.connect()) as unknown as LockClient
+  // 持锁会话可能被 PG 按「事务内空闲上限」结束：此时 error 事件发在借出的 Client 上。
+  // pool-error-handler 已挂监听（并会把连接归还销毁），这里再挂一个空监听，保证脱离它
+  // （测试、脚本）时也不会因为未处理的 'error' 事件让进程退出。
+  const onError = () => {}
+  client.on?.('error', onError)
+  let broken = false
+  try {
+    await client.query('BEGIN')
+    await client.query(`SET LOCAL idle_in_transaction_session_timeout = ${Math.trunc(leaseMs)}`)
+    const tryLock = async (key: number): Promise<boolean> => {
+      const { rows } = await client.query('SELECT pg_try_advisory_xact_lock($1::int, $2::int) AS locked', [
+        MEDIA_WATERMARK_LOCK_NAMESPACE,
+        key,
+      ])
+      return rows[0]?.locked === true
+    }
+    if (!(await tryLock(jobId))) return { status: 'duplicate' }
+    const alive = await client.query('SELECT 1 AS alive FROM payload_jobs WHERE id = $1 AND completed_at IS NULL', [
+      jobId,
+    ])
+    if ((alive.rowCount ?? alive.rows.length) === 0) return { status: 'duplicate' }
+    if (!(await tryLock(0))) return { status: 'busy' }
+    return { status: 'ran', value: await work() }
+  } finally {
+    // 收尾失败（会话已被 PG 结束、连接已被 pool-error-handler 归还）不许盖掉本段的结果：
+    // 锁随会话一起没了，要的效果已经达到。
+    try {
+      await client.query('COMMIT')
+    } catch {
+      broken = true
+    }
+    client.removeListener?.('error', onError)
+    try {
+      client.release(broken ? true : undefined)
+    } catch {
+      // 已被 pool-error-handler 归还过：pg-pool 的重复归还会抛错，安全忽略。
+    }
+  }
 }
 
 export type RebakeProgress = { total: number; done: number; running: boolean }
@@ -441,66 +546,78 @@ export const rebakeWatermarkTask: TaskConfig<typeof MEDIA_WATERMARK_TASK> = {
       }
     }
 
-    // 同一时刻只跑一段（见 `hasEarlierRunningSegment`）。让路不是丢段：原样推迟重投自己。
-    const now = new Date()
-    if (await hasEarlierRunningSegment(payload, job.id, now)) {
-      await queueRebakeSegment(payload, {
-        startAfterId,
-        waitUntil: new Date(now.getTime() + MEDIA_WATERMARK_DEFER_MS),
-      })
-      return {
-        output: {
-          processed: 0,
-          skipped: 0,
-          failed: 0,
-          unrecoverable: 0,
-          lastScannedId: startAfterId,
-          hasNextPage: true,
-          deferred: true,
-        },
-      }
-    }
-
     const currentVersion = computeWatermarkVersion(config)
 
-    const page = await payload.find({
-      collection: 'media',
-      depth: 0,
-      limit: MEDIA_WATERMARK_CHUNK * 5,
-      sort: 'id',
-      overrideAccess: true,
-      where: rebakeCandidateWhere(startAfterId, currentVersion),
+    // 同一时刻只跑一段（见 `runWithSegmentLock`）。续投也在锁里做：下一段反正要等下一个整分钟
+    // 才可能开跑，放在锁里不耽误它，却能把「本段已续投、job 还没标完成」这个窗口收在锁内——
+    // 窗口里同一 job 的迟到副本拿不到锁，不会再跑一遍、多续投一条链。
+    const locked = await runWithSegmentLock(payload, Number(job.id), async () => {
+      const segment = await rebakeSegment(payload, startAfterId, currentVersion)
+      if (segment.hasMore) {
+        await queueRebakeSegment(payload, { startAfterId: segment.lastScannedId })
+      }
+      return segment
     })
-    const docs = page.docs as unknown as RebakeCandidate[]
-    const candidates = selectRebakeTargets({ docs, currentVersion })
-    const ids = candidates.slice(0, MEDIA_WATERMARK_CHUNK)
-    const result = await rebakeChunk({ payload, ids, currentVersion })
-
-    // 本页候选比分块上限多，说明第 CHUNK+1 个及其之后的行本轮根本没检查。
-    const truncated = candidates.length > ids.length
-
-    // 游标 = 本轮**实际做出判定**的最后一行，不是本页扫到的最后一行。
-    //
-    // 取页尾会在 truncated 时把没检查过的候选连同游标一起跨过去：一趟链条走完全表却
-    // 只处理了其中一部分（一页扫 100 只做 20，1.7 万张要人点五次）。
-    // 反过来取「最后一个**成功**的 id」又会在 unrecoverable（永远写不上 version）这类图上
-    // 原地打转。取「最后一个判定过的 id」两头都避开——判定与结果无关，失败/跳过的行同样
-    // 被跨过，游标严格递增（docs 按 id 升序，ids 保序，故它恒 > startAfterId），链条必然终止。
-    const lastScannedId = truncated
-      ? ids[ids.length - 1]
-      : docs.length > 0
-        ? docs[docs.length - 1].id
-        : startAfterId
-
-    // truncated 时即使 hasNextPage=false 也必须续投：页内还有候选没处理。
-    // 只按 page.hasNextPage 判，会把整张表**最后一页**的余量永久丢掉。
-    const hasMore = truncated || page.hasNextPage
-    if (hasMore) {
-      await queueRebakeSegment(payload, { startAfterId: lastScannedId })
+    const idle = { processed: 0, skipped: 0, failed: 0, unrecoverable: 0, lastScannedId: startAfterId }
+    if (locked.status === 'duplicate') {
+      // 这个 job 的另一份副本在跑（或已跑完），续投由它负责；这里再投就是多一条链。
+      payload.logger.info(`[watermark] 重刷段 job ${job.id} 已由另一份副本处理，本副本不做事`)
+      return { output: { ...idle, hasNextPage: false, duplicate: true } }
     }
+    if (locked.status === 'busy') {
+      // 让路不是丢段：原样推迟重投自己。
+      payload.logger.info(`[watermark] 重刷段 job ${job.id} 让路：另一段正在跑，${MEDIA_WATERMARK_DEFER_MS / 1000} 秒后再试`)
+      await queueRebakeSegment(payload, {
+        startAfterId,
+        waitUntil: new Date(Date.now() + MEDIA_WATERMARK_DEFER_MS),
+      })
+      return { output: { ...idle, hasNextPage: true, deferred: true } }
+    }
+    const { result, lastScannedId, hasMore } = locked.value
 
     // hasNextPage 报的是「游标之后还有活要干、已续投」，不是那次 find 的原始分页标志——
     // truncated 时两者不同，而调用方关心的是链条有没有继续。
     return { output: { ...result, lastScannedId, hasNextPage: hasMore } }
   },
+}
+
+/** 一段的实际工作：取候选、重刷、算游标。只在持有段锁时调用。 */
+async function rebakeSegment(
+  payload: Payload,
+  startAfterId: number,
+  currentVersion: string,
+): Promise<{ result: RebakeResult; lastScannedId: number; hasMore: boolean }> {
+  const page = await payload.find({
+    collection: 'media',
+    depth: 0,
+    limit: MEDIA_WATERMARK_CHUNK * 5,
+    sort: 'id',
+    overrideAccess: true,
+    where: rebakeCandidateWhere(startAfterId, currentVersion),
+  })
+  const docs = page.docs as unknown as RebakeCandidate[]
+  const candidates = selectRebakeTargets({ docs, currentVersion })
+  const ids = candidates.slice(0, MEDIA_WATERMARK_CHUNK)
+  const result = await rebakeChunk({ payload, ids, currentVersion })
+
+  // 本页候选比分块上限多，说明第 CHUNK+1 个及其之后的行本轮根本没检查。
+  const truncated = candidates.length > ids.length
+
+  // 游标 = 本轮**实际做出判定**的最后一行，不是本页扫到的最后一行。
+  //
+  // 取页尾会在 truncated 时把没检查过的候选连同游标一起跨过去：一趟链条走完全表却
+  // 只处理了其中一部分（一页扫 100 只做 20，1.7 万张要人点五次）。
+  // 反过来取「最后一个**成功**的 id」又会在 unrecoverable（永远写不上 version）这类图上
+  // 原地打转。取「最后一个判定过的 id」两头都避开——判定与结果无关，失败/跳过的行同样
+  // 被跨过，游标严格递增（docs 按 id 升序，ids 保序，故它恒 > startAfterId），链条必然终止。
+  const lastScannedId = truncated
+    ? ids[ids.length - 1]
+    : docs.length > 0
+      ? docs[docs.length - 1].id
+      : startAfterId
+
+  // truncated 时即使 hasNextPage=false 也必须续投：页内还有候选没处理。
+  // 只按 page.hasNextPage 判，会把整张表**最后一页**的余量永久丢掉。
+  const hasMore = truncated || page.hasNextPage
+  return { result, lastScannedId, hasMore }
 }

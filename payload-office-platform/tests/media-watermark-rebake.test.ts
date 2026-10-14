@@ -343,8 +343,16 @@ describe('rebakeWatermarkTask 的游标推进', () => {
       // watermark: null，与具体哈希无关。
       findGlobal: async () => ({ watermark: { enabled } }),
       find: async () => ({ docs, hasNextPage }),
-      // 「有没有更早的段在跑」（OPT-112 T5）：本组只锁游标算术，恒为没有。
-      count: async () => ({ totalDocs: 0 }),
+      // 段锁（OPT-112 T5，`runWithSegmentLock`）：本组只锁游标算术，锁恒能拿到、job 恒在。
+      db: {
+        pool: {
+          connect: async () => ({
+            query: async (text: string) =>
+              text.includes('pg_try_advisory_xact_lock') ? { rows: [{ locked: true }] } : { rows: [{}], rowCount: 1 },
+            release: () => {},
+          }),
+        },
+      },
       findByID: async ({ id }: { id: number }) => {
         findByIdCalls.push(id)
         return byId.get(id)
@@ -359,6 +367,7 @@ describe('rebakeWatermarkTask 的游标推进', () => {
       },
       logger: {
         error: () => {},
+        info: () => {},
         warn: (...args: unknown[]) => {
           warnings.push(args.map((arg) => (typeof arg === 'string' ? arg : String(arg))).join(' '))
         },

@@ -15,6 +15,7 @@ import React from 'react'
 
 import {
   describeRebakeStatus,
+  type RebakeNotice,
   type RebakeProgressView,
   type RebakeRequestState,
 } from './watermark-rebake-status'
@@ -34,6 +35,7 @@ async function fetchProgress(): Promise<RebakeProgressView> {
 export default function WatermarkRebakeButton(): React.JSX.Element {
   const [progress, setProgress] = React.useState<RebakeProgressView>('loading')
   const [request, setRequest] = React.useState<RebakeRequestState>('idle')
+  const [notice, setNotice] = React.useState<RebakeNotice>(null)
 
   const refresh = async (): Promise<void> => {
     setProgress(await fetchProgress())
@@ -63,6 +65,7 @@ export default function WatermarkRebakeButton(): React.JSX.Element {
 
   const trigger = async (): Promise<void> => {
     setRequest('queueing')
+    setNotice(null)
     try {
       const response = await fetch('/api/watermark-rebake', { method: 'POST' })
       if (!response.ok) {
@@ -70,8 +73,9 @@ export default function WatermarkRebakeButton(): React.JSX.Element {
         return
       }
       // 路由的三种 200：排上了 / 开关关着（`disabled`）/ 已有链在跑（`running`）。
-      // 后两种都是「明确没排队」，进度刷新后按钮自会显示真实状态。
-      await response.json()
+      // 开关关着由刷新后的进度那一行说明；另两种单独回显——进度读取失败时这是唯一的反馈。
+      const body = (await response.json()) as { queued?: boolean; reason?: string }
+      setNotice(body.queued ? 'queued' : body.reason === 'running' ? 'running' : null)
       setRequest('idle')
       await refresh()
     } catch {
@@ -79,7 +83,7 @@ export default function WatermarkRebakeButton(): React.JSX.Element {
     }
   }
 
-  const view = describeRebakeStatus({ progress, request })
+  const view = describeRebakeStatus({ progress, request, notice })
 
   return (
     <div style={{ marginTop: 24 }}>

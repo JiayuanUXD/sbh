@@ -61,6 +61,29 @@ describe('describeRebakeStatus', () => {
     ).toMatchObject({ label: '正在排队…', disabled: true })
   })
 
+  /** 评审 Minor 5：POST 回的 reason 不能丢——进度读失败时，这是点击后唯一的反馈。 */
+  it('点击后路由回「已有链在跑」→ 明说没有重复排队', () => {
+    const view = describeRebakeStatus({ progress: 'error', request: 'idle', notice: 'running' })
+    expect(view.lines.join('\n')).toContain('没有重复排队')
+  })
+
+  it('点击后排上了 → 明说已加入队列（进度读失败时也有反馈）', () => {
+    const view = describeRebakeStatus({ progress: 'error', request: 'idle', notice: 'queued' })
+    expect(view.lines.join('\n')).toContain('已加入队列')
+  })
+
+  /**
+   * 评审 Minor 6：跑到一半改了参数，后半程按新参数烘，游标之前已处理的图停在旧参数，
+   * 要等这一轮跑完再点一次才会补上——在跑的时候就要说清楚，不能让人以为改了立刻全量生效。
+   */
+  it('在跑时提示：中途改参数要等本轮跑完再点一次', () => {
+    const view = describeRebakeStatus({
+      progress: { enabled: true, total: 100, done: 10, running: true },
+      request: 'idle',
+    })
+    expect(view.lines.join('\n')).toContain('跑完后再点一次')
+  })
+
   it('排队失败 → 追加失败提示，进度照常显示', () => {
     const view = describeRebakeStatus({
       progress: { enabled: true, total: 10, done: 3, running: false },

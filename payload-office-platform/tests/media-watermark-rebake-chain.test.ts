@@ -7,7 +7,9 @@ import {
   hasActiveRebakeChain,
   MEDIA_WATERMARK_DEFER_MS,
   MEDIA_WATERMARK_JOB_LEASE_MS,
+  MEDIA_WATERMARK_LOCK_NAMESPACE,
   MEDIA_WATERMARK_QUEUE,
+  MEDIA_WATERMARK_RECOVERY_MAX_TRIES,
   MEDIA_WATERMARK_REQUEUE_DELAYS_MS,
   MEDIA_WATERMARK_TASK,
   queueRebakeSegment,
@@ -32,26 +34,58 @@ const CURRENT_VERSION = computeWatermarkVersion(mergeWatermarkConfig(ENABLED.wat
 type CountArgs = { collection: string; where: Where }
 type QueueArgs = { task: string; queue: string; input: { startAfterId: number }; waitUntil?: Date }
 
+/**
+ * 段锁（`runWithSegmentLock`）在单测里的替身：按 SQL 文本回答三问——本 job 的锁拿到没有、
+ * 这一行还在不在、全局段锁拿到没有。真库上的语义由 `media-watermark-rebake-lock-postgres.test.ts` 钉住。
+ */
+type LockScript = { ownJob?: boolean; jobAlive?: boolean; segment?: boolean }
+
 afterEach(() => {
   vi.useRealTimers()
 })
+
+function fakeLockPool(lock: LockScript, sql: Array<{ text: string; values?: unknown[] }>) {
+  return {
+    connect: async () => ({
+      on: () => {},
+      removeListener: () => {},
+      release: () => {},
+      query: async (text: string, values?: unknown[]) => {
+        sql.push({ text, values })
+        if (text.includes('pg_try_advisory_xact_lock')) {
+          const segment = values?.[1] === 0
+          return { rows: [{ locked: segment ? (lock.segment ?? true) : (lock.ownJob ?? true) }] }
+        }
+        if (text.includes('FROM payload_jobs')) {
+          return lock.jobAlive === false ? { rows: [], rowCount: 0 } : { rows: [{ alive: 1 }], rowCount: 1 }
+        }
+        return { rows: [], rowCount: 0 }
+      },
+    }),
+  }
+}
 
 function chainPayload({
   countFor = () => 0,
   queue = async () => {},
   findDocs = [],
   hasNextPage = false,
+  lock = {},
 }: {
   countFor?: (args: CountArgs) => number
   queue?: (args: QueueArgs) => Promise<void>
   findDocs?: unknown[]
   hasNextPage?: boolean
+  lock?: LockScript
 } = {}) {
   const counts: CountArgs[] = []
   const finds: Array<Record<string, unknown>> = []
   const queued: QueueArgs[] = []
   const warnings: string[] = []
+  const infos: string[] = []
+  const lockSql: Array<{ text: string; values?: unknown[] }> = []
   const payload = {
+    db: { pool: fakeLockPool(lock, lockSql) },
     findGlobal: async () => ENABLED,
     count: async (args: CountArgs) => {
       counts.push(args)
@@ -70,12 +104,15 @@ function chainPayload({
     },
     logger: {
       error: () => {},
+      info: (...args: unknown[]) => {
+        infos.push(args.map(String).join(' '))
+      },
       warn: (...args: unknown[]) => {
         warnings.push(args.map(String).join(' '))
       },
     },
   } as unknown as Payload
-  return { payload, counts, finds, queued, warnings }
+  return { payload, counts, finds, queued, warnings, infos, lockSql }
 }
 
 async function runTask(payload: Payload, { jobId = 500, startAfterId = 0 } = {}) {
@@ -163,50 +200,112 @@ describe('T3：续投失败要重试，重试完仍失败就交给任务级重�
       backoff: { type: 'exponential', delay: 30_000 },
     })
   })
+
+  /** 评审 Minor 4：handler 续投下一段若退回裸 `payload.jobs.queue`，上面几条全都照绿。 */
+  it('handler 续投下一段走的是带重试的投递：首投失败、退避后成功，链条不断', async () => {
+    vi.useFakeTimers({ now: NOW })
+    let attempts = 0
+    const harness = chainPayload({
+      hasNextPage: true,
+      queue: async () => {
+        attempts++
+        if (attempts === 1) throw new Error('timeout exceeded when trying to connect')
+      },
+    })
+
+    const pending = runTask(harness.payload, { startAfterId: 300 })
+    await vi.advanceTimersByTimeAsync(MEDIA_WATERMARK_REQUEUE_DELAYS_MS[0])
+    const result = await pending
+
+    expect(attempts).toBe(2)
+    expect(harness.queued).toEqual([
+      { task: MEDIA_WATERMARK_TASK, queue: MEDIA_WATERMARK_QUEUE, input: { startAfterId: 300 } },
+    ])
+    expect(result.output).toMatchObject({ hasNextPage: true })
+  })
 })
 
 describe('T4：发版杀掉的段要被放回队列', () => {
-  /**
-   * 旧实例缩容时正在跑的段停在 `processing = true`，Payload 的 runJobs 只捡
-   * `processing = false` 的 job，这一段就永远没人再碰——链条断在这里，而且没有任何报错。
-   */
-  it('超过租约仍在 processing 的重刷段被放回队列', async () => {
+  function recoveryPayload(rows: Array<{ id: number; has_error: boolean }>) {
     const queries: Array<{ text: string; values: unknown[] }> = []
+    const errors: string[] = []
     const payload = {
       db: {
         pool: {
           async query(text: string, values: unknown[]) {
             queries.push({ text, values })
-            return { rowCount: 1, rows: [{ id: 9 }] }
+            return { rowCount: rows.length, rows }
           },
         },
       },
+      logger: { error: (...args: unknown[]) => errors.push(args.map(String).join(' ')) },
     } as unknown as Payload
+    return { payload, queries, errors }
+  }
 
-    await expect(recoverStaleWatermarkRebakeJobs(payload, NOW)).resolves.toBe(1)
+  /**
+   * 旧实例缩容时正在跑的段停在 `processing = true`，Payload 的 runJobs 只捡
+   * `processing = false` 的 job，这一段就永远没人再碰——链条断在这里，而且没有任何报错。
+   */
+  it('超过租约仍在 processing 的重刷段被放回队列', async () => {
+    const harness = recoveryPayload([{ id: 9, has_error: false }])
 
-    expect(queries).toHaveLength(1)
-    expect(queries[0].text).toMatch(
+    await expect(recoverStaleWatermarkRebakeJobs(harness.payload, NOW)).resolves.toBe(1)
+
+    expect(harness.queries).toHaveLength(1)
+    expect(harness.queries[0].text).toMatch(
       /UPDATE payload_jobs[\s\S]+SET processing = false[\s\S]+queue = \$1[\s\S]+updated_at <= \$2[\s\S]+task_slug = \$3[\s\S]+processing = true[\s\S]+completed_at IS NULL[\s\S]+has_error IS NOT TRUE/,
     )
-    expect(queries[0].values).toEqual([MEDIA_WATERMARK_QUEUE, LEASE_CUTOFF, MEDIA_WATERMARK_TASK])
+    expect(harness.queries[0].values.slice(0, 4)).toEqual([
+      MEDIA_WATERMARK_QUEUE,
+      LEASE_CUTOFF,
+      MEDIA_WATERMARK_TASK,
+      MEDIA_WATERMARK_RECOVERY_MAX_TRIES,
+    ])
+    expect(harness.errors).toEqual([])
+  })
+
+  /**
+   * 评审 Minor 3：段若是自己把进程弄死的（比如超大图把 sharp 撑爆内存），无上限地放回去
+   * 就是每 16 分钟弄死一个同时承载网页流量的实例，永远如此。每放回一次记一次尝试，
+   * 累计到上限就标失败、不再放回，并留一条 error。
+   */
+  it('每放回一次累计一次尝试，到上限就标失败、不再放回，并留 error 日志', async () => {
+    const harness = recoveryPayload([{ id: 9, has_error: true }])
+
+    await expect(recoverStaleWatermarkRebakeJobs(harness.payload, NOW)).resolves.toBe(0)
+
+    expect(harness.queries[0].text).toMatch(/total_tried = COALESCE\(total_tried, 0\) \+ 1/)
+    expect(harness.queries[0].text).toMatch(/has_error = COALESCE\(total_tried, 0\) \+ 1 >= \$4/)
+    expect(harness.errors.join('\n')).toContain('9')
   })
 })
 
-describe('T5：同一时刻只跑一段', () => {
+describe('T5：同一时刻只跑一段（事务级 advisory lock）', () => {
   /**
    * 多条链并行时，两段同时处理同一张「无 version、无备份」的图：A 读备份为空之后、
    * 读当前文件之前，B 恰好烘完并覆盖了母版——A 就会把带水印的字节当干净原件写进
-   * `media-source/`。窗口极窄，但后果是原件丢失。
-   *
-   * 按 id 决胜：只有 id 更小的段在跑才让路，两段同时开跑时恰好一段让、一段跑，
-   * 不会互相让到谁都不跑。
+   * `media-source/`。窗口极窄，但后果是原件丢失。另外 Payload 认领 job 不是原子的，
+   * 同一个 job 可能被两个实例同时捡起，每份副本各续投一段，链条就此翻倍。
    */
-  it('有 id 更小、仍在租约内的段在跑 → 不扫不烘，推迟 60 秒原样重投自己', async () => {
+  it('拿到锁 → 照常处理；锁在事务里拿，事务带「空闲上限 = 租约」，处理完提交释放', async () => {
     vi.useFakeTimers({ now: NOW })
-    const harness = chainPayload({
-      countFor: ({ collection }) => (collection === 'payload-jobs' ? 1 : 0),
-    })
+    const harness = chainPayload()
+
+    const result = await runTask(harness.payload, { jobId: 500 })
+
+    expect(harness.finds).toHaveLength(1)
+    expect(result.output).not.toHaveProperty('deferred')
+    const texts = harness.lockSql.map((entry) => entry.text.trim())
+    expect(texts[0]).toBe('BEGIN')
+    expect(texts[1]).toBe(`SET LOCAL idle_in_transaction_session_timeout = ${MEDIA_WATERMARK_JOB_LEASE_MS}`)
+    expect(harness.lockSql[2].values).toEqual([MEDIA_WATERMARK_LOCK_NAMESPACE, 500])
+    expect(harness.lockSql.at(-1)?.text.trim()).toBe('COMMIT')
+  })
+
+  it('别的段正持锁 → 不扫不烘，推迟 45 秒原样重投自己', async () => {
+    vi.useFakeTimers({ now: NOW })
+    const harness = chainPayload({ lock: { segment: false } })
 
     const result = await runTask(harness.payload, { jobId: 500, startAfterId: 77 })
 
@@ -220,29 +319,38 @@ describe('T5：同一时刻只跑一段', () => {
       },
     ])
     expect(result.output).toMatchObject({ deferred: true, lastScannedId: 77, hasNextPage: true })
-
-    const where = harness.counts[0].where
-    expect(harness.counts[0].collection).toBe('payload-jobs')
-    expect(where).toEqual({
-      and: [
-        { taskSlug: { equals: MEDIA_WATERMARK_TASK } },
-        { completedAt: { exists: false } },
-        { hasError: { not_equals: true } },
-        { processing: { equals: true } },
-        { updatedAt: { greater_than: LEASE_CUTOFF } },
-        { id: { less_than: 500 } },
-      ],
-    })
   })
 
-  it('没有更早的段在跑 → 照常处理', async () => {
+  /**
+   * 评审 Minor 2：cron 每个整分钟一轮，runJobs 只捡 `waitUntil < now` 的段。推迟 60 秒时，
+   * 段在整分钟后几秒才开跑，推迟到的时刻落在下一个整分钟之后，要再等一轮——实际是两分钟。
+   */
+  it('推迟时长短于一分钟，赶得上下一个整分钟的 cron', () => {
+    expect(MEDIA_WATERMARK_DEFER_MS).toBeLessThan(55_000)
+  })
+
+  it('同一个 job 的另一份副本正在跑 → 什么都不做，也不续投（续投就是多一条链）', async () => {
     vi.useFakeTimers({ now: NOW })
-    const harness = chainPayload()
+    const harness = chainPayload({ lock: { ownJob: false } })
 
-    const result = await runTask(harness.payload, { jobId: 500 })
+    const result = await runTask(harness.payload, { jobId: 500, startAfterId: 77 })
 
-    expect(harness.finds).toHaveLength(1)
-    expect(result.output).not.toHaveProperty('deferred')
+    expect(harness.finds).toEqual([])
+    expect(harness.queued).toEqual([])
+    expect(result.output).toMatchObject({ duplicate: true, hasNextPage: false })
+    // 生产上靠这一行看出「同一个 job 被两个实例捡起」确实发生过
+    expect(harness.infos.join('\n')).toContain('job 500 已由另一份副本处理')
+  })
+
+  it('这个 job 已经被另一份副本跑完（行已删除）→ 同样什么都不做', async () => {
+    vi.useFakeTimers({ now: NOW })
+    const harness = chainPayload({ lock: { jobAlive: false } })
+
+    const result = await runTask(harness.payload, { jobId: 500, startAfterId: 77 })
+
+    expect(harness.finds).toEqual([])
+    expect(harness.queued).toEqual([])
+    expect(result.output).toMatchObject({ duplicate: true })
   })
 })
 
