@@ -1,0 +1,30 @@
+{
+    "origin": "http://localhost:3781",
+    "measuredAt": "2026-10-14T06:55:05Z",
+    "publishedListingId": 1,
+    "draftListingId": 11,
+    "articleId": 1,
+    "skipLogLines": 1,
+    "rows": [
+        {
+            "case": "a-public-field",
+            "shanghaiMiss": true,
+            "hangzhouMiss": false
+        },
+        {
+            "case": "b-internal-only",
+            "shanghaiMiss": true,
+            "hangzhouMiss": false
+        },
+        {
+            "case": "c-draft",
+            "shanghaiMiss": false,
+            "hangzhouMiss": false
+        },
+        {
+            "case": "d-article-control",
+            "shanghaiMiss": true,
+            "hangzhouMiss": true
+        }
+    ]
+}

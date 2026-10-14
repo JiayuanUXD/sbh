@@ -252,7 +252,13 @@ export async function publishSourceSlice(
         errors.push({ id: outcome.id, message: outcome.message });
     }
   }
-  if (published > 0)
+  const done = processed === candidates.docs.length && !candidates.hasNextPage;
+  // 阶段结束才失效一次（OPT-111）。原来每段（≤100 条）只要发布一条就按全城市类目
+  // 兜底清一次，5.7 万条房源一轮约 570 次，前台缓存在整个发布期间几乎一直是冷的。
+  // 不论本段是否发布都清：前面的段可能已发布。进行中新发布的房源靠 300s TTL 出现
+  // （用户已确认的 D2；新增可见性晚到是良性的）；中途停止同样由 TTL 兜底。
+  // 「下架必须立即不可见」不受影响：回滚端点仍立即失效。
+  if (done)
     await invalidateSupplyImportCache(req.payload, req, [], "source_sync");
   return {
     cursor,
@@ -260,6 +266,6 @@ export async function publishSourceSlice(
     published,
     skipped,
     errors,
-    done: processed === candidates.docs.length && !candidates.hasNextPage,
+    done,
   };
 }

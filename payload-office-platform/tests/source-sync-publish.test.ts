@@ -43,8 +43,8 @@ const listing = {
     serviceCities: [1],
   },
 }
-function fixture(docs: unknown[], current: unknown[]) {
-  const find = vi.fn().mockResolvedValueOnce({ docs, hasNextPage: false })
+function fixture(docs: unknown[], current: unknown[], hasNextPage = false) {
+  const find = vi.fn().mockResolvedValueOnce({ docs, hasNextPage })
   for (const doc of current) find.mockResolvedValueOnce({ docs: [doc] })
   const update = vi.fn(async () => ({
     publicationStatus: 'published',
@@ -153,13 +153,20 @@ describe('采集发布分段', () => {
     expect(result.errors).toHaveLength(2)
     expect(f.update).not.toHaveBeenCalled()
   })
-  it('提交失败不计入已发布', async () => {
+  it('提交失败不计入已发布；阶段结束即失效一次，不论本段是否发布（前面的段可能已发布）', async () => {
     const f = fixture([{ id: 1 }], [{ ...building, status: 'draft' }])
     io.commit.mockRejectedValueOnce(new Error('提交失败'))
-    expect((await publishSourceSlice(f.req, 'buildings', 0)).published).toBe(0)
+    const result = await publishSourceSlice(f.req, 'buildings', 0)
+    expect(result).toMatchObject({ published: 0, done: true })
+    expect(io.invalidate).toHaveBeenCalledOnce()
+  })
+  it('本段发布了但阶段未完成（还有下一页）时不失效缓存（OPT-111 D2）', async () => {
+    const f = fixture([{ id: 1 }], [{ ...building, status: 'draft' }], true)
+    const result = await publishSourceSlice(f.req, 'buildings', 0)
+    expect(result).toMatchObject({ published: 1, done: false })
     expect(io.invalidate).not.toHaveBeenCalled()
   })
-  it('并发上限为四个对象，预算耗尽后游标停在完整组末尾且仅失效一次缓存', async () => {
+  it('并发上限为四个对象，预算耗尽后游标停在完整组末尾，未完成时不失效缓存', async () => {
     const candidates = Array.from({ length: 8 }, (_, index) => ({
       id: index + 1,
     }))
@@ -179,7 +186,7 @@ describe('采集发布分段', () => {
       })
       expect(io.createReq).toHaveBeenCalledTimes(4)
       expect(io.commit).toHaveBeenCalledTimes(4)
-      expect(io.invalidate).toHaveBeenCalledOnce()
+      expect(io.invalidate).not.toHaveBeenCalled()
     } finally {
       clock.mockRestore()
     }
