@@ -343,6 +343,8 @@ describe('rebakeWatermarkTask 的游标推进', () => {
       // watermark: null，与具体哈希无关。
       findGlobal: async () => ({ watermark: { enabled } }),
       find: async () => ({ docs, hasNextPage }),
+      // 「有没有更早的段在跑」（OPT-112 T5）：本组只锁游标算术，恒为没有。
+      count: async () => ({ totalDocs: 0 }),
       findByID: async ({ id }: { id: number }) => {
         findByIdCalls.push(id)
         return byId.get(id)
@@ -389,7 +391,7 @@ describe('rebakeWatermarkTask 的游标推进', () => {
   async function run(payload: Payload, startAfterId?: number) {
     const { handler } = rebakeWatermarkTask
     if (typeof handler !== 'function') throw new Error('handler 必须是函数')
-    const result = (await handler({ input: { startAfterId }, req: { payload } } as never)) as {
+    const result = (await handler({ input: { startAfterId }, job: { id: 1 }, req: { payload } } as never)) as {
       output: { lastScannedId: number; hasNextPage: boolean; skipped: number; processed: number }
     }
     return result.output

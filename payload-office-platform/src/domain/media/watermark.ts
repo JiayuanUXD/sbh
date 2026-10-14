@@ -446,7 +446,8 @@ export function buildBadgeOverlay({
  * version，重刷任务若认得比这里宽，会每轮重新选中它、每轮再失败一次，永远如此。
  * 所以 `bakeAfterUpload` / `selectRebakeTargets` / 回刷脚本三处共用本函数，不各写一份。
  */
-const BAKEABLE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+/** 导出给重刷进度计数用（`readRebakeProgress`），在库里按同一份清单过滤。 */
+export const BAKEABLE_MIME_TYPES: ReadonlySet<string> = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 export function isBakeableImage(mimeType: string | null | undefined): boolean {
   if (typeof mimeType !== 'string') return false

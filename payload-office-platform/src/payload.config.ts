@@ -117,6 +117,7 @@ import {
 import {
   MEDIA_WATERMARK_QUEUE,
   rebakeWatermarkTask,
+  recoverStaleWatermarkRebakeJobs,
 } from './domain/media/watermark-rebake'
 import {
   SOURCE_SYNC_QUEUE,
@@ -189,6 +190,7 @@ const configPromise = buildConfig({
       await recoverStaleCityPartnerNotificationJobs(payload)
       await recoverStaleSupplyImportJobs(payload)
       await recoverStaleSourceSyncJobs(payload)
+      await recoverStaleWatermarkRebakeJobs(payload)
       return true
     },
     autoRun: () => [
