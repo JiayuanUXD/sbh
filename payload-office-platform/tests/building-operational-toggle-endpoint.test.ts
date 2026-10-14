@@ -51,6 +51,8 @@ function makeReq(params: {
   userRoles?: Role[]
   currentStatus?: unknown
   findByIDThrows?: boolean
+  /** 传了才挂 req.data / req.json（编辑页旧调用方不带 body，默认不挂） */
+  body?: unknown
 }): {
   req: PayloadRequest
   findByID: ReturnType<typeof vi.fn>
@@ -62,6 +64,7 @@ function makeReq(params: {
     userRoles = [makeAdmRole()],
     currentStatus = 'active',
     findByIDThrows = false,
+    body,
   } = params
   const find = vi.fn(async () => ({ docs: userRoles }))
   const findByID = vi.fn(async () => {
@@ -73,6 +76,7 @@ function makeReq(params: {
     user: user ?? null,
     routeParams,
     payload: { find, findByID, update },
+    ...(body !== undefined ? { data: body, json: async () => body } : {}),
   }
   return { req: req as unknown as PayloadRequest, findByID, update }
 }
@@ -157,5 +161,60 @@ describe('building-operational-toggle-endpoint/翻转', () => {
     expect(status).toBe(200)
     expect(body.operationalStatus).toBe('active')
     expect(update.mock.calls[0][0].data).toEqual({ operationalStatus: 'active' })
+  })
+})
+
+/**
+ * OPT-113：列表里的「停用」按读到的行状态渲染，行数据可能已经过期（别人刚停用过）。
+ * 纯翻转语义下，过期的「停用」点下去会变成「启用」——与按钮上写的相反。
+ * 带 target 时按目标值写；已是目标值则幂等返回，不翻转。
+ */
+describe('building-operational-toggle-endpoint/target（OPT-113）', () => {
+  it('target=disabled 且当前 active → 停用', async () => {
+    const { req, update } = makeReq({ currentStatus: 'active', body: { target: 'disabled' } })
+    const { status, body } = await run(req)
+    expect(status).toBe(200)
+    expect(body).toMatchObject({ ok: true, operationalStatus: 'disabled', changed: true })
+    expect(update.mock.calls[0][0].data).toEqual({ operationalStatus: 'disabled' })
+  })
+
+  it('target=disabled 但已经停用 → 幂等成功，不写库、不翻回启用', async () => {
+    const { req, update } = makeReq({ currentStatus: 'disabled', body: { target: 'disabled' } })
+    const { status, body } = await run(req)
+    expect(status).toBe(200)
+    expect(body).toMatchObject({ ok: true, operationalStatus: 'disabled', changed: false })
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('target=active 且当前 disabled → 启用', async () => {
+    const { req, update } = makeReq({ currentStatus: 'disabled', body: { target: 'active' } })
+    const { body } = await run(req)
+    expect(body).toMatchObject({ ok: true, operationalStatus: 'active', changed: true })
+    expect(update.mock.calls[0][0].data).toEqual({ operationalStatus: 'active' })
+  })
+
+  it('target 非法 → 400，不写库', async () => {
+    const { req, update } = makeReq({ body: { target: 'frozen' } })
+    const { status } = await run(req)
+    expect(status).toBe(400)
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('body 里没有 target → 保持旧的翻转语义', async () => {
+    const { req, update } = makeReq({ currentStatus: 'active', body: {} })
+    const { body } = await run(req)
+    expect(body).toMatchObject({ ok: true, operationalStatus: 'disabled', changed: true })
+    expect(update).toHaveBeenCalledTimes(1)
+  })
+
+  it('权限门先于 target 校验：无 building:freeze 时幂等路径也是 403', async () => {
+    const opsRole = makeAdmRole({ id: 2, code: 'OPS', operationPermissions: ['building:update'] })
+    const { req } = makeReq({
+      userRoles: [opsRole],
+      user: makeUser({ roles: [2] }),
+      currentStatus: 'disabled',
+      body: { target: 'disabled' },
+    })
+    expect((await run(req)).status).toBe(403)
   })
 })

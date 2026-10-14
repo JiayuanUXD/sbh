@@ -45,6 +45,7 @@ import {
   assertListingRoomNumberUnique,
   normalizeListingRoomNumber,
 } from '@/domain/review/listing-room-number'
+import { createListingBatchPublishEndpoint } from '@/endpoints/listing-batch-publish-endpoint'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
@@ -293,7 +294,12 @@ export const Listings: CollectionConfig = {
     delete: createCollectionAccess({ delete: 'listing:delete' }).delete,
   },
   // M4.6 显式动作端点：审核轴与发布轴各走独立端点，权限/前置门/乐观锁在 handler 内守护。
-  endpoints: [createListingReviewDecisionEndpoint(), createListingPublishEndpoint()],
+  endpoints: [
+    createListingReviewDecisionEndpoint(),
+    createListingPublishEndpoint(),
+    // OPT-113 列表批量上下架：POST /api/listings/batch-publish
+    createListingBatchPublishEndpoint(),
+  ],
   // OPT-063：房间号在同一楼盘内唯一。索引只做并发兜底，人话报错由
   // assertListingRoomNumberUnique 负责——Payload 3.86 + drizzle 把唯一冲突统一转成
   // 泛泛的 ValidationError，拿不到 23505，说不清跟谁撞了（见 listing-room-number.ts）。
