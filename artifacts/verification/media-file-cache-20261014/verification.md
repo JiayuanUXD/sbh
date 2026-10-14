@@ -33,10 +33,30 @@
 原始数据：`local-after.json`、`prod-before.json`；回访截图 `home-revisit-*.png`（首访截图几乎相同，未入库）。线上两条控制台错误是
 本云端会话代理拒绝 Umami 主机（`ERR_TUNNEL_CONNECTION_FAILED`），与改动无关；本地 0 条。
 
-## 未验证 / 待上线后复测
+## 上线后复测（2026-10-14，`sbh-231`，提交 `c7ef54f`）
 
-- **本地回访仍打服务器的那 1 条是视频的 206。** 本地磁盘分支不回 ETag，Chrome 只缓存带强校验器的
-  部分响应；线上 S3 分支有 ETag，视频能否进缓存要上线后用同一脚本复测：
-  `PW_EXECUTABLE=/opt/pw-browsers/chromium node probe-revisit.mjs https://shangban.cc prod-after.json --proxy`
-- S3 分支只在单测里用打桩客户端验过，真实 COS 响应头要上线后 `curl -I` 确认。
-- 平台默认域名网关把缓存头一律改写成 `no-store`（实测含 `/_next/static`），改动只在 shangban.cc 生效。
+线上 `curl`（shangban.cc）：
+
+| 请求 | 结果 |
+| --- | --- |
+| 图片 200 | `cache-control: public, max-age=86400, stale-while-revalidate=604800` |
+| 图片带 `If-None-Match` | 304，带同一缓存头（浏览器靠它续期） |
+| 视频 `Range: bytes=0-1023` | 206，带缓存头，`content-range: bytes 0-1023/5242726` |
+| 视频越界 Range | 416，**不带**缓存头 |
+| 不存在的文件 | 403（Payload 文件访问检查查不到记录），**不带**缓存头 |
+
+同一脚本对线上复测（`prod-after.json`，与改动前的 `prod-before.json` 对照）：
+
+| | 媒体请求 | 走缓存 | 打到服务器 | 服务器字节 |
+| --- | --- | --- | --- | --- |
+| 线上改动前 回访 | 15 | 0 | 15（全部重新验证） | 24,133 |
+| 线上改动后 回访 | 15 | **15** | **0** | **0** |
+
+本地未能验证的视频 206 缓存在线上成立（S3 分支有 ETag）。
+
+### 切流后的一个现象（已查明，非缺陷）
+
+切流后约 5 分钟内，同一图片 URL 的 200 响应约四到七成不带缓存头，两类响应除该头外完全一致。
+查 CloudRun 部署记录：上一版本 `sbh-230` 已 `FlowRatio 0 / HasTraffic false`，但 `ScaleStatus` 尚未变为
+`zero`（更早版本均为 `zero`），旧实例仍在应答。07:35 抽样 3/10 带头，07:36 变为 10/10，之后稳定。
+结论：平台切流后旧实例有数分钟退场窗口，**切流完成 ≠ 全部请求已由新版本应答**，上线复测应在旧版本缩容后进行。
