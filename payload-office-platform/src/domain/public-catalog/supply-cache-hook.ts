@@ -32,6 +32,11 @@ import type {
 } from 'payload'
 
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
+import {
+  decideSupplyCacheInvalidation,
+  type SupplyCacheDecision,
+  type SupplyCollection,
+} from '@/domain/public-catalog/supply-cache-relevance'
 import { findByIdSafe } from '@/domain/shared/transaction-safety'
 import {
   invalidateSupplyPublicCache,
@@ -170,32 +175,57 @@ async function invalidateForDocs(
   invalidateSupplyPublicCache(citySlugs, reason)
 }
 
+/**
+ * 判定为不影响公开页面时留一行痕迹：后台单条保存频率低，这行是上线后核对
+ * 「跳过了多少、因为什么」的唯一依据（OPT-111 Task 4）。
+ */
+function logSkipped(collection: SupplyCollection, doc: unknown, decision: SupplyCacheDecision): void {
+  console.info('[supply-cache-invalidation] skipped', {
+    collection,
+    id: isRecord(doc) ? doc.id : null,
+    reason: decision.reason,
+  })
+}
+
 function createAfterChangeHook(
+  collection: SupplyCollection,
   resolve: CitySlugResolver,
   reason: SupplyCacheInvalidationReason,
 ): CollectionAfterChangeHook {
   return async ({ doc, previousDoc, req }) => {
     if (req.context?.[SKIP_SUPPLY_CACHE_INVALIDATION] === true) return doc
+    // 草稿保存、只改内部字段的保存不清公开缓存（OPT-111）；规则与取舍见 supply-cache-relevance.ts。
+    const decision = decideSupplyCacheInvalidation({ collection, doc, previousDoc, operation: 'change' })
+    if (!decision.invalidate) {
+      logSkipped(collection, doc, decision)
+      return doc
+    }
     await invalidateForDocs(req, resolve, reason, [doc, previousDoc])
     return doc
   }
 }
 
 function createAfterDeleteHook(
+  collection: SupplyCollection,
   resolve: CitySlugResolver,
   reason: SupplyCacheInvalidationReason,
 ): CollectionAfterDeleteHook {
   return async ({ doc, req }) => {
+    const decision = decideSupplyCacheInvalidation({ collection, doc, operation: 'delete' })
+    if (!decision.invalidate) {
+      logSkipped(collection, doc, decision)
+      return doc
+    }
     await invalidateForDocs(req, resolve, reason, [doc])
     return doc
   }
 }
 
 export const invalidateListingPublicCacheAfterChange =
-  createAfterChangeHook(citySlugOfListingDoc, 'listing')
+  createAfterChangeHook('listings', citySlugOfListingDoc, 'listing')
 export const invalidateListingPublicCacheAfterDelete =
-  createAfterDeleteHook(citySlugOfListingDoc, 'listing')
+  createAfterDeleteHook('listings', citySlugOfListingDoc, 'listing')
 export const invalidateBuildingPublicCacheAfterChange =
-  createAfterChangeHook(citySlugOfBuildingDoc, 'building')
+  createAfterChangeHook('buildings', citySlugOfBuildingDoc, 'building')
 export const invalidateBuildingPublicCacheAfterDelete =
-  createAfterDeleteHook(citySlugOfBuildingDoc, 'building')
+  createAfterDeleteHook('buildings', citySlugOfBuildingDoc, 'building')
