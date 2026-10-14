@@ -11,6 +11,7 @@ import {
   MEDIA_WATERMARK_QUEUE,
   MEDIA_WATERMARK_RECOVERY_MAX_TRIES,
   MEDIA_WATERMARK_REQUEUE_DELAYS_MS,
+  MEDIA_WATERMARK_STANDBY_POLL_MS,
   MEDIA_WATERMARK_TASK,
   queueRebakeSegment,
   readRebakeProgress,
@@ -38,7 +39,7 @@ type QueueArgs = { task: string; queue: string; input: { startAfterId: number };
  * 段锁（`runWithSegmentLock`）在单测里的替身：按 SQL 文本回答三问——本 job 的锁拿到没有、
  * 这一行还在不在、全局段锁拿到没有。真库上的语义由 `media-watermark-rebake-lock-postgres.test.ts` 钉住。
  */
-type LockScript = { ownJob?: boolean; jobAlive?: boolean; segment?: boolean }
+type LockScript = { ownJob?: boolean | boolean[]; jobAlive?: boolean; segment?: boolean }
 
 afterEach(() => {
   vi.useRealTimers()
@@ -53,8 +54,10 @@ function fakeLockPool(lock: LockScript, sql: Array<{ text: string; values?: unkn
       query: async (text: string, values?: unknown[]) => {
         sql.push({ text, values })
         if (text.includes('pg_try_advisory_xact_lock')) {
-          const segment = values?.[1] === 0
-          return { rows: [{ locked: segment ? (lock.segment ?? true) : (lock.ownJob ?? true) }] }
+          if (values?.[1] === 0) return { rows: [{ locked: lock.segment ?? true }] }
+          // 数组 = 逐次尝试的结果（待命期间每试一次取一个），用完后视为拿到
+          const own = Array.isArray(lock.ownJob) ? (lock.ownJob.shift() ?? true) : (lock.ownJob ?? true)
+          return { rows: [{ locked: own }] }
         }
         if (text.includes('FROM payload_jobs')) {
           return lock.jobAlive === false ? { rows: [], rowCount: 0 } : { rows: [{ alive: 1 }], rowCount: 1 }
@@ -262,6 +265,9 @@ describe('T4：发版杀掉的段要被放回队列', () => {
       MEDIA_WATERMARK_TASK,
       MEDIA_WATERMARK_RECOVERY_MAX_TRIES,
     ])
+    // job 锁仍被持有的段（持锁进程活着、心跳还在）不算陈旧，真库测试钉住了实际行为
+    expect(harness.queries[0].text).toMatch(/NOT EXISTS \([\s\S]+FROM pg_locks[\s\S]+classid = \$6::oid[\s\S]+objid = payload_jobs\.id::oid/)
+    expect(harness.queries[0].values[5]).toBe(MEDIA_WATERMARK_LOCK_NAMESPACE)
     expect(harness.errors).toEqual([])
   })
 
@@ -300,6 +306,9 @@ describe('T5：同一时刻只跑一段（事务级 advisory lock）', () => {
     expect(texts[0]).toBe('BEGIN')
     expect(texts[1]).toBe(`SET LOCAL idle_in_transaction_session_timeout = ${MEDIA_WATERMARK_JOB_LEASE_MS}`)
     expect(harness.lockSql[2].values).toEqual([MEDIA_WATERMARK_LOCK_NAMESPACE, 500])
+    // 完成标记与释放锁在同一个事务里：先标完成、再提交
+    expect(harness.lockSql.at(-2)?.text).toMatch(/UPDATE payload_jobs SET completed_at = NOW\(\) WHERE id = \$1/)
+    expect(harness.lockSql.at(-2)?.values).toEqual([500])
     expect(harness.lockSql.at(-1)?.text.trim()).toBe('COMMIT')
   })
 
@@ -329,12 +338,21 @@ describe('T5：同一时刻只跑一段（事务级 advisory lock）', () => {
     expect(MEDIA_WATERMARK_DEFER_MS).toBeLessThan(55_000)
   })
 
-  it('同一个 job 的另一份副本正在跑 → 什么都不做，也不续投（续投就是多一条链）', async () => {
+  /**
+   * Codex P1：副本不能立刻正常返回——那样 Payload 会把共享的 job 标完成并删除，持锁者随后被杀就
+   * 没有行可回收。副本待命，持锁者跑完（这一行已完成）才以 duplicate 退出；持锁者死了则接手
+   * （真库测试 `media-watermark-rebake-lock-postgres` 覆盖接手与心跳）。
+   */
+  it('同一个 job 的另一份副本正在跑 → 待命；持锁者跑完后什么都不做，也不续投（续投就是多一条链）', async () => {
     vi.useFakeTimers({ now: NOW })
-    const harness = chainPayload({ lock: { ownJob: false } })
+    const harness = chainPayload({ lock: { ownJob: [false, false], jobAlive: false } })
 
-    const result = await runTask(harness.payload, { jobId: 500, startAfterId: 77 })
+    const pending = runTask(harness.payload, { jobId: 500, startAfterId: 77 })
+    await vi.advanceTimersByTimeAsync(MEDIA_WATERMARK_STANDBY_POLL_MS * 2)
+    const result = await pending
 
+    const ownTries = harness.lockSql.filter((entry) => entry.text.includes('pg_try_advisory') && entry.values?.[1] === 500)
+    expect(ownTries).toHaveLength(3)
     expect(harness.finds).toEqual([])
     expect(harness.queued).toEqual([])
     expect(result.output).toMatchObject({ duplicate: true, hasNextPage: false })

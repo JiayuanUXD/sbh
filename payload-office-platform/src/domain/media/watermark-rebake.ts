@@ -319,6 +319,10 @@ export async function queueRebakeSegment(
  * 旧实例缩容时正在跑的段停在 `processing = true`，runJobs 只捡 `processing = false` 的 job，
  * 不放回去这一段就永远没人碰——链条断在这里，而且没有任何报错。
  *
+ * `updated_at` 是认领时刻、跑的过程中不刷新，所以只按它判会把**活着的长段**也当成陈旧：放回去后
+ * 别的实例认领它只能在 job 锁外待命，待命到头以 duplicate 退出时 Payload 又会把行标完成删掉。
+ * 因此 job 锁仍被持有的段一律跳过——锁在持锁进程活着时由心跳维持，进程死了才会放掉。
+ *
  * 返回放回队列的段数（到上限被标失败的不算）。
  */
 export async function recoverStaleWatermarkRebakeJobs(payload: Payload, now = new Date()): Promise<number> {
@@ -339,6 +343,13 @@ export async function recoverStaleWatermarkRebakeJobs(payload: Payload, now = ne
       AND processing = true
       AND completed_at IS NULL
       AND has_error IS NOT TRUE
+      -- job 锁还被人持有 = 持锁进程活着、心跳还在（见 runWithSegmentLock），不是陈旧段
+      AND NOT EXISTS (
+        SELECT 1 FROM pg_locks l
+         WHERE l.locktype = 'advisory' AND l.granted AND l.objsubid = 2
+           AND l.database = (SELECT oid FROM pg_database WHERE datname = current_database())
+           AND l.classid = $6::oid AND l.objid = payload_jobs.id::oid
+      )
     RETURNING id, has_error
   `,
     [
@@ -347,6 +358,7 @@ export async function recoverStaleWatermarkRebakeJobs(payload: Payload, now = ne
       MEDIA_WATERMARK_TASK,
       MEDIA_WATERMARK_RECOVERY_MAX_TRIES,
       `重刷段累计 ${MEDIA_WATERMARK_RECOVERY_MAX_TRIES} 次尝试后仍中途死掉，已停止放回`,
+      MEDIA_WATERMARK_LOCK_NAMESPACE,
     ],
   )
   const givenUp = result.rows.filter((row) => row.has_error).map((row) => row.id)
@@ -397,53 +409,58 @@ type LockClient = {
 
 export type SegmentLockResult<T> = { status: 'ran'; value: T } | { status: 'busy' } | { status: 'duplicate' }
 
+/** 同一 job 的副本待命时，多久试一次 job 锁。 */
+export const MEDIA_WATERMARK_STANDBY_POLL_MS = 5_000
+/** 持锁期间心跳间隔：远小于租约，保证活着的持锁会话不会因「事务内空闲」被 PG 结束。 */
+export const MEDIA_WATERMARK_HEARTBEAT_MS = 60_000
+
 /**
- * 同一时刻只跑一段（OPT-112 E6，评审 Important #1 后改为 advisory lock）。
+ * 同一时刻只跑一段，且同一 job 被重复认领时不弄断链条（OPT-112 E6）。
  *
  * ## 为什么要
  *
  * 两段同时处理同一张「无 version、无备份」的图存在竞态：A 读备份为空之后、读当前文件之前，
  * B 恰好烘完并覆盖了母版，A 就会把带水印的字节当干净原件写进 `media-source/`。
  *
- * ## 为什么不是「数一数有没有别的段在跑」
- *
- * 初版按「有没有 id 更小、在租约内处理中的段」决定让不让，评审指出三处漏：
- *
- *   - id 在排队时就定了，而段因推迟 / 退避 / 回收才变得可跑：id 小的段可以在 id 大的段
- *     跑到一半时才开跑，两边都判「没有更小的在跑」；
- *   - 先查后跑：两个实例在同一个整分钟上同时查，都还没看见对方；
- *   - Payload 3.86 的 drizzle `updateJobs` 认领 job 是「先查待跑的、再按 id 逐条更新」，
- *     不复核 `processing = false`：**同一个 job** 会被两个实例同时捡起，id 相同，计数看不出来，
- *     而每份副本各续投一段，链条就此翻倍。
+ * Payload 3.86 的 drizzle `updateJobs` 认领 job 是「先查待跑的、再按 id 逐条更新」，不复核
+ * `processing = false`：**同一个 job** 会被两个实例同时捡起（两实例本地实测 3 分钟 2 次）。
+ * 初版按「有没有 id 更小的段在跑」计数让路，挡不住这一条，也挡不住先查后跑（独立评审）。
  *
  * ## 怎么做
  *
- * 借一条专用连接开事务，依次 `pg_try_advisory_xact_lock`：
+ * 借一条专用连接开事务，事务上 `SET LOCAL idle_in_transaction_session_timeout` = 租约：
  *
- *   1. `(命名空间, job id)`：拿不到 = 这个 job 的另一份副本正在跑 → `duplicate`，调用方什么都不做、
- *      也不续投（那份副本会续投）。拿到之后再确认这一行还在且未完成：另一份副本若已跑完，
- *      Payload 会把它标完成并删除，迟到的副本据此识别出自己 → 同样 `duplicate`。
- *   2. `(命名空间, 0)`：全局段锁。拿不到 = 别的段在跑 → `busy`，调用方推迟重投自己。
+ *   1. **job 锁** `(命名空间, job id)`。拿不到 = 这个 job 的另一份副本正持锁 → **待命**：
+ *      每隔一会儿再试，直到拿到或待命满一个租约。不能立刻返回——副本一旦正常返回，Payload 就把
+ *      **共享的** job 标完成并删除，持锁者随后若被杀，陈旧回收找不到行，链条永久断掉（Codex P1）。
+ *   2. 拿到 job 锁后看这一行：已完成或已删除 = 持锁者跑完了 → `duplicate`，调用方什么都不做、
+ *      不续投；还没完成 = 持锁者死在半路（或这是第一份）→ 往下走，由本副本把这一段跑完。
+ *   3. **全局段锁** `(命名空间, 0)`。拿不到 = 别的段在跑 → `busy`，调用方推迟重投自己。
+ *   4. 干活期间每隔 `heartbeatMs` 在持锁连接上发一次 `SELECT 1`：锁在持锁进程活着时一直有效，
+ *      段跑得比租约长也不会中途丢锁（Codex P1）。进程被杀时连接断开，锁随会话立即释放；主机整个
+ *      消失、TCP 不回 RST 时心跳也停了，PG 最迟一个租约后结束会话放掉锁。
+ *   5. 活干完，在**同一个事务里**把这一行标完成再提交：完成标记与释放锁一起生效，待命的副本
+ *      拿到锁时一定看得见，不会把刚跑完的段再跑一遍。Payload 随后照常写自己的完成记录并删除这一行。
  *
- * 持锁期间这条连接处于「事务内空闲」，事务上 `SET LOCAL idle_in_transaction_session_timeout`
- * 为租约：进程被杀时连接断开、锁随会话立即释放；主机整个消失、TCP 不回 RST 时，PG 最迟一个
- * 租约后结束会话释放锁——与 `recoverStaleWatermarkRebakeJobs` 放回队列的时点一致。
- * 代价是段运行期间多占一条池连接（每实例同一队列同一时刻只跑一段）。
+ * 代价：段运行期间多占一条池连接；同一 job 的副本待命期间也占一条。
  *
- * 没堵上的窗口：本段（含续投）做完、提交释放锁之后，到 Payload 把这个 job 标完成之前
- * （毫秒级），若同一 job 的迟到副本恰好此刻拿锁，会把这一段再跑一遍、多续投一条链。后果只是
- * 多扫几页（候选在库里按版本过滤，已烘的图不会再烘），不值得为它再加一层。
+ * 没处理的：持锁进程活着却卡死（比如一次 COS 请求永不返回）时，心跳照常、锁一直在，整个重刷会停住
+ * 直到进程重启——宁可停住，也不在它可能还在写字节时放别的段进来。
  *
- * `leaseMs` 只为测试注入（真库测试用 1 秒验证「会话死了锁会被放掉」）。
+ * `leaseMs` / `pollMs` / `heartbeatMs` 只为测试注入。
  */
 export async function runWithSegmentLock<T>(
   payload: Payload,
   jobId: number,
   work: () => Promise<T>,
-  { leaseMs = MEDIA_WATERMARK_JOB_LEASE_MS }: { leaseMs?: number } = {},
+  {
+    leaseMs = MEDIA_WATERMARK_JOB_LEASE_MS,
+    pollMs = MEDIA_WATERMARK_STANDBY_POLL_MS,
+    heartbeatMs = MEDIA_WATERMARK_HEARTBEAT_MS,
+  }: { leaseMs?: number; pollMs?: number; heartbeatMs?: number } = {},
 ): Promise<SegmentLockResult<T>> {
   const client = (await payload.db.pool.connect()) as unknown as LockClient
-  // 持锁会话可能被 PG 按「事务内空闲上限」结束：此时 error 事件发在借出的 Client 上。
+  // 持锁会话可能被 PG 结束（心跳停了、或测试里主动结束）：此时 error 事件发在借出的 Client 上。
   // pool-error-handler 已挂监听（并会把连接归还销毁），这里再挂一个空监听，保证脱离它
   // （测试、脚本）时也不会因为未处理的 'error' 事件让进程退出。
   const onError = () => {}
@@ -459,16 +476,46 @@ export async function runWithSegmentLock<T>(
       ])
       return rows[0]?.locked === true
     }
-    if (!(await tryLock(jobId))) return { status: 'duplicate' }
+
+    const standbyUntil = Date.now() + leaseMs
+    let ownJob = await tryLock(jobId)
+    while (!ownJob && Date.now() < standbyUntil) {
+      await sleepFor(pollMs)
+      ownJob = await tryLock(jobId)
+    }
+    // 待命满一个租约，持锁者还活着在干：交给它，本副本退出。
+    if (!ownJob) return { status: 'duplicate' }
+
     const alive = await client.query('SELECT 1 AS alive FROM payload_jobs WHERE id = $1 AND completed_at IS NULL', [
       jobId,
     ])
     if ((alive.rowCount ?? alive.rows.length) === 0) return { status: 'duplicate' }
     if (!(await tryLock(0))) return { status: 'busy' }
-    return { status: 'ran', value: await work() }
+
+    let beating = Promise.resolve()
+    const heartbeat = setInterval(() => {
+      beating = beating.then(() => client.query('SELECT 1')).then(
+        () => undefined,
+        () => undefined,
+      )
+    }, heartbeatMs)
+    let value: T
+    try {
+      value = await work()
+    } finally {
+      clearInterval(heartbeat)
+      await beating
+    }
+    try {
+      await client.query('UPDATE payload_jobs SET completed_at = NOW() WHERE id = $1 AND completed_at IS NULL', [jobId])
+    } catch {
+      // 活已经干完、只是写完成标记时会话没了（心跳停了被 PG 结束）：锁随会话一起没了，
+      // 不许把这个错误盖到本段的结果上。
+      broken = true
+    }
+    return { status: 'ran', value }
   } finally {
-    // 收尾失败（会话已被 PG 结束、连接已被 pool-error-handler 归还）不许盖掉本段的结果：
-    // 锁随会话一起没了，要的效果已经达到。
+    // 收尾失败（会话已被 PG 结束、连接已被 pool-error-handler 归还）不许盖掉本段的结果。
     try {
       await client.query('COMMIT')
     } catch {
