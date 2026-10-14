@@ -1,4 +1,9 @@
-import { effectiveSupplySqlFrom } from './effective-supply-sql'
+import {
+  EFFECTIVE_BUILDING_JOINS,
+  EFFECTIVE_BUILDING_WHERE,
+  EFFECTIVE_LISTING_WHERE,
+  effectiveSupplySqlFrom,
+} from './effective-supply-sql'
 import { DISPLAY_UNIT_BY_PERIOD_BASIS, LEGACY_PRICE } from './mappers'
 import type { ListingSearchInput, SearchContext } from './types'
 
@@ -110,33 +115,48 @@ export type RecommendationScope = Readonly<{
   buildingId: number | null
 }>
 
-/** 详情页推荐候选查询：按商圈 → 行政区 → 同楼盘的优先级在库内直接限定局部范围，避免扫描全城。 */
+/**
+ * 详情页推荐候选查询：按商圈 → 行政区 → 同楼盘的优先级在库内直接限定局部范围，避免扫描全城。
+ *
+ * 先在 MATERIALIZED CTE 里圈出范围内的合格楼盘，再连房源。不能像整城查询那样把局部条件
+ * 直接拼在 `effectiveSupplySqlFrom()` 后面：2026-10-14 生产事故里，商户侧谓词连乘把房源
+ * 低估成几十行，规划器于是把 1536 行的 `locations dist` 无条件交叉连进来、最后才按楼盘过滤
+ * （约 5.6 万房源 × 1536 × 商圈楼盘数），单条推荐查询跑 6~25 分钟、占满连接池。
+ * 行政区 / 城市只在 CTE 里与楼盘按外键相连，主查询里已无可交叉放大的关系；
+ * 统计信息再偏，最坏也只是把城内房源扫一遍。
+ */
 export function buildRecommendationCandidatesQuery(
   scope: RecommendationScope,
   ctx: SearchContext,
 ): Query | null {
-  const select = `SELECT l.id, COALESCE(l.listing_type::text, '') AS listing_type,
-    CASE WHEN l.business_type::text = 'sale' THEN 'sale' ELSE 'lease' END AS business_type,
-    l.area::float8 AS area, (${amount})::float8 AS price_amount, (${unit}) AS price_unit,
-    b.district_id AS district_id, b.business_district_id AS business_district_id
-    ${effectiveSupplySqlFrom()}`
+  const query = (scopeCondition: string, values: unknown[]): Query => ({
+    text: `WITH scoped AS MATERIALIZED (
+      SELECT b.id, b.city_id, b.district_id, b.business_district_id
+      FROM buildings b
+      ${EFFECTIVE_BUILDING_JOINS}
+      WHERE ${EFFECTIVE_BUILDING_WHERE}
+        AND ${scopeCondition}
+    )
+    SELECT l.id, COALESCE(l.listing_type::text, '') AS listing_type,
+      CASE WHEN l.business_type::text = 'sale' THEN 'sale' ELSE 'lease' END AS business_type,
+      l.area::float8 AS area, (${amount})::float8 AS price_amount, (${unit}) AS price_unit,
+      b.district_id AS district_id, b.business_district_id AS business_district_id
+    FROM scoped b
+    JOIN listings l ON l.building_id = b.id
+    JOIN merchants m ON m.id = l.merchant_id
+    WHERE ${EFFECTIVE_LISTING_WHERE}
+    ORDER BY l.id ASC LIMIT ${RECOMMENDATION_CANDIDATE_LIMIT}`,
+    values,
+  })
   if (scope.businessDistrictId != null) {
-    return {
-      text: `${select} AND b.business_district_id = $5 ORDER BY l.id ASC LIMIT ${RECOMMENDATION_CANDIDATE_LIMIT}`,
-      values: [ctx.asOf, null, ctx.city, ctx.businessType ?? null, scope.businessDistrictId],
-    }
+    return query('b.business_district_id = $5',
+      [ctx.asOf, null, ctx.city, ctx.businessType ?? null, scope.businessDistrictId])
   }
   if (scope.districtId != null) {
-    return {
-      text: `${select} AND b.district_id = $5 ORDER BY l.id ASC LIMIT ${RECOMMENDATION_CANDIDATE_LIMIT}`,
-      values: [ctx.asOf, null, ctx.city, ctx.businessType ?? null, scope.districtId],
-    }
+    return query('b.district_id = $5', [ctx.asOf, null, ctx.city, ctx.businessType ?? null, scope.districtId])
   }
   if (scope.buildingId != null) {
-    return {
-      text: `${select} ORDER BY l.id ASC LIMIT ${RECOMMENDATION_CANDIDATE_LIMIT}`,
-      values: [ctx.asOf, [scope.buildingId], ctx.city, ctx.businessType ?? null],
-    }
+    return query('b.id = ANY($2::int[])', [ctx.asOf, [scope.buildingId], ctx.city, ctx.businessType ?? null])
   }
   return null
 }
