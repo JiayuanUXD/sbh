@@ -68,12 +68,41 @@ Payload 只在 `getPayload({ cron: true })` 时启动任务 cron；后台页面�
 | `pnpm lint` | 0 error，35 条既有 warning（与改动前同数） |
 | `pnpm test`（无 `DATABASE_URL`，postgres 套件按设计不收集） | 447 文件 / 6066 条全绿 |
 | `pnpm migrate:dry-run` | 通过（4 条既有 warning，本分支未加迁移） |
-| `pnpm build` | 通过（`b04d13b`） |
+| `pnpm build` | 通过（`b04d13b`；评审修复后 `bb4d384` 再次通过） |
 | 表结构 | 本地库迁到最新后 `migrate:create --skip-empty` 未生成文件；`payload.config.ts` 的改动经用户确认以 `SKIP_MIGRATION_CHECK=1` 提交 |
 | `importMap.js` | `generate:importmap` 后无变化 |
 
-## 6. 没验到的
+## 6. 独立评审之后：段互斥改为 advisory lock，两实例实测
+
+评审指出初版 T5（「有没有 id 更小的段在跑」计数）挡不住三种并发，其中最要紧的是：Payload 3.86 的
+drizzle `updateJobs` 认领 job 是「先查待跑的、再按 id 逐条更新」，不复核 `processing = false`，**同一个 job
+会被两个实例同时捡起**。初版的注释与本文件旧版 §6「按 id 串行、彼此不并发」据此不成立，已改。
+
+改为事务级 advisory lock（`runWithSegmentLock`）：先拿 `(命名空间, job id)`——拿不到或这一行已完成 = 同一 job
+的另一份副本，什么都不做也不续投；再拿全局段锁——拿不到就推迟 45 秒重投自己。真库测试
+`tests/media-watermark-rebake-lock-postgres.test.ts` 钉住 duplicate / busy / 已完成 / 抛错释放 / 租约到期由 PG 释放锁。
+
+**两实例实测**（`two-instances-timeline.txt`、`two-instances-logs.txt`）：两个 `next start` 进程（3790 / 3791）共用一个库，
+60 张新的未烘图；后台按钮排链 C1，脚本另排一条链 C2（模拟此前多次点击留下的链）。
+
+| 观察 | 结果 |
+| --- | --- |
+| 每秒采样「持有全局段锁的会话数」 | 最多 1 |
+| 未结束的段数 | 最多 2（= 链数，没有翻倍） |
+| 让路 | 10:30 job 46、10:31 job 50 各推迟 45 秒后跑上 |
+| 同一 job 被两个进程同时捡起 | **3 分钟内发生 2 次**（job 54、55），各有一份副本记「已由另一份副本处理，本副本不做事」 |
+| 结果 | 3 分钟 60 张全部完成（112/112）；60 张逐张检查均为「干净备份 + 一层水印」（`single-layer-two-instances.txt`） |
+| 页面 | 点击后显示「已加入队列。」，再 POST 回 `running`（`walk-two-instances-start.json`） |
+
+**旁证**：同一段日志里，无关的 `reconcile-city-partner-notification-outbox` 任务也出现
+`insert into "payload_jobs_log"` 失败与 `TypeError: Cannot use 'in' operator to search for '_rels' in undefined`——
+与生产日志同一指纹。可见「同一 job 被重复执行」**只要有两个以上实例就会发生**，不只在切流退场窗口；
+水印重刷已由段锁兜住，其他任务类型留给工作项「旁支」。rebake job 54 也有一条同样的记账报错：两份副本里先结束的
+那份把 job 标完成并删除，另一份收尾记账时找不到行——段内的活已经做完、续投已在锁内完成，不影响结果。
+
+## 7. 没验到的
 
 - 生产后台需要登录态，上线后由用户点一次按钮；次日复看进度与日志。
-- 同一个 job 被两个实例同时捡起（切流退场窗口的旧实例）不在本工作项，见工作项「旁支」。
-- 生产库里此前多次点击留下的在途段：上线后由新代码接着跑，按 id 串行、彼此不并发；它们推进的是同一批「不是当前版本」的图，最多多扫几页，不会重复烘焙。
+- 其他任务类型的重复执行不在本工作项，见工作项「旁支」。
+- COS 请求没有超时（`media-writer.ts` 的 S3 客户端未设）：某段若卡在一次 COS 请求上超过 15 分钟租约，会被回收重跑，
+  而原段仍可能在跑。段锁所在会话届时也会被 PG 结束，两者可能并行。评审 Minor 3 提到，未在本工作项处理。

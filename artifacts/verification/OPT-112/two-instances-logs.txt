@@ -1,0 +1,19 @@
+# 两个进程日志里与本改动相关的行（ANSI 色码已去，堆栈省略）
+== 进程 A
+[10:29:30] ERROR: Error running job Task: reconcile-city-partner-notification-outbox id: 43 attempt 1
+[10:29:30] ERROR: Error running job Task: reconcile-city-partner-notification-outbox id: 44 attempt 1
+[10:29:30] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:30:00] INFO: [watermark] 重刷段 job 46 让路：另一段正在跑，45 秒后再试
+[10:31:00] INFO: [watermark] 重刷段 job 50 让路：另一段正在跑，45 秒后再试
+[10:31:00] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:32:09] ERROR: Error running job Task: rebake-media-watermark id: 54 attempt 1
+[10:32:09] ERROR: Error in job queue cron job handler
+      "type": "TypeError",
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+[10:33:00] INFO: [watermark] 重刷段 job 55 已由另一份副本处理，本副本不做事
+== 进程 B
+[10:32:00] INFO: [watermark] 重刷段 job 54 已由另一份副本处理，本副本不做事

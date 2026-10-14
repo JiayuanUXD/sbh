@@ -26,7 +26,7 @@
 
 排除项：HTTP 端点失败（无 5xx）、开关关闭（无对应 warn）、autoRun 未启用（日志可见 cron 在跑）。
 
-**旁支（不在本工作项）：** 切流后旧版本实例在退场窗口内仍跑 cron，同一个 job 被两个实例同时执行，引发 `payload_jobs_log` 插入失败与 `updateJobs` 的 `Cannot use 'in' operator to search for '_rels' in undefined`，影响**所有**任务类型，单独立项。
+**旁支（不在本工作项）：** 同一个 job 被两个实例同时执行，引发 `payload_jobs_log` 插入失败与 `updateJobs` 的 `Cannot use 'in' operator to search for '_rels' in undefined`，影响**所有**任务类型。起初以为只发生在切流退场窗口（旧实例仍跑 cron）；独立评审读源码、本地两实例实测（`artifacts/verification/OPT-112/verification.md` §6）确认根因是 Payload 3.86 drizzle `updateJobs` 认领不复核 `processing = false`，**只要有两个以上实例就会发生**。水印重刷由 T5 的段锁兜住，其他任务单独立项。
 
 ## 2. 方案
 
@@ -35,8 +35,8 @@
 | T1 | `readWatermarkSiteSettings` / `resolveWatermarkConfig` / `resolveWatermarkRenderContext` 接受可选 `req`，透传给 `findGlobal`；上传 hook 传自己的 `req`，复用事务连接 | E1 E2 |
 | T2 | 任务按「`usage = listing-photo` 且 `watermark.version ≠ 当前哈希`（含 null）」在库里过滤，不再逐页扫已完成的图；重新开链的代价因此只剩真正没做完的图 | E5 |
 | T3 | 续投带退避重试（3 次）；仍失败就抛错交给任务级重试（改为 5 次、指数退避 30s 起），重跑是幂等的（T2 让已完成的图直接被过滤掉） | E3 |
-| T4 | `shouldAutoRun` 增加水印任务的陈旧租约回收（15 分钟，与同步 / 导入同口径） | E4 |
-| T5 | 同一时刻只跑一段：handler 开头若有 id 更小、仍在租约内的同类段在跑，就推迟 60 秒重投自己（不丢段、按 id 决胜，避免互相让） | E6 |
+| T4 | `shouldAutoRun` 增加水印任务的陈旧租约回收（15 分钟，与同步 / 导入同口径）；每放回一次累计一次尝试，达 3 次再死掉就标失败、不再放回（防「自己把进程弄死」的段反复弄死实例） | E4 |
+| T5 | 同一时刻只跑一段：事务级 advisory lock（`runWithSegmentLock`）。先拿 `(命名空间, job id)`，拿不到或该行已完成 = 同一 job 的另一份副本，什么都不做也不续投；再拿全局段锁，拿不到就推迟 45 秒重投自己。事务带 `idle_in_transaction_session_timeout` = 租约。（初版按「有没有 id 更小的段在跑」计数，独立评审指出挡不住重复认领与先查后跑，已替换）| E6 |
 | T6 | 路由 `POST` 发现已有未结束的链（待跑，或在租约内处理中）就不再排队，回 `{ queued: false, reason: 'running' }`；新增 `GET` 回 `{ enabled, total, done, running }` | E5 E7 |
 | T7 | 按钮挂载即取进度，显示「已完成 X / 总数 Y」；在跑时禁用按钮、每 15 秒刷新；结束后若 `done < total` 提示剩余张数（缺备份等失败见服务日志） | E7 |
 | T8 | 重刷路由以 `getPayload({ cron: true })` 取实例（验收中发现：Payload 只在这样取时启动任务 cron，自定义路由默认不带；新实例只收到本路由请求时，排的段与要回收的陈旧段没人跑）。与 `supply-submissions` 路由同一做法 | E4 |
@@ -46,7 +46,7 @@
 ## 3. 验收
 
 - [x] T1：单测证明 hook 读设置时带 `req`；本地 `DB_POOL_MAX=2`（适配器常驻借走 1 条，只剩 1 条）复现「上传带水印图 → 连接超时」，修复后同条件通过
-- [x] T2–T5：单测覆盖过滤条件、续投重试、陈旧回收 SQL、串行判定；本地 `kill -9` 模拟发版杀段，回收后链条跑完，被打断的图只有一层水印
+- [x] T2–T5：单测覆盖过滤条件、续投重试、陈旧回收 SQL（含尝试上限）；段锁有真库测试；本地 `kill -9` 模拟发版杀段，回收后链条跑完，被打断的图只有一层水印；两实例共用一库跑两条链，段锁持有者恒 ≤ 1、链不翻倍，重复认领 2 次均被识别
 - [x] T6–T7：本地浏览器走一遍：进度显示、点击后转「进行中」、重复点被拒、跑完数字到齐
 - [x] T8：新进程只请求过 `/api/health` 时段不跑；一次未登录 GET 本路由后下一个整分钟即跑
 - [x] 全量闸门：typecheck / lint / test / migrate:dry-run / build

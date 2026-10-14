@@ -1,0 +1,33 @@
+# 两个 next start 进程（3790 / 3791）共用一个库，各自 cron 每个整分钟一轮；链 C1 由后台按钮排、链 C2（job 46）由脚本排，模拟旧点击留下的链
+# 每秒采样：持有全局段锁的会话数 / 未结束的重刷段（id:startAfterId:状态）/ 已带当前 version 的实景图数
+10:29:59 segmentLockHolders=0 jobs=[45:-:pend 46:0:pend] versions=52/112
+10:30:00 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=52/112
+10:30:01 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=55/112
+10:30:03 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=57/112
+10:30:04 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=59/112
+10:30:05 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=62/112
+10:30:06 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=64/112
+10:30:08 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=66/112
+10:30:09 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=69/112
+10:30:10 segmentLockHolders=1 jobs=[45:-:proc 49:0:pend] versions=72/112
+10:30:11 segmentLockHolders=0 jobs=[49:0:pend 50:90:pend] versions=72/112
+10:31:01 segmentLockHolders=1 jobs=[49:0:proc 54:90:pend] versions=74/112
+10:31:02 segmentLockHolders=1 jobs=[49:0:proc 54:90:pend] versions=76/112
+10:31:03 segmentLockHolders=1 jobs=[49:0:proc 54:90:pend] versions=79/112
+10:31:04 segmentLockHolders=1 jobs=[49:0:proc 54:90:pend] versions=81/112
+10:31:06 segmentLockHolders=1 jobs=[49:0:proc 54:90:pend] versions=84/112
+10:31:07 segmentLockHolders=1 jobs=[49:0:proc 54:90:pend] versions=86/112
+10:31:08 segmentLockHolders=1 jobs=[49:0:proc 54:90:pend] versions=89/112
+10:31:09 segmentLockHolders=1 jobs=[49:0:proc 54:90:pend] versions=91/112
+10:31:11 segmentLockHolders=0 jobs=[54:90:pend 55:110:pend] versions=92/112
+10:32:00 segmentLockHolders=1 jobs=[55:110:pend] versions=92/112
+10:32:01 segmentLockHolders=1 jobs=[55:110:pend] versions=94/112
+10:32:02 segmentLockHolders=1 jobs=[55:110:pend] versions=97/112
+10:32:04 segmentLockHolders=1 jobs=[55:110:pend] versions=99/112
+10:32:05 segmentLockHolders=1 jobs=[55:110:pend] versions=102/112
+10:32:06 segmentLockHolders=1 jobs=[55:110:pend] versions=105/112
+10:32:07 segmentLockHolders=1 jobs=[55:110:pend] versions=107/112
+10:32:09 segmentLockHolders=1 jobs=[55:110:pend] versions=110/112
+10:32:10 segmentLockHolders=0 jobs=[55:110:pend] versions=112/112
+10:33:00 segmentLockHolders=0 jobs=[] versions=112/112
+# 结论：全局段锁持有者最多 1 个；未结束的段最多 2 个
