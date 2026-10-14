@@ -1,6 +1,6 @@
 # Task Packet：OPT-111 收窄公开目录缓存失效范围
 
-> 状态：**方案待评审**（未动代码）
+> 状态：**已实施，待合并**（D1 / D2 已于 2026-10-14 获用户确认；线上复测待合并后补）
 > 创建日期：2026-10-14
 > 来源：外部性能审计 P0-1「缓存几乎总是冷的」，2026-10-14 逐条对照 master `c339d62` 核实后，用户裁定从本项开始
 >
@@ -84,7 +84,7 @@
 **Interfaces:**
 - Produces：无新导出。行为契约：除 key 以 `public-sitemap-` 开头的条目外，任何 `unstable_cache` 条目的 tags 都不含 `SITEMAP_TAG`。
 
-- [ ] **Step 1：写失败测试** `tests/public-cache-tag-scope.test.ts`
+- [x] **Step 1：写失败测试** `tests/public-cache-tag-scope.test.ts`
 
   沿用 `tests/mini-api-cached-queries.test.ts:20` 的 `vi.mock('next/cache', …)` 范式：mock `unstable_cache` 记录 `{ keyParts, tags }`，返回 `async () => undefined`。分别以 `'shanghai'`、`'hangzhou'` 调用 `cached-queries.ts` 全部 `getCached*` 导出（含 sitemap 分片两个），并 import `sitemap-shards.ts` 触发两条聚合条目登记。断言：
 
@@ -120,13 +120,13 @@
 
   首页条目挂 `ARTICLES_CATEGORY_TAG` 是正当依赖（首页有资讯区），由 `!e.tags.includes(ARTICLES_CATEGORY_TAG)` 放行，不另做豁免。`getCachedPlatformStats` 每次只传**一个**城市调用：它的 key 是排序后的城市清单，传两城会合法地同时挂两城 tag，误触第 3 条断言。
 
-- [ ] **Step 2：确认红**：`pnpm exec vitest run tests/public-cache-tag-scope.test.ts`，预期第 1、3、4 条红（E1/E3），第 2 条绿。
+- [x] **Step 2：确认红**：`pnpm exec vitest run tests/public-cache-tag-scope.test.ts`，预期第 1、3、4 条红（E1/E3），第 2 条绿。
 
-- [ ] **Step 3：实现**：按 Files 删掉 `SITEMAP_TAG`，补 `cache-tags.ts` 注释。`sitemap-shards.ts` 不动。
+- [x] **Step 3：实现**：按 Files 删掉 `SITEMAP_TAG`，补 `cache-tags.ts` 注释。`sitemap-shards.ts` 不动。
 
-- [ ] **Step 4：确认绿**：上条命令全绿；再跑 `pnpm exec vitest run tests/supply-public-cache-hook.test.ts tests/fp-06-content-seo-cache-acceptance.test.ts tests/media-delete-cache-invalidation.test.ts tests/home-sitemap-cache-performance.test.ts tests/sitemap-static-routes.test.ts`，全绿且未改动。
+- [x] **Step 4：确认绿**：上条命令全绿；再跑 `pnpm exec vitest run tests/supply-public-cache-hook.test.ts tests/fp-06-content-seo-cache-acceptance.test.ts tests/media-delete-cache-invalidation.test.ts tests/home-sitemap-cache-performance.test.ts tests/sitemap-static-routes.test.ts`，全绿且未改动。
 
-- [ ] **Step 5：提交** `perf(cache): OPT-111 供给/资讯/内容页缓存条目不再挂 sitemap tag`
+- [x] **Step 5：提交** `perf(cache): OPT-111 供给/资讯/内容页缓存条目不再挂 sitemap tag`
 
 ---
 
@@ -175,7 +175,7 @@
   5. 前后公开性不同：`became_or_was_public` 失效。
   6. 取两侧顶层键的并集，去掉内部字段名单，逐键 `node:util` 的 `isDeepStrictEqual`；有任一不等：`public_field_changed` 失效，否则 `internal_fields_only` 跳过。
 
-- [ ] **Step 1：写失败测试** `tests/supply-cache-relevance.test.ts`
+- [x] **Step 1：写失败测试** `tests/supply-cache-relevance.test.ts`
 
   表驱动，夹具最小化。每行一个 `it`，名称即场景：
 
@@ -197,19 +197,19 @@
 
   另加源码契约用例 `内部字段在公开代码中零引用`：对 `INTERNAL_ONLY_SUPPLY_FIELDS` 每个字段（`updatedAt` / `createdAt` / `version` 三个元字段除外，它们按 E10 有已知的排序用途，见 D1），在 `src/domain/public-catalog`、`src/lib/frontend`、`src/app/(frontend)`、`src/components/frontend`、`src/lib/mini-program`、`src/domain/mini-program`、`src/app/api/mini` 下按 `\b<field>\b` 扫，期望零命中。
 
-- [ ] **Step 2：确认红**：`pnpm exec vitest run tests/supply-cache-relevance.test.ts`，预期模块不存在。
+- [x] **Step 2：确认红**：`pnpm exec vitest run tests/supply-cache-relevance.test.ts`，预期模块不存在。
 
-- [ ] **Step 3：实现** `supply-cache-relevance.ts`，签名与规则见 Interfaces。`isDeepStrictEqual` 来自 `node:util`。
+- [x] **Step 3：实现** `supply-cache-relevance.ts`，签名与规则见 Interfaces。`isDeepStrictEqual` 来自 `node:util`。
 
-- [ ] **Step 4：确认绿**：同上命令。
+- [x] **Step 4：确认绿**：同上命令。
 
-- [ ] **Step 5：接线** `supply-cache-hook.ts`：`createAfterChangeHook` / `createAfterDeleteHook` 增加 `collection: SupplyCollection` 参数；在既有 `SKIP_SUPPLY_CACHE_INVALIDATION` 判断之后、`invalidateForDocs` 之前调用 `decideSupplyCacheInvalidation`。不失效时打一行 `console.info('[supply-cache-invalidation] skipped', { collection, id, reason })`（后台单条保存频率低，Task 4 的本地对照要数这行）。导出的四个 hook 名不变，`Listings.ts` / `Buildings.ts` 不改。
+- [x] **Step 5：接线** `supply-cache-hook.ts`：`createAfterChangeHook` / `createAfterDeleteHook` 增加 `collection: SupplyCollection` 参数；在既有 `SKIP_SUPPLY_CACHE_INVALIDATION` 判断之后、`invalidateForDocs` 之前调用 `decideSupplyCacheInvalidation`。不失效时打一行 `console.info('[supply-cache-invalidation] skipped', { collection, id, reason })`（后台单条保存频率低，Task 4 的本地对照要数这行）。导出的四个 hook 名不变，`Listings.ts` / `Buildings.ts` 不改。
 
-- [ ] **Step 6：更新既有夹具** `tests/supply-public-cache-hook.test.ts`：现有用例的 `doc` 与 `previousDoc` 相同且无状态字段，新规则下会落到 `internal_fields_only`。逐条改成**真实的公开变化**：两侧补 `publicationStatus: 'published'`（楼盘用 `status`），并让 `previousDoc` 的一个公开字段不同（如 `rent`）。断言（失效哪些 tag、换城市两侧都失效、城市解析不出走类目兜底）一律不改。新增两条：草稿保存不调用 `revalidateTag`；只改 `roomNumber` 不调用 `revalidateTag`。
+- [x] **Step 6：更新既有夹具** `tests/supply-public-cache-hook.test.ts`：现有用例的 `doc` 与 `previousDoc` 相同且无状态字段，新规则下会落到 `internal_fields_only`。逐条改成**真实的公开变化**：两侧补 `publicationStatus: 'published'`（楼盘用 `status`），并让 `previousDoc` 的一个公开字段不同（如 `rent`）。断言（失效哪些 tag、换城市两侧都失效、城市解析不出走类目兜底）一律不改。新增两条：草稿保存不调用 `revalidateTag`；只改 `roomNumber` 不调用 `revalidateTag`。
 
-- [ ] **Step 7：回归**：`pnpm exec vitest run tests/supply-public-cache-hook.test.ts tests/supply-cache-relevance.test.ts tests/admin-auto-publish-hook.test.ts tests/media-delete-cache-invalidation.test.ts`，全绿。
+- [x] **Step 7：回归**：`pnpm exec vitest run tests/supply-public-cache-hook.test.ts tests/supply-cache-relevance.test.ts tests/admin-auto-publish-hook.test.ts tests/media-delete-cache-invalidation.test.ts`，全绿。
 
-- [ ] **Step 8：提交** `perf(cache): OPT-111 草稿与内部字段保存不再清公开缓存`
+- [x] **Step 8：提交** `perf(cache): OPT-111 草稿与内部字段保存不再清公开缓存`
 
 ---
 
@@ -222,19 +222,19 @@
 **Interfaces:**
 - `publishSourceSlice` 返回值形状不变。行为由「`published > 0` 时失效」改为「`done === true` 时失效一次」，参数仍为 `([], 'source_sync')`（全城市类目兜底，一轮两次：楼盘、房源各一次）。
 
-- [ ] **Step 1：改测试为新契约**（先红）：
+- [x] **Step 1：改测试为新契约**（先红）：
   - `:109` 所在用例（`done: true`）：保持 `toHaveBeenCalledOnce()`。
   - `:182` 所在用例（预算耗尽，`done: false`）：改为 `expect(io.invalidate).not.toHaveBeenCalled()`，用例名改为「…预算耗尽未完成时不失效缓存」。
   - `:160` 所在用例（提交失败、`published: 0`、`done: true`）：改为 `toHaveBeenCalledOnce()`，用例名注明「阶段结束即失效一次，不论本段是否发布」：前面的段可能已发布。
   - 新增：「本段发布了但未完成（`hasNextPage: true`）时不失效」。
 
-- [ ] **Step 2：确认红**：`pnpm exec vitest run tests/source-sync-publish.test.ts`。
+- [x] **Step 2：确认红**：`pnpm exec vitest run tests/source-sync-publish.test.ts`。
 
-- [ ] **Step 3：实现**：`if (published > 0)` 改为基于返回对象里的 `done` 计算后判断；注释写明 D2 与「回滚端点仍立即失效」。
+- [x] **Step 3：实现**：`if (published > 0)` 改为基于返回对象里的 `done` 计算后判断；注释写明 D2 与「回滚端点仍立即失效」。
 
-- [ ] **Step 4：确认绿**：同上命令，并跑 `tests/source-sync-publish-endpoint.test.ts`。
+- [x] **Step 4：确认绿**：同上命令，并跑 `tests/source-sync-publish-endpoint.test.ts`。
 
-- [ ] **Step 5：提交** `perf(cache): OPT-111 采集发布每阶段只失效一次公开缓存`
+- [x] **Step 5：提交** `perf(cache): OPT-111 采集发布每阶段只失效一次公开缓存`
 
 ---
 
@@ -242,9 +242,9 @@
 
 证据目录：`artifacts/verification/OPT-111/`。脚本随证据提交（`.agent/testing.md` 证据质量第 1 条）。
 
-- [ ] **Step 1：全量闸门**：`pnpm typecheck && pnpm lint && pnpm test && pnpm build`。
+- [x] **Step 1：全量闸门**：`pnpm typecheck && pnpm lint && pnpm test && pnpm build`。
 
-- [ ] **Step 2：本地前后对照**（同一脚本跑两次：改动前 `origin/master` 构建、改动后构建）。环境按 `.agent/testing.md`「本地 `next start`」节：`CI=1`、https `NEXT_PUBLIC_SITE_URL`、本地 PG 跑完迁移 + `pnpm seed` + `pnpm seed:media`，**`MULTI_CITY_ROUTING_ENABLED=true`**（要有两个城市首页）。
+- [x] **Step 2：本地前后对照**（同一脚本跑两次：改动前 `origin/master` 构建、改动后构建）。环境按 `.agent/testing.md`「本地 `next start`」节：`CI=1`、https `NEXT_PUBLIC_SITE_URL`、本地 PG 跑完迁移 + `pnpm seed` + `pnpm seed:media`，**`MULTI_CITY_ROUTING_ENABLED=true`**（要有两个城市首页）。
 
   可观测量：生产模式下首页缓存未命中会打 `[public-catalog:home-cache] {"phase":"start"}`（`cached-queries.ts:145`），按 `city` 计数。脚本 `probe-home-misses.sh`：
   1. 预热 `/shanghai`、`/hangzhou` 各 3 次，记录基线计数。
@@ -264,11 +264,11 @@
 
   先确认「改动前」那一列真的全是未命中（对照组有效，见根 `CLAUDE.md`「做对照实验时」），再看改动后。
 
-- [ ] **Step 3：浏览器走一遍**：后台改一条上海房源的租金，前台上海列表页与详情页刷新后显示新值；把它下架，列表与详情立即消失（硬过期语义未变）。四档视口不需要，本项无 UI 改动；控制台无新增错误。
+- [x] **Step 3：浏览器走一遍**：后台改一条上海房源的租金，前台上海列表页与详情页刷新后显示新值；把它下架，列表与详情立即消失（硬过期语义未变）。四档视口不需要，本项无 UI 改动；控制台无新增错误。
 
 - [ ] **Step 4：上线后复测**（合并即上线）：CloudRun 运行日志里按小时统计 `[public-catalog:home-cache]` `phase:start` 次数，与上线前同时段对比；同时统计 `[supply-cache-invalidation] skipped` 的 `reason` 分布。拿不到日志就如实写「未验证」。
 
-- [ ] **Step 5：回写本文件**「实施后订正」与勾选状态。
+- [x] **Step 5：回写本文件**「实施后订正」与勾选状态。
 
 ---
 
@@ -281,3 +281,17 @@
 - **R1 名单漂移**：新增公开展示字段时若恰好重名于内部名单，契约测试会红；新增**内部**字段不进名单只会多失效，安全。
 - **R2 hook 深度不一致**：`doc` / `previousDoc` 关系字段展开深度不同 → 判为变化 → 多失效，安全。
 - **R3 多实例**：本项不改变 OPT-042 的跨实例传播缺口；对外表述不得写成「多实例下失效已正确」。
+
+## 7. 实施后订正（2026-10-14）
+
+- **评审重点 #3 低估了问题，已修正实现。** 原写「关系字段一侧 id、一侧展开 → 判为变化，安全方向」。
+  本地对照实验（Task 4）证明这会让 D1 形同虚设：`previousDoc` 恒为 depth 0，`doc` 随调用方 depth
+  展开（Local API 默认 `defaultDepth=2`）；且 Listings 的 beforeChange 每次保存都由 `mediaItems` 重建
+  `gallery`，数组行 id 每次都换。现在比较前归一成存储形态：带 id 与时间戳的展开文档收成 id，数组元素去掉
+  行 id（顺序与内容照常比较）。认不出的裸 `{ id }` 对象仍原样比较、只多失效。
+- **Task 2 Step 6 只改了一条既有夹具**：其余用例本就是新建形态或换楼盘，已经是真实的公开变化，未动。
+  另补两条表外用例（`unknown_shape`、楼盘不认房源的状态字段）。
+- **后台表单的「租金」输入是 `price.amount`**，不是 `rent` 列；浏览器走查按此改。
+- **夹具**：种子里杭州为 coming-soon（不读首页缓存）、无草稿房源、无资讯，对照实验前由
+  `setup-fixtures.sh` 把杭州置 live、一条上海房源改草稿，资讯由探针脚本经 REST 新建。
+- 证据：`artifacts/verification/OPT-111/verification.md`。
