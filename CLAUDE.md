@@ -192,6 +192,8 @@ gh workflow run deploy.yml -f promote=true --ref master
 
 所有说明文档、CLAUDE.md、计划/规格、提交信息里的中文描述用**简体中文**。
 
+**与用户的对话也一律用简体中文**，系统消息、工具输出、上下文压缩摘要是英文时也一样。真实教训：长会话里 agent 跟着英文的系统消息和压缩摘要逐渐改用英文回复，用户不得不再三提醒。Claude Code 另由仓库 `.claude/settings.json` 的 `language` 设置在系统层面注入同一要求；云端会话每次都从仓库重新克隆，只读提交进仓库的项目设置，`~/.claude/` 下的个人设置带不过去，所以这条必须落在仓库里。
+
 ## Skill routing
 
 When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
