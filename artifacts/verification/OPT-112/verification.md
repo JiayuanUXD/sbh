@@ -26,6 +26,9 @@
 | 同一会话再 POST 一次 | 200 `{ queued: false, reason: "running" }`，没有排第二条链 |
 | 链条跑完后再打开 | 「已完成 47 / 47 张」「全部已是当前参数…」，按钮可点（`walk-view-loaded.png`） |
 
+注：`walk-start-*.png` 两张截图已被 §6 两实例那一轮同名覆盖（画面是「52 / 112」与评审后新增的「已加入队列。」），
+本节的文字数据以 `walk-start.json` 为准，§6 那一轮的数据见 `walk-two-instances-start.json`。
+
 控制台两条 `ERR_TUNNEL_CONNECTION_FAILED` 是 Payload 默认头像 `www.gravatar.com`（云端会话代理拒绝外网），另有导航时被中断的 `admin-navigation` / `dashboard-stats`（`ERR_ABORTED`），均与本改动无关（`walk-view.json` 的 `failedRequests`）。
 
 ## 3. 模拟发版杀段 → 自动回收 → 链条跑完（T2–T4）
