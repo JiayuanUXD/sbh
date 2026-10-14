@@ -1,0 +1,56 @@
+{
+  "origin": "http://localhost:3790",
+  "phase": "start",
+  "measuredAt": "2026-10-14T10:55:18.099Z",
+  "steps": [
+    {
+      "label": "loaded",
+      "buttonText": "重刷全部房源图",
+      "buttonDisabled": false,
+      "lines": [
+        "已完成 112 / 172 张",
+        "还有 60 张不是当前参数，点按钮开始（或继续）重刷。若重刷跑完仍有剩余，多半是缺干净原件备份，原因见服务日志。",
+        "先保存上面的参数，再点这里。只处理「素材用途 = 房源/楼盘实景」的图片。"
+      ],
+      "screenshot": "walk-start-loaded.png"
+    },
+    {
+      "label": "click-post",
+      "status": 200,
+      "body": {
+        "queued": true
+      }
+    },
+    {
+      "label": "after-click",
+      "buttonText": "重刷进行中",
+      "buttonDisabled": true,
+      "lines": [
+        "已完成 112 / 172 张",
+        "正在按当前参数逐批重新烘焙，每分钟约 20 张；本页每 15 秒刷新一次。关掉页面不影响后台继续跑。",
+        "跑的过程中若改了上面的参数并保存，要等本轮跑完后再点一次，已处理过的图才会按新参数重刷。",
+        "已加入队列。"
+      ],
+      "screenshot": "walk-start-after-click.png"
+    },
+    {
+      "label": "second-post",
+      "status": 200,
+      "body": {
+        "queued": false,
+        "reason": "running"
+      }
+    }
+  ],
+  "consoleErrors": [
+    "http://localhost:3790/admin :: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+    "http://localhost:3790/admin/globals/site-settings :: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+  ],
+  "failedRequests": [
+    "http://localhost:3790/api/admin-navigation :: net::ERR_ABORTED",
+    "http://localhost:3790/api/dashboard-stats :: net::ERR_ABORTED",
+    "https://www.gravatar.com/avatar/938804e3afdf0126de83e574aedbe300 :: net::ERR_TUNNEL_CONNECTION_FAILED",
+    "http://localhost:3790/api/dashboard-stats :: net::ERR_ABORTED",
+    "https://www.gravatar.com/avatar/938804e3afdf0126de83e574aedbe300 :: net::ERR_TUNNEL_CONNECTION_FAILED"
+  ]
+}

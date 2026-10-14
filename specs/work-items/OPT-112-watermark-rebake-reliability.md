@@ -36,7 +36,7 @@
 | T2 | 任务按「`usage = listing-photo` 且 `watermark.version ≠ 当前哈希`（含 null）」在库里过滤，不再逐页扫已完成的图；重新开链的代价因此只剩真正没做完的图 | E5 |
 | T3 | 续投带退避重试（3 次）；仍失败就抛错交给任务级重试（改为 5 次、指数退避 30s 起），重跑是幂等的（T2 让已完成的图直接被过滤掉） | E3 |
 | T4 | `shouldAutoRun` 增加水印任务的陈旧租约回收（15 分钟，与同步 / 导入同口径）；每放回一次累计一次尝试，达 3 次再死掉就标失败、不再放回（防「自己把进程弄死」的段反复弄死实例） | E4 |
-| T5 | 同一时刻只跑一段：事务级 advisory lock（`runWithSegmentLock`）。先拿 `(命名空间, job id)`，拿不到或该行已完成 = 同一 job 的另一份副本，什么都不做也不续投；再拿全局段锁，拿不到就推迟 45 秒重投自己。事务带 `idle_in_transaction_session_timeout` = 租约。（初版按「有没有 id 更小的段在跑」计数，独立评审指出挡不住重复认领与先查后跑，已替换）| E6 |
+| T5 | 同一时刻只跑一段：事务级 advisory lock（`runWithSegmentLock`）。先拿 `(命名空间, job id)`：拿不到 = 同一 job 的另一份副本在跑 → 待命，持锁者跑完（行已完成）才以 duplicate 退出、不续投，持锁者死了则接手；再拿全局段锁，拿不到就推迟 45 秒重投自己。干活期间心跳维持锁，跑完在锁内标完成再提交；事务带 `idle_in_transaction_session_timeout` = 租约，心跳停了 PG 最迟一个租约后放锁；陈旧回收跳过 job 锁仍被持有的段。（初版计数式让路被独立评审否掉；副本立刻返回、超租约丢锁两处由 Codex P1 指出，已改）| E6 |
 | T6 | 路由 `POST` 发现已有未结束的链（待跑，或在租约内处理中）就不再排队，回 `{ queued: false, reason: 'running' }`；新增 `GET` 回 `{ enabled, total, done, running }` | E5 E7 |
 | T7 | 按钮挂载即取进度，显示「已完成 X / 总数 Y」；在跑时禁用按钮、每 15 秒刷新；结束后若 `done < total` 提示剩余张数（缺备份等失败见服务日志） | E7 |
 | T8 | 重刷路由以 `getPayload({ cron: true })` 取实例（验收中发现：Payload 只在这样取时启动任务 cron，自定义路由默认不带；新实例只收到本路由请求时，排的段与要回收的陈旧段没人跑）。与 `supply-submissions` 路由同一做法 | E4 |
