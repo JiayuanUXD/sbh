@@ -26,6 +26,7 @@ import {
   nextPublicationStatus,
 } from '@/domain/review/publication-status'
 import { partitionForBatch } from '@/domain/shared/batch-request'
+import BatchActionBar from './BatchActionBar'
 import BatchActionModal, { type BatchActionRequest } from './BatchActionModal'
 import ListingPublicationActionModal from './ListingPublicationActionModal'
 import { PUBLICATION_STATUS_TAG_COLORS } from './publication-status-colors'
@@ -215,7 +216,7 @@ export default function ListingsListViewClient({
       setBatchRequest({
         key: `${action}:${Date.now()}`,
         endpoint: '/api/listings/batch-publish',
-        action,
+        params: { action },
         title: `批量${label}房源`,
         verb: label,
         tone: action === 'publish' ? 'primary' : 'warning',
@@ -573,30 +574,6 @@ export default function ListingsListViewClient({
             onChange={(v) => navigate({ page: 1, businessType: (v as string | undefined) ?? null })}
           />
         </Space>
-        {canBatch ? (
-          <Space size="small">
-            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-              已选 {selectedIds.length} 项
-            </Typography.Text>
-            {canPublish ? (
-              <Button
-                disabled={selectedIds.length === 0}
-                onClick={() => openBatch('publish')}
-              >
-                批量上架
-              </Button>
-            ) : null}
-            {canUnpublish ? (
-              <Button
-                disabled={selectedIds.length === 0}
-                status="warning"
-                onClick={() => openBatch('unpublish')}
-              >
-                批量下架
-              </Button>
-            ) : null}
-          </Space>
-        ) : null}
       </div>
 
       {(activeBuilding !== null || activeMissingCover || activePendingRecheck) && (
@@ -626,6 +603,28 @@ export default function ListingsListViewClient({
           ) : null}
         </Space>
       )}
+
+      {canBatch ? (
+        <BatchActionBar selectedCount={selectedIds.length}>
+          {canPublish ? (
+            <Button
+              disabled={selectedIds.length === 0}
+              onClick={() => openBatch('publish')}
+            >
+              批量上架
+            </Button>
+          ) : null}
+          {canUnpublish ? (
+            <Button
+              disabled={selectedIds.length === 0}
+              status="warning"
+              onClick={() => openBatch('unpublish')}
+            >
+              批量下架
+            </Button>
+          ) : null}
+        </BatchActionBar>
+      ) : null}
 
       <Table<ListingRow>
         rowKey="id"

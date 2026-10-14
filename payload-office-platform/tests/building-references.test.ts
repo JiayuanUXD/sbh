@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { countBuildingDeactivationImpact } from '@/domain/supply/building-references'
+import {
+  countBuildingDeactivationImpact,
+  countBuildingsDeactivationImpact,
+} from '@/domain/supply/building-references'
 
 /**
  * 楼盘停用影响预检测试（M3.5 → M4.7 / R3, R4, R8）
@@ -130,5 +133,78 @@ describe('building-references/countBuildingDeactivationImpact', () => {
       .mock.calls
     const listingCall = calls.find((c) => c[0].collection === 'listings')![0]
     expect(listingCall.overrideAccess).toBe(true)
+  })
+})
+
+/**
+ * OPT-113 批量停用预检：一次查询汇总多个楼盘，口径与单楼盘完全相同（同一套粗筛 + 精筛），
+ * 只是 building 约束从 equals 换成 in，并按楼盘拆出计数。
+ */
+describe('building-references/countBuildingsDeactivationImpact', () => {
+  function listingCallOf(payload: unknown): Record<string, unknown> {
+    const calls = (payload as { find: { mock: { calls: Array<[Record<string, unknown>]> } } }).find
+      .mock.calls
+    return calls.find((c) => c[0].collection === 'listings')![0]
+  }
+
+  it('一次查询、按楼盘拆分计数；精筛淘汰的不计入', async () => {
+    const payload = makePayload({
+      listings: [
+        eligibleListing(1, { building: { id: 5, city: { id: 100 } } }),
+        eligibleListing(2, { building: { id: 5, city: { id: 100 } } }),
+        eligibleListing(3, { building: { id: 6, city: { id: 100 } } }),
+        eligibleListing(4, { building: { id: 6, city: { id: 100 } }, merchant: null }),
+      ],
+    })
+    const report = await countBuildingsDeactivationImpact(payload, [5, 6, 7])
+    expect(report.total).toBe(3)
+    expect(report.sources).toEqual([
+      { collection: 'listings', label: '对外可见房源', count: 3 },
+    ])
+    expect(report.byBuilding).toEqual([
+      { buildingId: 5, count: 2 },
+      { buildingId: 6, count: 1 },
+      { buildingId: 7, count: 0 },
+    ])
+    expect(report.capped).toBe(false)
+
+    const listingCall = listingCallOf(payload)
+    expect(listingCall.where).toMatchObject({
+      building: { in: [5, 6, 7] },
+      publicationStatus: { equals: 'published' },
+      reviewStatus: { equals: 'approved' },
+      supplyVisibilityHold: { equals: 'normal' },
+    })
+    // 与单楼盘同口径：默认随权限脱敏
+    expect(listingCall.overrideAccess).toBe(false)
+  })
+
+  it('举报暂停房源同样经 id not_in 排除', async () => {
+    const payload = makePayload({ listings: [], pausedReports: [{ targetListing: 77 }] })
+    await countBuildingsDeactivationImpact(payload, [1, 2])
+    expect(listingCallOf(payload).where).toMatchObject({ id: { not_in: [77] } })
+  })
+
+  it('无受影响房源 → total 0、sources 空', async () => {
+    const payload = makePayload({ listings: [] })
+    const report = await countBuildingsDeactivationImpact(payload, [1])
+    expect(report.total).toBe(0)
+    expect(report.sources).toEqual([])
+    expect(report.byBuilding).toEqual([{ buildingId: 1, count: 0 }])
+  })
+
+  it('空 id 列表 → 直接返回 0，不查库', async () => {
+    const payload = makePayload({ listings: [] })
+    const report = await countBuildingsDeactivationImpact(payload, [])
+    expect(report.total).toBe(0)
+    expect((payload as { find: { mock: { calls: unknown[] } } }).find.mock.calls).toHaveLength(0)
+  })
+
+  it('候选数触顶 → capped=true（界面据此说「至少」）', async () => {
+    const many = Array.from({ length: 500 }, (_, i) => eligibleListing(i + 1))
+    const payload = makePayload({ listings: many })
+    const report = await countBuildingsDeactivationImpact(payload, [5])
+    expect(report.capped).toBe(true)
+    expect(report.total).toBe(500)
   })
 })

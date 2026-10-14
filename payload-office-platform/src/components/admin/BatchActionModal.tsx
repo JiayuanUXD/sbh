@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Input, Message, Modal, Typography } from '@arco-design/web-react'
 
 import { effectiveSupplyExclusionLabel } from '@/domain/review/effective-supply-labels'
@@ -17,10 +17,11 @@ const { Paragraph, Text } = Typography
  * 列表批量动作的确认 + 结果弹层（OPT-113，楼盘库与房源列表共用）。
  *
  * 只做三件事：把后果和「将跳过哪些」说清楚、需要时收原因、提交后逐条展示结果。
- * 规则全在端点（`/api/{listings,buildings}/batch-publish`），两个端点同一响应形状。
+ * 规则全在端点（`/api/{listings,buildings}/batch-publish`、`/api/buildings/batch-operational-status`），
+ * 三个端点同一响应形状。
  *
  * 两段式：
- *   - 确认段：正文 + 跳过清单 + 原因输入；
+ *   - 确认段：正文 + 只读预检结果（如批量停用的受影响房源数）+ 跳过清单 + 原因输入；
  *   - 结果段：仅在有失败条目时出现，逐条列出失败原因。全部成功直接 toast 并关闭——
  *     没有需要运营读的东西，就别让他多点一次。
  * 关闭（无论哪一段，只要已提交过）都会触发 onDone，由调用方刷新列表、清空勾选。
@@ -33,7 +34,8 @@ export type BatchActionRequest = {
   /** 每次打开换一个值，保证内层重新挂载 */
   key: string
   endpoint: string
-  action: string
+  /** 合进请求体的动作参数：批量上下架 `{ action }`，批量启停 `{ target }` */
+  params: Readonly<Record<string, string>>
   title: string
   /** 动作动词，用于「已上架 3 条」之类的提示 */
   verb: string
@@ -43,6 +45,11 @@ export type BatchActionRequest = {
   skipped: ReadonlyArray<{ id: number; name: string; reason: string }>
   /** 原因输入框的无障碍名；null 表示不收原因 */
   reasonLabel: string | null
+  /**
+   * 打开时就已发出的只读预检，resolve 成一句展示文案（批量停用用它展示受影响房源数）。
+   * 由调用方在点击处理里发起，弹层只负责等结果；预检失败不挡确认（停用是人为决策，与单条一致）。
+   */
+  preflight?: Promise<string>
 }
 
 export type BatchActionModalProps = {
@@ -80,6 +87,24 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [response, setResponse] = useState<BatchResponse | null>(null)
+  const [preflightText, setPreflightText] = useState<string | null>(null)
+
+  // 只在 promise 落定后写 state（不在 effect 体里同步 setState）；卸载后晚到的结果丢弃。
+  useEffect(() => {
+    if (!request.preflight) return
+    let active = true
+    request.preflight.then(
+      (text) => {
+        if (active) setPreflightText(text)
+      },
+      () => {
+        if (active) setPreflightText('受影响记录统计失败，仍可继续操作')
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [request.preflight])
 
   const needsReason = request.reasonLabel !== null
   const reasonMissing = needsReason && reason.trim().length === 0
@@ -99,7 +124,7 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: request.action,
+          ...request.params,
           items: request.items,
           ...(needsReason ? { reason: reason.trim() } : {}),
         }),
@@ -204,6 +229,11 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
       ) : (
         request.body.map((line) => <Paragraph key={line}>{line}</Paragraph>)
       )}
+      {request.preflight && !nothingToDo ? (
+        <Paragraph>
+          {preflightText ?? <Text type="secondary">正在统计受影响记录…</Text>}
+        </Paragraph>
+      ) : null}
       {request.skipped.length > 0 ? (
         <Paragraph type="secondary" style={{ fontSize: 13 }}>
           将跳过 {request.skipped.length} 条：

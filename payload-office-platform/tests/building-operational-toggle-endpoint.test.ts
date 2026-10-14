@@ -57,6 +57,7 @@ function makeReq(params: {
   req: PayloadRequest
   findByID: ReturnType<typeof vi.fn>
   update: ReturnType<typeof vi.fn>
+  create: ReturnType<typeof vi.fn>
 } {
   const {
     user = makeUser(),
@@ -72,13 +73,15 @@ function makeReq(params: {
     return { id: 1, operationalStatus: currentStatus }
   })
   const update = vi.fn(async () => ({ id: 1 }))
+  // OPT-113：启停与批量启停共用一个执行核心，每次实际写入都记一行审计（building.freeze / restore）
+  const create = vi.fn(async () => ({ id: 999, auditId: 'aud_test001' }))
   const req = {
     user: user ?? null,
     routeParams,
-    payload: { find, findByID, update },
+    payload: { find, findByID, update, create },
     ...(body !== undefined ? { data: body, json: async () => body } : {}),
   }
-  return { req: req as unknown as PayloadRequest, findByID, update }
+  return { req: req as unknown as PayloadRequest, findByID, update, create }
 }
 
 async function run(req: PayloadRequest): Promise<{ status: number; body: any }> {
@@ -216,5 +219,30 @@ describe('building-operational-toggle-endpoint/target（OPT-113）', () => {
       body: { target: 'disabled' },
     })
     expect((await run(req)).status).toBe(403)
+  })
+})
+
+describe('building-operational-toggle-endpoint/审计（OPT-113）', () => {
+  function auditActions(create: ReturnType<typeof vi.fn>): unknown[] {
+    return create.mock.calls
+      .map((c) => (c as unknown as [{ collection: string; data: Record<string, unknown> }])[0])
+      .filter((a) => a.collection === 'audit-logs')
+      .map((a) => a.data.action)
+  }
+
+  it('停用写 building.freeze、启用写 building.restore', async () => {
+    const disable = makeReq({ currentStatus: 'active' })
+    await run(disable.req)
+    expect(auditActions(disable.create)).toEqual(['building.freeze'])
+
+    const enable = makeReq({ currentStatus: 'disabled' })
+    await run(enable.req)
+    expect(auditActions(enable.create)).toEqual(['building.restore'])
+  })
+
+  it('已是目标状态的幂等返回不写审计', async () => {
+    const { req, create } = makeReq({ currentStatus: 'disabled', body: { target: 'disabled' } })
+    await run(req)
+    expect(auditActions(create)).toEqual([])
   })
 })

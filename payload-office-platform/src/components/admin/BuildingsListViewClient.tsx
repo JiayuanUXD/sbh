@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Button,
+  Divider,
   Input,
   Select,
   Space,
@@ -14,8 +15,12 @@ import {
 import { IconDelete, IconPlus } from '@arco-design/web-react/icon'
 import type { ColumnProps } from '@arco-design/web-react/es/Table'
 
-import { partitionForBatch } from '@/domain/shared/batch-request'
-import { isBuildingOperationalStatus } from '@/domain/supply/building'
+import { partitionForBatch, type BatchItem } from '@/domain/shared/batch-request'
+import {
+  BUILDING_OPERATIONAL_STATUS_LABELS,
+  isBuildingOperationalStatus,
+  type BuildingOperationalStatus,
+} from '@/domain/supply/building'
 import {
   BUILDING_PUBLISH_ACTION_LABELS,
   BUILDING_STATUS_LABELS,
@@ -23,6 +28,7 @@ import {
   nextBuildingStatus,
   type BuildingPublishAction,
 } from '@/domain/supply/building-publication'
+import BatchActionBar from './BatchActionBar'
 import BatchActionModal, { type BatchActionRequest } from './BatchActionModal'
 import { useBuildingOperationalAction } from './useBuildingOperationalAction'
 
@@ -35,6 +41,8 @@ import { useBuildingOperationalAction } from './useBuildingOperationalAction'
  *   动作完成后清空；不适用的行（已发布再上架等）按领域状态机预筛，确认弹层里明示跳过
  * - 行内停用 / 启用（OPT-113，需 building:freeze）：与编辑页共用同一套确认流程
  *   （停用前预检受影响房源数），带目标状态提交，列表数据过期也不会把「停用」做成「启用」
+ * - 批量停用 / 启用（OPT-113，需 building:freeze）：与批量上下架共用勾选与弹层；
+ *   批量停用打开即一次性预检所选楼盘的受影响房源数，已是目标状态的行明示跳过
  */
 
 export interface BuildingRow {
@@ -110,6 +118,65 @@ function buildingSkipReason(row: BuildingRow, action: BuildingPublishAction): st
   return `${label}，不能${BUILDING_PUBLISH_ACTION_LABELS[action]}`
 }
 
+/** 某行对批量停用 / 启用「不适用」的原因：已是目标状态，或状态值非法。 */
+function operationalSkipReason(
+  row: BuildingRow,
+  target: BuildingOperationalStatus,
+): string | null {
+  if (!isBuildingOperationalStatus(row.operationalStatus)) return '启停状态未知'
+  return row.operationalStatus === target
+    ? `已是「${BUILDING_OPERATIONAL_STATUS_LABELS[target]}」`
+    : null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * 批量停用预检：一次请求汇总所选楼盘下当前对外可见的房源数，resolve 成弹层里的一句话。
+ * 失败就 reject，弹层显示「统计失败，仍可继续」——与单条停用一样，预检不挡决策。
+ */
+async function loadBatchDeactivationImpact(items: readonly BatchItem[]): Promise<string> {
+  const res = await fetch('/api/buildings/batch-deactivation-impact', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  })
+  const data: unknown = await res.json().catch(() => null)
+  const report = isRecord(data) && data.ok === true && isRecord(data.report) ? data.report : null
+  if (!res.ok || !report || typeof report.total !== 'number') {
+    throw new Error('batch_deactivation_impact_failed')
+  }
+  if (report.total === 0) return '当前无对外可见房源受影响。'
+  // 候选触顶时计数只是下限，如实说「至少」。
+  const atLeast = report.capped === true ? '至少 ' : ''
+  return `将影响 ${atLeast}${report.total} 套对外可见房源，停用后随楼盘从前台消失。`
+}
+
+const OPERATIONAL_BATCH_COPY: Record<
+  BuildingOperationalStatus,
+  { verb: string; tone: BatchActionRequest['tone']; body: (n: number) => string[] }
+> = {
+  disabled: {
+    verb: '停用',
+    tone: 'warning',
+    body: (n) => [
+      `将停用 ${n} 个楼盘。停用后楼盘及其下房源在 C 端不再展示。`,
+      '房源的审核 / 发布状态保持不变，重新启用后按有效供给口径恢复展示。',
+    ],
+  },
+  active: {
+    verb: '启用',
+    tone: 'primary',
+    body: (n) => [
+      `将启用 ${n} 个楼盘。启用后楼盘及其符合有效供给口径的房源将重新在 C 端展示。`,
+      '发布状态为「草稿」或「下架」的楼盘启用后仍不在前台展示，需另行上架。',
+    ],
+  },
+}
+
 const BATCH_COPY: Record<
   BuildingPublishAction,
   { tone: BatchActionRequest['tone']; body: (n: number) => string[] }
@@ -166,6 +233,8 @@ export default function BuildingsListViewClient({
     return selection.ids.filter((id) => present.has(id))
   }, [rows, rowsKey, selection])
   const [batchRequest, setBatchRequest] = useState<BatchActionRequest | null>(null)
+  // 勾选列与批量操作条：有上下架或启停任一权限就出现，各组按钮再按各自权限显隐。
+  const canBatch = canBatchPublish || canFreeze
 
   const nameOf = useCallback(
     (id: number) => rows.find((r) => r.id === id)?.name ?? `#${id}`,
@@ -180,7 +249,7 @@ export default function BuildingsListViewClient({
       setBatchRequest({
         key: `${action}:${Date.now()}`,
         endpoint: '/api/buildings/batch-publish',
-        action,
+        params: { action },
         title: `批量${label}楼盘`,
         verb: label,
         tone: BATCH_COPY[action].tone,
@@ -188,6 +257,33 @@ export default function BuildingsListViewClient({
         items,
         skipped: skipped.map((s) => ({ id: s.row.id, name: s.row.name, reason: s.reason })),
         reasonLabel: null,
+      })
+    },
+    [rows, selectedIds],
+  )
+
+  const openOperationalBatch = useCallback(
+    (target: BuildingOperationalStatus) => {
+      const chosen = rows.filter((r) => selectedIds.includes(r.id))
+      const { items, skipped } = partitionForBatch(chosen, (row) =>
+        operationalSkipReason(row, target),
+      )
+      const copy = OPERATIONAL_BATCH_COPY[target]
+      setBatchRequest({
+        key: `${target}:${Date.now()}`,
+        endpoint: '/api/buildings/batch-operational-status',
+        params: { target },
+        title: `批量${copy.verb}楼盘`,
+        verb: copy.verb,
+        tone: copy.tone,
+        body: copy.body(items.length),
+        items,
+        skipped: skipped.map((s) => ({ id: s.row.id, name: s.row.name, reason: s.reason })),
+        reasonLabel: null,
+        // 在点击处理里就发出预检（不在弹层 effect 里发）：弹层挂上时请求已在路上。
+        ...(target === 'disabled' && items.length > 0
+          ? { preflight: loadBatchDeactivationImpact(items) }
+          : {}),
       })
     },
     [rows, selectedIds],
@@ -459,34 +555,54 @@ export default function BuildingsListViewClient({
             onChange={(v) => navigate({ grade: (v as string | undefined) ?? null, page: 1 })}
           />
         </Space>
-        {canBatchPublish ? (
-          <Space size="small">
-            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-              已选 {selectedIds.length} 项
-            </Typography.Text>
-            <Button
-              disabled={selectedIds.length === 0}
-              onClick={() => openBatch('publish')}
-            >
-              批量上架
-            </Button>
-            <Button
-              disabled={selectedIds.length === 0}
-              status="warning"
-              onClick={() => openBatch('unpublish')}
-            >
-              批量下架
-            </Button>
-          </Space>
-        ) : null}
       </div>
+
+      {canBatch ? (
+        <BatchActionBar selectedCount={selectedIds.length}>
+          {canBatchPublish ? (
+            <>
+              <Button
+                disabled={selectedIds.length === 0}
+                onClick={() => openBatch('publish')}
+              >
+                批量上架
+              </Button>
+              <Button
+                disabled={selectedIds.length === 0}
+                status="warning"
+                onClick={() => openBatch('unpublish')}
+              >
+                批量下架
+              </Button>
+            </>
+          ) : null}
+          {canBatchPublish && canFreeze ? <Divider type="vertical" style={{ margin: '0 4px' }} /> : null}
+          {canFreeze ? (
+            <>
+              <Button
+                disabled={selectedIds.length === 0}
+                onClick={() => openOperationalBatch('active')}
+              >
+                批量启用
+              </Button>
+              <Button
+                disabled={selectedIds.length === 0}
+                status="warning"
+                onClick={() => openOperationalBatch('disabled')}
+              >
+                批量停用
+              </Button>
+            </>
+          ) : null}
+        </BatchActionBar>
+      ) : null}
 
       <Table<BuildingRow>
         rowKey="id"
         columns={columns}
         data={rows}
         rowSelection={
-          canBatchPublish
+          canBatch
             ? {
                 type: 'checkbox',
                 checkAll: true,

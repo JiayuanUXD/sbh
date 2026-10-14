@@ -6,7 +6,9 @@
  *   1. 房源列表：勾选 → 批量下架（原因为空确认键禁用）→ 行状态翻新、勾选清空；
  *      再勾选（含一条不适用的已发布行）→ 批量上架 → 弹层明示「将跳过 1 条」→ 恢复上架；
  *   2. 楼盘库列表：勾选 → 批量下架 → 批量上架；行内「停用」先预检再确认 → 行翻成「启用」→ 再启用；
- *   3. OPS（有 building:update、无 building:freeze）：看得到批量按钮、看不到「停用」，直调启停端点 403。
+ *      勾选两个楼盘 → 批量停用（弹层先展示汇总预检）→ 批量启用（跳过已启用的行）；
+ *   3. OPS（有 building:update、无 building:freeze）：看得到批量上下架、看不到「停用」与批量停用 / 启用，
+ *      直调启停端点（单条、批量）都 403。
  *
  * 夹具纪律：所有改动在 `finally` 里走 API 恢复（房源恢复上架、楼盘恢复已发布 + 启用），
  * 理由同 listing-publication-actions.spec.ts——排在后面的 spec 依赖「夹具里有若干已上架供给」。
@@ -83,17 +85,28 @@ async function pickAnotherPublishedListing(
   throw new Error('夹具里缺少第三套已上架房源')
 }
 
-async function pickPublishedActiveBuilding(request: APIRequestContext): Promise<Picked> {
+async function pickPublishedActiveBuildings(
+  request: APIRequestContext,
+  n: number,
+): Promise<Picked[]> {
   const body = await getJson(
     request,
-    '/api/buildings?limit=1&depth=0&sort=id' +
+    `/api/buildings?limit=${n}&depth=0&sort=id` +
       '&where[status][equals]=published&where[operationalStatus][equals]=active',
   )
-  const doc = isRecord(body) && Array.isArray(body.docs) ? (body.docs[0] as unknown) : undefined
-  if (!isRecord(doc) || typeof doc.id !== 'number' || typeof doc.name !== 'string') {
-    throw new Error('夹具里缺少已发布且启用的楼盘')
-  }
-  return { id: doc.id, label: doc.name }
+  const docs = isRecord(body) && Array.isArray(body.docs) ? body.docs : []
+  const picked = docs.flatMap((doc: unknown) =>
+    isRecord(doc) && typeof doc.id === 'number' && typeof doc.name === 'string'
+      ? [{ id: doc.id, label: doc.name }]
+      : [],
+  )
+  expect(picked.length, `夹具里至少要有 ${n} 个已发布且启用的楼盘`).toBe(n)
+  return picked
+}
+
+async function pickPublishedActiveBuilding(request: APIRequestContext): Promise<Picked> {
+  const [first] = await pickPublishedActiveBuildings(request, 1)
+  return first
 }
 
 async function fieldOf(
@@ -297,7 +310,67 @@ test.describe('OPT-113 列表批量上下架与楼盘停用', () => {
     }
   })
 
-  test('OPS：有批量上下架、无行内停用；直调启停端点 403', async ({ page, request }) => {
+  test('楼盘库列表：批量停用（汇总预检）→ 批量启用（跳过已启用行）', async ({ page }) => {
+    await login(page.request, ADM)
+    const buildings = await pickPublishedActiveBuildings(page.request, 2)
+
+    try {
+      await page.goto('/admin/collections/buildings?limit=100')
+      const rows = buildings.map((b) => rowOf(page, 'buildings', b.id))
+      for (const row of rows) await expect(row).toHaveCount(1)
+      await checkRow(page, rows[0], 1)
+      await checkRow(page, rows[1], 2)
+
+      // —— 批量停用：弹层先展示一次性汇总的受影响记录 ——
+      let modal = await clickUntilModalOpens(
+        page,
+        page.getByRole('button', { name: '批量停用', exact: true }),
+        '「批量停用」',
+      )
+      await expect(modal).toContainText('批量停用楼盘')
+      await expect(modal).toContainText('将停用 2 个楼盘')
+      await expect(
+        modal.getByText(/将影响 .*套对外可见房源|当前无对外可见房源受影响/),
+        '批量停用前必须展示汇总预检结果',
+      ).toBeVisible()
+      await modal.getByRole('button', { name: '确认停用', exact: true }).click()
+      await expect(modal, '全部成功时弹层直接关闭').toBeHidden()
+
+      for (const [i, b] of buildings.entries()) {
+        expect(await fieldOf(page.request, 'buildings', b.id, 'operationalStatus')).toBe('disabled')
+        await expect(rows[i].getByRole('button', { name: '启用', exact: true })).toBeVisible()
+      }
+      await expect(page.getByText('已选 0 项', { exact: true }), '完成后勾选应清空').toBeVisible()
+
+      // —— 批量启用：只恢复第一个，再连同一个启用中的楼盘一起勾，后者应被跳过 ——
+      // 先单独把第二个启用回来，制造「勾选里有一个已启用的行」
+      const restore = await page.request.post(
+        `/api/buildings/${buildings[1].id}/toggle-operational-status`,
+        { data: { target: 'active' } },
+      )
+      expect(restore.status()).toBe(200)
+      await page.reload()
+      await checkRow(page, rows[0], 1)
+      await checkRow(page, rows[1], 2)
+      modal = await clickUntilModalOpens(
+        page,
+        page.getByRole('button', { name: '批量启用', exact: true }),
+        '「批量启用」',
+      )
+      await expect(modal).toContainText('将启用 1 个楼盘')
+      await expect(modal).toContainText('将跳过 1 条')
+      await expect(modal).toContainText(buildings[1].label)
+      await modal.getByRole('button', { name: '确认启用', exact: true }).click()
+      await expect(modal).toBeHidden()
+      for (const b of buildings) {
+        expect(await fieldOf(page.request, 'buildings', b.id, 'operationalStatus')).toBe('active')
+      }
+    } finally {
+      for (const b of buildings) await restoreBuilding(page.request, b.id)
+    }
+  })
+
+  test('OPS：有批量上下架、无停用 / 批量启停；直调启停端点 403', async ({ page, request }) => {
     await login(request, ADM)
     const building = await pickPublishedActiveBuilding(request)
 
@@ -312,6 +385,14 @@ test.describe('OPT-113 列表批量上下架与楼盘停用', () => {
       row.getByRole('button', { name: '停用', exact: true }),
       'OPS 没有 building:freeze，不渲染停用按钮',
     ).toHaveCount(0)
+    await expect(page.getByRole('button', { name: '批量停用', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: '批量启用', exact: true })).toHaveCount(0)
+
+    const batchResponse = await page.request.post('/api/buildings/batch-operational-status', {
+      data: { target: 'disabled', items: [{ id: building.id }] },
+      failOnStatusCode: false,
+    })
+    expect(batchResponse.status(), '批量启停端点同样要 building:freeze').toBe(403)
 
     const response = await page.request.post(
       `/api/buildings/${building.id}/toggle-operational-status`,
