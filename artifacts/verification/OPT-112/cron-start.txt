@@ -1,0 +1,5 @@
+# 新进程（b04d13b），库里预先排好段 33（脚本排的，脚本不启动 cron）
+09:55:48 只请求过 /api/health；等过一个整分钟 cron 点
+09:57:03 job33=pend versions=47/52
+09:57:03 未登录 GET /api/watermark-rebake → 401
+09:58:05 job33=deleted(完成后删除) versions=52/52

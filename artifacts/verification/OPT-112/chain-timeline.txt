@@ -1,0 +1,13 @@
+# 段 18 被 kill -9 后停在 processing，updated_at 回拨 16 分钟模拟租约过期；新进程启动后打开一次 /admin/login（initReq 启动 cron）
+# 每 5 秒采样：媒体里已带当前 version 的实景图数 / 重刷段（id:startAfterId:状态）
+09:48:24 versions=5 jobs=[18:-:proc]
+09:48:35 versions=5 jobs=[18:-:pend]
+09:49:01 versions=6 jobs=[18:-:proc]
+09:49:06 versions=16 jobs=[18:-:proc]
+09:49:11 versions=25 jobs=[23:43:pend]
+09:50:03 versions=32 jobs=[23:43:proc]
+09:50:08 versions=41 jobs=[23:43:proc]
+09:50:14 versions=45 jobs=[26:63:pend]
+09:51:00 versions=46 jobs=[26:63:proc]
+09:51:06 versions=47 jobs=[]
+09:51:06 CHAIN FINISHED
