@@ -20,7 +20,11 @@ dist
 *.p12
 
 # 本地开发工具产物（不入库）
-.claude/
+# .claude/ 下只放行仓库级 settings.json（对话语言等团队共用设置，云端会话只读入库的这份）；
+# worktrees、settings.local.json 等本机产物照旧不入库。写成 `.claude/*` 而不是 `.claude/`：
+# 目录本身被忽略时，git 无法再用 `!` 放行其中的文件。
+.claude/*
+!.claude/settings.json
 .agents/
 skills-lock.json
 
