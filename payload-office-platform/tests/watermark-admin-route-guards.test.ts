@@ -31,6 +31,8 @@ vi.mock('payload', async (importOriginal) => {
   }
 })
 
+import { getPayload } from 'payload'
+
 import { GET as watermarkPreviewGet } from '@/app/api/watermark-preview/route'
 import { GET as watermarkRebakeGet, POST as watermarkRebakePost } from '@/app/api/watermark-rebake/route'
 
@@ -154,6 +156,27 @@ describe('POST /api/watermark-rebake 已有链在跑', () => {
     expect(response.status).toBe(200)
     expect(body).toEqual({ queued: false, reason: 'running' })
     expect(jobsQueueMock).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * OPT-112 本地验收时发现：Payload 只在 `getPayload({ cron: true })` 时启动任务 cron
+ * （后台页面经 `initReq` 会带上，自定义路由默认不带）。新实例若只收到本路由的请求，
+ * 排进去的重刷段、要回收的陈旧段都没人跑。与 `supply-submissions` 路由同一做法。
+ */
+describe('/api/watermark-rebake 启动本实例的任务 cron', () => {
+  it('POST 与 GET 都以 cron: true 取 payload', async () => {
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockResolvedValue({ watermark: { enabled: true }, siteName: '商办荟' })
+    vi.mocked(getPayload).mockClear()
+
+    await watermarkRebakePost(new Request('http://localhost/api/watermark-rebake', { method: 'POST' }))
+    await watermarkRebakeGet(new Request('http://localhost/api/watermark-rebake'))
+
+    expect(vi.mocked(getPayload).mock.calls).toHaveLength(2)
+    for (const [options] of vi.mocked(getPayload).mock.calls) {
+      expect(options).toMatchObject({ cron: true })
+    }
   })
 })
 

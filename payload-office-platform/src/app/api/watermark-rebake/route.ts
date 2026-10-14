@@ -35,7 +35,10 @@ type Payload = Awaited<ReturnType<typeof getPayload>>
  */
 async function authorize(request: Request): Promise<{ payload: Payload } | { response: Response }> {
   try {
-    const payload = await getPayload({ config })
+    // `cron: true`：Payload 只在这样取实例时启动任务 cron（后台页面经 initReq 会带，自定义路由
+    // 默认不带）。本路由排的重刷段、要回收的陈旧段都靠它跑；新实例若只收到本路由的请求，
+    // 不带就没人跑（OPT-112 本地验收时实测）。与 supply-submissions 路由同一做法。
+    const payload = await getPayload({ config, cron: true })
     const { user } = await payload.auth({ headers: request.headers })
     if (!user) return { response: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) }
 
