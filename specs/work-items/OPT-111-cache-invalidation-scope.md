@@ -294,4 +294,7 @@
 - **后台表单的「租金」输入是 `price.amount`**，不是 `rent` 列；浏览器走查按此改。
 - **夹具**：种子里杭州为 coming-soon（不读首页缓存）、无草稿房源、无资讯，对照实验前由
   `setup-fixtures.sh` 把杭州置 live、一条上海房源改草稿，资讯由探针脚本经 REST 新建。
+- **新建走 `previousDoc: {}`，不是 undefined**（整分支评审发现，`payload/dist/collections/operations/create.js`）。
+  原实现让「新建草稿」落到规则 4 的 fail-safe、照常失效（安全方向，但没达到计划的跳过）。hook 现按
+  `operation === 'create'` 把 previousDoc 归一成「无」，用例用真实形态 `{ operation: 'create', previousDoc: {} }`。
 - 证据：`artifacts/verification/OPT-111/verification.md`。

@@ -38,6 +38,7 @@ const mockedRevalidateTag = vi.mocked(revalidateTag)
 type HookArgs = {
   doc: unknown
   previousDoc?: unknown
+  operation?: 'create' | 'update'
   req: unknown
 }
 
@@ -105,6 +106,32 @@ describe('房源 / 楼盘公开缓存失效 hook', () => {
     expect(mockedRevalidateTag).not.toHaveBeenCalled()
     // 跳过发生在城市反查之前，不白查楼盘
     expect(calls).toEqual([])
+  })
+
+  it('新建草稿房源不清公开缓存：Payload create 传的是 previousDoc: {}（OPT-111）', async () => {
+    // payload/dist/collections/operations/create.js 的 afterChange 恒传 `previousDoc: {}`，不是 undefined
+    const { req, calls } = makeReq({})
+    await runHook(invalidateListingPublicCacheAfterChange, {
+      operation: 'create',
+      doc: { id: 13, publicationStatus: 'draft', rent: 1, building: { id: 5, city: { slug: 'shanghai' } } },
+      previousDoc: {},
+      req,
+    })
+
+    expect(mockedRevalidateTag).not.toHaveBeenCalled()
+    expect(calls).toEqual([])
+  })
+
+  it('新建即上架的房源照常失效（OPT-111）', async () => {
+    const { req } = makeReq({})
+    await runHook(invalidateListingPublicCacheAfterChange, {
+      operation: 'create',
+      doc: { id: 14, publicationStatus: 'published', rent: 1, building: { id: 5, city: { slug: 'shanghai' } } },
+      previousDoc: {},
+      req,
+    })
+
+    expect(invalidatedTags()).toContain(listingsCityTag('shanghai'))
   })
 
   it('已上架房源只改房号不清公开缓存（OPT-111）', async () => {

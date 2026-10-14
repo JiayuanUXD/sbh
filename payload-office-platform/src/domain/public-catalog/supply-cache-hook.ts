@@ -192,10 +192,17 @@ function createAfterChangeHook(
   resolve: CitySlugResolver,
   reason: SupplyCacheInvalidationReason,
 ): CollectionAfterChangeHook {
-  return async ({ doc, previousDoc, req }) => {
+  return async ({ doc, previousDoc, operation, req }) => {
     if (req.context?.[SKIP_SUPPLY_CACHE_INVALIDATION] === true) return doc
     // 草稿保存、只改内部字段的保存不清公开缓存（OPT-111）；规则与取舍见 supply-cache-relevance.ts。
-    const decision = decideSupplyCacheInvalidation({ collection, doc, previousDoc, operation: 'change' })
+    // Payload 的 create 给 afterChange 传的是 `previousDoc: {}`（create.js），不是 undefined；
+    // 判定函数以「没有 previousDoc」表示新建，这里把两种形态对齐。
+    const decision = decideSupplyCacheInvalidation({
+      collection,
+      doc,
+      previousDoc: operation === 'create' ? undefined : previousDoc,
+      operation: 'change',
+    })
     if (!decision.invalidate) {
       logSkipped(collection, doc, decision)
       return doc
