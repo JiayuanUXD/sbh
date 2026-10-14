@@ -13,7 +13,7 @@
  *   3. 任一侧不是对象 → 失效。
  *   4. 前后都确定不可能公开 → 跳过。
  *   5. 前后公开性不同（上架 / 下架）→ 失效。
- *   6. 逐个顶层字段深比较，去掉内部字段名单；有差异 → 失效，否则跳过。
+ *   6. 逐个顶层字段归一化后深比较，去掉内部字段名单；有差异 → 失效，否则跳过。
  *
  * 「可能公开」只看状态字段是否为 `published`（有效供给的前置条件，见
  * `domain/review/effective-supply.ts` §2 与 `domain/supply/public-building.ts`）。
@@ -70,6 +70,35 @@ export function couldBePublic(collection: SupplyCollection, doc: unknown): boole
   return typeof status !== 'string' || status === 'published'
 }
 
+/**
+ * 展开后的关联文档：带 id 且带时间戳。数组行只有行 id、没有时间戳，不会被误认；
+ * 认不出的（例如只有 `{ id }` 的裸对象）原样参与比较，只会多失效。
+ */
+function isPopulatedDocument(value: Record<string, unknown>): boolean {
+  const id = value.id
+  return (typeof id === 'number' || typeof id === 'string') && ('createdAt' in value || 'updatedAt' in value)
+}
+
+/**
+ * 把字段值归一成「存储形态」再比较。真实 afterChange 里两侧形态不对称（OPT-111 Task 4 实测）：
+ *   - `previousDoc` 恒为 depth 0，`doc` 随调用方 depth 展开关系（Local API 默认 defaultDepth=2）
+ *     → 展开文档收成它的 id；关联文档自身的变化由它自己的 hook 失效，这里本来也看不到。
+ *   - Listings 的 beforeChange 每次保存都由 mediaItems 重建 gallery，数组行 id 每次都换
+ *     → 去掉数组元素上的行 id。行的顺序与内容照常比较，调序、换图仍判为变化。
+ */
+function normalizeForComparison(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeArrayItem)
+  if (!isRecord(value)) return value
+  if (isPopulatedDocument(value)) return value.id
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeForComparison(item)]))
+}
+
+function normalizeArrayItem(item: unknown): unknown {
+  if (!isRecord(item) || isPopulatedDocument(item)) return normalizeForComparison(item)
+  const { id: _rowId, ...rest } = item
+  return normalizeForComparison(rest)
+}
+
 function hasPublicFieldChange(
   collection: SupplyCollection,
   previousDoc: Record<string, unknown>,
@@ -79,7 +108,7 @@ function hasPublicFieldChange(
   const keys = new Set([...Object.keys(previousDoc), ...Object.keys(doc)])
   for (const key of keys) {
     if (internal.has(key)) continue
-    if (!isDeepStrictEqual(previousDoc[key], doc[key])) return true
+    if (!isDeepStrictEqual(normalizeForComparison(previousDoc[key]), normalizeForComparison(doc[key]))) return true
   }
   return false
 }

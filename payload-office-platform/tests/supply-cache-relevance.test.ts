@@ -61,8 +61,62 @@ describe('decideSupplyCacheInvalidation：房源', () => {
     expect(change('listings', PUBLISHED_LISTING, { ...PUBLISHED_LISTING, building: 6 }).invalidate).toBe(true)
   })
 
-  it('populated-vs-id：同一楼盘一侧 id、一侧展开对象 → 失效（安全方向）', () => {
+  it('populated-vs-id：裸 {id} 对象认不出是展开文档 → 失效（安全方向）', () => {
     expect(change('listings', PUBLISHED_LISTING, { ...PUBLISHED_LISTING, building: { id: 5 } }).invalidate).toBe(true)
+  })
+
+  /**
+   * 以下形状取自真实 Payload afterChange（2026-10-14 本地实测，OPT-111 Task 4 排查）：
+   *   - previousDoc 恒为 depth 0；doc 随调用方 depth（Local API 默认 defaultDepth=2）展开关系；
+   *   - Listings 的 beforeChange 每次保存都由 mediaItems 重建 gallery，数组行 id 每次都换。
+   * 不归一化的话，只改房号的保存也会被判成公开变化。
+   */
+  const populated = (id: number, extra: Record<string, unknown> = {}) => ({
+    id, createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-14T00:00:00Z', ...extra,
+  })
+
+  it('gallery-rows-rebuilt：图片相同、行 id 重建，只改房号 → 跳过', () => {
+    expect(change(
+      'listings',
+      { ...PUBLISHED_LISTING, roomNumber: '1201', gallery: [{ id: '6acf2741eb01342cd3787bbb', image: 8 }, { id: '6acf2741eb01342cd3787bbc', image: 9 }] },
+      { ...PUBLISHED_LISTING, roomNumber: '1202', gallery: [{ id: '6acf2783a726c42e8db862c3', image: 8 }, { id: '6acf2783a726c42e8db862c4', image: 9 }] },
+    )).toEqual({ invalidate: false, reason: 'internal_fields_only' })
+  })
+
+  it('gallery-image-changed：换了一张图 → 失效', () => {
+    expect(change(
+      'listings',
+      { ...PUBLISHED_LISTING, gallery: [{ id: 'a', image: 8 }] },
+      { ...PUBLISHED_LISTING, gallery: [{ id: 'b', image: 9 }] },
+    )).toEqual({ invalidate: true, reason: 'public_field_changed' })
+  })
+
+  it('gallery-reordered：调换图片顺序 → 失效', () => {
+    expect(change(
+      'listings',
+      { ...PUBLISHED_LISTING, gallery: [{ id: 'a', image: 8 }, { id: 'b', image: 9 }] },
+      { ...PUBLISHED_LISTING, gallery: [{ id: 'c', image: 9 }, { id: 'd', image: 8 }] },
+    )).toEqual({ invalidate: true, reason: 'public_field_changed' })
+  })
+
+  it('default-depth：doc 展开了关系、previousDoc 是 id，只改房号 → 跳过', () => {
+    expect(change(
+      'listings',
+      { ...PUBLISHED_LISTING, roomNumber: '1201', building: 1, merchant: 1, coverImage: 3, gallery: [{ id: 'a', image: 8 }] },
+      {
+        ...PUBLISHED_LISTING,
+        roomNumber: '1202',
+        building: populated(1, { name: '南京西路高端商务中心', city: populated(1, { slug: 'shanghai' }) }),
+        merchant: populated(1, { name: '静安置业（业主）' }),
+        coverImage: populated(3, { alt: '外景', prefix: 'media' }),
+        gallery: [{ id: 'b', image: populated(8, { alt: '开放式办公区' }) }],
+      },
+    )).toEqual({ invalidate: false, reason: 'internal_fields_only' })
+  })
+
+  it('default-depth：展开后的楼盘换成另一个 → 失效', () => {
+    expect(change('listings', { ...PUBLISHED_LISTING, building: 5 }, { ...PUBLISHED_LISTING, building: populated(6) }))
+      .toEqual({ invalidate: true, reason: 'public_field_changed' })
   })
 
   it('missing-status-changed：两侧都缺状态字段且改了租金 → 失效', () => {
