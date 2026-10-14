@@ -15,6 +15,10 @@ type Recommendations = Awaited<ReturnType<typeof getCachedDetailRecommendations>
  *
  * 零条推荐时返回 `null`：整段 section 连同标题都不渲染，与改造前
  * `recommendations.length > 0 && (...)` 的行为一致（骨架此时已被替换掉，不会残留）。
+ *
+ * 推荐加载失败同样返回 `null` 并记错误：推荐是非关键区块，reject 一旦冒泡到页面级
+ * 错误边界，整个详情页会被换成错误页（2026-10-14 生产：推荐查询被 30s 语句超时掐断后
+ * 正是如此）。
  */
 export default async function RelatedListings({
   recommendations,
@@ -25,7 +29,13 @@ export default async function RelatedListings({
   listingId: number
   citySlug?: string
 }>) {
-  const items = await recommendations
+  let items: Recommendations
+  try {
+    items = await recommendations
+  } catch (error) {
+    console.error('[detail-recommendations] load failed, section hidden', error)
+    return null
+  }
   if (items.length === 0) return null
   return (
     <section id="related" className="dt-container dt-section">

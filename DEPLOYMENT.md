@@ -153,6 +153,11 @@ gh workflow run deploy.yml -f promote=true --ref master
 > Web 服务单条语句 30s 超时（`DB_STATEMENT_TIMEOUT_MS`，**只**在 Dockerfile CMD 的 `pnpm start`
 > 那一步注入，迁移进程不带）；`/api/health` 只做 `select 1`；冒烟单次 curl 超时不再直接判失败。
 > 取值理由见 `payload-office-platform/src/lib/runtime/db-pool-options.ts`。
+> 病因（2026-10-14 定位）：占住连接的是详情页推荐候选 SQL——小商圈的房源被规划成与 1536 行
+> `locations` 交叉连接，单条跑 6~25 分钟；已改为先在 MATERIALIZED CTE 圈楼盘（`listing-query-sql.ts`）。
+> 再遇此指纹先查库：`SELECT pid, now() - query_start, left(query, 120) FROM pg_stat_activity
+> WHERE usename = 'sbh' AND state = 'active' ORDER BY query_start`，长跑的是哪条一眼可见。
+> 证据见 `artifacts/verification/recommendation-cross-join-20261014/`。
 
 机制：GitHub Actions 用 CloudBase CLI（`tcb`）上传 `payload-office-platform/` 的 ZIP 到云端，平台在线 `docker build` 并发布新版本（与 MCP `manageCloudRun(deploy)` 同一底层）。CI 端不装依赖、不构建。服务级环境变量（`DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV`）在控制台/MCP 配好后由服务保留，代码部署不清空，无需每次重传。
 
