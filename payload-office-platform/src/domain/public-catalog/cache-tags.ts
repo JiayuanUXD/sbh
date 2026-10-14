@@ -11,6 +11,10 @@
  *   - Building/区域状态变化 → 失效 building + 城市列表/facet/sitemap
  *   - 商户关系/资格/服务城市变化 → 无法安全计算局部影响 → 城市级安全失效
  *   - Page 变化 → 失效 page + sitemap
+ *   - `SITEMAP_TAG` 只**挂**在站点地图聚合条目（`app/(frontend)/_lib/sitemap-shards.ts`）上，
+ *     所有失效集合照常**发送**它（OPT-111）。挂到供给 / 资讯 / 内容页条目上，等于让任何
+ *     一次失效清掉全部城市；只挂聚合条目则因为 Next 16 嵌套 `unstable_cache` 不向外层传 tag，
+ *     清单条目只能靠这条 tag 跟上供给变化。
  *
  * Tag 命名约定（design.md §9.2）：
  *   - public:home:{city}

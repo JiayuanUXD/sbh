@@ -4,7 +4,6 @@ import {
   ARTICLES_CATEGORY_TAG as PUBLIC_ARTICLES_CATEGORY_TAG,
   BUILDINGS_CATEGORY_TAG,
   LISTINGS_CATEGORY_TAG,
-  SITEMAP_TAG,
   buildBuildingCanonicalParams,
   collectListingScanPages,
   assembleListingSearchResult,
@@ -114,12 +113,19 @@ function memoizeByCity<T>(create: (citySlug: string) => T): (citySlug: string) =
   }
 }
 
+/**
+ * 供给条目的 tag 只声明它真正依赖的东西：类目 + 本城。
+ *
+ * 不挂 `SITEMAP_TAG`（OPT-111）：所有失效集合都会发送它，挂上就等于「任何一城的
+ * 任何一次供给 / 资讯 / 内容页失效都清掉全部城市」。站点地图的聚合条目在
+ * `sitemap-shards.ts` 里自己挂；Next 16 嵌套 `unstable_cache` 不向外层传 tag，
+ * 所以只能由那两条聚合条目各自挂、由失效集合照发。守护：`tests/public-cache-tag-scope.test.ts`。
+ */
 function listingCacheTags(citySlug: string): string[] {
   return [
     LISTINGS_CATEGORY_TAG,
     listingsCityTag(citySlug),
     homeTag(citySlug),
-    SITEMAP_TAG,
   ]
 }
 
@@ -128,7 +134,6 @@ function buildingCacheTags(citySlug: string): string[] {
     BUILDINGS_CATEGORY_TAG,
     buildingsCityTag(citySlug),
     homeTag(citySlug),
-    SITEMAP_TAG,
   ]
 }
 
@@ -615,16 +620,17 @@ export function getCachedSearchFacetsIgnoring(
 }
 
 // Articles and pages intentionally remain global in Plan 2.
+// 同样不挂 SITEMAP_TAG（OPT-111，理由见 listingCacheTags）：资讯 / 内容页失效靠各自类目 tag。
 export const getCachedPageBySlug = unstable_cache(
   async (slug: string) => getPageBySlug(slug),
   ['page-by-slug'],
-  { tags: [PAGES_CATEGORY_TAG, SITEMAP_TAG] },
+  { tags: [PAGES_CATEGORY_TAG] },
 )
 
 export const getCachedPublishedPages = unstable_cache(
   async (limit: number = 500) => listPublishedPages({ limit }),
   ['published-pages'],
-  { tags: [PAGES_CATEGORY_TAG, SITEMAP_TAG] },
+  { tags: [PAGES_CATEGORY_TAG] },
 )
 
 export const getCachedPublishedArticles = unstable_cache(
@@ -632,7 +638,7 @@ export const getCachedPublishedArticles = unstable_cache(
     listPublishedArticles({ page, pageSize }),
   ['published-articles'],
   {
-    tags: [ARTICLES_CATEGORY_TAG, SITEMAP_TAG],
+    tags: [ARTICLES_CATEGORY_TAG],
     revalidate: 300,
   },
 )
@@ -641,7 +647,7 @@ export const getCachedArticleBySlug = unstable_cache(
   async (slug: string) => getArticleBySlug(slug),
   ['article-by-slug'],
   {
-    tags: [ARTICLES_CATEGORY_TAG, SITEMAP_TAG],
+    tags: [ARTICLES_CATEGORY_TAG],
     revalidate: 300,
   },
 )
