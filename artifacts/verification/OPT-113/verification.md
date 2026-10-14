@@ -56,11 +56,12 @@
 | `light-01-listings-selected.png` | 房源列表勾选 3 行，右上「已选 3 项 / 批量上架 / 批量下架」 |
 | `light-02` / `dark-02-listings-batch-unpublish-confirm.png` | 批量下架确认：跳过清单 + 原因必填（为空时确认键禁用） |
 | `light-04` / `dark-04-listings-batch-publish-partial-result.png` | 批量上架部分失败：成功 1、未完成 1，原因译成「未设置供给商户」 |
-| `light-06-buildings-selected.png` | 楼盘库勾选 2 行，操作列多出「停用」 |
 | `dark-07-buildings-batch-unpublish-confirm.png` | 楼盘批量下架确认：说明房源随之前台不可见、房源状态不变 |
 | `light-08` / `dark-08-buildings-row-disable-impact.png` | 列表行内停用：先预检「将影响 4 项对外可见记录」 |
 | `light-09-building-edit-disable-impact.png` | 编辑页启停按钮改用共享流程后照常预检（回归） |
-| `light-10-ops-buildings.png` | OPS 视角：有批量按钮，没有「停用」 |
+| `light-10-ops-buildings.png` | OPS 视角：只有批量上下架；没有批量启停与行内「停用」 |
+| `light-11-buildings-batch-toolbar.png` | 楼盘库勾选 2 行：批量操作条在筛选行下方单独一行（上下架 ｜ 启用 / 停用），操作列有「停用」 |
+| `light-12` / `dark-12-buildings-batch-disable-confirm.png` | 批量停用确认：一次性汇总预检「将影响 5 套对外可见房源」（楼盘 1 的 4 套 + 楼盘 6 的 1 套） |
 
 深色模式：弹层、表格、勾选框无白底残留。
 
@@ -70,3 +71,41 @@
   `<Text type="error">` 的红色被压成正文色。批量结果弹层的失败原因、以及既有单条下架弹层的错误文案都受影响（见 `dark-04`）。
   信息仍完整可读，只是失去红色强调。修法是在该深色块里给 `.arco-typography-error` 单独放行，属全局主题改动，建议另开工作项。
 - 列表批量勾选只在当前页内有效（D7），一次最多 100 条。
+
+## 5. 追加：批量停用 / 启用（用户追加「停用也做批量」）
+
+### 静态与单测
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm typecheck` / `pnpm lint` | 通过；lint 0 error，35 条 warning 与追加前完全相同 |
+| `pnpm test`（常规方式，不带 `DATABASE_URL`） | 451 / 451 个文件，6157 条全过 |
+| `pnpm build` | 通过 |
+| `pnpm migrate:drift` | 「config 与最新快照一致」——只注册了端点，无表结构变化，无需迁移 |
+| 新增 / 改动单测 | `building-batch-operational-endpoint`（权限、target 校验、逐条停用 / 启用、幂等不写、版本冲突、抛错隔离、审计动作、批量预检）；`building-references` 增 5 条汇总预检；`building-operational-toggle-endpoint` 增 2 条审计 |
+
+### 真实接口冒烟
+
+| # | 请求 | 结果 |
+|---|---|---|
+| 1 | ADM 批量预检楼盘 1、2、6 | `total 5`，`byBuilding` = 4 / 0 / 1，`capped false` |
+| 2 | 单楼盘预检楼盘 1（对照） | `total 4`——与汇总里楼盘 1 的计数一致 |
+| 3 | OPS 批量预检 / 批量停用 | 均 403「缺少操作权限：building:freeze」 |
+| 4 | ADM 批量停用 2、6（过期版本号）、99 | 2 → disabled；6 `VERSION_CONFLICT`；99「楼盘不存在」 |
+| 5 | ADM 再次批量停用 2 | 幂等成功，不写库、不写审计 |
+| 6 | ADM 批量启用 2 | → active |
+| 7 | ADM 单条不带 body 翻转两次 | 照旧翻转（旧调用兼容） |
+| 8 | `target: "toggle"` | 400 |
+
+审计表核对：`building.freeze` / `building.restore` 各两行（批量 2 号、单条 3 号），`changed_fields = ["operationalStatus"]`。
+**单条启停（编辑页 / 列表行）从此也写这两种审计**，此前只有 `lastModifiedBy`。冒烟后夹具楼盘全部恢复为启用。
+
+> 冒烟途中本机 PostgreSQL 服务停过一次（`ECONNREFUSED 5432`），`service postgresql start` 后数据完好，与代码无关。
+
+### 浏览器
+
+`tests/e2e/list-batch-actions.spec.ts` 增至 4 条（新增「批量停用（汇总预检）→ 批量启用（跳过已启用行）」，
+OPS 用例补「看不到批量启停、直调批量端点 403」），连同 `listing-publication-actions` 共 7 / 7 通过。
+
+批量操作条原先挤在筛选行右侧，加上启停两个按钮后 1440 视口下把筛选与按钮一起挤到折行（实测按钮纵坐标与搜索框不一致）。
+已挪到筛选行下方单独一行（`BatchActionBar`，两张列表共用），复测同一行、不折行。
