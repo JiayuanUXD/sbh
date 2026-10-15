@@ -4,8 +4,10 @@
  * 楼盘 / 房源两个批量上下架端点共用：客户端发来 `items: [{ id, expectedVersion? }]`，
  * 这里把它收口成可信的条目数组。逐条执行、逐条出结果是端点的事，这里不碰库。
  *
- * 上限 100 = 列表单页上限：勾选只在当前页内有效（跨页勾选的行运营看不见，
- * 对看不见的行做上下架不是好交互），所以一次请求不会合法地超过一页。
+ * 上限 100 是**单次请求**的上限，不再等于列表单页上限：OPT-114 起房源列表一页可到 500 条，
+ * 弹层用 `runChunkedBatch` 把勾选切成 ≤100 的批次串行发送。每次请求的规模与 OPT-113
+ * 验证过的一致，不让一个请求串行写几百条（超时、长时间占住连接）。
+ * 勾选仍只在当前页内有效（跨页勾选的行运营看不见，对看不见的行做上下架不是好交互）。
  */
 
 export const BATCH_ACTION_MAX_ITEMS = 100
@@ -174,4 +176,73 @@ export function parseBatchResponse(raw: unknown): BatchResponse | null {
     results.push(parsed)
   }
   return { ...summarizeBatchResults(results), results }
+}
+
+/**
+ * 把条目按序切成每批至多 `size` 条（OPT-114）。缺省批大小 = 端点单次上限。
+ * 批大小必须是正整数——0 或小数会让切片永不前进。
+ */
+export function chunkBatchItems<T>(
+  items: readonly T[],
+  size: number = BATCH_ACTION_MAX_ITEMS,
+): T[][] {
+  if (!Number.isInteger(size) || size < 1) {
+    throw new RangeError(`批大小必须是正整数，收到 ${size}`)
+  }
+  const chunks: T[][] = []
+  for (let start = 0; start < items.length; start += size) {
+    chunks.push(items.slice(start, start + size))
+  }
+  return chunks
+}
+
+/**
+ * 发送一批的结果，由调用方（弹层里是 fetch）收口后交给 `runChunkedBatch`。
+ * `uncertain`：这一批是否可能已在服务端部分执行（网络中断、响应读不懂）。
+ * 端点在逐条执行前就拒绝的情况（权限、参数）为 false。
+ */
+export type ChunkSendResult =
+  | { ok: true; response: BatchResponse }
+  | { ok: false; error: string; uncertain: boolean }
+
+export type ChunkedBatchOutcome = BatchResponse & {
+  /** 某批请求失败后停下：`remaining` 含失败那一批及其后所有批次；全部发完为 null */
+  stopped: { remaining: number; error: string; uncertain: boolean } | null
+}
+
+/**
+ * 分批串行执行批量动作（OPT-114）。
+ *
+ * - 一批返回后才发下一批：与端点内逐条串行同理，并发会同时占住多条连接；
+ * - 批内条目失败照常继续（逐条结果本来就是端点的语义）；
+ * - 某批**请求**失败即停：后续批次不再发送，由调用方把「另有 N 条未完成」说清楚；
+ * - `onProgress(已处理, 总数)` 在每批成功返回后回调，失败那一批不计入。
+ */
+export async function runChunkedBatch(options: {
+  items: readonly BatchItem[]
+  chunkSize?: number
+  send: (chunk: BatchItem[]) => Promise<ChunkSendResult>
+  onProgress?: (processed: number, total: number) => void
+}): Promise<ChunkedBatchOutcome> {
+  const { items, send, onProgress } = options
+  const results: BatchItemResult[] = []
+  let processed = 0
+  for (const chunk of chunkBatchItems(items, options.chunkSize)) {
+    const sent = await send(chunk)
+    if (!sent.ok) {
+      return {
+        ...summarizeBatchResults(results),
+        results,
+        stopped: {
+          remaining: items.length - processed,
+          error: sent.error,
+          uncertain: sent.uncertain,
+        },
+      }
+    }
+    results.push(...sent.response.results)
+    processed += chunk.length
+    onProgress?.(processed, items.length)
+  }
+  return { ...summarizeBatchResults(results), results, stopped: null }
 }

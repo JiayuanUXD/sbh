@@ -5,10 +5,13 @@ import { Input, Message, Modal, Typography } from '@arco-design/web-react'
 
 import { effectiveSupplyExclusionLabel } from '@/domain/review/effective-supply-labels'
 import {
+  BATCH_ACTION_MAX_ITEMS,
   parseBatchResponse,
+  runChunkedBatch,
   type BatchItem,
   type BatchItemResult,
-  type BatchResponse,
+  type ChunkSendResult,
+  type ChunkedBatchOutcome,
 } from '@/domain/shared/batch-request'
 
 const { Paragraph, Text } = Typography
@@ -22,8 +25,12 @@ const { Paragraph, Text } = Typography
  *
  * 两段式：
  *   - 确认段：正文 + 只读预检结果（如批量停用的受影响房源数）+ 跳过清单 + 原因输入；
- *   - 结果段：仅在有失败条目时出现，逐条列出失败原因。全部成功直接 toast 并关闭——
- *     没有需要运营读的东西，就别让他多点一次。
+ *   - 结果段：仅在有失败条目（或中途停下）时出现，逐条列出失败原因。全部成功直接 toast
+ *     并关闭——没有需要运营读的东西，就别让他多点一次。
+ *
+ * OPT-114：条目多于端点单次上限时按批串行发送（`runChunkedBatch`），提交中显示进度；
+ * 某批请求失败即停，结果段说清「另有 N 条未完成」。第一批就失败时与单批行为一致：
+ * 留在确认段显示错误。
  * 关闭（无论哪一段，只要已提交过）都会触发 onDone，由调用方刷新列表、清空勾选。
  *
  * 外层只负责开关、内层以 request.key 为 key：每次打开都是全新挂载，原因 / 结果自然回到初值
@@ -86,7 +93,8 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [response, setResponse] = useState<BatchResponse | null>(null)
+  const [response, setResponse] = useState<ChunkedBatchOutcome | null>(null)
+  const [processed, setProcessed] = useState(0)
   const [preflightText, setPreflightText] = useState<string | null>(null)
 
   // 只在 promise 落定后写 state（不在 effect 体里同步 setState）；卸载后晚到的结果丢弃。
@@ -118,51 +126,72 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
     if (submitted) onDone()
   }
 
-  const submit = async () => {
-    setSubmitting(true)
-    setError(null)
+  /** 发一批。所有失败都收口成 ChunkSendResult，`runChunkedBatch` 不需要处理异常。 */
+  const sendChunk = async (chunk: BatchItem[]): Promise<ChunkSendResult> => {
+    let res: Response
     try {
-      const res = await fetch(request.endpoint, {
+      res = await fetch(request.endpoint, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...request.params,
-          items: request.items,
+          items: chunk,
           ...(needsReason ? { reason: reason.trim() } : {}),
         }),
       })
-      const data: unknown = await res.json().catch(() => null)
-      if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          setError('没有执行该操作的权限')
-        } else {
-          const message =
-            data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
-              ? data.error
-              : null
-          setError(message ?? `操作失败（HTTP ${res.status}）`)
-        }
-        return
+    } catch {
+      // 网络异常时不知道服务端处理到了哪一条。
+      return { ok: false, error: '网络异常，请刷新列表确认结果后重试', uncertain: true }
+    }
+    const data: unknown = await res.json().catch(() => null)
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, error: '没有执行该操作的权限', uncertain: false }
       }
-      const parsed = parseBatchResponse(data)
-      if (!parsed) {
-        setError('服务端返回格式异常，请刷新列表确认结果')
-        setSubmitted(true)
+      const message =
+        data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
+          ? data.error
+          : null
+      // 4xx 是端点在逐条执行前就拒绝；5xx（含网关超时）可能已执行了一部分。
+      return {
+        ok: false,
+        error: message ?? `操作失败（HTTP ${res.status}）`,
+        uncertain: res.status >= 500,
+      }
+    }
+    const parsed = parseBatchResponse(data)
+    if (!parsed) {
+      return { ok: false, error: '服务端返回格式异常，请刷新列表确认结果', uncertain: true }
+    }
+    return { ok: true, response: parsed }
+  }
+
+  const submit = async () => {
+    setSubmitting(true)
+    setError(null)
+    setProcessed(0)
+    try {
+      const outcome = await runChunkedBatch({
+        items: request.items,
+        send: sendChunk,
+        onProgress: (count) => setProcessed(count),
+      })
+      const { stopped } = outcome
+      if (stopped && outcome.results.length === 0) {
+        // 第一批就没成：与单批时一致，留在确认段显示错误；可能已部分执行时，关闭也刷新列表。
+        setError(stopped.error)
+        if (stopped.uncertain) setSubmitted(true)
         return
       }
       setSubmitted(true)
-      if (parsed.failed === 0) {
-        Message.success(`已${request.verb} ${parsed.succeeded} 条`)
+      if (outcome.failed === 0 && !stopped) {
+        Message.success(`已${request.verb} ${outcome.succeeded} 条`)
         onClose()
         onDone()
         return
       }
-      setResponse(parsed)
-    } catch {
-      setError('网络异常，请刷新列表确认结果后重试')
-      // 网络异常时不知道服务端处理到了哪一条，关闭时也刷新一次列表。
-      setSubmitted(true)
+      setResponse(outcome)
     } finally {
       setSubmitting(false)
     }
@@ -183,26 +212,46 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
         maskClosable={false}
       >
         <Paragraph>
-          成功 <Text bold>{response.succeeded}</Text> 条，未完成{' '}
-          <Text bold type="error">
-            {response.failed}
-          </Text>{' '}
-          条：
+          成功 <Text bold>{response.succeeded}</Text> 条
+          {response.failed > 0 ? (
+            <>
+              ，未完成{' '}
+              <Text bold type="error">
+                {response.failed}
+              </Text>{' '}
+              条：
+            </>
+          ) : (
+            '。'
+          )}
         </Paragraph>
-        <ul style={{ margin: 0, maxHeight: 320, overflowY: 'auto', paddingLeft: 18 }}>
-          {failures.map((f) => (
-            <li key={f.id} style={{ marginBottom: 6 }}>
-              <Text bold>{nameOf(f.id)}</Text>
-              <Text type="secondary">：</Text>
-              <Text type="error">{failureText(f)}</Text>
-              {f.reasons && f.reasons.length > 0 ? (
-                <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
-                  {f.reasons.map(effectiveSupplyExclusionLabel).join('；')}
-                </Text>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        {failures.length > 0 ? (
+          <ul style={{ margin: 0, maxHeight: 320, overflowY: 'auto', paddingLeft: 18 }}>
+            {failures.map((f) => (
+              <li key={f.id} style={{ marginBottom: 6 }}>
+                <Text bold>{nameOf(f.id)}</Text>
+                <Text type="secondary">：</Text>
+                <Text type="error">{failureText(f)}</Text>
+                {f.reasons && f.reasons.length > 0 ? (
+                  <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                    {f.reasons.map(effectiveSupplyExclusionLabel).join('；')}
+                  </Text>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {response.stopped ? (
+          <Paragraph style={{ marginTop: 12 }}>
+            <Text type="error">
+              另有 {response.stopped.remaining} 条
+              {response.stopped.uncertain ? '未执行或结果未知' : '未执行'}：{response.stopped.error}
+            </Text>
+            <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+              关闭后列表会刷新，请以列表中的状态为准。
+            </Text>
+          </Paragraph>
+        ) : null}
       </Modal>
     )
   }
@@ -234,6 +283,13 @@ function BatchActionModalBody({ request, nameOf, onClose, onDone }: BodyProps) {
       ) : (
         request.body.map((line) => <Paragraph key={line}>{line}</Paragraph>)
       )}
+      {submitting && request.items.length > BATCH_ACTION_MAX_ITEMS ? (
+        <Paragraph>
+          <Text type="secondary">
+            正在分批执行：已处理 {processed} / {request.items.length} 条
+          </Text>
+        </Paragraph>
+      ) : null}
       {request.preflight && !nothingToDo ? (
         <Paragraph>
           {preflightText ?? <Text type="secondary">正在统计受影响记录…</Text>}

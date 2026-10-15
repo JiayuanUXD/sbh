@@ -5,11 +5,15 @@ import { TransactionAbortedError } from '@/domain/shared/transaction-safety'
 import {
   BATCH_ACTION_MAX_ITEMS,
   batchFailureFromError,
+  chunkBatchItems,
   parseBatchItems,
   parseBatchResponse,
   partitionForBatch,
+  runChunkedBatch,
   summarizeBatchResults,
+  type BatchItem,
   type BatchItemResult,
+  type ChunkSendResult,
 } from '@/domain/shared/batch-request'
 
 /**
@@ -246,5 +250,167 @@ describe('parseBatchResponse（客户端收口端点响应）', () => {
     ['条目缺 id', { ok: true, results: [{ ok: true }] }],
   ])('%s → null', (_label, raw) => {
     expect(parseBatchResponse(raw)).toBeNull()
+  })
+})
+
+/**
+ * OPT-114：列表单页可到 500 条，而端点单次上限仍是 100。
+ * 弹层把条目切成 ≤100 的批次串行发送；下面两组覆盖切片与执行编排。
+ */
+
+function makeItems(count: number): BatchItem[] {
+  return Array.from({ length: count }, (_, i) => ({ id: i + 1, expectedVersion: 1 }))
+}
+
+describe('chunkBatchItems（OPT-114 分批切片）', () => {
+  it('空数组 → 没有批次', () => {
+    expect(chunkBatchItems([], 100)).toEqual([])
+  })
+
+  it('恰好一批的条数 → 一批', () => {
+    expect(chunkBatchItems(makeItems(100), 100)).toHaveLength(1)
+  })
+
+  it('多出一条 → 第二批只有一条', () => {
+    expect(chunkBatchItems(makeItems(101), 100).map((c) => c.length)).toEqual([100, 1])
+  })
+
+  it('490 条 → 100×4 + 90，且拼回去与原顺序一致', () => {
+    const items = makeItems(490)
+    const chunks = chunkBatchItems(items, 100)
+    expect(chunks.map((c) => c.length)).toEqual([100, 100, 100, 100, 90])
+    expect(chunks.flat()).toEqual(items)
+  })
+
+  it('缺省批大小 = 端点单次上限', () => {
+    const chunks = chunkBatchItems(makeItems(BATCH_ACTION_MAX_ITEMS + 1))
+    expect(chunks[0]).toHaveLength(BATCH_ACTION_MAX_ITEMS)
+  })
+
+  it.each([0, -1, 1.5, Number.NaN])('批大小 %s 不是正整数 → 抛错（防死循环）', (size) => {
+    expect(() => chunkBatchItems(makeItems(3), size)).toThrow(RangeError)
+  })
+})
+
+/** 一批全成功的响应：每条 ok。 */
+function allOk(chunk: readonly BatchItem[]): ChunkSendResult {
+  const results: BatchItemResult[] = chunk.map((item) => ({ id: item.id, ok: true }))
+  return { ok: true, response: { succeeded: results.length, failed: 0, results } }
+}
+
+describe('runChunkedBatch（OPT-114 串行分批执行）', () => {
+  it('全部成功：逐批发送、结果按序合并、没有中止', async () => {
+    const sent: number[] = []
+    const outcome = await runChunkedBatch({
+      items: makeItems(490),
+      chunkSize: 100,
+      send: async (chunk) => {
+        sent.push(chunk.length)
+        return allOk(chunk)
+      },
+    })
+    expect(sent).toEqual([100, 100, 100, 100, 90])
+    expect(outcome.results.map((r) => r.id)).toEqual(makeItems(490).map((i) => i.id))
+    expect(outcome).toMatchObject({ succeeded: 490, failed: 0, stopped: null })
+  })
+
+  it('串行：上一批返回前不发下一批（并发会同时占住多条连接）', async () => {
+    let inFlight = 0
+    let maxInFlight = 0
+    await runChunkedBatch({
+      items: makeItems(250),
+      chunkSize: 100,
+      send: async (chunk) => {
+        inFlight += 1
+        maxInFlight = Math.max(maxInFlight, inFlight)
+        await new Promise((resolve) => setTimeout(resolve, 1))
+        inFlight -= 1
+        return allOk(chunk)
+      },
+    })
+    expect(maxInFlight).toBe(1)
+  })
+
+  it('批内有条目失败不算中止：继续发下一批，失败计入 failed', async () => {
+    const outcome = await runChunkedBatch({
+      items: makeItems(150),
+      chunkSize: 100,
+      send: async (chunk) => {
+        const results: BatchItemResult[] = chunk.map((item) =>
+          item.id === 7 ? { id: 7, ok: false, error: '已被他人修改' } : { id: item.id, ok: true },
+        )
+        return { ok: true, response: { succeeded: 0, failed: 0, results } }
+      },
+    })
+    expect(outcome).toMatchObject({ succeeded: 149, failed: 1, stopped: null })
+    expect(outcome.results).toHaveLength(150)
+  })
+
+  it('某批请求失败即停：不再发后续批次，剩余条数含失败那一批', async () => {
+    let calls = 0
+    const outcome = await runChunkedBatch({
+      items: makeItems(490),
+      chunkSize: 100,
+      send: async (chunk) => {
+        calls += 1
+        if (calls === 3) return { ok: false, error: '操作失败（HTTP 500）', uncertain: true }
+        return allOk(chunk)
+      },
+    })
+    expect(calls).toBe(3)
+    expect(outcome.results).toHaveLength(200)
+    expect(outcome).toMatchObject({
+      succeeded: 200,
+      failed: 0,
+      stopped: { remaining: 290, error: '操作失败（HTTP 500）', uncertain: true },
+    })
+  })
+
+  it('第一批就失败：没有任何结果，剩余 = 全部', async () => {
+    const outcome = await runChunkedBatch({
+      items: makeItems(30),
+      chunkSize: 100,
+      send: async () => ({ ok: false, error: '没有执行该操作的权限', uncertain: false }),
+    })
+    expect(outcome).toEqual({
+      results: [],
+      succeeded: 0,
+      failed: 0,
+      stopped: { remaining: 30, error: '没有执行该操作的权限', uncertain: false },
+    })
+  })
+
+  it('进度按已返回的批次累计；失败那一批不计入', async () => {
+    const progress: Array<[number, number]> = []
+    let calls = 0
+    await runChunkedBatch({
+      items: makeItems(490),
+      chunkSize: 100,
+      send: async (chunk) => {
+        calls += 1
+        if (calls === 5) return { ok: false, error: '网络异常', uncertain: true }
+        return allOk(chunk)
+      },
+      onProgress: (processed, total) => progress.push([processed, total]),
+    })
+    expect(progress).toEqual([
+      [100, 490],
+      [200, 490],
+      [300, 490],
+      [400, 490],
+    ])
+  })
+
+  it('没有条目：不发请求', async () => {
+    let calls = 0
+    const outcome = await runChunkedBatch({
+      items: [],
+      send: async (chunk) => {
+        calls += 1
+        return allOk(chunk)
+      },
+    })
+    expect(calls).toBe(0)
+    expect(outcome).toEqual({ results: [], succeeded: 0, failed: 0, stopped: null })
   })
 })
