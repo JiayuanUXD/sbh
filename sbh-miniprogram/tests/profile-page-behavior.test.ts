@@ -56,7 +56,7 @@ function assetsWithTruncation(): UserAssets {
       targetSlug: null,
       targetTitle: '通用找房需求',
       submittedAt: '2026-09-04T08:00:00.000Z',
-      status: { value: 'new', label: '新建' },
+      status: { value: 'new', label: '已提交' },
     }],
   }
 }

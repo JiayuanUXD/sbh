@@ -22,15 +22,23 @@ const USER_INQUIRY_STATUS_VALUES = [
 
 type UserInquiryStatusValue = (typeof USER_INQUIRY_STATUS_VALUES)[number]
 
+/**
+ * 「我的 › 咨询记录」状态角标的展示文案，本地表是唯一事实源（OPT-117）。
+ *
+ * 状态值来自服务端的线索阶段，但文案是给客户看的：此前直接沿用 CRM 名称，
+ * 客户会看到「待分配」「有效商机」「已流失」。服务端 `/api/mini/v1/me` 目前仍下发
+ * CRM 名称——已上传的旧版客户端要求它与旧表逐字一致，服务端先改会让旧版「我的」整块
+ * 加载失败（PR #226 评审）。本客户端不看服务端 label，展示一律取本表。
+ */
 export const USER_INQUIRY_STATUS_LABELS: Readonly<Record<UserInquiryStatusValue, string>> = {
-  new: '新建',
-  pending_assignment: '待分配',
-  following: '跟进中',
-  qualified: '有效商机',
-  viewing: '带看',
-  negotiation: '谈判',
-  converted: '已转化',
-  lost: '已流失',
+  new: '已提交',
+  pending_assignment: '已提交',
+  following: '顾问跟进中',
+  qualified: '顾问跟进中',
+  viewing: '已安排看房',
+  negotiation: '洽谈中',
+  converted: '已完成',
+  lost: '已结束',
 }
 
 export type FavoriteTarget = Readonly<{
@@ -301,8 +309,10 @@ function parseInquiry(value: unknown): UserInquiry {
   if ((targetType === 'general') !== (targetSlug === null)) return invalidResponse()
   const status = exact(inquiry.status, ['value', 'label'])
   if (!isUserInquiryStatusValue(status.value)) return invalidResponse()
-  const statusLabel = nonEmptyString(status.label)
-  if (statusLabel !== USER_INQUIRY_STATUS_LABELS[status.value]) return invalidResponse()
+  // 形状仍要求非空字符串；展示一律用本地文案。服务端 label 与本地不一致（措辞调整未同步、
+  // 或被伪造）时既不上屏，也不让整份响应失效。
+  nonEmptyString(status.label)
+  const statusLabel = USER_INQUIRY_STATUS_LABELS[status.value]
   return {
     targetType,
     targetSlug,

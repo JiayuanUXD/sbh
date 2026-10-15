@@ -11,7 +11,7 @@
     <view class="inquiry-sheet__header sbh-sheet__header">
       <view class="inquiry-sheet__header-copy">
         <view class="inquiry-sheet__heading">咨询顾问</view>
-        <view class="inquiry-sheet__subtitle">留下需求，顾问将按当前信息跟进</view>
+        <view class="inquiry-sheet__subtitle">留下需求，顾问会尽快联系您</view>
       </view>
       <button
         class="inquiry-sheet__close"
@@ -66,7 +66,7 @@
             >手动填写</button>
           </view>
           <view wx:if="{{snapshot.phoneMode === 'wechat'}}" class="inquiry-sheet__mode-hint">
-            提交时由微信授权当前账号绑定的手机号
+            提交时将使用您微信绑定的手机号
           </view>
           <input
             wx:if="{{snapshot.phoneMode === 'manual'}}"

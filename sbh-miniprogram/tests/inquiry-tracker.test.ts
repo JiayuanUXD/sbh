@@ -25,21 +25,21 @@ function assetsWithInquiries(): UserAssets {
         targetSlug: 'jing-an-100',
         targetTitle: '静安中心 100㎡',
         submittedAt: '2026-09-04T09:10:00.000Z',
-        status: { value: 'following', label: '跟进中' },
+        status: { value: 'following', label: '顾问跟进中' },
       },
       {
         targetType: 'building',
         targetSlug: 'jing-an-center',
         targetTitle: '静安中心',
         submittedAt: '2026-09-04T09:00:00.000Z',
-        status: { value: 'new', label: '新建' },
+        status: { value: 'new', label: '已提交' },
       },
       {
         targetType: 'general',
         targetSlug: null,
         targetTitle: '通用找房需求',
         submittedAt: '2026-09-04T08:00:00.000Z',
-        status: { value: 'pending_assignment', label: '待分配' },
+        status: { value: 'pending_assignment', label: '已提交' },
       },
     ],
   })
@@ -110,8 +110,10 @@ describe('服务端咨询记录投影', () => {
     })).toThrow('invalid user assets response')
   })
 
-  it('拒绝合法状态 value 携带不一致或伪造的服务端 label', () => {
-    expect(() => parseUserAssets({
+  // OPT-117：本地表仍是展示文案的唯一事实源，伪造 / 不一致的服务端 label 永远不上屏；
+  // 但不再因此判整份响应无效——只改措辞就让「咨询记录」整块加载失败，代价不对等。
+  it('合法状态 value 携带不一致或伪造的服务端 label 时，显示本地文案', () => {
+    const assets = parseUserAssets({
       counts: { favorites: 0, inquiries: 1 },
       pageInfo: COMPLETE_PAGE_INFO,
       favorites: { listings: [], buildings: [] },
@@ -122,19 +124,56 @@ describe('服务端咨询记录投影', () => {
         submittedAt: '2026-09-04T08:00:00.000Z',
         status: { value: 'following', label: '顾问已分配' },
       }],
+    })
+    expect(assets.inquiries[0]?.status).toEqual({ value: 'following', label: '顾问跟进中' })
+  })
+
+  // 过渡期的真实形态：服务端仍下发 CRM 名称（旧版客户端要求逐字一致），新客户端照样显示客户文案。
+  it.each([
+    ['pending_assignment', '待分配', '已提交'],
+    ['qualified', '有效商机', '顾问跟进中'],
+    ['lost', '已流失', '已结束'],
+  ] as const)('服务端下发 CRM 名称 %s=%s 时显示「%s」', (value, serverLabel, shown) => {
+    const assets = parseUserAssets({
+      counts: { favorites: 0, inquiries: 1 },
+      pageInfo: COMPLETE_PAGE_INFO,
+      favorites: { listings: [], buildings: [] },
+      inquiries: [{
+        targetType: 'general',
+        targetSlug: null,
+        targetTitle: '通用找房需求',
+        submittedAt: '2026-09-04T08:00:00.000Z',
+        status: { value, label: serverLabel },
+      }],
+    })
+    expect(assets.inquiries[0]?.status.label).toBe(shown)
+  })
+
+  it('服务端 label 仍须是非空字符串（形状校验不放宽）', () => {
+    expect(() => parseUserAssets({
+      counts: { favorites: 0, inquiries: 1 },
+      pageInfo: COMPLETE_PAGE_INFO,
+      favorites: { listings: [], buildings: [] },
+      inquiries: [{
+        targetType: 'listing',
+        targetSlug: 'jing-an-100',
+        targetTitle: '静安中心 100㎡',
+        submittedAt: '2026-09-04T08:00:00.000Z',
+        status: { value: 'following', label: '' },
+      }],
     })).toThrow('invalid user assets response')
   })
 
-  it('穷尽接受本地权威的八种 Lead 状态标签', () => {
+  it('穷尽接受本地权威的八种状态，文案是给客户看的（OPT-117）', () => {
     const statuses = [
-      { value: 'new', label: '新建' },
-      { value: 'pending_assignment', label: '待分配' },
-      { value: 'following', label: '跟进中' },
-      { value: 'qualified', label: '有效商机' },
-      { value: 'viewing', label: '带看' },
-      { value: 'negotiation', label: '谈判' },
-      { value: 'converted', label: '已转化' },
-      { value: 'lost', label: '已流失' },
+      { value: 'new', label: '已提交' },
+      { value: 'pending_assignment', label: '已提交' },
+      { value: 'following', label: '顾问跟进中' },
+      { value: 'qualified', label: '顾问跟进中' },
+      { value: 'viewing', label: '已安排看房' },
+      { value: 'negotiation', label: '洽谈中' },
+      { value: 'converted', label: '已完成' },
+      { value: 'lost', label: '已结束' },
     ]
     const assets = parseUserAssets({
       counts: { favorites: 0, inquiries: statuses.length },

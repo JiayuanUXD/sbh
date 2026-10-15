@@ -89,8 +89,9 @@ function setup(overrides: Partial<Parameters<typeof createInquirySheetController
 
 async function prepareManual(
   controller: ReturnType<typeof createInquirySheetController>,
+  openContext: InquirySheetContext = context,
 ): Promise<void> {
-  await controller.open(context)
+  await controller.open(openContext)
   await controller.verifyPrivacy()
   controller.setMoveInTime(' 2026 年 10 月 ')
   controller.selectManual()
@@ -335,9 +336,9 @@ describe('咨询半屏状态机', () => {
 
   it.each([
     ['listing', '已收到该房源咨询'],
-    ['building', '已转为该楼盘需求'],
+    ['building', '这套房源刚有变动，已为您记下对该楼盘的需求'],
     ['general', '已收到找房需求'],
-  ] as const)('显示 %s 目标解析的诚实成功文案', async (targetResolution, message) => {
+  ] as const)('从房源发起时，显示 %s 目标解析的诚实成功文案', async (targetResolution, message) => {
     const { controller } = setup({ submit: vi.fn(async () => success(targetResolution)) })
     await prepareManual(controller)
     await controller.submitManual()
@@ -349,6 +350,20 @@ describe('咨询半屏状态机', () => {
     })
   })
 
+  // OPT-117：直接在楼盘页咨询时服务端同样返回 building；此前一律说「已转为该楼盘需求」，
+  // 而用户本来就是在问楼盘，没有什么被「转」。
+  it('直接咨询楼盘时，building 解析说「已收到该楼盘咨询」', async () => {
+    const { controller } = setup({ submit: vi.fn(async () => success('building')) })
+    await prepareManual(controller, {
+      ...context,
+      target: { targetType: 'building', buildingSlug: 'jing-an-tower' },
+      title: '静安中心',
+    })
+    await controller.submitManual()
+
+    expect(controller.snapshot().successMessage).toBe('已收到该楼盘咨询')
+  })
+
   it('acceptedExisting 不覆盖服务端 targetResolution 成功语义，并提示号码未更新', async () => {
     const { controller } = setup({ submit: vi.fn(async () => success('general', true)) })
     await prepareManual(controller)
@@ -357,7 +372,7 @@ describe('咨询半屏状态机', () => {
     expect(controller.snapshot().successMessage).toBe('已收到找房需求')
     expect(controller.snapshot().successMessage).not.toContain('13800138000')
     expect(controller.snapshot().successFollowUp).toBe(
-      '本次未更新首次提交的联系方式',
+      '已收到您之前的提交，联系方式以第一次填写的为准',
     )
   })
 

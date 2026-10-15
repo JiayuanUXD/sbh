@@ -34,6 +34,6 @@
   </view>
 
   <view wx:if="{{inquiryEnabled && building.activeListingCount === 0}}" class="building-card__inquiry-action" catchtap="handleInquiry">
-    留资
+    咨询
   </view>
 </view>

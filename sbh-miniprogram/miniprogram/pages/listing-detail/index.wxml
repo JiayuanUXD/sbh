@@ -88,7 +88,7 @@
       </view>
 
       <view class="listing-detail__facts">
-        <view class="listing-detail__section-title">其他事实</view>
+        <view class="listing-detail__section-title">其他信息</view>
         <view wx:for="{{content.factGroups}}" wx:key="id" class="listing-detail__fact-group">
           <view class="listing-detail__fact-group-title">{{item.title}}</view>
           <view wx:for="{{item.facts}}" wx:key="label" class="listing-detail__fact">
