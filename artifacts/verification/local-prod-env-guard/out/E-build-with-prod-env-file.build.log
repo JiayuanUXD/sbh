@@ -1,0 +1,127 @@
+▲ Next.js 16.2.10 (Turbopack)
+- Environments: .env.production.local
+- Experiments (use with caution):
+  ⨯ turbopackServerFastRefresh
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.2s
+  Running TypeScript ...
+  Finished TypeScript in 8.9s ...
+  Collecting page data using 13 workers ...
+[17:36:31] [31mERROR[39m: [36mError: cannot connect to Postgres. Details: connect ECONNREFUSED 10.193.222.18:54329[39m
+    err: {
+      "type": "Error",
+      "message": "connect ECONNREFUSED 10.193.222.18:54329",
+      "stack":
+          Error: connect ECONNREFUSED 10.193.222.18:54329
+              at /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/pg-pool@3.14.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async g (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/_0t3ygox._.js:131:51602)
+              at async Object.h [as connect] (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/_0t3ygox._.js:131:51844)
+              at async aw.init (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/node_modules__pnpm_17z9ndr._.js:8:9595)
+              at async aA (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/node_modules__pnpm_17z9ndr._.js:8:14043)
+              at async x (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/src_0ek4ty4._.js:1:11927)
+              at async /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/_0abzsrp._.js:15:29012
+              at async i (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/[root-of-the-server]__0evo6gx._.js:1:4241)
+              at async generateRouteStaticParams (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/build/static-paths/app.js:504:28)
+              at async buildAppStaticPaths (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/build/static-paths/app.js:580:25)
+              at async /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/build/utils.js:685:79
+              at async Span.traceAsyncFn (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/trace/trace.js:164:20)
+      "errno": -61,
+      "code": "ECONNREFUSED",
+      "syscall": "connect",
+      "address": "10.193.222.18",
+      "port": 54329
+    }
+city_static_params_unavailable
+undefined
+  Generating static pages using 13 workers (0/20) ...
+  Generating static pages using 13 workers (5/20) 
+  Generating static pages using 13 workers (10/20) 
+  Generating static pages using 13 workers (15/20) 
+✓ Generating static pages using 13 workers (20/20) in 152ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ● /[city]
+├ ƒ /[city]/[...rest]
+├ ƒ /[city]/buildings
+├ ƒ /[city]/buildings/[slug]
+├ ƒ /[city]/coworking
+├ ƒ /[city]/listings
+├ ƒ /[city]/listings/[slug]
+├ ƒ /[city]/sale
+├ ƒ /account
+├ ƒ /account/favorites
+├ ƒ /admin/[[...segments]]
+├ ƒ /api/[...slug]
+├ ƒ /api/city-partner-applications
+├ ƒ /api/city-partner-applications/details
+├ ƒ /api/corrections
+├ ƒ /api/graphql
+├ ƒ /api/graphql-playground
+├ ƒ /api/health
+├ ƒ /api/inquiries
+├ ƒ /api/inquiries/demand
+├ ƒ /api/member/favorites
+├ ƒ /api/member/favorites/merge
+├ ƒ /api/member/login/password
+├ ƒ /api/member/login/sms
+├ ƒ /api/member/logout
+├ ƒ /api/member/me
+├ ƒ /api/member/password
+├ ƒ /api/member/profile
+├ ƒ /api/member/sms/send
+├ ƒ /api/mini/v1/acceptance/attestation
+├ ƒ /api/mini/v1/acceptance/leads
+├ ƒ /api/mini/v1/acceptance/permits
+├ ƒ /api/mini/v1/buildings
+├ ƒ /api/mini/v1/buildings/[slug]
+├ ƒ /api/mini/v1/favorites
+├ ƒ /api/mini/v1/home
+├ ƒ /api/mini/v1/inquiries
+├ ƒ /api/mini/v1/listings
+├ ƒ /api/mini/v1/listings/[slug]
+├ ƒ /api/mini/v1/me
+├ ƒ /api/mini/v1/session
+├ ƒ /api/observability/sli
+├ ƒ /api/routes
+├ ƒ /api/supply-submissions
+├ ƒ /api/watermark-preview
+├ ƒ /api/watermark-rebake
+├ ○ /apple-icon.png
+├ ƒ /buildings
+├ ƒ /buildings/[slug]
+├ ƒ /city-partner
+├ ƒ /coworking
+├ ƒ /dev-story
+├ ƒ /dev-story/building-detail-demo
+├ ƒ /dev-story/opt036
+├ ƒ /dev-story/opt037
+├ ƒ /dev-story/opt038
+├ ƒ /entrust
+├ ○ /icon.svg
+├ ƒ /listings
+├ ƒ /listings/[slug]
+├ ƒ /login
+├ ƒ /login/reset
+├ ƒ /news
+├ ƒ /news/[slug]
+├ ƒ /pages/[slug]
+├ ƒ /pages/privacy
+├ ƒ /publish
+├ ○ /robots.txt
+├ ƒ /sale
+├ ƒ /sitemap.xml
+├ ƒ /sitemaps/[city]/[kind]/[page]
+└ ƒ /sitemaps/static.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

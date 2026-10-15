@@ -1,0 +1,8 @@
+HEAD 6777dec2 + src 有未提交改动  2026-10-15 17:35:41 +0800  LAN_IP=10.193.222.18
+blob local-production-env-guard.ts 4a7258d5b026ae500d88aac4647c47adbfd758c8
+blob payload.config.ts             13a2feaa24c59365910beab2951d4eb99491dc8a
+A-main-tree-blocked          守卫报错行=4  假库被连次数=0  GET /api/health -> 500 GET /           -> 500 
+B-control-allow-switch       守卫报错行=0  假库被连次数=3  GET /api/health -> 503 GET /           -> 500 
+C-clean-worktree-loopback    守卫报错行=0  假库被连次数=3  GET /api/health -> 503 GET /           -> 500 
+D-container-no-env-files     守卫报错行=0  假库被连次数=3  GET /api/health -> 503 GET /           -> 500 
+E-build-with-prod-env-file   next build 退出码=0  守卫报错行=0

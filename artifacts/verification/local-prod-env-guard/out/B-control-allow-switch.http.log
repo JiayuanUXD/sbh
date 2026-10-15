@@ -1,0 +1,2 @@
+GET /api/health -> 503
+GET /           -> 500

@@ -144,14 +144,27 @@ Next 在 `NODE_ENV=production`（`next build` / `next start`）时按 `.env.prod
    if [ -e .env.production ] || [ -e .env.production.local ]; then echo '存在 .env.production*，拒绝启动'; else CI=1 PAYLOAD_DISABLE_JOB_AUTORUN=1 pnpm start -p <端口>; fi
    ```
 
-   E2E 也先这样手工起好 server 再跑 Playwright（本地 `reuseExistingServer` 会复用），别依赖 webServer 自起——它不带这道检查。
+   E2E 也先这样手工起好 server 再跑 Playwright（本地 `reuseExistingServer` 会复用）；webServer 自起的 `next start`
+   只剩下面的机器守卫兜底。
 4. 量完删掉临时 worktree，报告里写明在哪个 worktree、哪个提交上量的。
+
+**机器守卫（第二层，2026-10-15 起）**：`src/lib/runtime/local-production-env-guard.ts` 挂在 `payload.config.ts` 顶层，
+四条同时成立就抛错——生产模式、不是 `next build`、cwd 下有 Next 会自动加载的 env 文件（`.env.production.local` /
+`.env.local` / `.env.production` / `.env`）、库主机不是环回地址或 `COS_BUCKET` 是生产桶。实测
+（`../artifacts/verification/local-prod-env-guard/`）：server 照常打出 Ready，但从第一个用到 Payload 的请求起都是 500
+并打印 `[local-production-env-guard] 拒绝启动`，**假库一次都没被连**；干净 worktree、CI（`127.0.0.1`）与线上容器形态
+（没有这些文件）放行，`next build` 不拦。确需在本机以生产模式连生产资源时显式设 `ALLOW_LOCAL_PRODUCTION_ENV=1`
+（只认字面量 `1`）。它**不替代**上面四步：`next build` 照样把 `.env.production.local` 里的 `NEXT_PUBLIC_*` 内联进产物，
+`pnpm dev` 不归它管，判定也只看 cwd 下的文件。线上容器里没有这些文件靠的是 git 取包 + `.dockerignore` 排除 `.env*`，
+两处都有契约测试（`tests/production-deploy-config.test.ts`）；别往镜像里放任何 `.env*`。
 
 只做本地验收、不量性能时直接用 `pnpm dev`，它不读这个文件。
 
 **症状指纹**：本地夹具账号（`e2e-adm@example.com` 等）登录返回 401「电子邮件或密码不正确」，而同一工作树 `pnpm dev` 下能登
 ——就是连到了别的库（生产没有任何 `@example.com` 账号）。**先停进程**，再核对进程 cwd 与该目录下的 `.env.production*`；
 别去查登录代码，也别重跑 seed（`pnpm seed` 只读 `.env.local`，写进的是本地库，server 连的却不是它）。
+有了机器守卫之后，更常见的指纹是日志里的 `[local-production-env-guard] 拒绝启动` + 每个请求都 500：按报错列出的文件处置，
+别为了让页面出来去设放行开关。
 
 ### 本地 `next start` 的两条环境事实（照文档传参会白传）
 

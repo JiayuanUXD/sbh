@@ -1,0 +1,56 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:3791
+- Network:       http://10.193.222.18:3791
+✓ Ready in 84ms
+⨯ Error: [local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。
+  当前目录存在：.env.production.local
+  - 数据库主机 10.193.222.18
+
+Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；
+在这里起生产模式 server 等于多起一个连生产库、轮询生产任务队列的实例（2026-10-15 OPT-114）。
+处置：改在只复制 .env.local（指向本地 / 隔离库）的干净 worktree 里起，
+并带 PAYLOAD_DISABLE_JOB_AUTORUN=1；做法见 payload-office-platform/.agent/testing.md
+「起任何生产模式进程前先 ls .env.production*」。
+确实要在本机以生产模式连生产资源，请显式设置 ALLOW_LOCAL_PRODUCTION_ENV=1。
+    at c (.next/server/chunks/_05b9j8c._.js:461:882)
+    at d (.next/server/chunks/_05b9j8c._.js:461:1396)
+    at <unknown> (.next/server/chunks/_05b9j8c._.js:484:5128)
+⨯ Error: [local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。
+  当前目录存在：.env.production.local
+  - 数据库主机 10.193.222.18
+
+Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；
+在这里起生产模式 server 等于多起一个连生产库、轮询生产任务队列的实例（2026-10-15 OPT-114）。
+处置：改在只复制 .env.local（指向本地 / 隔离库）的干净 worktree 里起，
+并带 PAYLOAD_DISABLE_JOB_AUTORUN=1；做法见 payload-office-platform/.agent/testing.md
+「起任何生产模式进程前先 ls .env.production*」。
+确实要在本机以生产模式连生产资源，请显式设置 ALLOW_LOCAL_PRODUCTION_ENV=1。
+    at c (.next/server/chunks/_05b9j8c._.js:461:882)
+    at d (.next/server/chunks/_05b9j8c._.js:461:1396)
+    at <unknown> (.next/server/chunks/_05b9j8c._.js:484:5128)
+⨯ Error: [local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。
+  当前目录存在：.env.production.local
+  - 数据库主机 10.193.222.18
+
+Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；
+在这里起生产模式 server 等于多起一个连生产库、轮询生产任务队列的实例（2026-10-15 OPT-114）。
+处置：改在只复制 .env.local（指向本地 / 隔离库）的干净 worktree 里起，
+并带 PAYLOAD_DISABLE_JOB_AUTORUN=1；做法见 payload-office-platform/.agent/testing.md
+「起任何生产模式进程前先 ls .env.production*」。
+确实要在本机以生产模式连生产资源，请显式设置 ALLOW_LOCAL_PRODUCTION_ENV=1。
+    at k (.next/server/chunks/ssr/_0t3ygox._.js:273:890)
+    at l (.next/server/chunks/ssr/_0t3ygox._.js:273:1404)
+    at <unknown> (.next/server/chunks/ssr/_0t3ygox._.js:296:4354)
+⨯ Error: [local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。
+  当前目录存在：.env.production.local
+  - 数据库主机 10.193.222.18
+
+Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；
+在这里起生产模式 server 等于多起一个连生产库、轮询生产任务队列的实例（2026-10-15 OPT-114）。
+处置：改在只复制 .env.local（指向本地 / 隔离库）的干净 worktree 里起，
+并带 PAYLOAD_DISABLE_JOB_AUTORUN=1；做法见 payload-office-platform/.agent/testing.md
+「起任何生产模式进程前先 ls .env.production*」。
+确实要在本机以生产模式连生产资源，请显式设置 ALLOW_LOCAL_PRODUCTION_ENV=1。
+    at k (.next/server/chunks/ssr/_0t3ygox._.js:273:890)
+    at l (.next/server/chunks/ssr/_0t3ygox._.js:273:1404)
+    at <unknown> (.next/server/chunks/ssr/_0t3ygox._.js:296:4354)
