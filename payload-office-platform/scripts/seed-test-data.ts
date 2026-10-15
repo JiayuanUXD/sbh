@@ -214,7 +214,7 @@ const fut730 = new Date(now + 730 * DAY).toISOString()
 // ---------------------------------------------------------------------------
 type BuildingFill = {
   slug: string
-  buildingType: 'office_building' | 'business_park' | 'commercial_complex' | 'serviced_office'
+  buildingType: 'traditional_office' | 'coworking' | 'full_floor' | 'standalone_building' | 'business_park'
   completionDate: string
   totalFloors: number
   propertyCompany: string
@@ -236,7 +236,7 @@ type BuildingFill = {
 const BUILDINGS: BuildingFill[] = [
   {
     slug: 'west-nanjing-premium-center',
-    buildingType: 'serviced_office',
+    buildingType: 'coworking',
     completionDate: '2018-06-01',
     totalFloors: 28,
     propertyCompany: '静安高端物业管理有限公司',
@@ -258,7 +258,7 @@ const BUILDINGS: BuildingFill[] = [
   },
   {
     slug: 'empty-building',
-    buildingType: 'office_building',
+    buildingType: 'traditional_office',
     completionDate: '2020-09-01',
     totalFloors: 22,
     propertyCompany: '静安置业物业',
@@ -279,7 +279,7 @@ const BUILDINGS: BuildingFill[] = [
   },
   {
     slug: 'lujiazui-grade-a-river-view',
-    buildingType: 'office_building',
+    buildingType: 'traditional_office',
     completionDate: '2015-12-01',
     totalFloors: 52,
     propertyCompany: '陆家嘴物业管理有限公司',
@@ -301,7 +301,7 @@ const BUILDINGS: BuildingFill[] = [
   },
   {
     slug: 'huangpu-bund',
-    buildingType: 'office_building',
+    buildingType: 'traditional_office',
     completionDate: '2012-10-01',
     totalFloors: 18,
     propertyCompany: '外滩源物业',
@@ -324,7 +324,7 @@ const BUILDINGS: BuildingFill[] = [
   },
   {
     slug: 'xuhui-xujiahui',
-    buildingType: 'office_building',
+    buildingType: 'traditional_office',
     completionDate: '2016-05-01',
     totalFloors: 36,
     propertyCompany: '徐汇商务物业',
@@ -347,7 +347,7 @@ const BUILDINGS: BuildingFill[] = [
   },
   {
     slug: 'changning-hongqiao',
-    buildingType: 'office_building',
+    buildingType: 'traditional_office',
     completionDate: '2017-08-01',
     totalFloors: 30,
     propertyCompany: '虹桥商务物业',

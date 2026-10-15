@@ -53,11 +53,36 @@ describe('building/物业类型枚举', () => {
     }
   })
 
+  it('选项与顺序（OPT-115）：传统办公 / 联合办公 / 整层办公 / 独栋办公 / 商务园区', () => {
+    expect([...BUILDING_TYPES]).toEqual([
+      'traditional_office',
+      'coworking',
+      'full_floor',
+      'standalone_building',
+      'business_park',
+    ])
+    expect(BUILDING_TYPE_LABELS).toEqual({
+      traditional_office: '传统办公',
+      coworking: '联合办公',
+      full_floor: '整层办公',
+      standalone_building: '独栋办公',
+      business_park: '商务园区',
+    })
+  })
+
   it('isBuildingType 守卫', () => {
-    expect(isBuildingType('office_building')).toBe(true)
+    expect(isBuildingType('traditional_office')).toBe(true)
+    expect(isBuildingType('business_park')).toBe(true)
     expect(isBuildingType('nope')).toBe(false)
     expect(isBuildingType(undefined)).toBe(false)
   })
+
+  it.each(['office_building', 'commercial_complex', 'serviced_office'])(
+    'OPT-115 下线的旧值 %s 不再合法（存量由迁移映射走）',
+    (legacy) => {
+      expect(isBuildingType(legacy)).toBe(false)
+    },
+  )
 })
 
 describe('building/认证状态枚举', () => {

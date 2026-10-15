@@ -493,7 +493,7 @@ const HERO_BUILDING_FULL: BuildingDetailViewModel = {
   slug: 'jing-an-kerry-centre',
   name: '静安嘉里中心',
   address: '静安区南京西路 1515 号',
-  buildingType: 'office_building',
+  buildingType: 'traditional_office',
   grade: 'super-grade-a',
   district: { id: 1, slug: 'jing-an', name: '静安区' },
   businessDistrict: { id: 2, slug: 'nanjing-xi-lu', name: '南京西路' },

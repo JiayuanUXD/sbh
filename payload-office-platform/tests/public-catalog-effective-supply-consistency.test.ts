@@ -127,7 +127,7 @@ const BUILDING_VALID: Building = {
   slug: 'jingan-center',
   status: 'published',
   operationalStatus: 'active',
-  buildingType: 'office_building',
+  buildingType: 'traditional_office',
   grade: 'grade-a',
   verificationStatus: 'verified',
   city: CITY_SHANGHAI,
