@@ -985,7 +985,7 @@ describe('mapBuildingDetail', () => {
   it('公开事实覆盖 P0 楼盘身份、建筑、物业、停车和注册能力且不混入房源事实', () => {
     const b = mapBuildingDetail({
       ...BUILDING_JINGAN_CENTER,
-      buildingType: 'office_building',
+      buildingType: 'traditional_office',
       grade: 'grade-a',
       registrationCapability: 'supported',
       completionDate: '2020-01-01T00:00:00.000Z',
@@ -997,10 +997,10 @@ describe('mapBuildingDetail', () => {
       decorationStatus: 'fully_fitted',
       minimumLeaseMonths: 24,
     })
-    expect(b).toMatchObject({ buildingType: 'office_building', grade: 'grade-a' })
+    expect(b).toMatchObject({ buildingType: 'traditional_office', grade: 'grade-a' })
     const facts = b?.factGroups.flatMap((group) => group.facts) ?? []
     expect(facts).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: '物业类型', value: '写字楼' }),
+      expect.objectContaining({ label: '物业类型', value: '传统办公' }),
       expect.objectContaining({ label: '楼宇等级', value: '甲级' }),
       expect.objectContaining({ label: '注册能力', value: '支持注册' }),
       expect.objectContaining({ label: '竣工时间', value: '2020-01-01T00:00:00.000Z' }),
@@ -1042,7 +1042,7 @@ describe('mapBuildingDetail', () => {
 
     // 文本事实没有单位：unit 必须是 null，magnitude 与 value 相同——否则宫格会
     // 把值的尾字当成单位排成小字。
-    expect(byLabel('物业类型')).toMatchObject({ value: '写字楼', magnitude: '写字楼', unit: null })
+    expect(byLabel('物业类型')).toMatchObject({ value: '传统办公', magnitude: '传统办公', unit: null })
     expect(byLabel('注册能力')?.unit).toBeNull()
 
     // 恒等式对**每一条**事实成立，不只上面点名的那几条。

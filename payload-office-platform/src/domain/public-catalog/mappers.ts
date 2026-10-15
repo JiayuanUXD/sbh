@@ -46,10 +46,8 @@ import type {
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
 import { computeUsableArea, deriveSeatRange } from './detail-values'
 import { normalizePublicMediaUrl } from './media-url'
-import {
-  BUILDING_TYPE_LABELS,
-  REGISTRATION_CAPABILITY_LABELS,
-} from '@/domain/supply/building'
+import { REGISTRATION_CAPABILITY_LABELS } from '@/domain/supply/building'
+import { buildingTypeLabel } from '@/domain/supply/building-type-legacy'
 import {
   COST_INCLUSION_STATUS_LABELS,
   DECORATION_STATUS_LABELS,
@@ -928,7 +926,8 @@ function mapBuildingFactGroups(building: PopulatedBuilding): readonly FactGroupV
       facts: [
         fact(
           '物业类型',
-          building.buildingType ? BUILDING_TYPE_LABELS[building.buildingType] : null,
+          // OPT-115 第一期：库里可能还是旧值（写字楼 / 服务式办公），按映射显示新名称。
+          buildingTypeLabel(building.buildingType),
         ),
         fact(
           '楼宇等级',

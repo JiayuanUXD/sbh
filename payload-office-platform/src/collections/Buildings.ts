@@ -25,6 +25,12 @@ import {
 import { guardBuildingDelete } from '@/domain/supply/building-delete-cleanup'
 import { protectBuilding } from '@/domain/supply/building-protect'
 import {
+  LEGACY_BUILDING_TYPES,
+  LEGACY_BUILDING_TYPE_OPTION_LABELS,
+  filterBuildingTypeOptions,
+  normalizeLegacyBuildingType,
+} from '@/domain/supply/building-type-legacy'
+import {
   createBuildingBatchDeactivationImpactEndpoint,
   createBuildingBatchOperationalEndpoint,
 } from '@/endpoints/building-batch-operational-endpoint'
@@ -220,6 +226,8 @@ export const Buildings: CollectionConfig = {
     delete: createCollectionAccess({ delete: 'building:delete' }).delete,
   },
   hooks: {
+    // OPT-115 第一期：物业类型旧值在校验前换成新值（新旧值共存期的「双读」写侧）。
+    beforeValidate: [normalizeLegacyBuildingType],
     // 楼盘保护（M3.1）：枚举双保险、city 校验、图集上限、版本乐观锁
     // syncBuildingMedia 必须排在 protectBuilding 之前：gallery 由 mediaItems 派生，
     // 只有先派生再校验，protectBuilding 的 BUILDING_GALLERY_MAX 兜底才拦得住 API 直传。
@@ -331,10 +339,19 @@ export const Buildings: CollectionConfig = {
                   label: '物业类型',
                   type: 'select',
                   admin: { width: COL_3 },
-                  options: BUILDING_TYPES.map((value) => ({
-                    label: BUILDING_TYPE_LABELS[value],
-                    value,
-                  })),
+                  // OPT-115 第一期：旧值仍在库里枚举中（与配置一致），下拉默认隐藏，
+                  // 只在当前值就是旧值时出现；保存时由 normalizeLegacyBuildingType 换成新值。
+                  options: [
+                    ...BUILDING_TYPES.map((value) => ({
+                      label: BUILDING_TYPE_LABELS[value],
+                      value,
+                    })),
+                    ...LEGACY_BUILDING_TYPES.map((value) => ({
+                      label: LEGACY_BUILDING_TYPE_OPTION_LABELS[value],
+                      value,
+                    })),
+                  ],
+                  filterOptions: filterBuildingTypeOptions,
                 },
                 {
                   name: 'grade',

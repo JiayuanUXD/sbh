@@ -1,0 +1,8 @@
+BEGIN
+old value ok|1|serviced_office
+UPDATE 1
+old value ok|3|commercial_complex
+UPDATE 1
+new value ok|4|standalone_building
+UPDATE 1
+ROLLBACK

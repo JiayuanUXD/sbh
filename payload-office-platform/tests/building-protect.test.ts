@@ -77,6 +77,13 @@ describe('building-protect/枚举双保险', () => {
     })
   })
 
+  // 走完整集合流程时 beforeValidate 已把旧值换成新值；这里直调 protect，守的是绕过钩子的写入。
+  it('OPT-115 旧值 office_building 直达 protect → INVALID_BUILDING_TYPE', async () => {
+    await expect(create({ buildingType: 'office_building' })).rejects.toMatchObject({
+      code: 'INVALID_BUILDING_TYPE',
+    })
+  })
+
   it('非法认证状态 → INVALID_VERIFICATION_STATUS', async () => {
     await expect(create({ verificationStatus: 'maybe' })).rejects.toMatchObject({
       code: 'INVALID_VERIFICATION_STATUS',
@@ -92,7 +99,7 @@ describe('building-protect/枚举双保险', () => {
   it('合法枚举组合 → 通过', async () => {
     const out = await create({
       operationalStatus: 'active',
-      buildingType: 'office_building',
+      buildingType: 'traditional_office',
       verificationStatus: 'verified',
       registrationCapability: 'supported',
     })

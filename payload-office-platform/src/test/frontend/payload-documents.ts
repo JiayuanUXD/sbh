@@ -165,7 +165,7 @@ export const BUILDING_JINGAN_CENTER: Building = {
   slug: 'jingan-center',
   status: 'published',
   operationalStatus: 'active',
-  buildingType: 'office_building',
+  buildingType: 'traditional_office',
   grade: 'grade-a',
   verificationStatus: 'verified',
   city: CITY_SHANGHAI,
@@ -204,7 +204,7 @@ export const BUILDING_PUDONG_FLAT: Building = {
   slug: 'pudong-tower',
   status: 'published',
   operationalStatus: 'active',
-  buildingType: 'office_building',
+  buildingType: 'traditional_office',
   grade: 'grade-a',
   city: 100, // depth=0 时的 id 形式
   district: 2, // depth=0 时的 id 形式

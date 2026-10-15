@@ -96,7 +96,7 @@ const FIXTURE_BUILDING: BuildingDetailViewModel = {
   slug: 'demo-tower',
   name: 'Demo 国际商务中心',
   address: '上海市浦东新区世纪大道 1000 号',
-  buildingType: 'office_building',
+  buildingType: 'traditional_office',
   grade: 'super-grade-a',
   district: { id: 1, slug: 'pudong', name: '浦东' },
   businessDistrict: { id: 2, slug: 'lujiazui', name: '陆家嘴' },

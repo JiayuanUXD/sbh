@@ -29,20 +29,28 @@ export const BUILDING_OPERATIONAL_STATUS_LABELS: Record<BuildingOperationalStatu
   disabled: '停用',
 }
 
-/** 楼盘物业类型（合理默认值域，待产品确认）。 */
+/**
+ * 楼盘物业类型（OPT-115 产品确认，顺序即后台下拉顺序）。
+ *
+ * 取代 M3.1 的「合理默认值域」（写字楼 / 商务园区 / 商业综合体 / 服务式办公）。
+ * 存量由迁移 `opt_115_building_type_options` 映射：office_building → traditional_office、
+ * serviced_office → coworking、business_park 不变、commercial_complex 清空。
+ */
 export const BUILDING_TYPES = [
-  'office_building',
+  'traditional_office',
+  'coworking',
+  'full_floor',
+  'standalone_building',
   'business_park',
-  'commercial_complex',
-  'serviced_office',
 ] as const
 export type BuildingType = (typeof BUILDING_TYPES)[number]
 
 export const BUILDING_TYPE_LABELS: Record<BuildingType, string> = {
-  office_building: '写字楼',
+  traditional_office: '传统办公',
+  coworking: '联合办公',
+  full_floor: '整层办公',
+  standalone_building: '独栋办公',
   business_park: '商务园区',
-  commercial_complex: '商业综合体',
-  serviced_office: '服务式办公',
 }
 
 /** 楼盘认证状态（合理默认值域,待产品确认）。 */
