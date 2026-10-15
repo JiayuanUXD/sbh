@@ -170,6 +170,44 @@ function staleLock(pid = 2_000_000_000) {
   })
 }
 
+function liveLock(ownerTokenChar = 'a') {
+  return JSON.stringify({
+    schemaVersion: 1,
+    pid: process.pid,
+    ownerToken: ownerTokenChar.repeat(64),
+    mode: 'recovery',
+  })
+}
+
+function isReadOnlyOpen(flags: unknown) {
+  return typeof flags === 'number' && (flags & (fsConstants.O_WRONLY | fsConstants.O_RDWR)) === 0
+}
+
+// 在被测竞争者的某次文件系统调用之前，插入另一个竞争者已经合法完成的一步，
+// 把只有几个系统调用宽的竞态窗口变成确定性复现。
+function fileSystemWithConcurrentStep(
+  method: 'open' | 'lstat' | 'readdir',
+  shouldFire: (path: string, flags: unknown) => boolean,
+  concurrentStep: () => Promise<void>,
+) {
+  let fired = false
+  return new Proxy(fs, {
+    get(target, property) {
+      const value = Reflect.get(target, property, target)
+      if (property !== method || typeof value !== 'function') {
+        return typeof value === 'function' ? value.bind(target) : value
+      }
+      return async (...args: unknown[]) => {
+        if (!fired && shouldFire(String(args[0]), args[1])) {
+          fired = true
+          await concurrentStep()
+        }
+        return value.apply(target, args)
+      }
+    },
+  })
+}
+
 function startRecoveryChild(rootDir: string) {
   const moduleUrl = new URL('../scripts/staging-acceptance-capsule.mjs', import.meta.url).href
   const source = `
@@ -1103,6 +1141,114 @@ describe('staging acceptance capsule lock and race handling', () => {
       await cleanupRecoveryChildren(contenders)
     }
   }, 10_000)
+
+  describe('并发竞争者改动 lock / claim 时重新判定，而不是报安全错误', () => {
+    const processAlive = (pid: number) => pid === process.pid
+    const claimPathOf = (rootDir: string) => join(rootDir, `${RUNNER_LOCK_FILE_NAME}.claim`)
+    const claimPublicationTempOf = (rootDir: string) =>
+      join(rootDir, `.${RUNNER_LOCK_FILE_NAME}.claim.acquire-${'a'.repeat(64)}-${'0'.repeat(16)}`)
+
+    it('窗口 1：读 stale lock 的 lstat 与 open 之间被赢家原子替换，判为 lock_active', async () => {
+      const { rootDir } = await tempRoot()
+      await createPrivateRoot(rootDir)
+      const lockPath = join(rootDir, RUNNER_LOCK_FILE_NAME)
+      await writeSecureFile(lockPath, staleLock())
+      const fileSystem = fileSystemWithConcurrentStep(
+        'open',
+        (path, flags) => path === lockPath && isReadOnlyOpen(flags),
+        async () => {
+          const replacement = join(rootDir, '.winner-replacement')
+          await writeSecureFile(replacement, liveLock())
+          await fs.rename(replacement, lockPath)
+        },
+      )
+
+      await expect(createCapsuleStore({ rootDir, processAlive, fileSystem }).acquire('recovery'))
+        .rejects.toThrow('staging acceptance capsule lock_active')
+      expect(JSON.parse(await fs.readFile(lockPath, 'utf8')).ownerToken).toBe('a'.repeat(64))
+    })
+
+    it('窗口 2：读 claim 的 lstat 与 open 之间 claim 被持有者删除，判为 lock_active', async () => {
+      const { rootDir } = await tempRoot()
+      await createPrivateRoot(rootDir)
+      const lockPath = join(rootDir, RUNNER_LOCK_FILE_NAME)
+      const claimPath = claimPathOf(rootDir)
+      await writeSecureFile(lockPath, liveLock())
+      await writeSecureFile(claimPath, liveLock())
+      const fileSystem = fileSystemWithConcurrentStep(
+        'open',
+        (path, flags) => path === claimPath && isReadOnlyOpen(flags),
+        () => fs.unlink(claimPath),
+      )
+
+      await expect(createCapsuleStore({ rootDir, processAlive, fileSystem }).acquire('recovery'))
+        .rejects.toThrow('staging acceptance capsule lock_active')
+      expect(JSON.parse(await fs.readFile(lockPath, 'utf8')).ownerToken).toBe('a'.repeat(64))
+    })
+
+    it('窗口 3：claim 发布到一半（nlink=2）被读到，open 前发布完成，判为 lock_active', async () => {
+      const { rootDir } = await tempRoot()
+      await createPrivateRoot(rootDir)
+      const claimPath = claimPathOf(rootDir)
+      const publicationTemp = claimPublicationTempOf(rootDir)
+      await writeSecureFile(join(rootDir, RUNNER_LOCK_FILE_NAME), staleLock())
+      await writeSecureFile(publicationTemp, liveLock())
+      await fs.link(publicationTemp, claimPath)
+      const fileSystem = fileSystemWithConcurrentStep(
+        'open',
+        (path, flags) => path === claimPath && isReadOnlyOpen(flags),
+        () => fs.unlink(publicationTemp),
+      )
+
+      await expect(createCapsuleStore({ rootDir, processAlive, fileSystem }).acquire('recovery'))
+        .rejects.toThrow('staging acceptance capsule lock_active')
+      expect(JSON.parse(await fs.readFile(join(rootDir, RUNNER_LOCK_FILE_NAME), 'utf8')).ownerToken)
+        .toBe('c'.repeat(64))
+    })
+
+    it('窗口 4：claim 发布到一半（nlink=2）被读到，readdir 前发布完成，判为 lock_active', async () => {
+      const { rootDir } = await tempRoot()
+      await createPrivateRoot(rootDir)
+      const claimPath = claimPathOf(rootDir)
+      const publicationTemp = claimPublicationTempOf(rootDir)
+      await writeSecureFile(join(rootDir, RUNNER_LOCK_FILE_NAME), staleLock())
+      await writeSecureFile(publicationTemp, liveLock())
+      await fs.link(publicationTemp, claimPath)
+      const fileSystem = fileSystemWithConcurrentStep(
+        'readdir',
+        (path) => path === rootDir,
+        () => fs.unlink(publicationTemp),
+      )
+
+      await expect(createCapsuleStore({ rootDir, processAlive, fileSystem }).acquire('recovery'))
+        .rejects.toThrow('staging acceptance capsule lock_active')
+      expect(JSON.parse(await fs.readFile(join(rootDir, RUNNER_LOCK_FILE_NAME), 'utf8')).ownerToken)
+        .toBe('c'.repeat(64))
+    })
+
+    it('两个 recovery 同时清理 stale claim：晚到的一方发现 claim 已被删，重试后接管', async () => {
+      const { rootDir } = await tempRoot()
+      await createPrivateRoot(rootDir)
+      const lockPath = join(rootDir, RUNNER_LOCK_FILE_NAME)
+      const claimPath = claimPathOf(rootDir)
+      await writeSecureFile(lockPath, staleLock())
+      await writeSecureFile(claimPath, staleLock(2_000_000_001))
+      let claimLstats = 0
+      const fileSystem = fileSystemWithConcurrentStep(
+        'lstat',
+        // 发现 claim 的那次读取会 lstat 两次（预检 + 安全读取），第 3 次是删除前复核；
+        // 另一方在两者之间删掉了它。
+        (path) => path === claimPath && ++claimLstats === 3,
+        () => fs.unlink(claimPath),
+      )
+
+      const lease = await createCapsuleStore({ rootDir, processAlive, fileSystem }).acquire('recovery')
+      const replacement = JSON.parse(await fs.readFile(lockPath, 'utf8')) as { pid: number, mode: string }
+      expect(replacement).toMatchObject({ pid: process.pid, mode: 'recovery' })
+      await expect(fs.stat(claimPath)).rejects.toMatchObject({ code: 'ENOENT' })
+      await lease.release()
+    })
+  })
 
   it('子进程 SIGKILL 后仍不 close 时有界销毁管道并固定失败', async () => {
     const neverClosed = new Promise<{
