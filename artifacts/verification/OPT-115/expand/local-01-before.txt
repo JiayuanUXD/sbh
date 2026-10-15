@@ -1,0 +1,12 @@
+== 扩展迁移前
+1 | (空) | f
+3 | (空) | f
+4 | (空) | f
+7 | serviced_office | f
+8 | office_building | f
+9 | office_building | f
+10 | office_building | f
+11 | office_building | f
+12 | office_building | f
+13 | (空) | t
+office_building,business_park,commercial_complex,serviced_office

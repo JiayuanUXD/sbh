@@ -77,7 +77,8 @@ describe('building-protect/枚举双保险', () => {
     })
   })
 
-  it('OPT-115 下线的旧值 office_building → INVALID_BUILDING_TYPE', async () => {
+  // 走完整集合流程时 beforeValidate 已把旧值换成新值；这里直调 protect，守的是绕过钩子的写入。
+  it('OPT-115 旧值 office_building 直达 protect → INVALID_BUILDING_TYPE', async () => {
     await expect(create({ buildingType: 'office_building' })).rejects.toMatchObject({
       code: 'INVALID_BUILDING_TYPE',
     })

@@ -18078,7 +18078,10 @@
         "coworking",
         "full_floor",
         "standalone_building",
-        "business_park"
+        "business_park",
+        "office_building",
+        "commercial_complex",
+        "serviced_office"
       ]
     },
     "public.enum_buildings_grade": {
@@ -19188,6 +19191,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "03b36dd0-5b03-4c01-a7cb-46fc871af08a",
+  "id": "fa4d33e8-fd32-4930-aaf7-06a9907ca23d",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

@@ -10,8 +10,8 @@ import {
 import {
   BUILDING_OPERATIONAL_STATUSES,
   BUILDING_OPERATIONAL_STATUS_LABELS,
-  BUILDING_TYPE_LABELS,
 } from '@/domain/supply/building'
+import { BUILDING_TYPE_DISPLAY_LABELS } from '@/domain/supply/building-type-legacy'
 import { BUILDING_STATUSES, BUILDING_STATUS_LABELS } from '@/domain/supply/building-publication'
 import type { Building, Location, Role, User } from '@/payload-types'
 import BuildingsListViewClient, { type BuildingRow } from './BuildingsListViewClient'
@@ -168,7 +168,7 @@ export default async function BuildingsListView(props: ListViewServerProps) {
         value,
         label: BUILDING_GRADE_LABELS[value],
       }))}
-      buildingTypeLabels={BUILDING_TYPE_LABELS}
+      buildingTypeLabels={BUILDING_TYPE_DISPLAY_LABELS}
       cityOptions={(cities.docs as Location[]).map((c) => ({
         value: String(c.id),
         label: c.name,

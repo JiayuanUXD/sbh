@@ -78,7 +78,7 @@ describe('building/物业类型枚举', () => {
   })
 
   it.each(['office_building', 'commercial_complex', 'serviced_office'])(
-    'OPT-115 下线的旧值 %s 不再合法（存量由迁移映射走）',
+    'OPT-115 旧值 %s 不是新的合法值（第一期保存时转换，第二期迁移收敛）',
     (legacy) => {
       expect(isBuildingType(legacy)).toBe(false)
     },
