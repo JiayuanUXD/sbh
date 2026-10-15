@@ -1,6 +1,6 @@
 # Task Packet：OPT-115 楼盘物业类型选项改为五类办公业态
 
-> 状态：**实施中**
+> 状态：**已实施，待合并**
 > 创建日期：2026-10-15
 > 分支：`feat/opt-115-building-type-options-62dd`
 > 来源：用户需求「把物业类型的选项值改为：传统办公、联合办公、整层办公、独栋办公、商务园区」
@@ -46,8 +46,10 @@
 
 ## 4. 验证
 
-- [ ] 单测先红后绿（选项、标签、守卫拒收旧值、字典注册表、前台映射）。
-- [ ] 本地 `migrate:dry-run` → `migrate` → `migrate:verify`；核对本地 5 行 → 传统办公、1 行 → 联合办公。
-- [ ] 回滚往返：`migrate:down` 后值回到旧值，再 `migrate` 回到新值。
-- [ ] `typecheck` / `lint` / `test` / `build`。
-- [ ] 浏览器：楼盘编辑页下拉 5 项、楼盘列表标签、前台楼盘详情「物业类型」。
+详见 `artifacts/verification/OPT-115/verification.md`。
+
+- [x] 单测先红后绿（选项、标签、守卫拒收旧值、字典注册表、前台映射）。
+- [x] 本地 `migrate:dry-run` → `migrate` → `migrate:verify`；核对本地 5 行 → 传统办公、1 行 → 联合办公。
+- [x] 回滚往返：`migrate:down` 后值回到旧值，再 `migrate` 回到新值。
+- [x] `typecheck` / `lint` / `test` / `build`（build 在不含 `.env.production*` 的干净 worktree 里跑）。
+- [x] 浏览器：楼盘编辑页下拉 5 项、楼盘列表标签、前台楼盘详情「物业类型」。

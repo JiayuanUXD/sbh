@@ -1,0 +1,6 @@
+- 20261015_092411_opt_115_building_type_options
+    up: true, down: true, json: true
+    [WARN] L28: ALTER COLUMN "building_type" SET DATA TYPE
+      reason:  修改字段类型可能丢数据；建议新增字段 + 回填 + 双读 + 切换
+      snippet: ALTER TABLE "buildings" ALTER COLUMN "building_type" SET DATA TYPE text;
+⚠️  6 warning(s) — 复核后可继续

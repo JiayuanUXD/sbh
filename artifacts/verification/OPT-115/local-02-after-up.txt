@@ -1,0 +1,13 @@
+== 迁移后 2026-10-15 17:25:00
+1 | (空) | f
+3 | (空) | f
+4 | (空) | f
+7 | coworking | f
+8 | traditional_office | f
+9 | traditional_office | f
+10 | traditional_office | f
+11 | traditional_office | f
+12 | traditional_office | f
+13 | (空) | t
+-- 枚举取值
+traditional_office, coworking, full_floor, standalone_building, business_park
