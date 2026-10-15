@@ -1,0 +1,22 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:3791
+- Network:       http://10.193.222.18:3791
+✓ Ready in 94ms
+⨯ Failed to load next.config.ts, see more info here https://nextjs.org/docs/messages/next-config-error
+Error: Cannot find module './src/lib/build-info'
+Require stack:
+- /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/next.config.compiled.js
+- /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/build/next-config-ts/transpile-config.js
+- /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/config.js
+- /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/cli/next-test.js
+- /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/bin/next
+    at Object.<anonymous> (payload-office-platform/next.config.compiled.js:12:20) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/next.config.compiled.js',
+    '/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/build/next-config-ts/transpile-config.js',
+    '/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/config.js',
+    '/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/cli/next-test.js',
+    '/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/bin/next'
+  ]
+}

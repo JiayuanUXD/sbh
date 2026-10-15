@@ -1,9 +1,9 @@
 ▲ Next.js 16.2.10
 - Local:         http://localhost:3791
 - Network:       http://10.193.222.18:3791
-✓ Ready in 84ms
+✓ Ready in 94ms
 ⨯ Error: [local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。
-  当前目录存在：.env.production.local
+  检测到：/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.env.production.local
   - 数据库主机 10.193.222.18
 
 Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；
@@ -12,11 +12,11 @@ Next 在 next start / next build 时会读 .env.production*，且优先于 .env.
 并带 PAYLOAD_DISABLE_JOB_AUTORUN=1；做法见 payload-office-platform/.agent/testing.md
 「起任何生产模式进程前先 ls .env.production*」。
 确实要在本机以生产模式连生产资源，请显式设置 ALLOW_LOCAL_PRODUCTION_ENV=1。
-    at c (.next/server/chunks/_05b9j8c._.js:461:882)
-    at d (.next/server/chunks/_05b9j8c._.js:461:1396)
+    at p (.next/server/chunks/_05b9j8c._.js:461:1130)
+    at f (.next/server/chunks/_05b9j8c._.js:461:1641)
     at <unknown> (.next/server/chunks/_05b9j8c._.js:484:5128)
 ⨯ Error: [local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。
-  当前目录存在：.env.production.local
+  检测到：/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.env.production.local
   - 数据库主机 10.193.222.18
 
 Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；
@@ -25,11 +25,11 @@ Next 在 next start / next build 时会读 .env.production*，且优先于 .env.
 并带 PAYLOAD_DISABLE_JOB_AUTORUN=1；做法见 payload-office-platform/.agent/testing.md
 「起任何生产模式进程前先 ls .env.production*」。
 确实要在本机以生产模式连生产资源，请显式设置 ALLOW_LOCAL_PRODUCTION_ENV=1。
-    at c (.next/server/chunks/_05b9j8c._.js:461:882)
-    at d (.next/server/chunks/_05b9j8c._.js:461:1396)
+    at p (.next/server/chunks/_05b9j8c._.js:461:1130)
+    at f (.next/server/chunks/_05b9j8c._.js:461:1641)
     at <unknown> (.next/server/chunks/_05b9j8c._.js:484:5128)
 ⨯ Error: [local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。
-  当前目录存在：.env.production.local
+  检测到：/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.env.production.local
   - 数据库主机 10.193.222.18
 
 Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；
@@ -38,11 +38,11 @@ Next 在 next start / next build 时会读 .env.production*，且优先于 .env.
 并带 PAYLOAD_DISABLE_JOB_AUTORUN=1；做法见 payload-office-platform/.agent/testing.md
 「起任何生产模式进程前先 ls .env.production*」。
 确实要在本机以生产模式连生产资源，请显式设置 ALLOW_LOCAL_PRODUCTION_ENV=1。
-    at k (.next/server/chunks/ssr/_0t3ygox._.js:273:890)
-    at l (.next/server/chunks/ssr/_0t3ygox._.js:273:1404)
+    at n (.next/server/chunks/ssr/_0t3ygox._.js:273:1138)
+    at o (.next/server/chunks/ssr/_0t3ygox._.js:273:1649)
     at <unknown> (.next/server/chunks/ssr/_0t3ygox._.js:296:4354)
 ⨯ Error: [local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。
-  当前目录存在：.env.production.local
+  检测到：/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.env.production.local
   - 数据库主机 10.193.222.18
 
 Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；
@@ -51,6 +51,6 @@ Next 在 next start / next build 时会读 .env.production*，且优先于 .env.
 并带 PAYLOAD_DISABLE_JOB_AUTORUN=1；做法见 payload-office-platform/.agent/testing.md
 「起任何生产模式进程前先 ls .env.production*」。
 确实要在本机以生产模式连生产资源，请显式设置 ALLOW_LOCAL_PRODUCTION_ENV=1。
-    at k (.next/server/chunks/ssr/_0t3ygox._.js:273:890)
-    at l (.next/server/chunks/ssr/_0t3ygox._.js:273:1404)
+    at n (.next/server/chunks/ssr/_0t3ygox._.js:273:1138)
+    at o (.next/server/chunks/ssr/_0t3ygox._.js:273:1649)
     at <unknown> (.next/server/chunks/ssr/_0t3ygox._.js:296:4354)
