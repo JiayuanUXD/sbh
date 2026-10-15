@@ -1,0 +1,29 @@
+{
+  "buildingId": 13,
+  "limit": 500,
+  "rounds": 5,
+  "现状（depth 1 全量展开）": {
+    "docs": 500,
+    "jsonBytes": 1371219,
+    "medianMs": 70,
+    "allMs": [
+      72,
+      72,
+      70,
+      67,
+      66
+    ]
+  },
+  "瘦身（select + populate）": {
+    "docs": 500,
+    "jsonBytes": 212119,
+    "medianMs": 28,
+    "allMs": [
+      29,
+      27,
+      28,
+      28,
+      28
+    ]
+  }
+}

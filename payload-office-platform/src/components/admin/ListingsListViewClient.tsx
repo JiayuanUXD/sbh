@@ -29,6 +29,7 @@ import { partitionForBatch } from '@/domain/shared/batch-request'
 import BatchActionBar from './BatchActionBar'
 import BatchActionModal, { type BatchActionRequest } from './BatchActionModal'
 import ListingPublicationActionModal from './ListingPublicationActionModal'
+import { LISTING_PAGE_SIZE_OPTIONS } from './listings-list-page-size'
 import { PUBLICATION_STATUS_TAG_COLORS } from './publication-status-colors'
 
 /**
@@ -43,6 +44,8 @@ import { PUBLICATION_STATUS_TAG_COLORS } from './publication-status-colors'
  * - 批量上架 / 下架（OPT-113）：勾选只在当前页内有效；不适用的行按发布状态机预筛并在
  *   确认弹层里明示跳过；其余逐条交给批量端点（与单条端点同一个执行核心），逐条出结果。
  *   不给批量「标记已租 / 已售」：成交是不可逆终态，只在编辑页逐条做
+ * - 每页条数可选 200 / 500（OPT-114）：一个楼盘几百套、只留少数上架时，一页里全选再取消要保留的；
+ *   勾选超过端点单次上限时，批量弹层按 ≤100 条分批串行发送并显示进度
  * - 「创建新条目」为右上角主按钮；不渲染 Payload 原生「所有 房源列表」抬头
  */
 
@@ -656,7 +659,7 @@ export default function ListingsListViewClient({
           total: totalDocs,
           showTotal: true,
           sizeCanChange: true,
-          sizeOptions: [10, 25, 50, 100],
+          sizeOptions: [...LISTING_PAGE_SIZE_OPTIONS],
           onChange: (nextPage, nextSize) =>
             navigate({ limit: nextSize, page: nextSize !== pageSize ? 1 : nextPage }),
         }}

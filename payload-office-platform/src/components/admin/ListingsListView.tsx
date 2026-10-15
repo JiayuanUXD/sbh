@@ -1,6 +1,7 @@
 import type { ListViewServerProps } from 'payload'
 
 import { buildListingListConditions } from './listings-list-conditions'
+import { resolveListingPageSize } from './listings-list-page-size'
 import { shouldDeferToDefaultListView } from './list-view-context'
 import { renderDefaultListView } from './payload-default-list-fallback'
 
@@ -42,9 +43,6 @@ import ListingsListViewClient, { type ListingRow } from './ListingsListViewClien
  * 判定与理由见 `list-view-context.ts`。
  */
 
-const PAGE_SIZE_DEFAULT = 25
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
-
 /** searchParams 值归一（string | string[] → string | null）。 */
 function firstParam(value: unknown): string | null {
   if (typeof value === 'string' && value.length > 0) return value
@@ -75,8 +73,7 @@ export default async function ListingsListView(props: ListViewServerProps) {
   const listingType = inOptions(firstParam(params.listingType), LISTING_TYPES)
   const businessType = inOptions(firstParam(params.businessType), BUSINESS_TYPES)
   const page = Math.max(1, Number.parseInt(firstParam(params.page) ?? '1', 10) || 1)
-  const limitRaw = Number.parseInt(firstParam(params.limit) ?? '', 10)
-  const limit = PAGE_SIZE_OPTIONS.includes(limitRaw) ? limitRaw : PAGE_SIZE_DEFAULT
+  const limit = resolveListingPageSize(firstParam(params.limit))
   // 深链参数（无独立筛选控件，激活时客户端以可关闭标签呈现）：
   // building=<id> 来自楼盘聚合卡「查看房源」；missingCover=1 来自运营概览「缺少封面」；
   // pendingRecheck=1 来自运营概览「待复核供给」。
@@ -101,6 +98,30 @@ export default async function ListingsListView(props: ListViewServerProps) {
       collection: 'listings',
       where: conditions.length > 0 ? { and: conditions } : undefined,
       depth: 1,
+      // OPT-114：一页可到 500 条，只取下方 rows 映射用到的字段，关联只展开楼盘名、商户名。
+      // 不加时 depth 1 会把每条房源的封面、图集等关联整个展开：本地 500 条夹具（无图）实测
+      // 中位 72ms / 1.37MB → 28ms / 212KB（artifacts/verification/OPT-114/list-query-500.json）。
+      // 这份清单必须和 rows 映射对齐：漏一个字段，对应列会静默变空。
+      select: {
+        title: true,
+        slug: true,
+        building: true,
+        merchant: true,
+        listingType: true,
+        businessType: true,
+        publicationStatus: true,
+        reviewStatus: true,
+        supplyVisibilityHold: true,
+        isFeatured: true,
+        area: true,
+        roomNumber: true,
+        version: true,
+        updatedAt: true,
+      },
+      populate: {
+        buildings: { name: true },
+        merchants: { name: true },
+      },
       limit,
       page,
       sort: '-updatedAt',
