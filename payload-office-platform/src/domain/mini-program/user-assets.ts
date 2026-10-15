@@ -4,13 +4,12 @@ import { sql, type SQL } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { createLocalReq, type Payload, type PayloadRequest } from 'payload'
 
-import { isLeadStage, mapLegacyStatusToStage, type LeadStage } from '@/domain/crm/lead-stage'
+import { LEAD_STAGE_LABELS, isLeadStage, mapLegacyStatusToStage } from '@/domain/crm/lead-stage'
 import type {
   MiniBuildingCard,
   MiniListingCard,
 } from '@/domain/mini-program/contracts'
 import type { MiniInquiryTarget } from '@/domain/mini-program/inquiry-schema'
-import { MINI_INQUIRY_STATUS_LABELS } from '@/domain/mini-program/inquiry-status'
 import { mapMiniBuildingCard, mapMiniListingCard } from '@/domain/mini-program/mappers'
 import {
   MINI_CACHE_CONTROL,
@@ -231,7 +230,7 @@ export type MiniInquiryHistoryItem = Readonly<{
   targetTitle: string
   submittedAt: string
   status: Readonly<{
-    value: LeadStage
+    value: keyof typeof LEAD_STAGE_LABELS
     label: string
   }>
 }>
@@ -764,8 +763,7 @@ function safeLeadStatus(value: unknown): MiniInquiryHistoryItem['status'] | null
   const stage = isLeadStage(lead.stage)
     ? lead.stage
     : (typeof lead.status === 'string' ? mapLegacyStatusToStage(lead.status) : null)
-  // OPT-117：给客户看的状态文案，不是 CRM 的线索阶段名（「待分配」「已流失」……）。
-  return stage ? { value: stage, label: MINI_INQUIRY_STATUS_LABELS[stage] } : null
+  return stage ? { value: stage, label: LEAD_STAGE_LABELS[stage] } : null
 }
 
 export async function projectMiniMeData(

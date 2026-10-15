@@ -26,8 +26,9 @@ type UserInquiryStatusValue = (typeof USER_INQUIRY_STATUS_VALUES)[number]
  * 「我的 › 咨询记录」状态角标的展示文案，本地表是唯一事实源（OPT-117）。
  *
  * 状态值来自服务端的线索阶段，但文案是给客户看的：此前直接沿用 CRM 名称，
- * 客户会看到「待分配」「有效商机」「已流失」。服务端
- * `payload-office-platform/src/domain/mini-program/inquiry-status.ts` 有同一张表。
+ * 客户会看到「待分配」「有效商机」「已流失」。服务端 `/api/mini/v1/me` 目前仍下发
+ * CRM 名称——已上传的旧版客户端要求它与旧表逐字一致，服务端先改会让旧版「我的」整块
+ * 加载失败（PR #226 评审）。本客户端不看服务端 label，展示一律取本表。
  */
 export const USER_INQUIRY_STATUS_LABELS: Readonly<Record<UserInquiryStatusValue, string>> = {
   new: '已提交',

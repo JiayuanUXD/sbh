@@ -128,6 +128,27 @@ describe('服务端咨询记录投影', () => {
     expect(assets.inquiries[0]?.status).toEqual({ value: 'following', label: '顾问跟进中' })
   })
 
+  // 过渡期的真实形态：服务端仍下发 CRM 名称（旧版客户端要求逐字一致），新客户端照样显示客户文案。
+  it.each([
+    ['pending_assignment', '待分配', '已提交'],
+    ['qualified', '有效商机', '顾问跟进中'],
+    ['lost', '已流失', '已结束'],
+  ] as const)('服务端下发 CRM 名称 %s=%s 时显示「%s」', (value, serverLabel, shown) => {
+    const assets = parseUserAssets({
+      counts: { favorites: 0, inquiries: 1 },
+      pageInfo: COMPLETE_PAGE_INFO,
+      favorites: { listings: [], buildings: [] },
+      inquiries: [{
+        targetType: 'general',
+        targetSlug: null,
+        targetTitle: '通用找房需求',
+        submittedAt: '2026-09-04T08:00:00.000Z',
+        status: { value, label: serverLabel },
+      }],
+    })
+    expect(assets.inquiries[0]?.status.label).toBe(shown)
+  })
+
   it('服务端 label 仍须是非空字符串（形状校验不放宽）', () => {
     expect(() => parseUserAssets({
       counts: { favorites: 0, inquiries: 1 },
