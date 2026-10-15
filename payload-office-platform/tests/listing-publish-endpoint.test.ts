@@ -120,12 +120,18 @@ function makeReq(params: {
     return { id: 1 }
   })
   const create = vi.fn(async () => ({ id: 999, auditId: 'aud_test001' }))
+  // OPT-113：业务写 + 审计写包在同一事务里（runInRequestTransaction），夹具得有事务三件套
+  const db = {
+    beginTransaction: vi.fn(async () => 'tx-1'),
+    commitTransaction: vi.fn(async () => undefined),
+    rollbackTransaction: vi.fn(async () => undefined),
+  }
   const req = {
     user: user ?? null,
     routeParams,
     data: body,
     json: async () => body,
-    payload: { find, findByID, update, create },
+    payload: { find, findByID, update, create, db },
     headers: {},
   }
   return { req: req as unknown as PayloadRequest, findByID, update, create }
@@ -448,5 +454,61 @@ describe('listing-publish-endpoint/版本乐观锁', () => {
     const { status } = await run(req)
     expect(status).toBe(200)
     expect(update).toHaveBeenCalledTimes(1)
+  })
+})
+
+type DbMock = Record<'beginTransaction' | 'commitTransaction' | 'rollbackTransaction', ReturnType<typeof vi.fn>>
+function dbOf(req: PayloadRequest): DbMock {
+  return (req.payload as unknown as { db: DbMock }).db
+}
+
+/** 让第一条「成功审计」写入抛错（模拟 audit_logs 写失败），可按对象 id 限定。 */
+function failSuccessAuditOnce(create: ReturnType<typeof vi.fn>, objectId?: string): void {
+  let failed = false
+  create.mockImplementation(async (args: { collection?: string; data?: Record<string, unknown> }) => {
+    if (
+      !failed &&
+      args.collection === 'audit-logs' &&
+      args.data?.result === 'success' &&
+      (objectId === undefined || args.data?.objectId === objectId)
+    ) {
+      failed = true
+      throw new Error('audit insert failed')
+    }
+    return { id: 999, auditId: 'aud_test001' }
+  })
+}
+
+describe('listing-publish-endpoint/事务与版本（OPT-113 评审）', () => {
+  it('业务写与审计写同一事务：成功时提交一次', async () => {
+    const { req } = makeReq({ body: { action: 'publish' } })
+    const { status } = await run(req)
+    expect(status).toBe(200)
+    expect(dbOf(req).beginTransaction).toHaveBeenCalledTimes(1)
+    expect(dbOf(req).commitTransaction).toHaveBeenCalledTimes(1)
+    expect(dbOf(req).rollbackTransaction).not.toHaveBeenCalled()
+  })
+
+  it('审计写失败 → 整笔回滚、不提交（发布状态不落库）', async () => {
+    const { req, create } = makeReq({ body: { action: 'publish' } })
+    failSuccessAuditOnce(create)
+    await expect(run(req)).rejects.toThrow('audit insert failed')
+    expect(dbOf(req).rollbackTransaction).toHaveBeenCalledTimes(1)
+    expect(dbOf(req).commitTransaction).not.toHaveBeenCalled()
+  })
+
+  it('带 expectedVersion 时版本号随写入提交（listing-protect 在写入时再校验一次）', async () => {
+    const { req, update } = makeReq({
+      listing: makeEffectiveListing({ version: 3 }),
+      body: { action: 'publish', expectedVersion: 3 },
+    })
+    await run(req)
+    expect(update.mock.calls[0][0].data).toEqual({ publicationStatus: 'published', version: 3 })
+  })
+
+  it('不带 expectedVersion 时不附加版本号（保持原语义）', async () => {
+    const { req, update } = makeReq({ body: { action: 'publish' } })
+    await run(req)
+    expect(update.mock.calls[0][0].data).toEqual({ publicationStatus: 'published' })
   })
 })

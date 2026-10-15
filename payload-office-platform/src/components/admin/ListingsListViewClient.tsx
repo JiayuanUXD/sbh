@@ -20,7 +20,14 @@ import {
   availablePublicationActions,
   type PublicationActionSpec,
 } from '@/domain/listing/publication-actions'
-import { isPublicationStatus } from '@/domain/review/publication-status'
+import {
+  PUBLICATION_STATUS_LABELS,
+  isPublicationStatus,
+  nextPublicationStatus,
+} from '@/domain/review/publication-status'
+import { partitionForBatch } from '@/domain/shared/batch-request'
+import BatchActionBar from './BatchActionBar'
+import BatchActionModal, { type BatchActionRequest } from './BatchActionModal'
 import ListingPublicationActionModal from './ListingPublicationActionModal'
 import { PUBLICATION_STATUS_TAG_COLORS } from './publication-status-colors'
 
@@ -33,6 +40,9 @@ import { PUBLICATION_STATUS_TAG_COLORS } from './publication-status-colors'
  *   冲突（409/版本不符）与无权限均以服务端结论为准，前端只做提示与刷新
  * - 操作列「下架」（OPT-086）：与编辑页动作条共用同一个纯函数与确认弹层，
  *   列表侧不复制任何状态机 / 文案规则，见下方操作列注释
+ * - 批量上架 / 下架（OPT-113）：勾选只在当前页内有效；不适用的行按发布状态机预筛并在
+ *   确认弹层里明示跳过；其余逐条交给批量端点（与单条端点同一个执行核心），逐条出结果。
+ *   不给批量「标记已租 / 已售」：成交是不可逆终态，只在编辑页逐条做
  * - 「创建新条目」为右上角主按钮；不渲染 Payload 原生「所有 房源列表」抬头
  */
 
@@ -62,6 +72,8 @@ interface Option {
 
 interface Props {
   rows: ListingRow[]
+  /** listing:publish 权限（服务端算好传下来）；只决定「批量上架」显隐，端点才是强制点 */
+  canPublish: boolean
   /** listing:unpublish 权限（服务端算好传下来）；只决定「下架」按钮显隐，端点才是强制点 */
   canUnpublish: boolean
   page: number
@@ -128,8 +140,26 @@ async function extractErrorMessage(res: Response): Promise<string | null> {
   return null
 }
 
+type BatchListingAction = 'publish' | 'unpublish'
+
+/** 批量动作用「上架 / 下架」的说法（用户的叫法）；单条动作条仍按状态机标签「发布 / 重新上架」。 */
+const BATCH_ACTION_LABELS: Record<BatchListingAction, string> = {
+  publish: '上架',
+  unpublish: '下架',
+}
+
+/** 某行对批量动作「不适用」的原因；适用返回 null。规则只来自发布状态机 nextPublicationStatus。 */
+function listingSkipReason(row: ListingRow, action: BatchListingAction): string | null {
+  if (isPublicationStatus(row.publicationStatus)) {
+    if (nextPublicationStatus(row.publicationStatus, action) !== null) return null
+    return `${PUBLICATION_STATUS_LABELS[row.publicationStatus]}，不能${BATCH_ACTION_LABELS[action]}`
+  }
+  return '发布状态未知'
+}
+
 export default function ListingsListViewClient({
   rows,
+  canPublish,
   canUnpublish,
   page,
   pageSize,
@@ -157,6 +187,56 @@ export default function ListingsListViewClient({
     row: ListingRow
     spec: PublicationActionSpec
   } | null>(null)
+
+  // 勾选只在当前这页数据上有效：rows 一变（翻页、改筛选、动作后刷新换了行）就自动作废，
+  // 不用 effect 去清——以「当前行 id 串」为键，键不对就当没勾。
+  const canBatch = canPublish || canUnpublish
+  const rowsKey = useMemo(() => rows.map((r) => r.id).join(','), [rows])
+  const [selection, setSelection] = useState<{ rowsKey: string; ids: number[] }>({
+    rowsKey: '',
+    ids: [],
+  })
+  const selectedIds = useMemo(() => {
+    if (selection.rowsKey !== rowsKey) return []
+    const present = new Set(rows.map((r) => r.id))
+    return selection.ids.filter((id) => present.has(id))
+  }, [rows, rowsKey, selection])
+  const [batchRequest, setBatchRequest] = useState<BatchActionRequest | null>(null)
+
+  const nameOf = useCallback(
+    (id: number) => rows.find((r) => r.id === id)?.title ?? `#${id}`,
+    [rows],
+  )
+
+  const openBatch = useCallback(
+    (action: BatchListingAction) => {
+      const chosen = rows.filter((r) => selectedIds.includes(r.id))
+      const { items, skipped } = partitionForBatch(chosen, (row) => listingSkipReason(row, action))
+      const label = BATCH_ACTION_LABELS[action]
+      setBatchRequest({
+        key: `${action}:${Date.now()}`,
+        endpoint: '/api/listings/batch-publish',
+        params: { action },
+        title: `批量${label}房源`,
+        verb: label,
+        tone: action === 'publish' ? 'primary' : 'warning',
+        body:
+          action === 'publish'
+            ? [
+                `将对 ${items.length} 条房源执行上架。`,
+                '每条需审核通过并满足有效供给条件（楼盘与商户启用、商户资质有效等）才会上架；不满足的不改状态，执行后逐条列出原因。',
+              ]
+            : [
+                `将下架 ${items.length} 条房源，下架后前台立即不可见。`,
+                '下架原因必填，同一原因会记入每条房源的审计。',
+              ],
+        items,
+        skipped: skipped.map((s) => ({ id: s.row.id, name: s.row.title, reason: s.reason })),
+        reasonLabel: action === 'unpublish' ? '下架原因' : null,
+      })
+    },
+    [rows, selectedIds],
+  )
 
   const labelMaps = useMemo(
     () => ({
@@ -207,6 +287,10 @@ export default function ListingsListViewClient({
       if (merged.missingCover) qs.set('missingCover', '1')
       if (merged.pendingRecheck) qs.set('pendingRecheck', '1')
       const query = qs.toString()
+      // 翻页 / 改筛选 / 改每页条数都走这里：离开当前结果集时显式清空勾选。
+      // 实测（OPT-113 评审）目前导航会让本组件整体重新挂载，勾选本就会丢；这里不依赖这一实现
+      // 细节——将来若改成不重挂，只靠 rowsKey 隐藏会让翻回原页时旧勾选重新冒出来。
+      setSelection({ rowsKey: '', ids: [] })
       router.push(
         query ? `/admin/collections/listings?${query}` : '/admin/collections/listings',
       )
@@ -524,10 +608,48 @@ export default function ListingsListViewClient({
         </Space>
       )}
 
+      {canBatch ? (
+        <BatchActionBar selectedCount={selectedIds.length}>
+          {canPublish ? (
+            <Button
+              disabled={selectedIds.length === 0}
+              onClick={() => openBatch('publish')}
+            >
+              批量上架
+            </Button>
+          ) : null}
+          {canUnpublish ? (
+            <Button
+              disabled={selectedIds.length === 0}
+              status="warning"
+              onClick={() => openBatch('unpublish')}
+            >
+              批量下架
+            </Button>
+          ) : null}
+        </BatchActionBar>
+      ) : null}
+
       <Table<ListingRow>
         rowKey="id"
         columns={columns}
         data={rows}
+        rowSelection={
+          canBatch
+            ? {
+                type: 'checkbox',
+                checkAll: true,
+                selectedRowKeys: selectedIds,
+                onChange: (keys) =>
+                  setSelection({
+                    rowsKey,
+                    ids: keys
+                      .map((k) => (typeof k === 'number' ? k : Number.parseInt(k, 10)))
+                      .filter((k) => Number.isInteger(k)),
+                  }),
+              }
+            : undefined
+        }
         pagination={{
           current: page,
           pageSize,
@@ -543,7 +665,8 @@ export default function ListingsListViewClient({
         // 完全没法读。给一个横向滚动下限：宽度不够时整表横向滚动，而不是牺牲标题列。
         // 1232 = 932 固定列 + 约 300 的标题列下限。
         // OPT-086：操作列 132 → 180 容纳第三个按钮「下架」，两个数字随之各 +48。
-        scroll={{ x: 1232 }}
+        // OPT-113：有批量权限时多一列勾选（约 40px），下限随之 +40；没有就不多占。
+        scroll={{ x: canBatch ? 1272 : 1232 }}
         noDataElement="暂无房源"
       />
 
@@ -559,6 +682,17 @@ export default function ListingsListViewClient({
         version={unpublishTarget?.row.version ?? null}
         onClose={() => setUnpublishTarget(null)}
         onDone={() => router.refresh()}
+      />
+
+      {/* 批量确认 / 结果弹层：整表一个实例。完成后刷新服务端组件并清空勾选。 */}
+      <BatchActionModal
+        request={batchRequest}
+        nameOf={nameOf}
+        onClose={() => setBatchRequest(null)}
+        onDone={() => {
+          setSelection({ rowsKey: '', ids: [] })
+          router.refresh()
+        }}
       />
     </div>
   )

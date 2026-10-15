@@ -4,11 +4,16 @@ import { shouldDeferToDefaultListView } from './list-view-context'
 import { renderDefaultListView } from './payload-default-list-fallback'
 
 import {
+  buildPermissionContext,
+  hasOperationPermission,
+} from '@/domain/auth/permission-context'
+import {
   BUILDING_OPERATIONAL_STATUSES,
   BUILDING_OPERATIONAL_STATUS_LABELS,
   BUILDING_TYPE_LABELS,
 } from '@/domain/supply/building'
-import type { Building, Location } from '@/payload-types'
+import { BUILDING_STATUSES, BUILDING_STATUS_LABELS } from '@/domain/supply/building-publication'
+import type { Building, Location, Role, User } from '@/payload-types'
 import BuildingsListViewClient, { type BuildingRow } from './BuildingsListViewClient'
 
 /**
@@ -19,17 +24,13 @@ import BuildingsListViewClient, { type BuildingRow } from './BuildingsListViewCl
  *
  * 仅接管「整页列表」；回收站与关系抽屉让位给 Payload 原生视图，
  * 判定与理由见 `list-view-context.ts`。
+ *
+ * OPT-113：批量上下架按 building:update、行内停用 / 启用按 building:freeze 决定显隐。
+ * 两个权限都只能服务端算（会话级），算法照房源列表；动作本身由端点强制。
  */
 
 const PAGE_SIZE_DEFAULT = 25
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
-
-const BUILDING_STATUSES = ['draft', 'published', 'archived'] as const
-const BUILDING_STATUS_LABELS: Record<(typeof BUILDING_STATUSES)[number], string> = {
-  draft: '草稿',
-  published: '已发布',
-  archived: '下架',
-}
 
 const BUILDING_GRADES = ['grade-a', 'super-grade-a', 'creative-park', 'serviced-office'] as const
 const BUILDING_GRADE_LABELS: Record<(typeof BUILDING_GRADES)[number], string> = {
@@ -87,7 +88,7 @@ export default async function BuildingsListView(props: ListViewServerProps) {
   if (grade) conditions.push({ grade: { equals: grade } })
   if (city !== null) conditions.push({ city: { equals: city } })
 
-  const [result, cities] = await Promise.all([
+  const [result, cities, permissionCtx] = await Promise.all([
     payload.find({
       collection: 'buildings',
       where: conditions.length > 0 ? { and: conditions } : undefined,
@@ -103,7 +104,30 @@ export default async function BuildingsListView(props: ListViewServerProps) {
       limit: 100,
       sort: 'name',
     }),
+    // 吞异常回落 null（= 不显示批量与停用按钮）：一次角色查询失败不该把整张列表打成 500，
+    // 隐藏按钮也不损失安全性——端点才是唯一强制点。理由同房源列表。
+    buildPermissionContext({
+      user: user as unknown as Pick<
+        User,
+        'id' | 'roles' | 'cityScope' | 'status' | 'sessionVersion'
+      >,
+      loadRoles: async (roleIds) => {
+        const docs = await payload.find({
+          collection: 'roles',
+          where: { id: { in: roleIds } },
+          depth: 0,
+          overrideAccess: true,
+          limit: roleIds.length,
+        })
+        return docs.docs as unknown as Role[]
+      },
+    }).catch(() => null),
   ])
+
+  const canBatchPublish = permissionCtx
+    ? hasOperationPermission(permissionCtx, 'building:update')
+    : false
+  const canFreeze = permissionCtx ? hasOperationPermission(permissionCtx, 'building:freeze') : false
 
   const rows: BuildingRow[] = (result.docs as Building[]).map((doc) => ({
     id: doc.id,
@@ -115,12 +139,15 @@ export default async function BuildingsListView(props: ListViewServerProps) {
     buildingType: doc.buildingType ?? null,
     status: doc.status ?? null,
     operationalStatus: doc.operationalStatus ?? null,
+    version: typeof doc.version === 'number' ? doc.version : null,
     updatedAt: doc.updatedAt,
   }))
 
   return (
     <BuildingsListViewClient
       rows={rows}
+      canBatchPublish={canBatchPublish}
+      canFreeze={canFreeze}
       page={result.page ?? 1}
       pageSize={limit}
       totalDocs={result.totalDocs ?? 0}

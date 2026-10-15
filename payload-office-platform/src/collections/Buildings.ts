@@ -24,6 +24,11 @@ import {
 } from '@/domain/supply/building'
 import { guardBuildingDelete } from '@/domain/supply/building-delete-cleanup'
 import { protectBuilding } from '@/domain/supply/building-protect'
+import {
+  createBuildingBatchDeactivationImpactEndpoint,
+  createBuildingBatchOperationalEndpoint,
+} from '@/endpoints/building-batch-operational-endpoint'
+import { createBuildingBatchPublishEndpoint } from '@/endpoints/building-batch-publish-endpoint'
 import { createBuildingDedupCheckEndpoint } from '@/endpoints/building-dedup-check-endpoint'
 import { createBuildingMergeEndpoint } from '@/endpoints/building-merge-endpoint'
 import { createBuildingDeactivationImpactEndpoint } from '@/endpoints/building-deactivation-impact-endpoint'
@@ -114,6 +119,12 @@ export const Buildings: CollectionConfig = {
     createBuildingDeactivationImpactEndpoint(),
     // M3.4 楼盘启停：POST /api/buildings/:id/toggle-operational-status
     createBuildingOperationalToggleEndpoint(),
+    // OPT-113 列表批量上下架：POST /api/buildings/batch-publish
+    createBuildingBatchPublishEndpoint(),
+    // OPT-113 列表批量停用 / 启用：POST /api/buildings/batch-operational-status
+    createBuildingBatchOperationalEndpoint(),
+    // OPT-113 批量停用预检：POST /api/buildings/batch-deactivation-impact
+    createBuildingBatchDeactivationImpactEndpoint(),
   ],
   labels: {
     singular: '楼盘',
