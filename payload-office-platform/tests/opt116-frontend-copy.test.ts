@@ -44,10 +44,23 @@ describe('询价提交结果文案', () => {
     ['building', 'listing'],
     ['general', 'listing'],
     ['general', 'building'],
-  ] as const)('%s / %s 不出现内部术语', (resolution, pageType) => {
-    const copy = getInquiryResolutionCopy(resolution, pageType)
+  ] as const)('%s / 最初咨询 %s：不出现内部术语', (resolution, requested) => {
+    const copy = getInquiryResolutionCopy(resolution, requested)
     expect(copy).not.toMatch(/状态已变化|通用选址需求|同楼盘需求|已为您登记/)
     expect(copy).toContain('顾问会尽快联系您')
+  })
+
+  // PR #225 评审：列表页「提交需求」等入口本来就没有咨询对象，服务端同样返回 general；
+  // 这时不能说「您咨询的房源暂时不可用」——没有任何房源失效。
+  it('没有咨询对象的通用需求：只确认收到，不声称房源失效', () => {
+    const copy = getInquiryResolutionCopy('general', 'none')
+    expect(copy).toBe('已收到您的选址需求，顾问会尽快联系您。')
+    expect(copy).not.toMatch(/不可用|变动/)
+  })
+
+  it('按最初咨询的对象说清是哪一个不可用', () => {
+    expect(getInquiryResolutionCopy('general', 'listing')).toContain('您咨询的房源暂时不可用')
+    expect(getInquiryResolutionCopy('general', 'building')).toContain('您咨询的楼盘暂时不可用')
   })
 })
 

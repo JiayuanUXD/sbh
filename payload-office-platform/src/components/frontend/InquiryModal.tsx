@@ -142,20 +142,30 @@ function uniqueErrorMessages(codes: readonly string[]): string[] {
 
 const DEFAULT_TRIGGER_LABEL = '在线询价 / 留电'
 
-const resolutionCopy: Record<TargetResolution, string> = {
-  listing: '已记录这套房源，顾问将与您确认看房。',
-  building: '这套房源刚有变动，我们已记下您对该楼盘的需求，顾问会尽快联系您。',
-  general: '您咨询的房源暂时不可用，我们已记下您的选址需求，顾问会尽快联系您。',
-}
-
+/**
+ * 提交成功后的说明，按「服务端落到了什么」与「用户最初问的是什么」组合。
+ *
+ * 只看服务端结果会说错话：列表页「提交需求」本来就没有咨询对象，服务端同样返回
+ * general，这时说「您咨询的房源暂时不可用」就是凭空声称房源失效（PR #225 评审）。
+ * 也不能按 pageType 判断——列表页上点房源卡片咨询，pageType 是 search，对象却是房源。
+ */
 export function getInquiryResolutionCopy(
   resolution: TargetResolution,
-  pageType: PageType,
+  requestedTarget: TargetType,
 ): string {
-  if (resolution === 'building' && pageType === 'building') {
-    return '已记录这个楼盘，顾问将与您确认可选房源。'
+  if (resolution === 'listing') return '已记录这套房源，顾问将与您确认看房。'
+  if (resolution === 'building') {
+    return requestedTarget === 'listing'
+      ? '这套房源刚有变动，我们已记下您对该楼盘的需求，顾问会尽快联系您。'
+      : '已记录这个楼盘，顾问将与您确认可选房源。'
   }
-  return resolutionCopy[resolution]
+  if (requestedTarget === 'listing') {
+    return '您咨询的房源暂时不可用，我们已记下您的选址需求，顾问会尽快联系您。'
+  }
+  if (requestedTarget === 'building') {
+    return '您咨询的楼盘暂时不可用，我们已记下您的选址需求，顾问会尽快联系您。'
+  }
+  return '已收到您的选址需求，顾问会尽快联系您。'
 }
 
 export function buildInquiryMessage(teamSize: string, message: string): string {
@@ -669,7 +679,7 @@ export default function InquiryModal(props: Props) {
               <div className="modal__success" role="status" aria-live="polite">
                 <h4 ref={successHeadingRef} tabIndex={-1}>已收到你的需求</h4>
                 <p className="modal__success-detail">
-                  {getInquiryResolutionCopy(targetResolution, pageType)}
+                  {getInquiryResolutionCopy(targetResolution, getTargetType(props))}
                 </p>
                 <div className="modal__footer">
                   <button
