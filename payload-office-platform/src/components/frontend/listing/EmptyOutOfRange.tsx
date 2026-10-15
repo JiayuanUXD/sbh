@@ -31,10 +31,7 @@ export default function EmptyOutOfRange(props: Readonly<{
     <div className="ls-emptyrange">
       <span className="ls-emptyrange__intro">
         <span className="ls-emptyrange__title">这套筛选只有 {totalPages} 页，第 {page} 页不存在</span>
-        <span className="ls-emptyrange__desc">条件和排序都还在，只是页码超出了范围。</span>
-        <span className="ls-emptyrange__badge">
-          page={page} → 已改写为 page={totalPages}
-        </span>
+        <span className="ls-emptyrange__desc">链接可能已过期，可以跳到最后一页或回到第 1 页。</span>
       </span>
       <span className="ls-emptyrange__actions">
         <Link href={lastPageHref} className="ls-empty__btn ls-empty__btn--primary">

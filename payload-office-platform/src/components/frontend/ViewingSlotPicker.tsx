@@ -99,7 +99,7 @@ export default function ViewingSlotPicker({
     <fieldset className="viewing-slot-picker">
       <legend className="viewing-slot-picker__legend">偏好看房时间（待顾问确认）</legend>
       <p className="viewing-slot-picker__hint">
-        选择一个偏好时段，顾问会与您确认；这不是已确认的预约。可不选。
+        可不选。选好后顾问会再与您确认时间。
       </p>
 
       <div className="viewing-slot-picker__dates" role="tablist" aria-label="看房日期">

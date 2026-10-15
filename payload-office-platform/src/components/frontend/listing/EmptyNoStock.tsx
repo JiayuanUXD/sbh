@@ -72,7 +72,7 @@ export default function EmptyNoStock(props: Readonly<{
    */
   totalNoun: string
   /**
-   * 正文里的量词，拼成「这一类目前确实还没有一{countNoun}上架」——房源页
+   * 正文里的量词，拼成「这一类目前还没有一{countNoun}上架」——房源页
    * 「一套」、楼盘页「一个楼盘」。必填、无默认值：与 `totalNoun` 同一条约定，
    * 原先硬编码「一套」，楼盘页复用时就会对着一屏楼盘说「还没有一套上架」
    * （Task 12 审查发现，与 `EmptyFiltered.subjectNoun` 同型）。
@@ -103,8 +103,7 @@ export default function EmptyNoStock(props: Readonly<{
     <div className="ls-empty ls-empty--nostock">
       <span className="ls-empty__title">{noun}还在收录中</span>
       <span className="ls-empty__body">
-        这不是筛选收得太严——这一类目前确实还没有一{countNoun}上架，不是被藏起来的空货架。
-        我们持续核对新增供给，一上架就会显示在这里。
+        这一类目前还没有一{countNoun}上架，有新的会第一时间显示在这里。
       </span>
       {hasCount || secondaryAction ? (
         <span className="ls-empty__actions">

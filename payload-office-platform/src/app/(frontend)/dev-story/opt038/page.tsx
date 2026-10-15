@@ -254,7 +254,7 @@ export default function Opt038PreviewPage() {
             },
             {
               title: '手里有杭州空置房源需要出租？',
-              body: '杭州房源入库通道已提前开放，先入驻的楼宇与办公室在开城时优先获得曝光。',
+              body: '现在就可以提交杭州房源，先入驻的楼宇与办公室在开城时优先获得曝光。',
               action: <span className="btn btn--ghost rc-secondary-btn">抢先登记合作房源</span>,
             },
           ]}

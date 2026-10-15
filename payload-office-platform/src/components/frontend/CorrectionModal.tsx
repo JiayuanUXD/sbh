@@ -44,23 +44,34 @@ type Props = {
 
 type SubmitStatus = 'idle' | 'submitting' | 'error'
 
+/**
+ * 用户无法自行处理的错误（请求格式、请求标识、纠错对象等）统一成这一句。
+ * OPT-116：此前逐条直译成「请求标识缺失」「目标类型无效」，用户看了既不懂也改不了。
+ */
+const RETRY_AFTER_REFRESH = '提交失败，请刷新页面后重试'
+
 /** 错误码 -> 中文提示（不暴露内部信息） */
 const ERROR_MESSAGES: Record<string, string> = {
-  invalid_body: '请求数据格式错误',
-  invalid_json: '请求数据格式错误',
-  invalid_content_type: '请求数据格式错误',
+  invalid_body: RETRY_AFTER_REFRESH,
+  invalid_json: RETRY_AFTER_REFRESH,
+  invalid_content_type: RETRY_AFTER_REFRESH,
   body_too_large: '内容过长',
-  request_id_required: '请求标识缺失',
-  request_id_too_long: '请求标识过长',
-  target_type_invalid: '目标类型无效',
-  target_slug_required: '目标缺失',
-  target_slug_too_long: '目标过长',
+  request_id_required: RETRY_AFTER_REFRESH,
+  request_id_too_long: RETRY_AFTER_REFRESH,
+  target_type_invalid: RETRY_AFTER_REFRESH,
+  target_slug_required: RETRY_AFTER_REFRESH,
+  target_slug_too_long: RETRY_AFTER_REFRESH,
   category_invalid: '请选择纠错类别',
   description_required: '请填写问题描述',
   description_too_long: `问题描述不能超过 ${LIMITS.DESCRIPTION_MAX} 字`,
   rate_limited: '提交过于频繁，请稍后重试',
   server_error: '系统暂时不可用，请稍后重试',
-  forbidden: '请求不被允许',
+  forbidden: RETRY_AFTER_REFRESH,
+}
+
+/** 错误码 → 展示文案。表里没有的码不把英文码原样给用户看，回落到通用提示。 */
+export function correctionErrorMessage(code: string): string {
+  return ERROR_MESSAGES[code] ?? RETRY_AFTER_REFRESH
 }
 
 const DEFAULT_TRIGGER_LABEL = '信息纠错'
@@ -335,7 +346,9 @@ export default function CorrectionModal(props: Props) {
               <div id={errorSummaryId} ref={feedbackRef} tabIndex={-1}>
                 {errors.length > 0 && (
                   <ul className="modal__error-list" role="alert" aria-live="polite">
-                    {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
+                    {[...new Set(errors.map(correctionErrorMessage))].map((message) => (
+                      <li key={message}>{message}</li>
+                    ))}
                   </ul>
                 )}
                 {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}

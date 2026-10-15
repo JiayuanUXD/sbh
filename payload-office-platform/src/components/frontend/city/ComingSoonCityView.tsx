@@ -159,7 +159,7 @@ export default function ComingSoonCityView({ city, cities }: ComingSoonCityViewP
             },
             {
               title: `手里有${city.name}空置房源需要出租？`,
-              body: `${city.name}房源入库通道已提前开放，先入驻的楼宇与办公室在开城时优先获得曝光。`,
+              body: `现在就可以提交${city.name}房源，先入驻的楼宇与办公室在开城时优先获得曝光。`,
               action: (
                 <Link
                   className="btn btn--ghost rc-secondary-btn"

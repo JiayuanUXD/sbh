@@ -411,10 +411,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
                 <div className="bd-group bd-group--vacant">
                   <span className="bd-group__title">暂无在租</span>
                   <span className="bd-group__count sf-num">{withoutStockTotal} 个</span>
-                  <span className="bd-group__desc">
-                    楼还在，只是这一刻没有可租的房源——保留资料，换一种更省地方的排法；
-                    这一组不参与「在租最多 / 在租面积」排序，恒排在有在租之后
-                  </span>
+                  <span className="bd-group__desc">这些楼盘暂时没有可租的房源</span>
                 </div>
                 <div className="bd-vacant__list">
                   {groups.withoutStock.map((building, index) => (

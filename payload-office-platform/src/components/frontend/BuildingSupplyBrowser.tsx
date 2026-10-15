@@ -567,7 +567,7 @@ export default function BuildingSupplyBrowser({
             这栋楼另有一个出售组」时说出「该组内房源计价单位不唯一」这句假话
             （见 contracts.ts 该字段注释）。 */}
         {activeGroupData?.priceSortDegraded && (
-          <p className="building-supply-browser__notice">该组内房源计价单位不唯一，暂按推荐顺序排列</p>
+          <p className="building-supply-browser__notice">这组房源计价单位不同，已按推荐顺序排列</p>
         )}
 
         {listings.length === 0 ? (

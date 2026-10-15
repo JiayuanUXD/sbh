@@ -60,6 +60,6 @@ describe('inquiry modal state helpers', () => {
     expect(getInquiryResolutionCopy('building', 'building')).toBe(
       '已记录这个楼盘，顾问将与您确认可选房源。',
     )
-    expect(getInquiryResolutionCopy('building', 'listing')).toContain('房源状态已变化')
+    expect(getInquiryResolutionCopy('building', 'listing')).toContain('这套房源刚有变动')
   })
 })

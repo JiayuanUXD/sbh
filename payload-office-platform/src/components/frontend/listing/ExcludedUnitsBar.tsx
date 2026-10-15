@@ -64,7 +64,7 @@ export default function ExcludedUnitsBar(props: Readonly<{
             </Link>
           </React.Fragment>
         ))}
-        ，单位不一样，没法跟这批放一起比。
+        ，计价单位不同，可点击单独查看。
       </span>
     </div>
   )

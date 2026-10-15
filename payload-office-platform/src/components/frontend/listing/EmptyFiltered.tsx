@@ -63,7 +63,7 @@ export default function EmptyFiltered(props: Readonly<{
           <span className="ls-emptyfiltered__title">当前筛选组合下没有符合条件的{subjectNoun}</span>
           <span className="ls-emptyfiltered__desc">
             {hasRelaxations
-              ? '放宽下面任一条件，就能立刻看到结果——数字是放宽后的真实命中数，不是估算。'
+              ? '放宽下面任一条件，就能看到结果。'
               : '没有可单独放宽的条件，清除全部筛选，看看完整结果。'}
           </span>
         </span>
