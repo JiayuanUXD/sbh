@@ -181,7 +181,7 @@ Page<ProfilePageData, ProfilePageMethods>({
     if (!inquiry) return
     const route = inquiryDetailRoute(inquiry)
     if (route === null) {
-      wx.showToast({ title: '通用需求暂无详情页', icon: 'none' })
+      wx.showToast({ title: '这条是找房需求，没有对应的房源页面', icon: 'none' })
       return
     }
     wx.navigateTo({ url: route })

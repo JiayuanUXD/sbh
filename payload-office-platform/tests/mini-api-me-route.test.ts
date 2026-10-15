@@ -378,7 +378,7 @@ describe('GET /api/mini/v1/me', () => {
           targetSlug: 'jing-an-100',
           targetTitle: '静安中心 100㎡',
           submittedAt: '2026-09-04T09:10:00.000Z',
-          status: { value: 'following', label: '跟进中' },
+          status: { value: 'following', label: '顾问跟进中' },
         }],
       },
     })

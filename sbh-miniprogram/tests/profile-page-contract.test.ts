@@ -116,7 +116,7 @@ describe('我的页面服务端资产合同', () => {
     expect(markup).toContain('{{item.status.label}}')
     expect(markup).toContain('data-target-type="{{item.targetType}}"')
     expect(source).toContain('inquiryDetailRoute')
-    expect(source).toMatch(/if \(route === null\)[\s\S]*通用需求暂无详情页/)
+    expect(source).toMatch(/if \(route === null\)[\s\S]*这条是找房需求，没有对应的房源页面/)
     expect(source).not.toMatch(/recordInquiry|addSampleInquiryForDemo|getPendingInquiryCount/)
   })
 

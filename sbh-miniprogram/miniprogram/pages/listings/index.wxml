@@ -88,7 +88,7 @@
     <view wx:if="{{state === 'empty'}}" class="listings-empty">
       <view class="listings-empty__intro">
         <view class="listings-empty__title">没有找到符合当前条件的房源</view>
-        <view class="listings-empty__description">可以逐项放宽条件，继续查看真实房源数量。</view>
+        <view class="listings-empty__description">放宽下面任一条件，就能看到结果。</view>
       </view>
 
       <view class="listings-empty__relaxations">
@@ -109,7 +109,7 @@
           <text class="listings-relaxation__count num">{{item.count}} 套</text>
         </view>
         <view wx:if="{{!loadingRelaxations && !relaxations.length}}" class="listings-empty__no-relaxation">
-          暂无可验证的放宽建议
+          暂时没有可放宽的条件
         </view>
       </view>
 

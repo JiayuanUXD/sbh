@@ -55,7 +55,7 @@
     <view wx:if="{{inactiveItems.length > 0}}" class="buildings-inactive-section">
       <view class="buildings-inactive-header">
         <view class="buildings-inactive-title">暂无在租楼盘</view>
-        <view class="buildings-inactive-desc num">{{totalInactiveCount}} 个楼盘当前暂无公开在租房源</view>
+        <view class="buildings-inactive-desc num">{{totalInactiveCount}} 个楼盘暂时没有可租房源</view>
       </view>
 
       <view class="buildings-card-block buildings-card-block--inactive">
@@ -90,7 +90,7 @@
     <view class="buildings-advisor-card">
       <view>
         <view class="buildings-advisor-card__title">需要顾问协助匹配？</view>
-        <view class="buildings-advisor-card__description">留下期望入驻时间和联系方式，顾问将按当前信息跟进。</view>
+        <view class="buildings-advisor-card__description">留下期望入驻时间和联系方式，顾问会尽快联系您。</view>
       </view>
       <button class="buildings-advisor-card__action" bindtap="handleOpenInquiry" disabled="{{inquiryOpen}}">找顾问</button>
     </view>

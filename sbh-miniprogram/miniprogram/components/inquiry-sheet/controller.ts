@@ -94,10 +94,10 @@ type MutableSnapshot = Omit<
 
 const PHONE = /^1[3-9]\d{9}$/
 const ERROR_MESSAGES: Readonly<Record<InquirySheetErrorReason, string>> = {
-  'session-invalid': '匿名会话已失效，请重新授权或继续手动填写',
+  'session-invalid': '登录状态已过期，请重新授权或手动填写手机号',
   'rate-limited': '提交较频繁，请稍后再试',
   'phone-code-consumed': '本次微信手机号授权已失效，请重新授权或手动填写',
-  'inquiry-submit-failed': '咨询暂未提交成功，请保留当前内容后重试',
+  'inquiry-submit-failed': '咨询没有提交成功，请稍后重试',
   network: '网络连接失败，请检查网络后重试',
   service: '咨询服务暂不可用，请稍后再试',
 }
@@ -169,8 +169,19 @@ function errorReason(result: Extract<InquiryResult, { ok: false }>): InquiryShee
   return 'service'
 }
 
-function successMessage(result: Extract<InquiryResult, { ok: true }>): string {
-  if (result.targetResolution === 'building') return '已转为该楼盘需求'
+/**
+ * 成功文案按「最初问的是什么」区分：服务端在房源失效时会把房源咨询转到楼盘，
+ * 但直接在楼盘页咨询也同样返回 building——那种情况没有什么被「转」（OPT-117）。
+ */
+function successMessage(
+  result: Extract<InquiryResult, { ok: true }>,
+  requestedTargetType: InquiryTarget['targetType'],
+): string {
+  if (result.targetResolution === 'building') {
+    return requestedTargetType === 'building'
+      ? '已收到该楼盘咨询'
+      : '这套房源刚有变动，已为您记下对该楼盘的需求'
+  }
   if (result.targetResolution === 'general') return '已收到找房需求'
   return '已收到该房源咨询'
 }
@@ -397,9 +408,9 @@ export function createInquirySheetController(
       dependencies.invalidateIntent()
       publish({
         state: 'success',
-        successMessage: successMessage(result),
+        successMessage: successMessage(result, context.target.targetType),
         successFollowUp: result.acceptedExisting
-          ? '本次未更新首次提交的联系方式'
+          ? '已收到您之前的提交，联系方式以第一次填写的为准'
           : '已记录本次提交，可稍后查看处理进度',
         errorReason: null,
         errorMessage: '',
