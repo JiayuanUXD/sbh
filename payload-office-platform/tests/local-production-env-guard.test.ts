@@ -10,7 +10,7 @@
  * 只有 listPresentEnvFiles 碰文件系统，单独用临时目录测。
  */
 
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  APP_DIR,
   NEXT_AUTOLOADED_ENV_FILES,
   assertNotLocalProductionEnv,
   detectLocalProductionEnv,
@@ -100,6 +101,18 @@ describe('detectLocalProductionEnv', () => {
     }
   })
 
+  it('按文件名判定，传绝对路径也认（listPresentEnvFiles 返回的就是绝对路径）', () => {
+    expect(
+      detectLocalProductionEnv({ NODE_ENV: 'production', DATABASE_URL: PROD_DB }, [
+        '/repo/payload-office-platform/.env.production.local',
+        '/repo/.env.example',
+      ]),
+    ).toEqual({
+      envFiles: ['/repo/payload-office-platform/.env.production.local'],
+      targets: ['数据库主机 gz-postgres-abc123.sql.tencentcdb.com'],
+    })
+  })
+
   it('只有 Next 会自动加载的文件才算本机信号：.env.example 等不算', () => {
     expect(
       detectLocalProductionEnv({ NODE_ENV: 'production', DATABASE_URL: PROD_DB }, [
@@ -143,18 +156,43 @@ describe('listPresentEnvFiles', () => {
     dir = ''
   })
 
-  it('按 Next 的加载顺序列出目录里实际存在的自动加载文件，忽略其它 .env*', () => {
+  it('按 Next 的加载顺序列出目录里实际存在的自动加载文件（绝对路径），忽略其它 .env*', () => {
     dir = mkdtempSync(join(tmpdir(), 'local-prod-env-guard-'))
     for (const name of ['.env.local', '.env.production.local', '.env.example']) {
       writeFileSync(join(dir, name), '')
     }
 
-    expect(listPresentEnvFiles(dir)).toEqual(['.env.production.local', '.env.local'])
+    expect(listPresentEnvFiles([dir])).toEqual([
+      join(dir, '.env.production.local'),
+      join(dir, '.env.local'),
+    ])
   })
 
   it('空目录返回空数组', () => {
     dir = mkdtempSync(join(tmpdir(), 'local-prod-env-guard-'))
-    expect(listPresentEnvFiles(dir)).toEqual([])
+    expect(listPresentEnvFiles([dir])).toEqual([])
+  })
+
+  it('`next start <应用目录>` 从上一级起：Next 读应用目录的 env，cwd 却在上一级——两处都要查（PR #222 评审）', () => {
+    dir = mkdtempSync(join(tmpdir(), 'local-prod-env-guard-'))
+    const appDir = join(dir, 'payload-office-platform')
+    mkdirSync(appDir)
+    writeFileSync(join(appDir, '.env.production.local'), '')
+
+    const files = listPresentEnvFiles([dir, appDir])
+    expect(files).toEqual([join(appDir, '.env.production.local')])
+    expect(
+      detectLocalProductionEnv({ NODE_ENV: 'production', DATABASE_URL: PROD_DB }, files),
+    ).not.toBeNull()
+  })
+
+  it('cwd 就是应用目录时不重复列出', () => {
+    dir = mkdtempSync(join(tmpdir(), 'local-prod-env-guard-'))
+    writeFileSync(join(dir, '.env.local'), '')
+
+    expect(listPresentEnvFiles([dir, `${dir}/`, join(dir, 'src', '..')])).toEqual([
+      join(dir, '.env.local'),
+    ])
   })
 
   it('覆盖 Next production 模式自动加载的全部四个文件', () => {
@@ -164,6 +202,12 @@ describe('listPresentEnvFiles', () => {
       '.env.production',
       '.env',
     ])
+  })
+})
+
+describe('APP_DIR', () => {
+  it('指向 Next 应用目录（package.json 与 next.config.ts 所在处），与 cwd 无关', () => {
+    expect(APP_DIR).toBe(resolve(fileURLToPath(new URL('.', import.meta.url)), '..'))
   })
 })
 

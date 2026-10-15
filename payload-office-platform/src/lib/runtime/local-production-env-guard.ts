@@ -8,9 +8,12 @@
  *
  * 怎么区分本机与线上：线上容器里**没有任何 Next 会自动加载的 env 文件**——CI 与
  * scripts/cloudrun-release.sh 都用 git 取包（只有已跟踪的 .env.example），.dockerignore
- * 再兜一道 `.env*`（守卫：tests/production-deploy-config.test.ts）。所以「cwd 下有这类文件」
+ * 再兜一道 `.env*`（守卫：tests/production-deploy-config.test.ts）。所以「有这类文件」
  * 就是开发机；再叠加 seed 守卫的「生产目标」判定（库主机非环回 / 生产 COS 桶），
  * 两者同时成立才拦。干净 worktree（只有指向本地库的 .env.local）与 CI E2E（127.0.0.1）都放行。
+ *
+ * 查哪两个目录：应用目录（Next 从 `next start <目录>` 的那个目录读 env，与 cwd 无关；PR #222
+ * 评审指出只看 cwd 会漏）和 cwd（payload CLI 按 cwd 读 env）。应用目录见 APP_DIR。
  *
  * 为什么挂在 payload.config 顶层：onInit 在 db adapter 连库之后才跑，jobs autoRun 也随
  * init 启动，放在那里等于先连上生产再报错。next build（含 collectPageData worker）靠
@@ -20,7 +23,8 @@
  */
 
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { detectProductionSeedTargets } from './seed-target-guard'
 
@@ -32,6 +36,13 @@ export const NEXT_AUTOLOADED_ENV_FILES = [
   '.env',
 ] as const
 
+/**
+ * Next 应用目录：本文件在 src/lib/runtime/ 下，往上三级。Turbopack 产物里 import.meta.url 不是构建期
+ * 写死的路径，而是按 chunk 所在位置在运行时解析（`[turbopack]_runtime.js` 的 ABSOLUTE_ROOT），
+ * 所以指向的正是 Next 读 env 的那个目录，与 cwd 无关。
+ */
+export const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
+
 export type LocalProductionEnv = {
   NODE_ENV?: string
   NEXT_PHASE?: string
@@ -42,18 +53,21 @@ export type LocalProductionEnv = {
 }
 
 export type LocalProductionEnvHit = {
-  /** cwd 下存在的自动加载 env 文件 */
+  /** 实际存在的自动加载 env 文件 */
   envFiles: string[]
   /** 指向的生产资源，文案同 seed 守卫 */
   targets: string[]
 }
 
-/** 列出目录里实际存在的自动加载 env 文件，保持 Next 的加载顺序。 */
-export function listPresentEnvFiles(dir: string): string[] {
-  return NEXT_AUTOLOADED_ENV_FILES.filter((name) => existsSync(join(dir, name)))
+/** 列出这些目录里实际存在的自动加载 env 文件（绝对路径），目录去重，每个目录内保持 Next 的加载顺序。 */
+export function listPresentEnvFiles(dirs: readonly string[]): string[] {
+  const unique = [...new Set(dirs.map((dir) => resolve(dir)))]
+  return unique.flatMap((dir) =>
+    NEXT_AUTOLOADED_ENV_FILES.map((name) => join(dir, name)).filter((file) => existsSync(file)),
+  )
 }
 
-/** 本机以生产模式运行且指向生产资源时返回命中详情，否则返回 null。 */
+/** 本机以生产模式运行且指向生产资源时返回命中详情，否则返回 null。文件可以是文件名或路径，按文件名判定。 */
 export function detectLocalProductionEnv(
   env: LocalProductionEnv,
   presentEnvFiles: readonly string[],
@@ -63,7 +77,7 @@ export function detectLocalProductionEnv(
   if (env.ALLOW_LOCAL_PRODUCTION_ENV === '1') return null
 
   const autoloaded: readonly string[] = NEXT_AUTOLOADED_ENV_FILES
-  const envFiles = presentEnvFiles.filter((name) => autoloaded.includes(name))
+  const envFiles = presentEnvFiles.filter((file) => autoloaded.includes(basename(file)))
   if (envFiles.length === 0) return null
 
   const targets = detectProductionSeedTargets({
@@ -85,7 +99,7 @@ export function assertNotLocalProductionEnv(
   throw new Error(
     [
       '[local-production-env-guard] 拒绝启动：本机以生产模式运行，却指向生产资源。',
-      `  当前目录存在：${hit.envFiles.join('、')}`,
+      `  检测到：${hit.envFiles.join('、')}`,
       ...hit.targets.map((t) => `  - ${t}`),
       '',
       'Next 在 next start / next build 时会读 .env.production*，且优先于 .env.local；',
@@ -98,7 +112,7 @@ export function assertNotLocalProductionEnv(
   )
 }
 
-/** payload.config 顶层调用：读 process.env 与 cwd 下的 env 文件。 */
+/** payload.config 顶层调用：读 process.env，查应用目录与 cwd 下的 env 文件。 */
 export function assertNotLocalProductionEnvFromProcess(): void {
-  assertNotLocalProductionEnv(process.env, listPresentEnvFiles(process.cwd()))
+  assertNotLocalProductionEnv(process.env, listPresentEnvFiles([APP_DIR, process.cwd()]))
 }
