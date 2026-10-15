@@ -247,7 +247,7 @@ test.describe('OPT-086 房源发布轴动作', () => {
     await login(page.request, ADM)
     const { id, title } = await pickPublishedListing(page.request)
 
-    // 带 q 搜索把目标行筛出来，再用 limit=100（列表视图允许的最大档，取值 10/25/50/100）把它
+    // 带 q 搜索把目标行筛出来，再用 limit=100（列表视图的一档，全部档位见 LISTING_PAGE_SIZE_OPTIONS）把它
     // 钉在第一页——只靠 q 仍要赌命中数不超过默认的 25 条 / 页。
     // 故意不带 publicationStatus 筛选：那样下架成功后该行会从结果里消失，就没法断言它翻成已下架。
     await page.goto(`/admin/collections/listings?q=${encodeURIComponent(title)}&limit=100`)
