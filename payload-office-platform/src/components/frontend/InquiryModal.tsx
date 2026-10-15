@@ -95,12 +95,18 @@ const LIMITS = {
   TEAM_SIZE_MAX: 50,
 } as const
 
+/**
+ * 用户无法自行处理的错误（请求格式、入口来源、请求标识、活动参数等）统一成这一句。
+ * OPT-116：此前逐条直译成「入口路径过长」「请求标识缺失」，用户看了既不懂也改不了。
+ */
+const RETRY_AFTER_REFRESH = '提交失败，请刷新页面后重试'
+
 /** 错误码 → 中文提示（不暴露内部信息） */
 const ERROR_MESSAGES: Record<string, string> = {
-  invalid_body: '请求数据格式错误',
-  invalid_json: '请求数据格式错误',
-  invalid_content_type: '请求数据格式错误',
-  body_too_large: '请求数据过大',
+  invalid_body: RETRY_AFTER_REFRESH,
+  invalid_json: RETRY_AFTER_REFRESH,
+  invalid_content_type: RETRY_AFTER_REFRESH,
+  body_too_large: RETRY_AFTER_REFRESH,
   name_required: '请填写姓名',
   name_too_long: `姓名不能超过 ${LIMITS.NAME_MAX} 字`,
   phone_invalid: '请填写有效的中国大陆手机号',
@@ -109,27 +115,37 @@ const ERROR_MESSAGES: Record<string, string> = {
   company_too_long: `公司名不能超过 ${LIMITS.COMPANY_MAX} 字`,
   message_too_long: `留言不能超过 ${LIMITS.MESSAGE_MAX} 字`,
   consent_required: '请勾选隐私政策同意',
-  consent_version_invalid: '隐私政策版本不匹配，请刷新页面后重试',
-  source_required: '入口信息缺失',
-  source_page_type_invalid: '入口类型无效',
-  source_path_required: '入口路径缺失',
-  source_path_too_long: '入口路径过长',
-  source_path_invalid: '入口路径无效',
-  request_id_required: '请求标识缺失',
-  request_id_too_long: '请求标识过长',
-  campaign_invalid: '活动参数无效',
-  listing_not_found: '该房源状态已变化，可提交通用选址需求',
+  consent_version_invalid: '隐私政策已更新，请刷新页面后重新提交',
+  source_required: RETRY_AFTER_REFRESH,
+  source_page_type_invalid: RETRY_AFTER_REFRESH,
+  source_path_required: RETRY_AFTER_REFRESH,
+  source_path_too_long: RETRY_AFTER_REFRESH,
+  source_path_invalid: RETRY_AFTER_REFRESH,
+  request_id_required: RETRY_AFTER_REFRESH,
+  request_id_too_long: RETRY_AFTER_REFRESH,
+  campaign_invalid: RETRY_AFTER_REFRESH,
+  listing_not_found: '这套房源暂时不可咨询，您可以直接留下选址需求。',
   rate_limited: '提交过于频繁，请稍后重试',
   server_error: '系统暂时不可用，请稍后重试',
-  forbidden: '请求不被允许',
+  forbidden: RETRY_AFTER_REFRESH,
+}
+
+/** 错误码 → 展示文案。表里没有的码不把英文码原样给用户看，回落到通用提示。 */
+export function inquiryErrorMessage(code: string): string {
+  return ERROR_MESSAGES[code] ?? RETRY_AFTER_REFRESH
+}
+
+/** 一组错误码 → 去重后的展示文案（多个码可能落到同一句通用提示）。 */
+function uniqueErrorMessages(codes: readonly string[]): string[] {
+  return [...new Set(codes.map(inquiryErrorMessage))]
 }
 
 const DEFAULT_TRIGGER_LABEL = '在线询价 / 留电'
 
 const resolutionCopy: Record<TargetResolution, string> = {
   listing: '已记录这套房源，顾问将与您确认看房。',
-  building: '该房源状态已变化，已为您登记同楼盘需求。',
-  general: '目标状态已变化，已为您登记通用选址需求。',
+  building: '这套房源刚有变动，我们已记下您对该楼盘的需求，顾问会尽快联系您。',
+  general: '您咨询的房源暂时不可用，我们已记下您的选址需求，顾问会尽快联系您。',
 }
 
 export function getInquiryResolutionCopy(
@@ -600,7 +616,7 @@ export default function InquiryModal(props: Props) {
 
   const modalTitle = '询价 / 预约看房'
   const subtitle = listingFallback
-    ? '已切换为通用选址需求'
+    ? '这套房源暂时不可咨询，可直接留下选址需求'
     : targetSummary ?? '请填写以下信息，顾问将在 1 个工作日内联系你'
 
   return (
@@ -773,7 +789,7 @@ export default function InquiryModal(props: Props) {
                   <div id={errorSummaryId} ref={feedbackRef} tabIndex={-1}>
                     {errors.length > 0 && (
                       <ul className="modal__error-list" role="alert" aria-live="polite">
-                        {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
+                        {uniqueErrorMessages(errors).map((message) => <li key={message}>{message}</li>)}
                       </ul>
                     )}
                     {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}
@@ -850,7 +866,7 @@ export default function InquiryModal(props: Props) {
                   <div id={errorSummaryId} ref={feedbackRef} tabIndex={-1}>
                     {errors.length > 0 && (
                       <ul className="modal__error-list" role="alert" aria-live="polite">
-                        {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
+                        {uniqueErrorMessages(errors).map((message) => <li key={message}>{message}</li>)}
                       </ul>
                     )}
                     {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}

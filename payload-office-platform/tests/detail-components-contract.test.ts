@@ -378,11 +378,11 @@ describe('detail component contracts', () => {
   })
 
   /**
-   * 终审 C2：「该组内房源计价单位不唯一」这句提示必须读**当前组**的
+   * 终审 C2：「这组房源计价单位不同」这句提示（OPT-116 前为「该组内房源计价单位不唯一」）必须读**当前组**的
    * `priceSortDegraded`，不能读快照级 `validationErrors`（后者是「任一组降级」的
    * 汇总信号）。否则「本组单位唯一、只是这栋楼另有一个出售组」时会说出假话。
    */
-  it('当前组未降级时不渲染「计价单位不唯一」提示，哪怕快照级 validationErrors 已置位', () => {
+  it('当前组未降级时不渲染「计价单位不同」提示，哪怕快照级 validationErrors 已置位', () => {
     const html = renderToStaticMarkup(
       createElement(BuildingSupplyBrowser, {
         snapshot: {
@@ -394,10 +394,10 @@ describe('detail component contracts', () => {
         currentSearch: 'sort=price-asc',
       }),
     )
-    expect(html).not.toContain('计价单位不唯一')
+    expect(html).not.toContain('计价单位不同')
   })
 
-  it('当前组确实降级时才渲染「计价单位不唯一」提示', () => {
+  it('当前组确实降级时才渲染「计价单位不同」提示', () => {
     const degraded: BuildingSupplySnapshot = {
       ...LEASE_ONLY_SNAPSHOT,
       groups: [{ ...LEASE_ONLY_SNAPSHOT.groups[0]!, priceSortDegraded: true }],
@@ -410,7 +410,7 @@ describe('detail component contracts', () => {
         currentSearch: 'sort=price-asc',
       }),
     )
-    expect(html).toContain('计价单位不唯一')
+    expect(html).toContain('这组房源计价单位不同，已按推荐顺序排列')
   })
 
   it('空组（priceRanges 空）仍渲染表格，「—」代表价格缺失而非分桶控件', () => {

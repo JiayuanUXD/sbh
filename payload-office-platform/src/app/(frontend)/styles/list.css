@@ -764,11 +764,6 @@
 
 .ls-emptyrange__desc { font-size: 14px; line-height: 1.55; color: var(--ink-2); letter-spacing: normal; }
 
-.ls-emptyrange__badge { margin-top: 6px; align-self: flex-start; height: 26px; padding: 0 10px;
-  border-radius: 8px; background: var(--bg); font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1; font-size: 12px; color: var(--ink-3); letter-spacing: normal;
-  display: flex; align-items: center; }
-
 .ls-emptyrange__actions { flex: none; display: flex; align-items: center; gap: 12px; }
 
 @media (max-width: 767px) {
