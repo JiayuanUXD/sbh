@@ -121,6 +121,51 @@ OPT-038 实地踩出来的，每条都差点导出一个错误结论：
 - 配套：**「还原成观察到的原值」的临时写库探针必须先断言干净起点**，否则会把上一轮的残留当成原值写回去、
   一路级联。加起始状态守卫 + 还原后自查，任一不满足直接抛。
 
+### ★ 起任何生产模式进程前先 `ls .env.production*`——主工作树会直连生产库
+
+Next 在 `NODE_ENV=production`（`next build` / `next start`）时按 `.env.production.local` → `.env.local`
+→ `.env.production` → `.env` 的顺序取值（先命中者生效，命令行显式传入的变量优先于所有文件），`next dev` 不读
+`.env.production*`。主工作树 `payload-office-platform/.env.production.local` 是**全套生产凭据**（生产 TencentDB
+的 `DATABASE_URL`、生产 `COS_*`、`PAYLOAD_SECRET`），且没有 `PAYLOAD_DISABLE_JOB_AUTORUN=1`（2026-10-15 实测）。
+所以在主工作树里 `pnpm start`、`E2E_PROD_SERVER=1` 跑 E2E（Playwright 自起的 webServer 就是 `next start`）、
+生产模式性能复测，都等于**多起一个连生产库、并按 `jobs.autoRun` 轮询生产任务队列的实例**，页面照常渲染、毫无异样。
+`next build` 同样读它，`NEXT_PUBLIC_*` 会被内联进产物。
+
+真实教训（2026-10-15，OPT-114）：生产模式复测在主工作树起了 `CI=1 pnpm start -p 3799`，连着生产库在线约 1 分钟，
+事后只读核查确认无写入（OPT-114 `verification.md` §7）。下一节和「本地跑 CI 等价 E2E」的做法都以本条为前提：
+
+1. 起之前在应用目录 `ls .env.production*`；**有就别在这个工作树起**。别指望在命令行盖掉 `DATABASE_URL` 了事——
+   `COS_*` / `PAYLOAD_SECRET` 照样来自那个文件，漏盖一项就是「本地库 + 生产桶」。
+2. 改在不含该文件的干净 worktree 里做：`git worktree add --detach <短路径> <ref>`，**只复制 `.env.local`**
+   （指向本地 / 隔离库），再 `pnpm install --frozen-lockfile` → `pnpm generate:types` → 构建。
+3. 启动命令带 `PAYLOAD_DISABLE_JOB_AUTORUN=1`，并把检查写进命令本身（bash / zsh 通用，不会关掉终端）：
+
+   ```bash
+   if [ -e .env.production ] || [ -e .env.production.local ]; then echo '存在 .env.production*，拒绝启动'; else CI=1 PAYLOAD_DISABLE_JOB_AUTORUN=1 pnpm start -p <端口>; fi
+   ```
+
+   E2E 也先这样手工起好 server 再跑 Playwright（本地 `reuseExistingServer` 会复用）；webServer 自起的 `next start`
+   只剩下面的机器守卫兜底。
+4. 量完删掉临时 worktree，报告里写明在哪个 worktree、哪个提交上量的。
+
+**机器守卫（第二层，2026-10-15 起）**：`src/lib/runtime/local-production-env-guard.ts` 挂在 `payload.config.ts` 顶层，
+四条同时成立就抛错——生产模式、不是 `next build`、应用目录或 cwd 下有 Next 会自动加载的 env 文件（`.env.production.local` /
+`.env.local` / `.env.production` / `.env`）、库主机不是环回地址或 `COS_BUCKET` 是生产桶。实测
+（`../artifacts/verification/local-prod-env-guard/`）：server 照常打出 Ready，但从第一个用到 Payload 的请求起都是 500
+并打印 `[local-production-env-guard] 拒绝启动`，**假库一次都没被连**；干净 worktree、CI（`127.0.0.1`）与线上容器形态
+（没有这些文件）放行，`next build` 不拦。确需在本机以生产模式连生产资源时显式设 `ALLOW_LOCAL_PRODUCTION_ENV=1`
+（只认字面量 `1`）。它**不替代**上面四步：`next build` 照样把 `.env.production.local` 里的 `NEXT_PUBLIC_*` 内联进产物，
+`pnpm dev` 不归它管，判定也只看应用目录与 cwd 这两处的文件。线上容器里没有这些文件靠的是 git 取包 + `.dockerignore` 排除 `.env*`，
+两处都有契约测试（`tests/production-deploy-config.test.ts`）；别往镜像里放任何 `.env*`。
+
+只做本地验收、不量性能时直接用 `pnpm dev`，它不读这个文件。
+
+**症状指纹**：本地夹具账号（`e2e-adm@example.com` 等）登录返回 401「电子邮件或密码不正确」，而同一工作树 `pnpm dev` 下能登
+——就是连到了别的库（生产没有任何 `@example.com` 账号）。**先停进程**，再核对进程 cwd 与该目录下的 `.env.production*`；
+别去查登录代码，也别重跑 seed（`pnpm seed` 只读 `.env.local`，写进的是本地库，server 连的却不是它）。
+有了机器守卫之后，更常见的指纹是日志里的 `[local-production-env-guard] 拒绝启动` + 每个请求都 500：按报错列出的文件处置，
+别为了让页面出来去设放行开关。
+
 ### 本地 `next start` 的两条环境事实（照文档传参会白传）
 
 - **`CI=1` 是真开关**：`lib/storage/cos-config.ts:86` 用它豁免 COS 检查。不设就是
@@ -158,12 +203,16 @@ OPT-038 实地踩出来的，每条都差点导出一个错误结论：
 
 本地跑「CI 等价」E2E 的完整环境（缺任一项都会得到误导性结果）：
 
+- 前提：工作树里**没有 `.env.production*`**，server 带 `PAYLOAD_DISABLE_JOB_AUTORUN=1`——
+  见上文「起任何生产模式进程前先 `ls .env.production*`」，主工作树照下面三步做就是连生产库；
 - 构建：`CI=1` + **https 的 `NEXT_PUBLIC_SITE_URL`** + `MULTI_CITY_ROUTING_ENABLED=false`；
 - 起 server：`next start -p <非 3717 端口>`，curl 预热全部取样路由确认 200 后再跑 Playwright；
 - Playwright 侧**带 `E2E_PROD_SERVER=1`、不带 `CI=1`**（`reuseExistingServer: !CI`）。
 
 典型症状与归因：
 
+- **夹具账号登录 401「电子邮件或密码不正确」、dev 下却能登** = server 连到了别的库（多半是读了
+  `.env.production.local` 的生产库）。先停进程，处置见上文「起任何生产模式进程前先 `ls .env.production*`」。
 - **「房源类路由全红 / 楼盘类全绿」** = 缺 `CI=1` 或 `NEXT_PUBLIC_SITE_URL` 不是 https，
   `src/lib/runtime/config-guard.ts` fail-closed 让房源类路由全线 404。先查环境，别查被测代码。
 - **「旧详情所有权」用例 307 vs 200** = 工作树 `.env.local` 里的 `MULTI_CITY_ROUTING_ENABLED`

@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { NEXT_AUTOLOADED_ENV_FILES } from '@/lib/runtime/local-production-env-guard'
+
 const here = fileURLToPath(new URL('.', import.meta.url))
 const appRoot = resolve(here, '..')
 const repositoryRoot = resolve(appRoot, '..')
@@ -153,6 +155,31 @@ describe('生产部署配置', () => {
     expect(ensurePublic).toBeGreaterThanOrEqual(0)
     expect(ensurePublic).toBeLessThan(build)
     expect(ensurePublic).toBeLessThan(copyPublic)
+  })
+
+  it('.dockerignore 排除全部本地 env 文件，镜像里不能出现它们', () => {
+    // 「容器里没有 Next 会自动加载的 env 文件」是 src/lib/runtime/local-production-env-guard.ts
+    // 区分本机与线上的依据，镜像里多一个就会被当成开发机、线上拒绝启动（顺带把凭据打进了镜像）。
+    // CI 与 cloudrun-release.sh 都用 git archive 取包，碰不到这些未跟踪文件；但直接在工作树里
+    // `tcb cloudrun deploy` 会把整个目录打进 ZIP，这时只剩 .dockerignore 一道闸——
+    // 它以前只排除 .env / .env.local，漏了 .env.production*。
+    const lines = readFileSync(resolve(appRoot, '.dockerignore'), 'utf8')
+      .split('\n')
+      .map((line) => line.trim())
+
+    expect(lines).toContain('.env*')
+    expect(lines).toContain('!.env.example')
+  })
+
+  it('仓库不跟踪任何 Next 会自动加载的 env 文件（git archive 会把它带进线上包）', () => {
+    // 另一半前提：CI 与 cloudrun-release.sh 用 git archive 取包，只带已跟踪文件。
+    // 一旦有人把 .env.local / .env.production 提交进来，凭据就进了线上包，守卫也会误拦线上。
+    const tracked = execFileSync('git', ['ls-files', '--', ...NEXT_AUTOLOADED_ENV_FILES], {
+      cwd: appRoot,
+      encoding: 'utf8',
+    }).trim()
+
+    expect(tracked).toBe('')
   })
 
   it('Docker runner 复制完整 node_modules，容器内才跑得动迁移', () => {

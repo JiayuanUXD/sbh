@@ -1,0 +1,4 @@
+HEAD 4bf9b118  2026-10-15 17:47:17 +0800  LAN_IP=10.193.222.18
+blob local-production-env-guard.ts 4a7258d5b026ae500d88aac4647c47adbfd758c8
+blob payload.config.ts             13a2feaa24c59365910beab2951d4eb99491dc8a
+F-start-from-parent-dir      守卫报错行=0  假库被连次数=0  GET /api/health -> 000 GET /           -> 000 

@@ -1,0 +1,86 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:3791
+- Network:       http://10.193.222.18:3791
+✓ Ready in 74ms
+[17:54:32] [31mERROR[39m: [36mError: cannot connect to Postgres. Details: read ECONNRESET[39m
+    err: {
+      "type": "Error",
+      "message": "read ECONNRESET",
+      "stack":
+          Error: read ECONNRESET
+              at /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/pg-pool@3.14.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async s (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/_05b9j8c._.js:131:51605)
+              at async Object.o [as connect] (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/_05b9j8c._.js:131:51847)
+              at async eS.init (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/node_modules__pnpm_1e-fdpn._.js:8:9638)
+              at async eL (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/node_modules__pnpm_1e-fdpn._.js:8:14086)
+              at async l (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/[root-of-the-server]__1i0bfme._.js:1:5425)
+              at async rJ.do (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:25785)
+              at async d (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/[root-of-the-server]__1i0bfme._.js:1:9534)
+              at async rJ.handleResponse (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:1:119701)
+              at async i (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/[root-of-the-server]__1i0bfme._.js:1:10575)
+              at async Module.y [as handler] (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/[root-of-the-server]__1i0bfme._.js:1:11682)
+              at async NextNodeServer.renderToResponseWithComponentsImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1462:9)
+              at async NextNodeServer.renderPageComponent (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1514:24)
+              at async NextNodeServer.renderToResponseImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1564:32)
+      "errno": -54,
+      "code": "ECONNRESET",
+      "syscall": "read"
+    }
+undefined
+⨯ unhandledRejection:  undefined
+[17:54:32] [31mERROR[39m: [36mError: cannot connect to Postgres. Details: read ECONNRESET[39m
+    err: {
+      "type": "Error",
+      "message": "read ECONNRESET",
+      "stack":
+          Error: read ECONNRESET
+              at /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/pg-pool@3.14.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async s (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/_05b9j8c._.js:131:51605)
+              at async Object.o [as connect] (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/_05b9j8c._.js:131:51847)
+              at async eS.init (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/node_modules__pnpm_1e-fdpn._.js:8:9638)
+              at async eL (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/node_modules__pnpm_1e-fdpn._.js:8:14086)
+              at async l (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/[root-of-the-server]__1i0bfme._.js:1:5425)
+              at async rJ.do (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:25785)
+              at async d (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/[root-of-the-server]__1i0bfme._.js:1:9534)
+              at async rJ.handleResponse (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:1:119701)
+              at async i (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/[root-of-the-server]__1i0bfme._.js:1:10575)
+              at async Module.y [as handler] (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/[root-of-the-server]__1i0bfme._.js:1:11682)
+              at async NextNodeServer.renderToResponseWithComponentsImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1462:9)
+              at async NextNodeServer.renderPageComponent (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1514:24)
+              at async NextNodeServer.renderToResponseImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1564:32)
+      "errno": -54,
+      "code": "ECONNRESET",
+      "syscall": "read"
+    }
+undefined
+⨯ unhandledRejection:  undefined
+[17:54:32] [31mERROR[39m: [36mError: cannot connect to Postgres. Details: read ECONNRESET[39m
+    err: {
+      "type": "Error",
+      "message": "read ECONNRESET",
+      "stack":
+          Error: read ECONNRESET
+              at /Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/node_modules/.pnpm/pg-pool@3.14.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async g (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/_0t3ygox._.js:131:51602)
+              at async Object.h [as connect] (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/_0t3ygox._.js:131:51844)
+              at async aw.init (/Users/liujiayuan/App/sbh/.claude/worktrees/zealous-chatelet-0e5bcc/payload-office-platform/.next/server/chunks/ssr/node_modules__pnpm_17z9ndr._.js:8:9595)
+      "errno": -54,
+      "code": "ECONNRESET",
+      "syscall": "read"
+    }
+[site-settings] read failed, falling back to defaults Error: Error: cannot connect to Postgres: read ECONNRESET
+    at Object.h [as connect] (.next/server/chunks/ssr/_0t3ygox._.js:131:53010) {
+  payloadInitError: true
+}
+undefined
+⨯ unhandledRejection:  undefined
+⨯ Error: Error: cannot connect to Postgres: read ECONNRESET
+    at Object.h [as connect] (.next/server/chunks/ssr/_0t3ygox._.js:131:53010) {
+  payloadInitError: true,
+  digest: '3856016767'
+}

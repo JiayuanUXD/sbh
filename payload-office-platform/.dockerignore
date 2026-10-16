@@ -7,8 +7,9 @@ dist
 *.sqlite-journal
 *.sqlite-*
 payload.db.sqlite
-.env
-.env.local
+# 全部本地 env 文件：镜像里有它们会被本机生产模式守卫当成开发机（见 src/lib/runtime/local-production-env-guard.ts）
+.env*
+!.env.example
 .git
 .DS_Store
 media

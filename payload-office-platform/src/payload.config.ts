@@ -87,6 +87,7 @@ import {
   validationErrorDataAfterError,
 } from './domain/shared/payload-after-error'
 import { assertProductionConfig } from './lib/runtime/config-guard'
+import { assertNotLocalProductionEnvFromProcess } from './lib/runtime/local-production-env-guard'
 import { attachPoolErrorHandler } from './lib/runtime/pool-error-handler'
 import {
   POOL_IDLE_TIMEOUT_MS,
@@ -127,6 +128,11 @@ import {
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+// 本机以生产模式运行却指向生产库 / 生产桶时拒绝启动（2026-10-15 OPT-114：主树
+// .env.production.local 让本地 next start 连上了生产库）。必须在顶层、buildConfig 之前：
+// onInit 在 db 连库之后才跑，jobs autoRun 也随 init 启动。next build 与非生产模式自动跳过。
+assertNotLocalProductionEnvFromProcess()
 
 // 本地/CI/生产统一 PostgreSQL（push: false，只走显式迁移），已移除 SQLite 回退。
 // DATABASE_URL 必须是 postgres://。fail-fast 放在 onInit（连库时）而非模块加载期——因为
