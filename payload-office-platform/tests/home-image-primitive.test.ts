@@ -28,7 +28,9 @@ describe('首页图卡走共享图片原语', () => {
   })
 
   it('压暗层与埋点未被改动带走', () => {
-    expect(TYPE_CARDS).toContain('sf-scrim')
+    // 类型卡改成 Apple 式极简后图上不再有文字（类型名在图下方），压暗层
+    // 不再有存在理由：留着只会把封面染灰。反过来锁住「不许又加回去」。
+    expect(TYPE_CARDS).not.toContain('sf-scrim')
     expect(TYPE_CARDS).toContain('data-event-name')
     expect(BENTO).toContain('sf-scrim')
     expect(BENTO).toContain('data-event-name="home_district_click"')

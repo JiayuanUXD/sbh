@@ -1494,7 +1494,7 @@ ol {
    已带上该类。这里只保留 .sf-card 没有、而本卡片版式需要的：纵向 flex。
    删掉的那套（1px 边框 / radius 12 / 无静态阴影 / hover 变边框色 / :active 下沉
    1px / 图片 scale）与全站方向相反，是本次「卡片一致性」整改的主要落点。
-   `display: flex` 必须重述：.sf-card 的基态是 display:block（同 .hm-type-card
+   `display: flex` 必须重述：.sf-card 的基态是 display:block（同 .hm-supply-card
    在 home.css 里做的事），顺序上本文件排在 surface.css 之后，同特异度后来者胜。 */
 .listing-card {
   display: flex;

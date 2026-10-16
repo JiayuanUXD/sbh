@@ -4,10 +4,11 @@ import { Media } from '@/components/frontend/ui/Media'
 import type { HomepageTypeSummary, MediaViewModel } from '@/domain/public-catalog/contracts'
 
 /**
- * OPT-035 首页「按类型浏览」图卡（五等分 1fr×300 · 图高 168）。
+ * 首页「按类型浏览」：Apple 式极简，只留封面图与类型名，无卡片底、无阴影、无角标。
  *
- * 封面与计数来自 typeSummaries（key 为 listingType）。创意园区无 listingType，
- * 封面与计数行都省略——不编造数据。
+ * 封面来自 typeSummaries（key 为 listingType）。创意园区无 listingType，没有封面
+ * 就只显示占位底——不编造数据。副标题与在租套数不再渲染（产品 2026-10-16 决定
+ * 删减；`sublabel` 仍是后台可配字段，只是这一区块不消费它）。
  *
  * ## OPT-053：文案可配，跳转不可配
  *
@@ -51,48 +52,31 @@ export default function HomeTypeCards({ typeSummaries, citySlug, cards }: Readon
           <Link href={`${prefix}/listings`} prefetch={false} className="hm-section-link" data-event-name="home_cat_view_all">查看全部房源 →</Link>
         </div>
         <ul className="hm-types" role="list">
-          {cards.map((card, index) => {
+          {cards.map((card) => {
             // 槽位查不到就整张卡不渲染：那意味着配置里出现了代码不认识的槽位
             // （比如枚举改名而配置没跟上）。宁可少一张，也不要渲染一个跳不对的入口。
             const target = SLOT_TARGETS[card.slot]
             if (!target) return null
-            const summary = target.type ? typeSummaries[target.type] : undefined
-            const no = String(index + 1).padStart(2, '0')
+            // OPT-060 四级优先级的后两级在这里收口：
+            //   card.coverImage 已经是「城市覆盖 → 全局默认」的结果；
+            //   都为空才回落到该类型首条房源的封面（现状行为），再空则无图。
+            const cover = card.coverImage ?? (target.type ? typeSummaries[target.type]?.cover : null) ?? null
             return (
               <li key={card.slot}>
-                <Link href={`${prefix}${target.href}`} prefetch={false} className="sf-card hm-type-card" data-event-name={target.event}>
-                  <span className="sf-media hm-type-card__media">
-                    {(() => {
-                      // OPT-060 四级优先级的后两级在这里收口：
-                      //   card.coverImage 已经是「城市覆盖 → 全局默认」的结果；
-                      //   都为空才回落到该类型首条房源的封面（现状行为），再空则无图。
-                      const cover = card.coverImage ?? summary?.cover ?? null
-                      return cover ? (
-                        // 类型卡图区固定 168px 高、桌面五等分（1440 视口下约 229px 宽）；
-                        // 768–1023px 是两列（约 350–480px 宽）；≤767px 图整个 display:none。
-                        //
-                        // 注意：≤767px 的 display:none 本身**不省流量**——各主流浏览器
-                        // 对 display:none 的 img 元素仍会发起请求。真正让移动端不下载
-                        // 大图的是 sizes 在该断点报 0px，别以为「反正 display:none 了，
-                        // sizes 随便写」。
-                        //
-                        // decorative 是为了不让读屏用户听到某条具体房源的标题：卡片里
-                        // 本来就有可见的类型名文字，这张图只是装饰性的；不加这个 prop
-                        // 的话，Media 会把封面的 alt（可能是某条房源的标题）读出来，
-                        // 与卡片语义不符。
-                        <Media media={cover} ratio="auto" sizes="(max-width: 767px) 0px, (max-width: 1023px) 50vw, 320px" decorative />
-                      ) : null
-                    })()}
-                    <span className="sf-scrim" aria-hidden="true" />
-                    <span className="hm-type-card__no sf-num">{no}</span>
+                <Link href={`${prefix}${target.href}`} prefetch={false} className="hm-type-card" data-event-name={target.event}>
+                  <span className={cover ? 'sf-media hm-type-card__media' : 'sf-media hm-type-card__media hm-type-card__media--empty'}>
+                    {cover ? (
+                      // 极简版只剩「图 + 类型名」，图区是 1:1（封面为方图）、桌面五等分（1440 视口下约 220px 宽）；
+                      // ≤1023px 两列（约 160–480px 宽）。sizes 与这两档对齐，别写成固定 320px。
+                      //
+                      // decorative 是为了不让读屏用户听到某条具体房源的标题：卡片里
+                      // 本来就有可见的类型名文字，这张图只是装饰性的；不加这个 prop
+                      // 的话，Media 会把封面的 alt（可能是某条房源的标题）读出来，
+                      // 与卡片语义不符。
+                      <Media media={cover} ratio="auto" sizes="(max-width: 1023px) 50vw, 240px" decorative />
+                    ) : null}
                   </span>
-                  <span className="hm-type-card__body">
-                    <span className="hm-type-card__name">{card.label}</span>
-                    <span className="hm-type-card__sub">{card.sublabel}</span>
-                    {summary && summary.count > 0
-                      ? <span className="hm-type-card__count sf-num">{summary.count.toLocaleString('en-US')} 套在租</span>
-                      : null}
-                  </span>
+                  <span className="hm-type-card__name">{card.label}</span>
                 </Link>
               </li>
             )

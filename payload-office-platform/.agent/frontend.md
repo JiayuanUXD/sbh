@@ -52,10 +52,12 @@
   （2026-08-22 订正：原文把依据指向 `.superpowers/sdd/cross-batch-design-decisions.md`，而 `.superpowers/` 被 `.gitignore` 忽略、
   合并后就不存在——常驻规则不得指向该目录里的任何文件，那是一个必然失效的引用。）
   - `.sf-card`：`--r-card` 18px、零边框、静态 `--shadow` + hover `translateY(-2px)` 换 `--shadow-hover`、过渡 320ms。此条**取代**旧的「零阴影 / 不做 hover 态」，也取代 OPT-035 期间的「上浮 6px / 500ms」。列表页设计稿要求的「零阴影、hover 只变底色」**不采用**——密集网格抖动的顾虑靠把位移降到 2px 解决，不靠两套卡片系统。
-  - `surface.css` 必须在 `home.css` / `list.css` **之前** import：后两者靠「同特异度、后来者胜」覆写基态（如 `.hm-type-card` 把 `display:block` 改回 flex），顺序反了静默失效。
-  - 唯一豁免 `.sf-card` 的是首页 `.hm-bento-card`（满幅图瓷砖非内容卡：加阴影显脏、抬升破坏 bento 咬合），它仍复用 `.sf-scrim` / `.sf-phototag`。
+  - `surface.css` 必须在 `home.css` / `list.css` **之前** import：后两者靠「同特异度、后来者胜」覆写基态（如 `.listing-card` 把 `display:block` 改回 flex），顺序反了静默失效。
+  - 豁免 `.sf-card` 的只有两处，都不是「内容卡」：
+    - 首页 `.hm-bento-card`（满幅图瓷砖：加阴影显脏、抬升破坏 bento 咬合），它仍复用 `.sf-scrim` / `.sf-phototag`。
+    - 首页「按类型浏览」的 `.hm-type-card`（2026-10-16，Apple 式极简图块）：**只有封面图 + 类型名**，无卡片底、无阴影、无角标、无压暗层（图上没有字，不适用 `.sf-scrim` 规则）。它是品类入口的插画图块，不是房源/楼盘那类可比较的内容卡，所以不跟 `.sf-card` 的白底阴影抬升走；图框用 1:1 + `object-fit: contain`（封面为 1254×1254 透明底方图，换成别的比例也不会被裁），仍复用 `.sf-media` 的 img 铺满规则。hover 只让图放大 1.04（320ms，`prefers-reduced-motion` 下关闭）。**别把它「统一」回 `.sf-card`，也别把这个例外扩散到别的卡。**
 - 图上有文字必带底部 45% 渐变压暗（`.sf-scrim`，`rgba(0,0,0,.42)` → 透明）——图上白字按此规则核对，不逐张测 4.5:1。
-- **卡片媒体一律 16:10**（房源卡、楼盘卡、资讯卡、详情主图同一档）。2026-09-10 由 4:3（房源）/ 16:10（楼盘）两档统一而来——两种卡在首页与详情页同屏并排，比例不同一眼就看得出不齐；且房源自己内部本就不统一（横排行早已是 16:10，网格卡才是 4:3）。**不要按视口或版式换比例**：同一张图按断点换裁切是已判过两次的毛病（见 `styles.css` 的 `.building-summary-card__media` 与 `styles/list.css` 的 `.ls-rowcard__media` 注释）。图容器要 `display: block` + `aspect-ratio`（`span` 默认 inline 会让 aspect-ratio 失效、高度塌成 0），声明尺寸禁 CLS，有 alt 与失败占位。
+- **卡片媒体一律 16:10**（房源卡、楼盘卡、资讯卡、详情主图同一档；首页「按类型浏览」图块不是卡片，见上条豁免，不受此限）。2026-09-10 由 4:3（房源）/ 16:10（楼盘）两档统一而来——两种卡在首页与详情页同屏并排，比例不同一眼就看得出不齐；且房源自己内部本就不统一（横排行早已是 16:10，网格卡才是 4:3）。**不要按视口或版式换比例**：同一张图按断点换裁切是已判过两次的毛病（见 `styles.css` 的 `.building-summary-card__media` 与 `styles/list.css` 的 `.ls-rowcard__media` 注释）。图容器要 `display: block` + `aspect-ratio`（`span` 默认 inline 会让 aspect-ratio 失效、高度塌成 0），声明尺寸禁 CLS，有 alt 与失败占位。
 - `backdrop-filter` 只写 unprefixed 一条：手写 `-webkit-` 兄弟声明会被 lightningcss 连同 unprefixed 一起丢弃，玻璃效果整体失效（前缀由构建按 browserslist 自动补）。
 - 滚动进场用原生 `animation-timeline: view()`，必须 `@supports (animation-timeline: view())` 包裹且**不写 `fill-mode: both`**——时间线未激活时 both 会把元素锁死在 `opacity: .001`，整段内容隐形。
 - 动效：常规交互用 token 三档 120/200/320ms（交互反馈 120、状态切换 200、卡片抬升 320），滚动进场 400–800ms；避免自动轮播、阻挡搜索的视频、大面积阴影；一律尊重 `prefers-reduced-motion`。
@@ -103,7 +105,7 @@
 - 差异是语义性的：`.sf-card` 整张卡是一个链接，hover 反馈是在说「这块能点」；详情页面板只是分组容器，
   套上抬升等于给用户一个假的可点提示。padding 也不同向——列表卡 **14/16**（`list.css`：
   `.ls-card__body` 14px 16px 16px、`.ls-rowcard` 16px；**首页卡才是 18–24**：
-  `.hm-type-card__body` 18/20、`.hm-supply-card__body` 20/24）服务浏览密度，详情面板 40/32
+  `.hm-supply-card__body` 20/24）服务浏览密度，详情面板 40/32
   服务「已经决定看这一套、要从容读完」。**合并两头不讨好。**
   （2026-08-22 终审订正：原文写「列表卡 16–20」，把首页卡的数字安到了列表卡头上。
   结论不变——14–16 与 32–40 仍是两倍以上的差距——但引用时别再引那个数。）
