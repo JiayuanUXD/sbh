@@ -206,37 +206,35 @@
      这里不再重复——单列下同样撑满整行。 */
 }
 
-/* --- 按类型浏览（五等分图卡 1fr×300 · 图高 168） -------------------------- */
-.hm-types { margin-top: 48px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; list-style: none; }
-.hm-type-card { display: flex; flex-direction: column; height: 300px; color: inherit; }
-/* 图区表面属性走 .sf-media；这里只留类型图卡特有的定高（非比例）与不参与伸缩 */
-.hm-type-card__media { height: 168px; flex: none; }
-.hm-type-card__no { position: absolute; left: 14px; bottom: 12px; font-size: 12px; font-weight: 600;
-  color: rgba(255, 255, 255, 0.86); }
-.hm-type-card__body { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 18px 20px 20px; }
-.hm-type-card__name { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
-.hm-type-card__sub { font-size: 13px; line-height: 1.4; color: var(--ink-2); }
-/* 在租套数是真实信息文本，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
-.hm-type-card__count { margin-top: auto; font-size: 13px; color: var(--ink-2); }
-@media (max-width: 1023px) { .hm-types { grid-template-columns: repeat(2, 1fr); } }
-/* 移动稿把类型换成单列紧凑行（设计稿 375 栏）：无图、行高 88、padding 20、
-   gap 8，编号与名称同一行——图卡在 375 宽下要么图太小失去信息量，要么整段
-   拉得过长把后面的 section 全推下去。 */
+/* --- 按类型浏览（Apple 式极简：图 + 类型名，五等分） ------------------------
+   无卡片底、无阴影、无角标：图直接坐在页面底色上，靠图自身的轮廓成形。
+   不再用 .sf-card / .sf-scrim：图上没有字，压暗层只会把图染灰。
+   .sf-media 仍保留，它提供 img 的 absolute 铺满规则（见 surface.css 长注释）；
+   这里只把它的灰色底色去掉，缺图时才由 --empty 变体补回。 */
+.hm-types { margin-top: 48px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 32px 16px; list-style: none; }
+.hm-type-card { display: flex; flex-direction: column; align-items: center; gap: 0; color: inherit;
+  border-radius: var(--r-card); }
+.hm-type-card:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.hm-type-card__media { width: 100%; aspect-ratio: 1 / 1; border-radius: var(--r-card); background: transparent; }
+/* 封面是 1254×1254 的透明底方图（上下各留约 10–16% 空白），1:1 图框整张显示不裁切；
+   换成别的比例会把建筑底座或屋顶切掉。后台换封面请继续用方图。 */
+.hm-type-card__media--empty { background: var(--media-placeholder); }
+.hm-type-card__media img { transition: transform 320ms var(--ease-standard); }
+.hm-type-card__name { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); text-align: center; }
+@media (hover: hover) { .hm-type-card:hover .hm-type-card__media img { transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) {
+  .hm-type-card__media img { transition: none; }
+  .hm-type-card:hover .hm-type-card__media img { transform: none; }
+}
+/* ≤1023 两列：五张卡会落单一张，让最后一张跨满整行并居中，宽度仍与其它卡一致 */
+@media (max-width: 1023px) {
+  .hm-types { grid-template-columns: repeat(2, 1fr); }
+  .hm-types > li:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 8px); }
+}
 @media (max-width: 767px) {
-  .hm-types { margin-top: 24px; grid-template-columns: 1fr; gap: 8px; }
-  .hm-type-card { flex-direction: row; align-items: center; gap: 16px;
-    height: auto; min-height: 88px; padding: 20px; }
-  /* 图区退成 28px 宽的编号列（DOM 不变，编号本来就挂在图区里） */
-  .hm-type-card__media { width: 28px; height: auto; align-self: stretch;
-    background: transparent; display: flex; align-items: center; }
-  /* OPT-059 复核：这里现在可能渲染 .media-placeholder（图片加载失败时），
-     不只是 img——占位块自带底色与 100% 宽高，不隐藏的话会在这条 28px 窄的
-     编号列里挤出一块底色。 */
-  .hm-type-card__media img, .hm-type-card__media .sf-scrim, .hm-type-card__media .media-placeholder { display: none; }
-  .hm-type-card__no { position: static; color: var(--ink-2); }
-  .hm-type-card__body { flex: 1; gap: 4px; padding: 0; }
-  .hm-type-card__sub { font-size: 14px; line-height: 1.43; }
-  .hm-type-card__count { margin-top: 4px; font-size: 13px; }
+  .hm-types { margin-top: 24px; gap: 24px 12px; }
+  .hm-types > li:last-child:nth-child(odd) { width: calc(50% - 6px); }
+  .hm-type-card__name { font-size: 17px; }
 }
 
 /* --- 热门商圈 bento（方案 1：大卡 2fr×480 + 2×232 + 2×280） --------------- */
