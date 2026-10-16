@@ -66,7 +66,7 @@ describe('city-aware sharded public sitemap', () => {
       { slug: 'privacy', updatedAt: '2026-08-10T00:00:00.000Z' },
     ])
     sitemapState.getCachedPublishedArticles.mockResolvedValue({
-      docs: [{ slug: 'market-update', publishedAt: '2026-08-11T00:00:00.000Z' }], totalPages: 1,
+      docs: [{ slug: 'market-update', publishedAt: '2026-08-11T00:00:00.000Z' }], totalDocs: 1, totalPages: 1,
     })
   })
 
@@ -140,6 +140,33 @@ describe('city-aware sharded public sitemap', () => {
     expect(urls.filter((url) => url === 'https://example.com/pages/privacy')).toHaveLength(1)
     expect(urls.filter((url) => url === 'https://example.com/city-partner')).toHaveLength(1)
     expect(urls).not.toContain('https://example.com/pages/home')
+  })
+
+  it('静态页与城市频道页不写请求时刻当 lastmod；/news 用最新资讯的发布时间', async () => {
+    const entries = await getStaticSitemap()
+    const byUrl = new Map(entries.map((entry) => [entry.url, entry]))
+    for (const url of [
+      'https://example.com/entrust',
+      'https://example.com/publish',
+      'https://example.com/city-partner',
+      'https://example.com/pages/privacy',
+      'https://example.com/shanghai',
+      'https://example.com/shanghai/listings',
+      'https://example.com/shanghai/buildings',
+      'https://example.com/shanghai/coworking',
+      'https://example.com/shanghai/sale',
+    ]) {
+      expect(byUrl.has(url), url).toBe(true)
+      expect(byUrl.get(url)?.lastModified, url).toBeUndefined()
+    }
+    expect(byUrl.get('https://example.com/news')?.lastModified).toEqual(new Date('2026-08-11T00:00:00.000Z'))
+  })
+
+  it('没有任何已发布资讯时 /news 不进 sitemap', async () => {
+    sitemapState.getCachedPublishedArticles.mockResolvedValue({ docs: [], totalDocs: 0, totalPages: 1 })
+    const urls = (await getStaticSitemap()).map(({ url }) => url)
+    expect(urls).not.toContain('https://example.com/news')
+    expect(urls.some((url) => url.startsWith('https://example.com/news/'))).toBe(false)
   })
 
   it('uses only default-city legacy canonical paths when routing is off', async () => {

@@ -18,7 +18,11 @@ export async function generateMetadata({
   const pageParam = typeof resolved.page === 'string' ? resolved.page : '1'
   const page = Math.max(1, parseInt(pageParam, 10) || 1)
   const canonicalPath = page > 1 ? `/news?page=${page}` : '/news'
+  // 没有任何已发布资讯时页面只有「暂无资讯」，是薄内容：noindex，等有内容再放开。
+  // 与页面主体同参同缓存（unstable_cache 去重），不多打一次库。
+  const { totalDocs } = await getCachedPublishedArticles(page, PAGE_SIZE)
   return buildPageMetadata({
+    robots: totalDocs === 0 ? 'noindex' : 'index',
     title: '资讯中心',
     description: '上海写字楼市场洞察、选址指南、楼盘解读与行业资讯，帮助成长型企业做出更明智的办公决策。',
     canonicalPath,

@@ -82,19 +82,20 @@ export function sitemapShardUrl(citySlug: string, kind: Kind, page: number) {
 }
 
 export async function getStaticSitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date()
   const cities = await getSitemapManifest()
-  const entries = globalStaticUrls(now)
+  const entries = globalStaticUrls()
+  // 城市频道页（首页 / 列表 / 楼盘 / 共享办公 / 出售）是实时聚合页，没有单一的「最后修改」时间，
+  // 不写 lastmod 比写请求时刻诚实。
   for (const city of cities) {
     const prefix = cityPrefix(city.citySlug)
     entries.push(
-      { url: prefix, lastModified: now, changeFrequency: 'daily', priority: 1 },
-      { url: `${prefix}/listings`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
-      { url: `${prefix}/buildings`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
-      { url: `${prefix}/coworking`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
+      { url: prefix, changeFrequency: 'daily', priority: 1 },
+      { url: `${prefix}/listings`, changeFrequency: 'daily', priority: 0.9 },
+      { url: `${prefix}/buildings`, changeFrequency: 'daily', priority: 0.8 },
+      { url: `${prefix}/coworking`, changeFrequency: 'daily', priority: 0.8 },
     )
     if (shouldListSaleChannelInSitemap(await hasEffectiveSale(city.citySlug) ? 1 : 0)) {
-      entries.push({ url: `${prefix}/sale`, lastModified: now, changeFrequency: 'daily', priority: 0.9 })
+      entries.push({ url: `${prefix}/sale`, changeFrequency: 'daily', priority: 0.9 })
     }
   }
   const pages = await getCachedPublishedPages(5_000)
@@ -105,8 +106,13 @@ export async function getStaticSitemap(): Promise<MetadataRoute.Sitemap> {
   let page = 1
   while (true) {
     const articles = await getCachedPublishedArticles(page, 48)
+    if (page === 1 && articles.totalDocs > 0) {
+      // 列表页按 publishedAt 倒序，首条即最新发布时间；没有任何已发布资讯时 /news 是空页，不提交收录。
+      const latest = articles.docs[0]?.publishedAt
+      entries.push({ url: `${base}/news`, ...(latest ? { lastModified: new Date(latest) } : {}), changeFrequency: 'weekly', priority: 0.7 })
+    }
     for (const article of articles.docs) {
-      entries.push({ url: `${base}/news/${article.slug}`, lastModified: article.publishedAt ? new Date(article.publishedAt) : now, changeFrequency: 'monthly', priority: 0.6 })
+      entries.push({ url: `${base}/news/${article.slug}`, ...(article.publishedAt ? { lastModified: new Date(article.publishedAt) } : {}), changeFrequency: 'monthly', priority: 0.6 })
     }
     if (page >= articles.totalPages) break
     if (page >= MAX_PAGES_PER_CITY) throw new Error('资讯站点地图超过安全枚举上限')

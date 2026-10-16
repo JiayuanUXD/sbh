@@ -577,6 +577,8 @@ export type ArticleDetailViewModel = Readonly<{
   excerpt: string | null
   coverImage: MediaViewModel | null
   publishedAt: string | null
+  /** 最后修改时间（ISO），仅用于 JSON-LD `dateModified`；不是发布日期 */
+  updatedAt: string | null
   content: Article['content']
   relatedBuildings: readonly BuildingSummaryViewModel[]
   relatedDistricts: readonly DistrictViewModel[]
