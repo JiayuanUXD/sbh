@@ -314,6 +314,22 @@ e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一�
 在 `{open && createPortal(...)}` 里，弹层未打开时根本不在 DOM。四断点 × 表单四态实测计数恒为 1。
 按字面理解会把次要入口退化成一个死链接，而那里本来就该是询盘入口。
 
+## 区域 / 商圈落地页（OPT-119）
+
+`/{city}/area/{locationSlug}`，行政区与商圈**共用一个路由**（`locations.slug` 全局唯一，类型由地点表决定）。实现：`app/(frontend)/[city]/area/[slug]/page.tsx` → `components/frontend/city/AreaLandingView.tsx`（样式 `styles/area.css`，`.al-*`）；纯规则 `domain/public-catalog/area-landing.ts`，取数 `area-landing-facade.ts` + `area-landing-sql.ts`。
+
+- ★ **不要把它挪到 `/{city}/buildings/{区slug}`**：那一段已经是楼盘详情，楼盘 slug 与区域 slug 之间没有唯一性约束，两种实体共用一个动态段迟早撞名。
+- **只有带城市前缀一种形态**（线上多城开关已开；开关关闭时前缀路径本身是 noindex，落地页同样 noindex 且不进 sitemap）。`city-routes.ts` 的页面类型是 `area-detail`，没有 legacy 路径。
+- **收录门槛**（防薄内容）：可见（`frontendVisible`）且启用的地点才有页面，其余 404；在租房源 < `AREA_LANDING_MIN_LISTINGS`（10）的页面照常渲染诚实空态，但 `noindex, follow` 且不进 sitemap；`元/㎡/天` 报价样本 < `AREA_LANDING_MIN_PRICE_SAMPLES`（10）时整块「租金参考」不渲染。门槛常量只此一处。
+- ★ **数字只来自有效供给，不另写谓词**：统计 SQL 用 `effectiveSupplySqlFrom` + `listing-query-sql` 导出的价格归一片段（`LISTING_PRICE_AMOUNT_SQL` / `LISTING_PRICE_UNIT_SQL`），`tests/area-landing-sql.test.ts` 断言源码里没有第二份谓词或单位映射。**只对 `元/㎡/天` 求分位数**，其它单位只计 `otherUnitCount` 并如实说明「因单位不可换算未计入」，与列表页 `ExcludedUnitsBar` 同一条诚实义务。真库语义由 `tests/area-landing-postgres.test.ts` 锁（`pnpm test:postgres`）。
+- **文案不编造**：区域介绍优先用后台 `Locations.description`，缺省只用数据事实拼；FAQ 每一条都由传入的数字生成，没有数据的问题不出；月租估算 = 日单价 × 100㎡ × 30 天，页面上写明。
+- **与筛选页的关系**：落地页是内容页，`?district=` / `?businessArea=` 是工具页。仅当规范化查询**恰好只有一个** `district` 或 `businessArea`、且落地页达标时，筛选页 canonical 指向落地页（`app/(frontend)/_lib/location-filter-canonical.ts`，房源 / 楼盘两个路由共用）；叠加任何其它条件、第 2 页、出售口径都保持自 canonical。
+- **JSON-LD**：只有 `BreadcrumbList` + `ItemList`（热门楼盘），URL 一律绝对。**不写** `FAQPage`（Google 已限制其富结果）与任何价格类结构化数据（区域不是商品，中位数不是 Offer）。
+- **sitemap**：达标页进静态 sitemap，`lastmod` = 该区域有效房源 `updated_at` 的最大值（真实时间），取不到就不写。
+- **入口链接**：首页热门商圈卡与 Hero chips、资讯详情「相关商圈」指向落地页（带前缀时）。旧链接 `?district=<商圈slug>` 对商圈**根本不生效**（区域词表里没有它，被静默丢弃后落在未筛选的全城列表）——这是落地页顺带修掉的既有缺陷。
+- 已知缺口（刻意没做）：楼盘 / 房源详情的面包屑区域名没有链到落地页——DTO 里没有「该区域是否前台可见」，直接链会在不可见区域上产出 404 死链，要先给 DTO 补字段；资讯详情的相关商圈沿用默认城市前缀，不支持跨城资讯。
+- 缓存：落地页与统计索引走 `unstable_cache`（300s，供给 + 资讯 tag）。本地用裸 SQL 改了库不会触发失效，要验证请重启 dev server；`/[city]` 首页是 `revalidate = 300` 的 ISR，改首页链接后本地也要重启才看得到。
+
 ## 状态
 
 每页验证正常、加载、空、错误、404/失效、长文本、极值、图片失败、小视口和减少动效。失败不得伪装成 0 数据；无结果不得混入不匹配供给。

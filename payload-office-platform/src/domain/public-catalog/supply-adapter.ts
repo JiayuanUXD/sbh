@@ -52,6 +52,8 @@ import {
 } from "./types";
 import type { CoordinatesViewModel, PublicRouteIdentity } from "./contracts";
 import { mapBuildingCity, mapCoordinates, mapMedia, resolveListingPrice } from "./mappers";
+import { buildAreaLandingStatsQuery, mapAreaLandingStatsRow } from "./area-landing-sql";
+import type { AreaLandingStatsRow } from "./area-landing";
 import {
   matchesPriceFilter,
   rowsFromListings,
@@ -94,6 +96,10 @@ export interface SupplyAdapter {
   findEffectiveBuildingsByIds?(ids: readonly number[], ctx: SearchContext): Promise<readonly Building[]>;
   /** 首页楼盘计数与商圈代表摘要，不水合城市内所有楼盘。 */
   findHomepageBuildingOverview?(ctx: SearchContext, visibleAreaSlugs: readonly string[]): Promise<HomepageBuildingOverview>;
+  /** 区域落地页（OPT-119）：整城行政区 / 商圈在有效供给口径下的统计行，一次扫描。 */
+  findAreaLandingStats?(ctx: SearchContext): Promise<readonly AreaLandingStatsRow[]>;
+  /** 区域落地页「相关资讯」：`relatedDistricts` 命中任一地点 ID 的已发布资讯，按发布时间倒序。 */
+  findArticlesByRelatedLocations?(locationIds: readonly number[], limit: number): Promise<readonly Article[]>;
   /** 数据库端筛选、稳定排序与分页；只返回当前页 ID。 */
   findListingPage?(input: ListingSearchInput, ctx: SearchContext): Promise<ListingPageSelection>;
   /** 与目录同谓词的筛选计数，不返回全量候选。 */
@@ -1207,6 +1213,29 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         });
       }
       return { count, representatives, areas: [...areas.values()].map(({ slug, names }) => ({ slug, names })) };
+    },
+    async findAreaLandingStats(ctx) {
+      const payload = await getPayload();
+      const query = buildAreaLandingStatsQuery(ctx);
+      const result = await payload.db.pool.query<Record<string, unknown>>(query.text, query.values);
+      return result.rows.map(mapAreaLandingStatsRow);
+    },
+    async findArticlesByRelatedLocations(locationIds, limit) {
+      if (locationIds.length === 0) return [];
+      const payload = await getPayload();
+      const result = await payload.find({
+        collection: "articles",
+        where: {
+          status: { equals: "published" },
+          deletedAt: { exists: false },
+          relatedDistricts: { in: [...locationIds] },
+        },
+        depth: 2,
+        pagination: false,
+        limit: Math.min(Math.max(limit, 1), 50),
+        sort: "-publishedAt",
+      });
+      return result.docs as readonly Article[];
     },
     async findListingPage(input, ctx) {
       const payload = await getPayload();

@@ -23,6 +23,10 @@ const legacyValid = `l.rent >= 0 AND l.rent::text NOT IN ('NaN', 'Infinity', '-I
 const amount = `CASE WHEN ${structuredValid} THEN l.price_amount WHEN ${legacyValid} THEN l.rent END`
 const unit = `CASE WHEN ${structuredValid} THEN (${structuredUnit}) WHEN ${legacyValid} THEN (${legacyUnit}) END`
 
+/** 归一后的价格金额 / 展示单位 SQL 片段：区域落地页统计与房源列表同源，不另写一份单位映射。 */
+export const LISTING_PRICE_AMOUNT_SQL = amount
+export const LISTING_PRICE_UNIT_SQL = unit
+
 function filteredQuery(input: ListingSearchInput, ctx: SearchContext) {
   const values: unknown[] = [ctx.asOf, null, ctx.city, ctx.businessType ?? null]
   const bind = (value: unknown) => { values.push(value); return `$${values.length}` }

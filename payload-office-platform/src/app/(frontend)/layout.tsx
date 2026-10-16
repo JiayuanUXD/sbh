@@ -15,6 +15,7 @@ import './styles/surface.css'
 import './styles/home.css'
 import './styles/list.css'
 import './styles/detail.css'
+import './styles/area.css'
 // recruit.css 必须在 styles.css 之后：招募页要在本页作用域内覆写 .filter-bar__input /
 // .btn 这类全局原语。它独立成文件而不是追加到 styles.css 末尾，是因为
 // tests/coming-soon-city-view.test.ts 对 styles.css 尾部切片做内容断言（禁新体系 token）。

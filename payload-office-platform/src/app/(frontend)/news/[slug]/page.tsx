@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import PageContent from '@/components/frontend/PageContent'
+import { areaLandingPath } from '@/domain/public-catalog/area-landing'
 import { serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { buildNotFoundMetadata, buildPageMetadata } from '@/lib/frontend/metadata'
 import { formatPublishedDate } from '@/lib/frontend/format'
@@ -183,7 +184,10 @@ export default async function ArticleDetailPage({
                 {article.relatedDistricts.map((d) => (
                   <li key={d.id}>
                     <Link
-                      href={`/listings?district=${d.slug}`}
+                      // 区域 / 商圈落地页（OPT-119）。旧的 district 筛选链接对商圈（relatedDistricts
+                      // 允许选商圈）不生效，会静默落在未筛选的全城列表。资讯不带城市，沿用旧链接
+                      // 隐含的默认城市。
+                      href={areaLandingPath(siteConfig.defaultCity, d.slug)}
                       prefetch={false}
                       className="news-detail__related-link"
                     >

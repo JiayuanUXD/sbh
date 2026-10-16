@@ -3,6 +3,7 @@ import HomeHeroMedia from '@/components/frontend/HomeHeroMedia'
 import HomeSearchPill from './HomeSearchPill'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type { DistrictViewModel } from '@/domain/public-catalog/contracts'
+import { areaLandingPath } from '@/domain/public-catalog/area-landing'
 
 /**
  * 首屏文案读**全局** `SiteSettings`，不读 `CitySiteProfiles.hero.*`。
@@ -49,7 +50,8 @@ export default function HomeHero({ city, districts, routeMode, heading, slogan }
         {chips.length > 0 ? (
           <nav className="hm-hero__chips" aria-label="热门筛选">
             {chips.map((d) => (
-              <a key={d.slug} className="hm-hero__chip" href={`${prefix}/listings?district=${encodeURIComponent(d.slug)}`}>{d.name}</a>
+              // 带城市前缀时指向区域落地页（OPT-119）；无前缀（legacy）没有落地页，仍走筛选页。
+              <a key={d.slug} className="hm-hero__chip" href={prefix ? areaLandingPath(city.slug, d.slug) : `/listings?district=${encodeURIComponent(d.slug)}`}>{d.name}</a>
             ))}
           </nav>
         ) : null}

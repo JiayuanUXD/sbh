@@ -3,7 +3,9 @@ import { unstable_cache } from 'next/cache'
 import { listPublicCityProfiles } from './city-context'
 import { globalStaticUrls } from './sitemap'
 import { SITEMAP_TAG, createSearchContext, searchListingsSitemapPage } from '@/domain/public-catalog'
+import { areaLandingPath } from '@/domain/public-catalog/area-landing'
 import {
+  getCachedAreaLandingIndex,
   getCachedPublishedArticles,
   getCachedPublishedPages,
   getCachedSitemapBuildingsPage,
@@ -95,6 +97,20 @@ export async function getStaticSitemap(): Promise<MetadataRoute.Sitemap> {
     )
     if (shouldListSaleChannelInSitemap(await hasEffectiveSale(city.citySlug) ? 1 : 0)) {
       entries.push({ url: `${prefix}/sale`, lastModified: now, changeFrequency: 'daily', priority: 0.9 })
+    }
+    // OPT-119 区域 / 商圈落地页：只收达到收录门槛的；lastmod 是该区域有效房源的真实最近更新
+    // 时间，取不到就不写（不用请求时刻冒充）。落地页只有带城市前缀一种形态，多城开关关闭时
+    // 前缀路径整体 noindex，所以此时一条都不输出。
+    if (getMultiCityRoutingEnabled()) {
+      for (const area of await getCachedAreaLandingIndex(city.citySlug)) {
+        if (!area.indexable) continue
+        entries.push({
+          url: `${base}${areaLandingPath(city.citySlug, area.slug)}`,
+          ...(area.lastUpdatedAt ? { lastModified: new Date(area.lastUpdatedAt) } : {}),
+          changeFrequency: 'weekly',
+          priority: area.kind === 'district' ? 0.8 : 0.7,
+        })
+      }
     }
   }
   const pages = await getCachedPublishedPages(5_000)

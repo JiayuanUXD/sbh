@@ -1,5 +1,7 @@
 import { unstable_cache } from 'next/cache'
 
+import { getAreaLandingIndex, getAreaLandingPage } from '@/domain/public-catalog/area-landing-facade'
+
 import {
   ARTICLES_CATEGORY_TAG as PUBLIC_ARTICLES_CATEGORY_TAG,
   BUILDINGS_CATEGORY_TAG,
@@ -651,3 +653,36 @@ export const getCachedArticleBySlug = unstable_cache(
     revalidate: 300,
   },
 )
+
+// ---------------------------------------------------------------------------
+// 区域 / 商圈落地页（OPT-119）
+// ---------------------------------------------------------------------------
+
+const getCachedAreaLandingIndexByCity = memoizeByCity((citySlug) =>
+  unstable_cache(
+    // 租赁口径；价格统计只含 元/㎡/天（见 area-landing.ts）。出售不进落地页。
+    async () => getAreaLandingIndex(createSearchContext(citySlug, undefined, 'lease')),
+    ['area-landing-index', citySlug],
+    { tags: mixedSupplyCacheTags(citySlug), revalidate: 300 },
+  ),
+)
+
+/** 整城行政区 / 商圈统计（可见地点 × 有效供给）。sitemap、落地页、筛选页 canonical 共用同一条缓存。 */
+export function getCachedAreaLandingIndex(citySlug: string) {
+  const city = canonicalCitySlug(citySlug)
+  return coalesceInFlight(`area-landing-index ${city}`, () => getCachedAreaLandingIndexByCity(city)())
+}
+
+const getCachedAreaLandingByCity = memoizeByCity((citySlug) =>
+  unstable_cache(
+    async (slug: string) => getAreaLandingPage(slug, createSearchContext(citySlug, undefined, 'lease')),
+    ['area-landing', citySlug],
+    // 页面还带相关资讯，所以除了供给 tag 之外要挂资讯类目 tag。
+    { tags: [...mixedSupplyCacheTags(citySlug), ARTICLES_CATEGORY_TAG], revalidate: 300 },
+  ),
+)
+
+export function getCachedAreaLanding(citySlug: string, slug: string) {
+  const city = canonicalCitySlug(citySlug)
+  return coalesceInFlight(`area-landing ${city} ${slug}`, () => getCachedAreaLandingByCity(city)(slug))
+}

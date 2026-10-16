@@ -7,6 +7,7 @@ import { listPublicCityOptions, resolveCityContext } from '@/app/(frontend)/_lib
 import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/frontend/cached-queries'
 import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
 import { resolveListingSearchInput } from '@/app/(frontend)/_lib/search-input'
+import { withLocationFilterCanonical } from '@/app/(frontend)/_lib/location-filter-canonical'
 import { parseListingViewMode } from '@/lib/frontend/listing-url'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
@@ -39,12 +40,14 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     ? parseListingSearchInput(toUrlSearchParams(raw))
     : await resolveListingSearchInput(city.slug, toUrlSearchParams(raw))
   const query = buildCanonicalSearchParams(input).toString()
-  return buildCityPageMetadata({
+  const base = buildCityPageMetadata({
     city,
     pageType: 'listings',
     canonicalQuery: query || undefined,
     multiCityRoutingEnabled: getMultiCityRoutingEnabled(),
   })
+  // 纯地点筛选（只有一个 district / businessArea）→ canonical 合并到区域落地页（OPT-119）。
+  return withLocationFilterCanonical(base, { citySlug: city.slug, serviceStatus: city.serviceStatus, canonicalQuery: query })
 }
 
 export default async function CityListingsPage({ params, searchParams }: Props) {

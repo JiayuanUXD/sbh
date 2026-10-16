@@ -77,7 +77,7 @@ const LISTING_TYPE_LABEL: Record<ListingDetailViewModel['listingType'], string> 
   'serviced-office': '独栋办公',
 }
 
-function validateSiteOrigin(origin: string): string {
+export function validateSiteOrigin(origin: string): string {
   const url = new URL(origin)
   if (
     (url.protocol !== 'http:' && url.protocol !== 'https:') ||
