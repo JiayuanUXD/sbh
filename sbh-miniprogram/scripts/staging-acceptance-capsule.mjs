@@ -501,6 +501,8 @@ async function secureReadFile(context, path, maximumBytes, optional = false) {
       }
     }
     if (error instanceof CapsuleSafetyError) throw error
+    // Removed between lstat and open: an identity change like a replacement, not an I/O fault.
+    if (errorCode(error) === 'ENOENT') capsuleFailure('file_identity_changed')
     if (errorCode(error) === 'ELOOP') capsuleFailure('file_unsafe')
     capsuleFailure('io_failed')
   }
@@ -586,7 +588,21 @@ async function readLockFile(context, path, optional = false) {
         candidates.push({ path: candidatePath, ownerToken: suffix.slice(0, 64) })
       }
     }
-    if (candidates.length !== 1) capsuleFailure('file_unsafe')
+    if (candidates.length !== 1) {
+      // The publisher may have removed its temp between lstat and readdir (nlink 2 -> 1).
+      // Only a still-linked, unchanged file without exactly one temp is a foreign hard link.
+      let current
+      try {
+        current = await context.fileSystem.lstat(path)
+      } catch (error) {
+        if (errorCode(error) === 'ENOENT') capsuleFailure('file_identity_changed')
+        capsuleFailure('io_failed')
+      }
+      if (current.nlink !== 2 || !sameIdentity(fileIdentity(current), fileIdentity(preliminary))) {
+        capsuleFailure('file_identity_changed')
+      }
+      capsuleFailure('file_unsafe')
+    }
 
     let handle
     try {
@@ -631,6 +647,7 @@ async function readLockFile(context, path, optional = false) {
         }
       }
       if (error instanceof CapsuleSafetyError) throw error
+      if (errorCode(error) === 'ENOENT') capsuleFailure('file_identity_changed')
       capsuleFailure('io_failed')
     }
   }
@@ -896,6 +913,17 @@ async function probeProcess(context, pid) {
   }
 }
 
+// Another contender legitimately published, replaced or removed the lock or claim between
+// two of our syscalls. Exclusion rests on link / O_EXCL / rename atomicity, not on readers
+// failing, and every re-read repeats the full safety checks, so such a change only needs a
+// fresh decision. Persistent churn exhausts the attempts and fails as lock_contention.
+function isConcurrentChange(error) {
+  return (
+    error instanceof CapsuleSafetyError &&
+    (error.code === 'file_identity_changed' || error.code === 'lock_identity_changed')
+  )
+}
+
 function createLease(context, mode, lockIdentity) {
   const activePath = join(context.rootDir, ACTIVE_CAPSULE_FILE_NAME)
   const lockPath = join(context.rootDir, RUNNER_LOCK_FILE_NAME)
@@ -1062,15 +1090,21 @@ export function createCapsuleStore(options = {}) {
 
       for (let attempt = 0; attempt < 8; attempt += 1) {
         await assertRootIdentity(context, context.rootIdentity)
-        let claim = await readLockFile(context, claimPath, true)
+        let claim
+        try {
+          claim = await readLockFile(context, claimPath, true)
+        } catch (error) {
+          if (isConcurrentChange(error)) continue
+          throw error
+        }
         if (claim !== null) {
           if (mode === 'normal') capsuleFailure('lock_stale_recovery_required')
           if (await probeProcess(context, claim.record.pid)) capsuleFailure('lock_active')
-          claim = await repairLinkedLockPublication(context, claimPath, claim)
           try {
+            claim = await repairLinkedLockPublication(context, claimPath, claim)
             await removeOwnedLockFile(context, claimPath, claim.identity, claim.record.ownerToken)
           } catch (error) {
-            if (error instanceof CapsuleSafetyError && error.code === 'lock_identity_changed') continue
+            if (isConcurrentChange(error)) continue
             throw error
           }
           continue
@@ -1090,10 +1124,16 @@ export function createCapsuleStore(options = {}) {
           return createLease(context, mode, createdIdentity)
         }
 
-        let existing = await readLockFile(context, lockPath)
-        if (await probeProcess(context, existing.record.pid)) capsuleFailure('lock_active')
-        if (mode === 'normal') capsuleFailure('lock_stale_recovery_required')
-        existing = await repairLinkedLockPublication(context, lockPath, existing)
+        let existing
+        try {
+          existing = await readLockFile(context, lockPath)
+          if (await probeProcess(context, existing.record.pid)) capsuleFailure('lock_active')
+          if (mode === 'normal') capsuleFailure('lock_stale_recovery_required')
+          existing = await repairLinkedLockPublication(context, lockPath, existing)
+        } catch (error) {
+          if (isConcurrentChange(error)) continue
+          throw error
+        }
 
         const claimIdentity = await writeExclusiveFile(context, claimPath, serializedOwnRecord)
         if (claimIdentity === null) continue
@@ -1121,7 +1161,7 @@ export function createCapsuleStore(options = {}) {
           } catch {
             // A later explicit recovery can reclaim a stale claim by PID.
           }
-          if (error instanceof CapsuleSafetyError && error.code === 'lock_identity_changed') continue
+          if (isConcurrentChange(error)) continue
           throw error
         }
       }
