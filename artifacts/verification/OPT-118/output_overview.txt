@@ -1,17 +1,17 @@
-listings 36471 buildings 4318
-priceunits [('day/sqm', 36427), ('month/seat', 44)]
-types Counter({'traditional-office': 36427, 'coworking': 44})
-deco Counter({'furnished': 18202, 'simple': 14450, 'rough': 3775, 'fully_fitted': 44})
-rows 36427
-price pctl 1,5,25,50,75,95,99,max [1.32, 1.94, 3.08, 4.25, 5.53, 8.08, 9.78] 12.33 0.65
-area pctl [75.7, 159, 276, 500, 1614]
+listings 33748 buildings 4317
+priceunits [('day/sqm', 33704), ('month/seat', 44)]
+types Counter({'traditional-office': 33704, 'coworking': 44})
+deco Counter({'furnished': 16588, 'simple': 13508, 'rough': 3608, 'fully_fitted': 44})
+rows 33704
+price pctl 1,5,25,50,75,95,99,max [1.32, 1.94, 3.08, 4.25, 5.36, 7.82, 9.35] 12.33 0.65
+area pctl [76, 160, 280, 504, 1641]
 
 === district
 黄浦区	n=6730	medP=5.36	p25=4.25	p75=6.80	medA=250	buildings=254
 徐汇区	n=6216	medP=4.31	p25=3.96	p75=5.10	medA=313	buildings=323
-静安区	n=5241	medP=4.68	p25=3.52	p75=6.04	medA=246	buildings=265
 浦东新区	n=5241	medP=4.25	p25=3.34	p75=5.53	medA=310	buildings=430
 虹口区	n=3265	medP=4.25	p25=3.08	p75=5.70	medA=253	buildings=158
+静安区	n=2518	medP=4.27	p25=3.52	p75=5.95	medA=300	buildings=258
 长宁区	n=1886	medP=3.96	p25=3.08	p75=5.10	medA=300	buildings=208
 杨浦区	n=1856	medP=3.52	p25=2.64	p75=4.25	medA=221	buildings=121
 普陀区	n=1671	medP=3.08	p25=2.64	p75=3.52	medA=300	buildings=155
@@ -23,7 +23,6 @@ area pctl [75.7, 159, 276, 500, 1614]
 奉贤区	n=75	medP=1.67	p25=1.30	p75=1.76	medA=394	buildings=15
 
 === top business areas
-南京西路	n=2310	medP=5.19	buildings=42	parent=静安区
 漕河泾	n=1837	medP=4.14	buildings=72	parent=徐汇区
 ?	n=1793	medP=4.22	buildings=194	parent=?
 打浦桥	n=1444	medP=4.42	buildings=38	parent=黄浦区
@@ -35,17 +34,17 @@ area pctl [75.7, 159, 276, 500, 1614]
 万体馆	n=915	medP=4.25	buildings=35	parent=徐汇区
 淮海中路	n=897	medP=5.10	buildings=34	parent=黄浦区
 外滩	n=779	medP=5.95	buildings=25	parent=黄浦区
+南京西路	n=681	medP=5.95	buildings=39	parent=静安区
 张江	n=666	medP=3.96	buildings=69	parent=浦东新区
 四平路	n=666	medP=4.68	buildings=12	parent=虹口区
 大连路	n=635	medP=4.25	buildings=14	parent=杨浦区
 竹园商贸区	n=608	medP=5.10	buildings=29	parent=浦东新区
-静安寺	n=573	medP=5.95	buildings=35	parent=静安区
 江桥	n=562	medP=2.20	buildings=21	parent=嘉定区
 四川北路	n=529	medP=3.19	buildings=26	parent=虹口区
 真如	n=487	medP=2.99	buildings=18	parent=普陀区
+徐家汇	n=465	medP=5.10	buildings=36	parent=徐汇区
 
 === top buildings
-仲益大厦	静安区	南京西路	n=764	medP=4.42	min=2.99	max=8.59
 中海国际中心	黄浦区	新天地	n=730	medP=7.65	min=3.34	max=10.03
 金融街海伦中心	虹口区	四平路	n=472	medP=4.85	min=3.52	max=7.48
 北外滩来福士	虹口区	北外滩	n=418	medP=7.65	min=3.96	max=11.90
@@ -53,29 +52,30 @@ area pctl [75.7, 159, 276, 500, 1614]
 枫林科创园	徐汇区	漕河泾	n=388	medP=4.25	min=2.46	max=5.10
 东航滨江中心	徐汇区	龙华	n=379	medP=4.68	min=3.96	max=6.80
 海外滩中心	黄浦区	打浦桥	n=356	medP=3.34	min=2.20	max=6.63
-亚龙创业园	静安区	彭浦	n=349	medP=3.08	min=2.20	max=5.91
 金光外滩中心	黄浦区	外滩	n=325	medP=5.95	min=4.25	max=10.88
 晶耀前滩	浦东新区	前滩	n=321	medP=5.87	min=4.05	max=8.50
 博荟广场	黄浦区	?	n=295	medP=6.38	min=4.25	max=9.35
 上海万硕大厦	杨浦区	大连路	n=294	medP=4.25	min=3.52	max=7.65
 兆丰环球大厦	徐汇区	万体馆	n=265	medP=4.25	min=2.64	max=6.21
 香港广场	黄浦区	淮海中路	n=260	medP=5.10	min=3.52	max=9.35
+国家会展中心	青浦区	徐泾	n=258	medP=3.52	min=2.20	max=6.38
+H88越虹广场	徐汇区	漕河泾	n=244	medP=4.80	min=3.52	max=10.09
 
 === area bands overall
-0 50 653 1.8% med 3.34
-50 100 2485 6.8% med 3.52
-100 200 9337 25.6% med 3.96
-200 300 6778 18.6% med 4.22
-300 500 7561 20.8% med 4.31
-500 1000 5395 14.8% med 4.42
-1000 1000000000.0 4218 11.6% med 4.51
+0 50 634 1.9% med 3.34
+50 100 2231 6.6% med 3.52
+100 200 8454 25.1% med 3.78
+200 300 6240 18.5% med 4.22
+300 500 7086 21.0% med 4.25
+500 1000 5126 15.2% med 4.34
+1000 1000000000.0 3933 11.7% med 4.42
 
 === small area (<=100) by district
 黄浦区 557 8.3% med 4.25
 徐汇区 596 9.6% med 4.25
-静安区 705 13.5% med 4.25
 浦东新区 357 6.8% med 3.52
 虹口区 284 8.7% med 3.08
+静安区 392 15.6% med 4.22
 长宁区 158 8.4% med 3.52
 杨浦区 197 10.6% med 2.64
 普陀区 134 8.0% med 2.90
@@ -86,11 +86,11 @@ area pctl [75.7, 159, 276, 500, 1614]
 松江区 47 16.5% med 1.94
 
 === lease terms
-minMonths [(24, 20880), (12, 11674), (36, 3662), (1, 72), (2, 47), (3, 32), (6, 30), (5, 7)]
-pay [('押3付1', 16950), ('押2付2', 7970), ('押2付3', 5319), ('押3付3', 2515), ('押3付2', 1344), ('押1付3', 1158), ('押2付1', 511), ('押1付6', 148)]
-deposit [(3, 20830), (2, 13971), (1, 1466), (24, 114), (4, 28), (5, 11)]
-efficiency n 23555 med 70 [65, 70, 70, 70, 75]
+minMonths [(24, 19199), (12, 10836), (36, 3470), (1, 66), (2, 45), (3, 31), (6, 30), (5, 7)]
+pay [('押3付1', 15699), ('押2付2', 7178), ('押2付3', 4962), ('押3付3', 2467), ('押3付2', 1287), ('押1付3', 1122), ('押2付1', 474), ('押1付6', 119)]
+deposit [(3, 19474), (2, 12764), (1, 1397), (4, 27), (24, 24), (5, 11)]
+efficiency n 21666 med 70.0 [65, 70, 70, 70, 75]
 deco med price
-rough 3775 3.96
-simple 14450 4.25
-furnished 18202 4.25
+rough 3608 3.96
+simple 13508 4.25
+furnished 16588 4.25

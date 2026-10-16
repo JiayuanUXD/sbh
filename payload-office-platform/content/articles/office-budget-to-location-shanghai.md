@@ -23,8 +23,8 @@ seoDescription: 按上海 11 个区的写字楼挂牌价中位数，倒推月预
 下面是各区中位数（元/㎡/天）和对应的可租面积。面积取整，只含租金，不含物业费和空调费。
 
 - [黄浦区](/shanghai/listings?district=huangpu)（5.36）：约 187㎡。
-- [静安区](/shanghai/listings?district=jingan)（4.68）：约 214㎡。
 - [徐汇区](/shanghai/listings?district=xuhui)（4.31）：约 232㎡。
+- [静安区](/shanghai/listings?district=jingan)（4.27）：约 234㎡。
 - [浦东新区](/shanghai/listings?district=pudong)（4.25）、[虹口区](/shanghai/listings?district=hongkou)（4.25）：约 235㎡。
 - [长宁区](/shanghai/listings?district=changning)（3.96）：约 253㎡。
 - [杨浦区](/shanghai/listings?district=yangpu)（3.52）：约 284㎡。
@@ -38,8 +38,8 @@ seoDescription: 按上海 11 个区的写字楼挂牌价中位数，倒推月预
 ## 月预算 5 万
 
 - 黄浦区：约 311㎡。
-- 静安区：约 356㎡。
 - 徐汇区：约 387㎡。
+- 静安区：约 390㎡。
 - 浦东新区、虹口区：约 392㎡。
 - 长宁区：约 421㎡。
 - 杨浦区：约 473㎡。
@@ -51,8 +51,8 @@ seoDescription: 按上海 11 个区的写字楼挂牌价中位数，倒推月预
 ## 月预算 10 万
 
 - 黄浦区：约 622㎡。
-- 静安区：约 712㎡。
 - 徐汇区：约 773㎡。
+- 静安区：约 781㎡。
 - 浦东新区、虹口区：约 784㎡。
 - 长宁区：约 842㎡。
 - 杨浦区：约 947㎡。
