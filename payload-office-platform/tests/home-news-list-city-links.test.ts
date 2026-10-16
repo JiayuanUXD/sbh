@@ -21,6 +21,7 @@ const articles: readonly ArticleCardViewModel[] = [
     excerpt: null,
     coverImage: null,
     publishedAt: '2026-08-01T00:00:00.000Z',
+    updatedAt: null,
     stableSortKey: 'article-31',
   },
 ]
@@ -51,6 +52,7 @@ const makeArticle = (id: number, publishedAt: string | null): ArticleCardViewMod
   excerpt: null,
   coverImage: null,
   publishedAt,
+  updatedAt: null,
   stableSortKey: `article-${id}`,
 })
 

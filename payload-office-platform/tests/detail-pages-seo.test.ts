@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type {
+  ArticleDetailViewModel,
   BuildingDetailViewModel,
   BuildingSupplySnapshot,
   ListingDetailViewModel,
 } from '@/domain/public-catalog'
 import {
+  buildArticleJsonLd,
   buildBuildingJsonLd,
   buildBuildingMetadata,
   buildListingJsonLd,
@@ -297,5 +299,74 @@ describe('detail metadata and JSON-LD', () => {
     expect(buildingJsonLd.breadcrumb.itemListElement.at(-1)?.item).toBe(`${ORIGIN}${buildingPath}`)
     expect(listingJsonLd.url).not.toContain('?phone=')
     expect(listingJsonLd.url).not.toContain('#overview')
+  })
+
+  it('Offer 价格走 priceSpecification 并带计价单位，顶层不写 price（单价不能被读成总价）', () => {
+    const offers = buildListingJsonLd(makeListing(), ORIGIN).offers
+    expect(offers).toMatchObject({
+      '@type': 'Offer',
+      priceCurrency: 'CNY',
+      priceSpecification: { '@type': 'UnitPriceSpecification', price: 8.5, priceCurrency: 'CNY', unitText: '元/㎡/天' },
+    })
+    expect(offers).not.toHaveProperty('price')
+  })
+
+  it('JSON-LD 的 image 一律补成绝对 URL，站内相对路径不原样输出', () => {
+    const relative = { src: '/api/media/file/cover.webp?prefix=media', alt: '封面' }
+    const listing = buildListingJsonLd(makeListing({ coverImage: relative }), ORIGIN)
+    const building = buildBuildingJsonLd(makeBuilding({ coverImage: relative }), EMPTY_SUPPLY, ORIGIN)
+    expect(listing.image).toBe(`${ORIGIN}/api/media/file/cover.webp?prefix=media`)
+    expect(building.image).toBe(`${ORIGIN}/api/media/file/cover.webp?prefix=media`)
+    // 已是绝对 URL 的不改
+    expect(buildListingJsonLd(makeListing(), ORIGIN).image).toBe('https://cdn.example.com/listing-cover.jpg')
+  })
+})
+
+function makeArticle(overrides: Partial<ArticleDetailViewModel> = {}): ArticleDetailViewModel {
+  return {
+    id: 1,
+    slug: 'rent-guide',
+    title: '写字楼租金怎么算',
+    category: 'guide',
+    excerpt: '一篇讲清租金构成的指南。',
+    coverImage: { src: '/api/media/file/a.webp?prefix=media', alt: '封面' },
+    publishedAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-10T00:00:00.000Z',
+    content: null,
+    relatedBuildings: [],
+    relatedDistricts: [],
+    seo: null,
+    ...overrides,
+  }
+}
+
+describe('Article JSON-LD', () => {
+  it('输出 author / publisher / dateModified / 绝对 image / mainEntityOfPage', () => {
+    const jsonLd = buildArticleJsonLd(makeArticle(), ORIGIN, '商办租赁')
+    expect(jsonLd).toMatchObject({
+      '@type': 'Article',
+      headline: '写字楼租金怎么算',
+      url: `${ORIGIN}/news/rent-guide`,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': `${ORIGIN}/news/rent-guide` },
+      datePublished: '2026-10-01T00:00:00.000Z',
+      dateModified: '2026-10-10T00:00:00.000Z',
+      image: `${ORIGIN}/api/media/file/a.webp?prefix=media`,
+      author: { '@type': 'Organization', name: '商办租赁' },
+      publisher: { '@type': 'Organization', name: '商办租赁', url: `${ORIGIN}/` },
+    })
+    expect(jsonLd.breadcrumb.itemListElement.map((item) => item.name)).toEqual(['首页', '资讯中心', '写字楼租金怎么算'])
+  })
+
+  it('dateModified 不晚于发布时间时不输出，缺字段时不虚构', () => {
+    const same = buildArticleJsonLd(makeArticle({ updatedAt: '2026-10-01T00:00:00.000Z' }), ORIGIN, '商办租赁')
+    expect(same).not.toHaveProperty('dateModified')
+    // 发布流程里几秒后的二次写入也不算修改
+    const justAfter = buildArticleJsonLd(makeArticle({ updatedAt: '2026-10-01T00:00:04.000Z' }), ORIGIN, '商办租赁')
+    expect(justAfter).not.toHaveProperty('dateModified')
+    const bare = buildArticleJsonLd(makeArticle({ excerpt: null, coverImage: null, publishedAt: null, updatedAt: null }), ORIGIN, '商办租赁')
+    expect(bare).not.toHaveProperty('description')
+    expect(bare).not.toHaveProperty('image')
+    expect(bare).not.toHaveProperty('datePublished')
+    expect(bare).not.toHaveProperty('dateModified')
   })
 })

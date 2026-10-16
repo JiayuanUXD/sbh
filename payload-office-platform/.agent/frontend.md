@@ -367,7 +367,13 @@ e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一�
 - 每页唯一 title、description、canonical、OG；一个 H1。
 - **例外：首页 Hero 的 H1/副标全站共用一句**，由产品指定（不等于设计稿 `首页.dc.html` 的文案），既不按城市定制、也不读 `CitySiteProfiles.hero.heading/body`；城市差异全部由 title / description / OG 承担。别把它「修回」逐城可配，也别按设计稿改回去——见 `components/frontend/home/HomeHero.tsx` 顶部说明与 OPT-035 工作项 §8。
 - JSON-LD 与页面使用同一 DTO，不虚构库存、评级或价格。
-- sitemap 只包含已发布内容和有效供给，域名来自类型化配置。
+  - `image` 必须是**绝对 URL**（公开媒体常是 `/api/media/...` 相对路径，用 `toAbsoluteMediaUrl` 补全）；OG 图走 `metadataBase`，不用补。
+  - 价格写进 `Offer.priceSpecification`（带 `unitText`），**不写 Offer 顶层 `price`**：房源价格多是「元/㎡/天」单价，顶层 `price` 会被读成总价。
+  - 资讯用 `buildArticleJsonLd`：`author` / `publisher` 是站点 Organization，`dateModified` 只在晚于发布 1 小时以上时输出。
+- sitemap 只包含已发布内容和有效供给，域名来自类型化配置。**`lastmod` 只写真实的修改时间，拿不到就不写**，不要填请求时刻（OPT-118）；`changefreq` / `priority` 搜索引擎基本忽略，别在上面花功夫。
+- **底部咨询模块只属于楼盘、房源详情页**：内容页（`/pages/[slug]`）和资讯详情页（`/news/[slug]`）不挂「需要专业选址建议？/ 提交需求」（OPT-118，`tests/content-pages-no-bottom-cta.test.ts` 守着）。
+- `/news` 没有任何已发布资讯时 `noindex` 且不进 sitemap（空列表是薄内容）。
+- 资讯内容放 `content/articles/*.md`，用 `scripts/import-articles.ts` 导入，默认草稿；不支持表格 / 图片 / 嵌套列表（渲染器与后台编辑器都没有对应节点）。数据类文章的数字必须能追溯到口径，不得编造（OPT-118）。
 - 公共供给最长缓存 5 分钟，并由领域事件失效。
 - 分析只记录匿名 ID、枚举、上下文和结果；曝光按可见性去重。
 

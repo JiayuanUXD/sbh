@@ -533,6 +533,7 @@ export function mapArticleCard(raw: unknown): ArticleCardViewModel | null {
     excerpt: raw.excerpt ?? null,
     coverImage: mapMedia(raw.coverImage, raw.title),
     publishedAt: raw.publishedAt ?? null,
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
     stableSortKey: `article-${raw.id}`,
   }
 }
@@ -574,6 +575,7 @@ export function mapArticleDetail(raw: unknown): ArticleDetailViewModel | null {
     excerpt: raw.excerpt ?? null,
     coverImage: mapMedia(raw.coverImage, raw.title),
     publishedAt: raw.publishedAt ?? null,
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
     content: raw.content ?? null,
     relatedBuildings,
     relatedDistricts,

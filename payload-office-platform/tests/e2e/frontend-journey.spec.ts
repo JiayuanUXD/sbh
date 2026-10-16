@@ -110,8 +110,8 @@ test.describe('F7.1 全链路 E2E', () => {
     }
   })
 
-  test('内容页 → 通用咨询', async ({ page }) => {
-    // 通过 sitemap 找到一个内容页
+  test('内容页与资讯详情页底部不挂咨询模块', async ({ page }) => {
+    // 只有楼盘 / 房源详情页保留咨询入口；内容页、资讯详情页底部的「需要专业选址建议？」模块已移除
     const sitemap = await page.goto('/sitemap.xml')
     const xml = await sitemap?.text()
     const pageMatch = xml?.match(/<loc>([^<]+\/pages\/[^<]+)<\/loc>/)
@@ -120,16 +120,8 @@ test.describe('F7.1 全链路 E2E', () => {
     const pageUrl = pageMatch![1].replace(/^https?:\/\/[^/]+/, '')
     await page.goto(pageUrl)
     await expect(page.locator('h1')).toBeVisible()
-
-    // 法律页面（privacy/policy）不应显示咨询 CTA
-    const isLegal = /\/(privacy|policy)/i.test(pageUrl)
-    if (!isLegal) {
-      const cta = page.locator('.page-detail__cta')
-      if ((await cta.count()) > 0) {
-        await cta.getByRole('button', { name: /提交需求|询价/ }).click()
-        await expect(page.getByRole('dialog')).toBeVisible()
-      }
-    }
+    await expect(page.locator('.page-detail__cta')).toHaveCount(0)
+    await expect(page.getByText('需要专业选址建议？')).toHaveCount(0)
   })
 
   test('404 页面', async ({ page }) => {
