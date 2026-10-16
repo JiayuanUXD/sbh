@@ -57,7 +57,7 @@ const nearbyListing: NearbyListingViewModel = { ...listing, id: 22, slug: 'listi
 
 const article: ArticleCardViewModel = {
   id: 31, slug: 'news-31', title: '首页改版上线', category: null, excerpt: null, coverImage: null,
-  publishedAt: '2026-08-01T00:00:00.000Z', stableSortKey: 'article-31',
+  publishedAt: '2026-08-01T00:00:00.000Z', updatedAt: null, stableSortKey: 'article-31',
 }
 
 function buildHomepage(

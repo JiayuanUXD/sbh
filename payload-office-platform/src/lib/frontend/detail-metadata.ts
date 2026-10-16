@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import type {
+  ArticleDetailViewModel,
   BuildingDetailViewModel,
   BuildingSupplyPriceRange,
   BuildingSupplySnapshot,
   ListingDetailViewModel,
   PriceViewModel,
 } from '@/domain/public-catalog'
-import { formatArea } from '@/lib/frontend/format'
+import { formatArea, priceUnitLabel } from '@/lib/frontend/format'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 
@@ -20,10 +21,20 @@ type BreadcrumbJsonLd = Readonly<{
   }>[]
 }>
 
+/**
+ * 价格一律放进 `priceSpecification`，不写 Offer 顶层 `price`：
+ * 房源价格大多是「元/㎡/天」这类单价，顶层 `price: 4.25` 会被解读成总价 4.25 元。
+ * `unitText` 把计价单位带出去，消费方才能区分单价与总价。
+ */
 type OfferJsonLd = Readonly<{
   '@type': 'Offer'
   priceCurrency: 'CNY'
-  price: number
+  priceSpecification: Readonly<{
+    '@type': 'UnitPriceSpecification'
+    price: number
+    priceCurrency: 'CNY'
+    unitText?: string
+  }>
   url: string
 }>
 
@@ -100,6 +111,17 @@ function safePublicMedia(src: unknown): string | undefined {
   return normalizePublicMediaUrl(src) ?? undefined
 }
 
+/**
+ * JSON-LD 的 `image` 必须是绝对 URL（Google 结构化数据要求），而公开媒体常是站内相对路径
+ * （`/api/media/file/...`）。OG 图走 metadataBase 自动补全，JSON-LD 不会，所以在这里补。
+ */
+export function toAbsoluteMediaUrl(origin: string, src: string | undefined): string | undefined {
+  if (!src) return undefined
+  if (/^https?:\/\//i.test(src)) return src
+  if (src.startsWith('/') && !src.startsWith('//')) return canonicalUrl(origin, src)
+  return undefined
+}
+
 type DetailRouteOptions = Readonly<{ citySlug?: string }>
 
 function routePrefix(dtoCitySlug: string, options?: DetailRouteOptions): string {
@@ -123,10 +145,11 @@ function breadcrumbs(
   terminal: Readonly<{ name: string; path: string }>,
   building?: Readonly<{ name: string; slug: string }>,
   cityPrefix = '',
+  middle?: ReadonlyArray<Readonly<{ name: string; path: string }>>,
 ): BreadcrumbJsonLd {
   const values: Array<Readonly<{ name: string; path: string }>> = [
     { name: '首页', path: cityPrefix || '/' },
-    { name: '办公选址', path: `${cityPrefix}/listings` },
+    ...(middle ?? [{ name: '办公选址', path: `${cityPrefix}/listings` }]),
   ]
   if (building) values.push({ name: building.name, path: `${cityPrefix}/buildings/${encodeURIComponent(building.slug)}` })
   values.push(terminal)
@@ -185,7 +208,7 @@ export function buildListingJsonLd(listing: ListingDetailViewModel, origin: stri
   const canonicalPath = listingPath(listing, options)
   const cityPrefix = routePrefix(listing.citySlug, options)
   const canonical = canonicalUrl(origin, canonicalPath)
-  const image = safePublicMedia(listing.coverImage?.src)
+  const image = toAbsoluteMediaUrl(origin, safePublicMedia(listing.coverImage?.src))
   const building = listing.building
   const price = isTrustworthyPrice(listing.price, listing.businessType) ? listing.price : null
 
@@ -211,7 +234,12 @@ export function buildListingJsonLd(listing: ListingDetailViewModel, origin: stri
       offers: {
         '@type': 'Offer',
         priceCurrency: price.currency,
-        price: price.amount,
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: price.amount,
+          priceCurrency: price.currency,
+          ...(priceUnitLabel(price.displayUnit) ? { unitText: priceUnitLabel(price.displayUnit) } : {}),
+        },
         url: canonical,
       },
     } : {}),
@@ -286,7 +314,7 @@ export function buildBuildingJsonLd(
 ): BuildingJsonLd {
   const canonicalPath = buildingPath(building, options)
   const cityPrefix = routePrefix(building.citySlug, options)
-  const image = safePublicMedia(building.coverImage?.src)
+  const image = toAbsoluteMediaUrl(origin, safePublicMedia(building.coverImage?.src))
   const offers = aggregateOffers(supply)
 
   return {
@@ -303,6 +331,69 @@ export function buildBuildingJsonLd(
     ...(image ? { image } : {}),
     ...(offers.length > 0 ? { offers } : {}),
     breadcrumb: breadcrumbs(origin, { name: building.name, path: canonicalPath }, undefined, cityPrefix),
+  }
+}
+
+const MODIFIED_MIN_GAP_MS = 60 * 60 * 1000
+
+type OrganizationJsonLd = Readonly<{ '@type': 'Organization'; name: string; url: string }>
+
+export type ArticleJsonLd = Readonly<{
+  '@context': 'https://schema.org'
+  '@type': 'Article'
+  headline: string
+  url: string
+  mainEntityOfPage: Readonly<{ '@type': 'WebPage'; '@id': string }>
+  description?: string
+  datePublished?: string
+  dateModified?: string
+  image?: string
+  author: OrganizationJsonLd
+  publisher: OrganizationJsonLd
+  breadcrumb: BreadcrumbJsonLd
+}>
+
+/**
+ * 资讯 Article JSON-LD。
+ *
+ * - `author` / `publisher` 都是站点主体（Organization），不虚构个人作者；后台将来加了署名字段再换。
+ * - `dateModified` 只在比发布时间晚一小时以上时才输出，避免把「刚导入」伪装成「持续更新」。
+ * - `image` 补成绝对 URL（相对路径在 Google 富媒体结果测试里是无效值）。
+ */
+export function buildArticleJsonLd(
+  article: ArticleDetailViewModel,
+  origin: string,
+  siteName: string,
+): ArticleJsonLd {
+  const path = `/news/${encodeURIComponent(article.slug)}`
+  const url = canonicalUrl(origin, path)
+  const image = toAbsoluteMediaUrl(origin, safePublicMedia(article.coverImage?.src))
+  const publisher: OrganizationJsonLd = { '@type': 'Organization', name: siteName, url: canonicalUrl(origin, '/') }
+  const published = article.publishedAt ? Date.parse(article.publishedAt) : Number.NaN
+  const modified = article.updatedAt ? Date.parse(article.updatedAt) : Number.NaN
+  // 发布后一小时内的写入属于发布流程本身（保存后补字段、批量导入），不算「修改」，
+  // 否则每篇新文章都会带一个几秒之后的 dateModified，等于声称它刚被更新过。
+  const showModified = Number.isFinite(modified) && (!Number.isFinite(published) || modified - published > MODIFIED_MIN_GAP_MS)
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    ...(article.excerpt ? { description: article.excerpt } : {}),
+    ...(article.publishedAt ? { datePublished: article.publishedAt } : {}),
+    ...(showModified && article.updatedAt ? { dateModified: article.updatedAt } : {}),
+    ...(image ? { image } : {}),
+    author: publisher,
+    publisher,
+    breadcrumb: breadcrumbs(
+      origin,
+      { name: article.title, path },
+      undefined,
+      '',
+      [{ name: '资讯中心', path: '/news' }],
+    ),
   }
 }
 

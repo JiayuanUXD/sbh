@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
-import InquiryModal from '@/components/frontend/InquiryModal'
 import PageContent from '@/components/frontend/PageContent'
 import { serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { buildNotFoundMetadata, buildPageMetadata } from '@/lib/frontend/metadata'
@@ -80,9 +79,6 @@ export default async function PageDetailPage({
     hero.heading != null ||
     hero.summary != null
 
-  // 隐私政策等法律页面（slug 以 'privacy' 或 'policy' 开头）不附加营销 CTA
-  const isLegalPage = /^(privacy|policy)/i.test(page.slug)
-
   return (
     <div className="page-detail">
       <script
@@ -138,22 +134,6 @@ export default async function PageDetailPage({
         <article className="page-detail__body">
           <PageContent data={page.content} />
         </article>
-      )}
-
-      {!isLegalPage && (
-        <section className="page-detail__cta" aria-label="咨询入口">
-          <div className="page-detail__cta-inner">
-            <h2 className="page-detail__cta-title">需要专业选址建议？</h2>
-            <p className="page-detail__cta-desc">
-              留下联系方式，我们的顾问将在 1 个工作日内与你联系。
-            </p>
-            <InquiryModal
-              pageType="content"
-              targetSummary={page.title}
-              triggerLabel="提交需求"
-            />
-          </div>
-        </section>
       )}
     </div>
   )

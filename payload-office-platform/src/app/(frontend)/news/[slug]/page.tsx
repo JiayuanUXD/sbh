@@ -2,10 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
-import InquiryModal from '@/components/frontend/InquiryModal'
 import PageContent from '@/components/frontend/PageContent'
 import { areaLandingPath } from '@/domain/public-catalog/area-landing'
-import { serializeJsonLd } from '@/lib/frontend/detail-metadata'
+import { buildArticleJsonLd, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { buildNotFoundMetadata, buildPageMetadata } from '@/lib/frontend/metadata'
 import { formatPublishedDate } from '@/lib/frontend/format'
 import { siteConfig } from '@/lib/frontend/site-config'
@@ -63,34 +62,8 @@ export default async function ArticleDetailPage({
   const article = await getCachedArticleBySlug(slug)
   if (!article) notFound()
 
-  const canonicalUrl = `${siteConfig.siteOrigin}/news/${encodeURIComponent(slug)}`
-
-  // F6.3：JSON-LD Article 结构化数据（仅声明后台可保证的字段）
-  const jsonLd: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: article.title,
-    url: canonicalUrl,
-  }
-  if (article.excerpt) jsonLd.description = article.excerpt
-  if (article.publishedAt) jsonLd.datePublished = article.publishedAt
-  if (article.coverImage) jsonLd.image = article.coverImage.src
-
-  // BreadcrumbList：与 listings/buildings 详情对齐（首页 -> 资讯中心 -> 文章）
-  const origin = siteConfig.siteOrigin
-  jsonLd.breadcrumb = {
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { name: '首页', path: '/' },
-      { name: '资讯中心', path: '/news' },
-      { name: article.title, path: `/news/${encodeURIComponent(slug)}` },
-    ].map((item, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: item.name,
-      item: `${origin}${item.path}`,
-    })),
-  }
+  // F6.3：JSON-LD Article（含 author / publisher / dateModified / 绝对 image，见 buildArticleJsonLd）
+  const jsonLd = buildArticleJsonLd(article, siteConfig.siteOrigin, '商办租赁')
 
   const cat = article.category ? CATEGORY_LABEL[article.category] : null
   const date = formatPublishedDate(article.publishedAt)
@@ -206,20 +179,6 @@ export default async function ArticleDetailPage({
           )}
         </section>
       )}
-
-      <section className="page-detail__cta" aria-label="咨询入口">
-        <div className="page-detail__cta-inner">
-          <h2 className="page-detail__cta-title">需要专业选址建议？</h2>
-          <p className="page-detail__cta-desc">
-            留下联系方式，我们的顾问将在 1 个工作日内与你联系。
-          </p>
-          <InquiryModal
-            pageType="content"
-            targetSummary={article.title}
-            triggerLabel="提交需求"
-          />
-        </div>
-      </section>
     </div>
   )
 }

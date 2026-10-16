@@ -23,7 +23,7 @@ function entry(overrides: Partial<AreaLandingEntry> = {}): AreaLandingEntry {
 const caohejing = entry({ kind: 'business_area', id: 40, slug: 'caohejing', name: '漕河泾', parentSlug: 'xuhui', parentName: '徐汇区', listingCount: 1837, priceMedian: 4.14 })
 const longhua = entry({ kind: 'business_area', id: 41, slug: 'longhua', name: '龙华', parentSlug: 'xuhui', parentName: '徐汇区', listingCount: 1052, priceSampleCount: 3 })
 const building = { id: 1, slug: 'fenglin-park', name: '枫林科创园', address: '枫林路', citySlug: 'shanghai', cityName: '上海', listingCount: 388, leasableArea: 20000 } as BuildingSummaryViewModel
-const article: ArticleCardViewModel = { id: 9, slug: 'xuhui-guide', title: '徐汇办公选址指南', category: 'guide', excerpt: null, coverImage: null, publishedAt: '2026-10-01T00:00:00.000Z', stableSortKey: 'article-9' }
+const article: ArticleCardViewModel = { id: 9, slug: 'xuhui-guide', title: '徐汇办公选址指南', category: 'guide', excerpt: null, coverImage: null, publishedAt: '2026-10-01T00:00:00.000Z', updatedAt: null, stableSortKey: 'article-9' }
 
 function page(overrides: Partial<AreaLandingPage> = {}): AreaLandingPage {
   const e = overrides.entry ?? entry()
