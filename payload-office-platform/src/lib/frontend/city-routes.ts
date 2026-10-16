@@ -22,6 +22,8 @@ export type CityPageType =
   | 'coworking'
   | 'buildings'
   | 'building-detail'
+  // OPT-119：区域 / 商圈落地页 `/{city}/area/{slug}`；行政区与商圈共用一个路由（slug 全局唯一）。
+  | 'area-detail'
   | 'news'
   | 'news-detail'
   | 'privacy'
@@ -273,6 +275,10 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
     const detailSlug = canonicalPathSegment(slug)
     return detailSlug ? route('building-detail', citySlug, detailSlug) : route('unknown', null)
   }
+  if (resource === 'area' && slug) {
+    const detailSlug = canonicalPathSegment(slug)
+    return detailSlug ? route('area-detail', citySlug, detailSlug) : route('unknown', null)
+  }
   return route('unknown', null)
 }
 
@@ -414,6 +420,7 @@ export function buildCityPath(citySlug: string, pageType: CityPageType): string 
       return `/${citySlug}/coworking`
     case 'buildings':
     case 'building-detail':
+    case 'area-detail':
       return `/${citySlug}/buildings`
     case 'entrust':
     case 'publish':
@@ -449,6 +456,8 @@ export function switchCityUrl(sourceUrl: unknown, destinationCitySlug: string): 
     case 'news-detail':
     case 'privacy':
     case 'page-detail':
+    // 区域 slug 属于来源城市：换城市落到目标城市首页，而不是一个必然 404 的同名区域。
+    case 'area-detail':
       return destinationHome
     case 'listings':
       return withQuery(
@@ -538,6 +547,9 @@ export function legacyCanonicalPath(sourceUrl: unknown): string | null {
       return withQuery('/buildings', passThroughQuery(route.params))
     case 'building-detail':
       return route.detailSlug ? `/buildings/${route.detailSlug}` : null
+    // 落地页只有带城市前缀这一种形态（OPT-119 §2.1），没有对应的 legacy 路径。
+    case 'area-detail':
+      return null
     case 'news':
       return '/news'
     case 'news-detail':
@@ -577,6 +589,8 @@ export function prefixedCanonicalPath(sourceUrl: unknown, citySlug: string): str
       return withQuery(`/${citySlug}/buildings`, passThroughQuery(route.params))
     case 'building-detail':
       return route.detailSlug ? `/${citySlug}/buildings/${route.detailSlug}` : null
+    case 'area-detail':
+      return route.detailSlug ? `/${citySlug}/area/${route.detailSlug}` : null
     case 'entrust':
     case 'publish':
     case 'city-partner':

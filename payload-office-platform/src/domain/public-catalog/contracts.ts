@@ -118,6 +118,16 @@ export type DistrictViewModel = Readonly<{
   name: string
 }>
 
+/**
+ * 资讯详情页的「相关区域」。
+ *
+ * `citySlug` 是该区域**所属城市**的 slug，供落地页链接 `/{city}/area/{slug}` 使用：资讯本身不带城市，
+ * `relatedDistricts` 在后台也没有城市限制，不能假定都是默认城市。区域所属城市没填充 / 不是启用的规范
+ * 城市、区域本身不可见或已停用（落地页会 404）时为 null，页面据此只显示名称、不生成链接。
+ */
+export type ArticleRelatedAreaViewModel = DistrictViewModel &
+  Readonly<{ citySlug: string | null }>
+
 /** Canonical city identity carried by every public listing/building DTO. */
 export type PublicCityIdentity = Readonly<{
   citySlug: string
@@ -583,7 +593,7 @@ export type ArticleDetailViewModel = Readonly<{
   updatedAt: string | null
   content: Article['content']
   relatedBuildings: readonly BuildingSummaryViewModel[]
-  relatedDistricts: readonly DistrictViewModel[]
+  relatedDistricts: readonly ArticleRelatedAreaViewModel[]
   seo: Readonly<{ title: string | null; description: string | null }> | null
 }>
 

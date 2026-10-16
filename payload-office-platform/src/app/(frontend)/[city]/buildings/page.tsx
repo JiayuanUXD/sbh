@@ -7,6 +7,7 @@ import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedSearchBuildingsFiltered } from '@/lib/frontend/cached-queries'
 import { buildBuildingCanonicalParams, parseBuildingSearchInput } from '@/domain/public-catalog'
 import { resolveBuildingSearchInput } from '@/app/(frontend)/_lib/search-input'
+import { withLocationFilterCanonical } from '@/app/(frontend)/_lib/location-filter-canonical'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
 // 版式解析复用房源页那一份（`lib/frontend/listing-url` 是两个列表页共用的 URL 基元
@@ -60,7 +61,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   })
   // OPT-096：出售口径不进索引（与 /sale 频道同一取舍：起步期数量少，别拖站点评分），
   // 标题换成在售语境。canonical 仍带 business=sale，不与租赁口径合并。
-  if (input.business !== 'sale') return base
+  if (input.business !== 'sale') {
+    // 纯地点筛选（只有一个 district / businessArea）→ canonical 合并到区域落地页（OPT-119）。
+    return withLocationFilterCanonical(base, { citySlug: city.slug, serviceStatus: city.serviceStatus, canonicalQuery: query })
+  }
   return { ...base, title: `${city.name}在售写字楼楼盘 · 商办买卖`, robots: { index: false, follow: true } }
 }
 

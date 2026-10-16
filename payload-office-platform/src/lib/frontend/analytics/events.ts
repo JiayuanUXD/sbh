@@ -120,7 +120,7 @@ const CITY_EVENT_NAMES = new Set<string>([
 ])
 const CITY_SERVICE_STATUSES = new Set<AllowedValue>(['live', 'coming-soon'])
 const CITY_PAGE_TYPES = new Set<AllowedValue>([
-  'home', 'listings', 'listing-detail', 'buildings', 'building-detail',
+  'home', 'listings', 'listing-detail', 'buildings', 'building-detail', 'area-detail',
   'news', 'news-detail', 'privacy', 'page-detail', 'entrust', 'publish', 'city-partner',
 ])
 const CITY_CTA_TYPES = new Set<AllowedValue>(['entrust', 'publish', 'inquiry', 'city-partner'])

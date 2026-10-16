@@ -24,6 +24,7 @@ import type {
   DistrictCardViewModel,
   ArticleCardViewModel,
   ArticleDetailViewModel,
+  ArticleRelatedAreaViewModel,
   DetailMediaViewModel,
   FactGroupViewModel,
   AmenityGroupViewModel,
@@ -554,11 +555,17 @@ export function mapArticleDetail(raw: unknown): ArticleDetailViewModel | null {
       if (vm) relatedBuildings.push(vm)
     }
   }
-  const relatedDistricts: DistrictViewModel[] = []
+  const relatedDistricts: ArticleRelatedAreaViewModel[] = []
   if (Array.isArray(raw.relatedDistricts)) {
     for (const d of raw.relatedDistricts) {
       const vm = mapDistrict(d)
-      if (vm) relatedDistricts.push(vm)
+      if (!vm) continue
+      // 只有所属城市能解析、且区域前台可见并启用时才给 citySlug（落地页对其余情形一律 404）。
+      // mapBuildingCity 只读取对象上已填充的 `city`，对区域同样适用。
+      const city = mapBuildingCity(d)
+      const loc = d as Location
+      const linkable = city !== null && loc.frontendVisible === true && loc.status === 'active'
+      relatedDistricts.push({ ...vm, citySlug: linkable ? city.citySlug : null })
     }
   }
   const seo = raw.seo

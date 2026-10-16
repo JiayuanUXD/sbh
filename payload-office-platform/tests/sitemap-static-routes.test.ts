@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const sitemapState = vi.hoisted(() => ({
+  getCachedAreaLandingIndex: vi.fn(async () => []),
   getCachedPublishedArticles: vi.fn(),
   getCachedPublishedPages: vi.fn(),
   getCachedSitemapBuildingsPage: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock('@/app/(frontend)/_lib/city-context', () => ({
 }))
 
 vi.mock('@/lib/frontend/cached-queries', () => ({
+  getCachedAreaLandingIndex: sitemapState.getCachedAreaLandingIndex,
   getCachedPublishedArticles: sitemapState.getCachedPublishedArticles,
   getCachedPublishedPages: sitemapState.getCachedPublishedPages,
   getCachedSitemapBuildingsPage: sitemapState.getCachedSitemapBuildingsPage,

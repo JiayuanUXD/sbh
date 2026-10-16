@@ -2,7 +2,7 @@ import Link from 'next/link'
 import React from 'react'
 import { Media } from '@/components/frontend/ui/Media'
 import type { DistrictCardViewModel } from '@/domain/public-catalog/contracts'
-
+import { areaLandingPath } from '@/domain/public-catalog/area-landing'
 /**
  * OPT-035 首页「热门商圈」bento（方案 1：大卡 2fr×480 + 2×232 + 2×280）。
  *
@@ -39,14 +39,18 @@ const BENTO_SIZES: Readonly<Record<string, string>> = {
   'hm-bento__wide': '(max-width: 767px) 100vw, 47vw',
 }
 
-function BentoCard({ card, prefix, sizeClass }: Readonly<{
+function BentoCard({ card, prefix, citySlug, sizeClass }: Readonly<{
   card: DistrictCardViewModel
   prefix: string
+  citySlug?: string
   sizeClass: string
 }>) {
   return (
     <Link
-      href={`${prefix}/listings?district=${encodeURIComponent(card.slug)}`}
+      // 带城市前缀时指向区域落地页（OPT-119）：这些卡是**商圈**卡，旧链接 `?district=<商圈slug>`
+      // 对商圈根本不生效（区域词表里没有它，被静默丢弃后落在未筛选的全城列表）。无前缀（legacy）
+      // 没有落地页，保持原筛选页链接。
+      href={citySlug ? areaLandingPath(citySlug, card.slug) : `${prefix}/listings?district=${encodeURIComponent(card.slug)}`}
       prefetch={false}
       className={`hm-bento-card ${sizeClass}`}
       data-event-name="home_district_click"
@@ -81,15 +85,15 @@ export default function HomeDistrictBento({ cards, totalAreas, citySlug }: Reado
     body = (
       <>
         <div className="hm-bento__row">
-          <BentoCard card={main} prefix={prefix} sizeClass="hm-bento__main" />
+          <BentoCard card={main} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__main" />
           <div className="hm-bento__side">
-            <BentoCard card={sideA} prefix={prefix} sizeClass="hm-bento__small" />
-            <BentoCard card={sideB} prefix={prefix} sizeClass="hm-bento__small" />
+            <BentoCard card={sideA} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__small" />
+            <BentoCard card={sideB} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__small" />
           </div>
         </div>
         <div className="hm-bento__row">
-          <BentoCard card={wideA} prefix={prefix} sizeClass="hm-bento__wide" />
-          <BentoCard card={wideB} prefix={prefix} sizeClass="hm-bento__wide" />
+          <BentoCard card={wideA} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__wide" />
+          <BentoCard card={wideB} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__wide" />
         </div>
       </>
     )
@@ -97,10 +101,10 @@ export default function HomeDistrictBento({ cards, totalAreas, citySlug }: Reado
     const [main, sideA, sideB] = cards
     body = (
       <div className="hm-bento__row">
-        <BentoCard card={main} prefix={prefix} sizeClass="hm-bento__main" />
+        <BentoCard card={main} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__main" />
         <div className="hm-bento__side">
-          <BentoCard card={sideA} prefix={prefix} sizeClass="hm-bento__small" />
-          <BentoCard card={sideB} prefix={prefix} sizeClass="hm-bento__small" />
+          <BentoCard card={sideA} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__small" />
+          <BentoCard card={sideB} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__small" />
         </div>
       </div>
     )
@@ -108,7 +112,7 @@ export default function HomeDistrictBento({ cards, totalAreas, citySlug }: Reado
     body = (
       <div className="hm-bento__row">
         {cards.map((card) => (
-          <BentoCard key={card.slug} card={card} prefix={prefix} sizeClass="hm-bento__wide" />
+          <BentoCard key={card.slug} card={card} prefix={prefix} citySlug={citySlug} sizeClass="hm-bento__wide" />
         ))}
       </div>
     )
