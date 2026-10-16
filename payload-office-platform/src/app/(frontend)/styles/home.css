@@ -219,7 +219,9 @@
 /* 封面是 1254×1254 的透明底方图（上下各留约 10–16% 空白），1:1 图框整张显示不裁切；
    换成别的比例会把建筑底座或屋顶切掉。后台换封面请继续用方图。 */
 .hm-type-card__media--empty { background: var(--media-placeholder); }
-.hm-type-card__media img { transition: transform 320ms var(--ease-standard); }
+/* contain 而不是 .sf-media 默认的 cover：封面在后台可换，方图（1:1）铺满图框，
+   历史的 2:1 横图则按宽度完整显示、上下留白，两种都不会被裁掉。 */
+.hm-type-card__media img { object-fit: contain; transition: transform 320ms var(--ease-standard); }
 .hm-type-card__name { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); text-align: center; }
 @media (hover: hover) { .hm-type-card:hover .hm-type-card__media img { transform: scale(1.04); } }
 @media (prefers-reduced-motion: reduce) {

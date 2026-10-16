@@ -4,7 +4,7 @@
  * 首页 / 列表页 / 详情页 / 招募页一律复用，禁止各写一份卡片或渐变。
  *
  * 加载顺序硬约束：本文件必须在 home.css / list.css 之前 import——两者都靠
- * 「同特异度、后来者胜」来覆写这里的基态（如 .hm-type-card 把 .sf-card 的
+ * 「同特异度、后来者胜」来覆写这里的基态（如 .listing-card 把 .sf-card 的
  * display:block 改回 flex），顺序反了会静默失效。
  * ========================================================================== */
 
@@ -86,7 +86,7 @@
 /* 图上白字压暗：全站一份，任何图上文字都必须配它。
  * pointer-events: none 是本次 review 补的——压暗层定义上就是纯装饰，绝不该挡在
  * 可点击元素前面吞掉点击。这里用到的六处调用（HomeDistrictBento /
- * HomeSupplyCard / HomeTypeCards / BuildingResultCard / ListingResultCard /
+ * HomeSupplyCard / BuildingResultCard / ListingResultCard /
  * ListingResultRow，OPT-081 起再加 BuildingResultRow）都是整卡包在一个 <Link> 里，scrim 是 Link 的子元素，
  * 加了 pointer-events:none 后点击直接穿透到 Link 本身或其内部图片，不影响
  * 现有可点击行为（验证见 OPT-037 Task 2 报告）。 */
