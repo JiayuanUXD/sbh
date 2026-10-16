@@ -525,7 +525,7 @@ export type PopulatedPage = Page & {
 /**
  * 资讯卡片视图模型：首页「资讯中心」分区 + /news 列表
  *
- * 字段白名单：id / slug / title / category / excerpt / coverImage / publishedAt。
+ * 字段白名单：id / slug / title / category / excerpt / coverImage / publishedAt / updatedAt（updatedAt 只给 sitemap 的 lastmod 用）。
  * 不暴露 content（富文本正文仅在详情页渲染）、seo、createdBy 等内部字段。
  * 草稿、逻辑删除的文章不会进入此 DTO（由 SupplyAdapter 过滤 status=published）。
  */
@@ -537,6 +537,8 @@ export type ArticleCardViewModel = Readonly<{
   excerpt: string | null
   coverImage: MediaViewModel | null
   publishedAt: string | null
+  /** 最后修改时间（ISO）：仅供 sitemap `lastmod`；不是发布日期，页面不展示 */
+  updatedAt: string | null
   /** 稳定排序收束键（article-<id>） */
   stableSortKey: string
 }>

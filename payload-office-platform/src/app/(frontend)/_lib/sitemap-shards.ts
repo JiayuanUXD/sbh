@@ -104,19 +104,25 @@ export async function getStaticSitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push({ url: `${base}/pages/${page.slug}`, lastModified: new Date(page.updatedAt), changeFrequency: 'monthly', priority: 0.6 })
   }
   let page = 1
+  let newsTotal = 0
+  let newsLastModified = 0
   while (true) {
     const articles = await getCachedPublishedArticles(page, 48)
-    if (page === 1 && articles.totalDocs > 0) {
-      // 列表页按 publishedAt 倒序，首条即最新发布时间；没有任何已发布资讯时 /news 是空页，不提交收录。
-      const latest = articles.docs[0]?.publishedAt
-      entries.push({ url: `${base}/news`, ...(latest ? { lastModified: new Date(latest) } : {}), changeFrequency: 'weekly', priority: 0.7 })
-    }
+    newsTotal = articles.totalDocs
     for (const article of articles.docs) {
-      entries.push({ url: `${base}/news/${article.slug}`, ...(article.publishedAt ? { lastModified: new Date(article.publishedAt) } : {}), changeFrequency: 'monthly', priority: 0.6 })
+      // lastmod 用真实修改时间（文章发布后再编辑要反映给搜索引擎）；updatedAt 取不到才退回发布时间，都没有就不写
+      const modified = article.updatedAt ?? article.publishedAt
+      const time = modified ? Date.parse(modified) : Number.NaN
+      if (Number.isFinite(time)) newsLastModified = Math.max(newsLastModified, time)
+      entries.push({ url: `${base}/news/${article.slug}`, ...(Number.isFinite(time) ? { lastModified: new Date(time) } : {}), changeFrequency: 'monthly', priority: 0.6 })
     }
     if (page >= articles.totalPages) break
     if (page >= MAX_PAGES_PER_CITY) throw new Error('资讯站点地图超过安全枚举上限')
     page += 1
+  }
+  // 没有任何已发布资讯时 /news 是空页，不提交收录；有则 lastmod 取所有资讯里最晚的修改时间
+  if (newsTotal > 0) {
+    entries.push({ url: `${base}/news`, ...(newsLastModified > 0 ? { lastModified: new Date(newsLastModified) } : {}), changeFrequency: 'weekly', priority: 0.7 })
   }
   return [...new Map(entries.map((entry) => [entry.url, entry])).values()]
 }

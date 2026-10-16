@@ -46,6 +46,17 @@ describe('content/articles 资讯内容文件', () => {
     }
   })
 
+  it('小标题不用模板句（先说结论 / 数据口径 / 数据从哪来 / 接下来 / 下一步 / 怎么看这张表……）', () => {
+    const banned = /先说结论|数据口径|数据从哪来|^接下来$|下一步|这张表怎么看|怎么看这张表|怎么用这张表|先说一下数据|这些数是怎么来的|总结|结语/
+    for (const a of articles) {
+      for (const node of a.content.root.children) {
+        if (node.type !== 'heading') continue
+        const text = node.children.map((c) => (c.type === 'text' ? c.text : c.children[0].text)).join('')
+        expect(text.match(banned)?.[0], `${a.slug} 的小标题「${text}」是模板句`).toBeUndefined()
+      }
+    }
+  })
+
   it('每篇都带数据口径或免责声明（引用块），数据类文章标注截止日期', () => {
     for (const a of articles) {
       const hasQuote = a.content.root.children.some((n) => n.type === 'quote')
@@ -60,6 +71,9 @@ describe('content/articles 资讯内容文件', () => {
     expect(draft).toMatchObject({ status: 'draft', seo: { title: articles[0].seoTitle } })
     const published = toArticleData(articles[0], { status: 'published', now })
     expect(published.publishedAt).toBe('2026-10-16T08:00:00.000Z')
+    // 重复导入：已有发布时间时保留，不被本次运行时刻覆盖
+    const again = toArticleData(articles[0], { status: 'published', now, existingPublishedAt: '2026-09-01T00:00:00.000Z' })
+    expect(again.publishedAt).toBe('2026-09-01T00:00:00.000Z')
     for (const data of [draft, published]) {
       expect(data).not.toHaveProperty('coverImage')
       expect(data).not.toHaveProperty('isHomeFeatured')

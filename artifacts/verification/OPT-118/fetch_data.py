@@ -23,4 +23,6 @@ sel=lambda *fs:{f'select[{f}]':'true' for f in fs}
 fetch_all('locations',{**sel('name','type','parent','slug','city','frontendVisible','status')},'/tmp/opt118-data/locations.json')
 fetch_all('buildings',{**sel('name','slug','district','businessDistrict','address','grade','buildingType','totalFloors','completionDate','propertyFee','nearestMetro','status'),'where[status][equals]':'published'},'/tmp/opt118-data/buildings.json')
 fetch_all('listings',{**sel('building','price','area','listingType','decorationStatus','spaceDetails','minimumLeaseMonths','paymentTerms','costTerms','floor','seats'),
-  'where[publicationStatus][equals]':'published','where[reviewStatus][equals]':'approved','where[businessType][equals]':'lease'},'/tmp/opt118-data/listings.json')
+  'where[publicationStatus][equals]':'published','where[reviewStatus][equals]':'approved','where[businessType][equals]':'lease',
+  # 待复核（被举报暂停等）的房源前台不展示，但匿名 REST 仍可读（Listings.access.read 已说明），必须排除
+  'where[supplyVisibilityHold][equals]':'normal'},'/tmp/opt118-data/listings.json')

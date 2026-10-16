@@ -118,7 +118,15 @@ export function loadArticleFiles(dir: string): ArticleFile[] {
 }
 
 /** 写库用的字段（不含 coverImage / 首页主推：封面由导入脚本单独上传并只在文章还没有封面时设置，主推由运营决定）。 */
-export function toArticleData(article: ArticleFile, options: Readonly<{ status: 'draft' | 'published'; now: Date }>) {
+export function toArticleData(
+  article: ArticleFile,
+  options: Readonly<{
+    status: 'draft' | 'published'
+    now: Date
+    /** 库里已有的发布时间：重复导入时保留，不被本次运行时刻覆盖（否则每次更新正文都会让文章重新排序、改写页面日期 / JSON-LD / sitemap） */
+    existingPublishedAt?: string | null
+  }>,
+) {
   return {
     title: article.title,
     slug: article.slug,
@@ -128,7 +136,7 @@ export function toArticleData(article: ArticleFile, options: Readonly<{ status: 
     content: article.content,
     seo: { title: article.seoTitle, description: article.seoDescription },
     ...(options.status === 'published'
-      ? { publishedAt: article.publishedAt ?? options.now.toISOString() }
+      ? { publishedAt: article.publishedAt ?? options.existingPublishedAt ?? options.now.toISOString() }
       : article.publishedAt
         ? { publishedAt: article.publishedAt }
         : {}),

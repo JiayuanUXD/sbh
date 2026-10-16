@@ -79,7 +79,10 @@ async function main() {
   let updated = 0
   let covered = 0
   for (const a of articles) {
-    const result = await upsertBySlug<{ id: number; coverImage?: unknown }>(payload, 'articles', a.slug, toArticleData(a, { status, now }))
+    // 已存在的文章保留原发布时间（见 toArticleData）；trash:true 与 upsertBySlug 同口径，回收站里的行也要找到
+    const existing = await payload.find({ collection: 'articles', where: { slug: { equals: a.slug } }, limit: 1, trash: true, depth: 0 })
+    const existingPublishedAt = (existing.docs[0] as { publishedAt?: string | null } | undefined)?.publishedAt ?? null
+    const result = await upsertBySlug<{ id: number; coverImage?: unknown }>(payload, 'articles', a.slug, toArticleData(a, { status, now, existingPublishedAt }))
     if (result.created) created += 1
     else updated += 1
 

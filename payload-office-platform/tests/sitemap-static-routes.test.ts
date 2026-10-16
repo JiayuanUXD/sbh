@@ -66,7 +66,7 @@ describe('city-aware sharded public sitemap', () => {
       { slug: 'privacy', updatedAt: '2026-08-10T00:00:00.000Z' },
     ])
     sitemapState.getCachedPublishedArticles.mockResolvedValue({
-      docs: [{ slug: 'market-update', publishedAt: '2026-08-11T00:00:00.000Z' }], totalDocs: 1, totalPages: 1,
+      docs: [{ slug: 'market-update', publishedAt: '2026-08-11T00:00:00.000Z', updatedAt: '2026-09-02T00:00:00.000Z' }], totalDocs: 1, totalPages: 1,
     })
   })
 
@@ -159,7 +159,22 @@ describe('city-aware sharded public sitemap', () => {
       expect(byUrl.has(url), url).toBe(true)
       expect(byUrl.get(url)?.lastModified, url).toBeUndefined()
     }
-    expect(byUrl.get('https://example.com/news')?.lastModified).toEqual(new Date('2026-08-11T00:00:00.000Z'))
+    // 资讯 lastmod 用真实修改时间（updatedAt），不是发布时间；/news 取所有资讯里最晚的
+    expect(byUrl.get('https://example.com/news/market-update')?.lastModified).toEqual(new Date('2026-09-02T00:00:00.000Z'))
+    expect(byUrl.get('https://example.com/news')?.lastModified).toEqual(new Date('2026-09-02T00:00:00.000Z'))
+  })
+
+  it('资讯缺 updatedAt 时退回发布时间，两者都没有就不写 lastmod', async () => {
+    sitemapState.getCachedPublishedArticles.mockResolvedValue({
+      docs: [
+        { slug: 'only-published', publishedAt: '2026-08-11T00:00:00.000Z', updatedAt: null },
+        { slug: 'no-time', publishedAt: null, updatedAt: null },
+      ],
+      totalDocs: 2, totalPages: 1,
+    })
+    const byUrl = new Map((await getStaticSitemap()).map((entry) => [entry.url, entry]))
+    expect(byUrl.get('https://example.com/news/only-published')?.lastModified).toEqual(new Date('2026-08-11T00:00:00.000Z'))
+    expect(byUrl.get('https://example.com/news/no-time')?.lastModified).toBeUndefined()
   })
 
   it('没有任何已发布资讯时 /news 不进 sitemap', async () => {

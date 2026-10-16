@@ -26,7 +26,8 @@
 - `domain/public-catalog`：`ArticleDetailViewModel` 增加 `updatedAt`（仅供 JSON-LD）。
 - `_lib/sitemap.ts` / `sitemap-shards.ts`：静态页与城市频道页**不写 `lastmod`**；`/news` 仅在存在已发布资讯时进 sitemap，`lastmod` 取最新发布时间。
 - `news/page.tsx`：无已发布资讯时 `noindex`。
-- `scripts/lib/markdown-to-lexical.ts`、`scripts/lib/article-content.ts`、`scripts/import-articles.ts`：资讯 Markdown → Lexical → Payload Local API 幂等 upsert。
+- `scripts/lib/markdown-to-lexical.ts`、`scripts/lib/article-content.ts`、`scripts/import-articles.ts`：资讯 Markdown → Lexical → Payload Local API 幂等 upsert（重复导入保留已有发布时间）。
+- sitemap 的资讯 `lastmod` 用真实 `updatedAt`（取不到退回发布时间）；资讯卡片 DTO 增加仅供 sitemap 使用的 `updatedAt`。
 - **去掉内容页底部咨询模块**（产品裁定 2026-10-16：除楼盘、房源详情页外，其它页面不挂底部「需要专业选址建议？/ 提交需求」）：删除 `news/[slug]`、`pages/[slug]` 的 `.page-detail__cta` 区块及其样式，`tests/content-pages-no-bottom-cta.test.ts` 守着不被加回去，e2e `frontend-journey` 的对应用例改为断言不存在。委托找房 / 投放房源 / 城市合作等本身就是表单的页面不受影响。
 - `content/articles/`：8 篇资讯。数据口径与复现脚本见 `artifacts/verification/OPT-118/`。
 - **行文**：按「顾问对朋友讲清一件事」的口气写，不用「先说结论 / 数据口径 / 下一步」这类模板小标题，粗体每篇不超过 3 处；`tests/article-content-files.test.ts` 里有一条套话黑名单（首先/其次/综上/值得注意的是/赋能……）和破折号检查守着。不编造亲身经历，数字一个没动。
@@ -47,7 +48,7 @@
 
 1. 文章默认以**草稿**导入。`pnpm node --env-file-if-exists=.env.local --import tsx scripts/import-articles.ts --check` 只校验不写库。
 2. 本机没有生产 `DATABASE_URL`（也不该有）。生产写入走 `--emit=<file.json>` 导出，再由有权限的人经 CloudBase MCP 写入（同 OPT-100 的做法）。
-3. **上线前人工通读**每篇，并核对数字（口径在 `artifacts/verification/OPT-118/README.md`）。
+3. **上线前人工通读**每篇，并核对数字（口径在 `artifacts/verification/OPT-118/README.md`）。**注意：供给当天就在变**（上午到下午静安区在租房源少了约一半），文章数字是上午的快照，发布前要按最新数据重算或在正文标注取数时点，见该 README「供给当天就变了」一节。
 4. 封面：`--execute` 会自动上传并设置。生产媒体在 COS，本机不直连生产，所以生产上线时由有权限的人在后台「素材库」上传 `content/articles/covers/` 下的 8 张图（用途选「文章配图」），再在文章里选上；`--emit` 导出的 JSON 里带每篇的封面文件路径和替代文本。AI 生成图的商用条款请自行确认。
 5. 数据类文章（`*-2026-10`）是**时点快照**，文中写明了「截至 2026 年 10 月 16 日」；之后要么按月更新，要么在正文里明确下线。
 
