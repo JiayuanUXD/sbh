@@ -183,16 +183,22 @@ export default async function ArticleDetailPage({
               <ul className="news-detail__related-links" role="list">
                 {article.relatedDistricts.map((d) => (
                   <li key={d.id}>
-                    <Link
-                      // 区域 / 商圈落地页（OPT-119）。旧的 district 筛选链接对商圈（relatedDistricts
-                      // 允许选商圈）不生效，会静默落在未筛选的全城列表。资讯不带城市，沿用旧链接
-                      // 隐含的默认城市。
-                      href={areaLandingPath(siteConfig.defaultCity, d.slug)}
-                      prefetch={false}
-                      className="news-detail__related-link"
-                    >
-                      {d.name}
-                    </Link>
+                    {d.citySlug ? (
+                      <Link
+                        // 区域 / 商圈落地页（OPT-119）。旧的 district 筛选链接对商圈（relatedDistricts
+                        // 允许选商圈）不生效，会静默落在未筛选的全城列表。资讯不带城市，所以城市取
+                        // **该区域自己的所属城市**（DTO 的 citySlug），不能固定默认城市：后台没有限制
+                        // relatedDistricts 的城市，拼成默认城市会让非默认城市的区域直接 404。
+                        href={areaLandingPath(d.citySlug, d.slug)}
+                        prefetch={false}
+                        className="news-detail__related-link"
+                      >
+                        {d.name}
+                      </Link>
+                    ) : (
+                      // 所属城市解析不出、或区域不可见 / 已停用：落地页会 404，只显示名称不给链接
+                      <span className="news-detail__related-link">{d.name}</span>
+                    )}
                   </li>
                 ))}
               </ul>
