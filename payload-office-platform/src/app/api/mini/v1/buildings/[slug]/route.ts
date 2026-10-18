@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { miniBuildingDetailGradeResponse } from '@/domain/mini-program/grade-schema'
 import {
   miniError,
   miniOk,
@@ -41,7 +42,7 @@ export async function GET(
     }
 
     return NextResponse.json(
-      miniOk(resolution.snapshot.data, { requestId, asOf: resolution.snapshot.asOf }),
+      miniOk(miniBuildingDetailGradeResponse(resolution.snapshot.data, new URL(request.url)), { requestId, asOf: resolution.snapshot.asOf }),
       {
         headers: {
           'Cache-Control': MINI_CACHE_CONTROL,

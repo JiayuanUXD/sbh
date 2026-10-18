@@ -1,0 +1,24 @@
+[
+  {
+    "path": "enums.public.enum_buildings_grade.values",
+    "before": [
+      "grade-a",
+      "super-grade-a",
+      "creative-park",
+      "serviced-office"
+    ],
+    "after": [
+      "super-grade-a",
+      "grade-a",
+      "grade-b",
+      "ungraded",
+      "creative-park",
+      "serviced-office"
+    ]
+  },
+  {
+    "path": "id",
+    "before": "fa4d33e8-fd32-4930-aaf7-06a9907ca23d",
+    "after": "8a201665-775f-4e9c-a95c-70147d3ec083"
+  }
+]

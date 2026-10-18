@@ -31,6 +31,11 @@ vi.mock('next/cache', () => ({
   revalidateTag: vi.fn(),
 }))
 
+// 本文件只观察真实缓存包装器的登记，不执行站点地图回调。
+// 隔离回调专用的路由依赖，避免无关模块图初始化占用 beforeAll 的行为测试时限。
+vi.mock('@/app/(frontend)/_lib/city-context', () => ({ listPublicCityProfiles: vi.fn() }))
+vi.mock('@/app/(frontend)/_lib/sitemap', () => ({ globalStaticUrls: vi.fn() }))
+
 import {
   ARTICLES_CATEGORY_TAG,
   SITEMAP_TAG,

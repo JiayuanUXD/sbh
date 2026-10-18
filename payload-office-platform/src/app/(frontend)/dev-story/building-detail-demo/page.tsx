@@ -219,7 +219,7 @@ const FIXTURE_RELATED_BASE = [
   { id: 2, slug: 'related-a', name: 'Related 金融中心', address: '上海市浦东新区银城中路 200 号', grade: 'grade-a', district: { id: 1, slug: 'pudong', name: '浦东' }, coverImage: BASE_IMAGE },
   { id: 3, slug: 'related-b', name: 'Related 世纪汇', address: '上海市浦东新区世纪大道 1200 号', grade: 'grade-a', district: { id: 1, slug: 'pudong', name: '浦东' }, coverImage: BASE_IMAGE_2 },
   { id: 4, slug: 'related-c', name: 'Related 江景大厦', address: '上海市浦东新区滨江大道 300 号', grade: 'super-grade-a', district: { id: 1, slug: 'pudong', name: '浦东' }, coverImage: LOBBY_IMAGE },
-  { id: 5, slug: 'related-d', name: 'Related 科创园', address: '上海市浦东新区张江路 500 号', grade: 'creative-park', district: { id: 1, slug: 'pudong', name: '浦东' }, coverImage: BASE_IMAGE },
+  { id: 5, slug: 'related-d', name: 'Related 科创园', address: '上海市浦东新区张江路 500 号', grade: 'ungraded', district: { id: 1, slug: 'pudong', name: '浦东' }, coverImage: BASE_IMAGE },
   { id: 6, slug: 'related-e', name: 'Related 环球港', address: '上海市浦东新区浦东南路 800 号', grade: 'grade-a', district: { id: 1, slug: 'pudong', name: '浦东' }, coverImage: BASE_IMAGE_2 },
   { id: 7, slug: 'related-f', name: 'Related 东方广场', address: '上海市浦东新区东方路 600 号', grade: 'grade-a', district: { id: 1, slug: 'pudong', name: '浦东' }, coverImage: undefined },
 ] satisfies readonly Omit<BuildingSummaryViewModel, 'citySlug' | 'cityName'>[]

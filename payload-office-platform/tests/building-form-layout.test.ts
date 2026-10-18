@@ -16,7 +16,27 @@ import { Buildings } from '@/collections/Buildings'
  *      找得到却不可见（理由见 ListingFormSectionHeading 文件头）。
  */
 
-type AnyField = Record<string, any>
+type AnyField = {
+  type?: string
+  name?: string
+  label?: string
+  fields?: AnyField[]
+  tabs?: AnyField[]
+  required?: boolean
+  unique?: boolean
+  hidden?: boolean
+  admin?: {
+    width?: string
+    disabled?: boolean
+    hidden?: boolean
+    readOnly?: boolean
+    condition?: unknown
+    components?: {
+      Field?: { path?: string; clientProps?: { title?: string } }
+      afterInput?: string[]
+    }
+  }
+}
 
 const fields = Buildings.fields as AnyField[]
 const tabsField = fields.find((f) => f.type === 'tabs') as AnyField
@@ -38,7 +58,7 @@ const sectionTitles = (tab: AnyField): string[] =>
         f.type === 'ui' &&
         String(f.admin?.components?.Field?.path ?? '').includes('ListingFormSectionHeading'),
     )
-    .map((h) => h.admin.components.Field.clientProps.title)
+    .map((h) => h.admin?.components?.Field?.clientProps?.title ?? '')
 
 describe('building-form-layout/tab 结构', () => {
   it('只有两个 tab：基础信息 + 展示内容', () => {
@@ -48,7 +68,7 @@ describe('building-form-layout/tab 结构', () => {
   it('重组件都在「展示内容」里，不会被带进首屏', () => {
     const display = tabs.find((t) => t.label === '展示内容') as AnyField
     const names = new Set<string>()
-    walk(display.fields, (n) => {
+    walk(display.fields ?? [], (n) => {
       if (n.name) names.add(n.name)
     })
     expect(names).toContain('mediaItems')
@@ -57,7 +77,7 @@ describe('building-form-layout/tab 结构', () => {
 
     const info = tabs.find((t) => t.label === '基础信息') as AnyField
     const infoNames = new Set<string>()
-    walk(info.fields, (n) => {
+    walk(info.fields ?? [], (n) => {
       if (n.name) infoNames.add(n.name)
     })
     expect(infoNames).not.toContain('mediaItems')
@@ -90,6 +110,24 @@ describe('building-form-layout/tab 结构', () => {
     })
     expect(version?.admin?.readOnly).toBe(true)
     expect(String(version?.admin?.components?.Field ?? '')).toContain('ListingReadonlyValue')
+  })
+
+  it('URL 标识撤下手填框，保留 API 字段并在名称旁展示已保存值', () => {
+    let slug: AnyField | undefined
+    let name: AnyField | undefined
+    walk(fields, (node) => {
+      if (node.name === 'slug') slug = node
+      if (node.name === 'name' && !name) name = node
+    })
+    expect(slug?.required).toBe(true)
+    expect(slug?.unique).toBe(true)
+    expect(slug?.admin?.disabled).toBe(true)
+    expect(slug?.hidden).toBeUndefined()
+    expect(slug?.admin?.hidden).toBeUndefined()
+    expect(slug?.admin?.condition).toBeUndefined()
+    expect(name?.admin?.components?.afterInput).toEqual([
+      '/components/admin/ListingSlugBadge#default',
+    ])
   })
 
   it('级联控制器接管的两个隐藏字段不包在 row 里', () => {

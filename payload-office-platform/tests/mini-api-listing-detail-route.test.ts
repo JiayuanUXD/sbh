@@ -10,6 +10,7 @@ vi.mock('@/lib/mini-program/catalog-service', () => ({
 
 import { GET, runtime } from '@/app/api/mini/v1/listings/[slug]/route'
 const DETAIL_DATA = {
+  buildingInfo: null,
   listing: { id: 'listing-1', slug: 'west-lake-office', title: '西湖办公室' },
   monthlyCost: {
     currency: 'CNY',

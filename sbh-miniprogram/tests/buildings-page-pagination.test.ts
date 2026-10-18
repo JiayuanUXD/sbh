@@ -72,6 +72,7 @@ type Context = {
     districtFilterLabel: string
     districtOptions: MiniBuildingsData['districtOptions']
     gradeFilter: string
+    gradeFilterLabel: string
     sortFilter: string
     page: number
     hasNextPage: boolean
@@ -122,6 +123,28 @@ afterAll(() => vi.unstubAllGlobals())
 beforeEach(() => getBuildings.mockReset())
 
 describe('楼盘列表请求世代与分页', () => {
+  it.each([
+    [0, '', '等级'],
+    [1, 'super-grade-a', '超甲级'],
+    [2, 'grade-a', '甲级'],
+    [3, 'grade-b', '乙级'],
+    [4, 'ungraded', '未评级'],
+  ])('等级筛选第 %s 项显示规范标签并发出规范查询', async (tapIndex, grade, label) => {
+    getBuildings.mockResolvedValueOnce(response(1, ['building-a'], false))
+    const context = createContext()
+    vi.mocked(wx.showActionSheet).mockImplementationOnce(({ itemList, success }) => {
+      expect(itemList).toEqual(['全部', '超甲级', '甲级', '乙级', '未评级'])
+      success?.({ tapIndex } as WechatMiniprogram.ShowActionSheetSuccessCallbackResult)
+    })
+
+    registration.handleGradeFilter.call(context)
+    await vi.waitFor(() => expect(context.data.state).toBe('ready'))
+
+    expect(context.data.gradeFilter).toBe(grade)
+    expect(context.data.gradeFilterLabel).toBe(label)
+    expect(getBuildings).toHaveBeenLastCalledWith(grade ? `grade=${grade}&page=1` : 'page=1')
+  })
+
   it('页面只在 hasNextPage=false 显示全部终态，并提供追加失败重试', () => {
     const markup = readFileSync(resolve(import.meta.dirname, '../miniprogram/pages/buildings/index.wxml'), 'utf8')
     expect(markup).toMatch(/wx:if="\{\{!hasNextPage\}\}"[^>]*class="buildings-end"/)

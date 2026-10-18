@@ -1,0 +1,171 @@
+Browser tab: 1, Title: "楼盘库 - Payload", URL: "http://localhost:3720/admin/collections/buildings?grade=ungraded&depth=1&limit=10".
+1 AXWebArea 楼盘库 - Payload, URL: localhost:3720/admin/collections/buildings?grade=ungraded&depth=1&limit=10
+	2 container
+		134 container
+			135 text 内容运营中心
+			136 container 后台主导航
+				137 content list
+					138 button (collapsed) 工作台 工作台共 3 项待处理, Secondary Actions: Expand
+						139 text 工作台
+						140 container 工作台共 3 项待处理
+							141 text 3
+					142 container
+						143 button (expanded) 待处理, Secondary Actions: Collapse
+						144 content list
+							145 link Description: 我的待办, Value: localhost:3720/admin/collections/tasks
+							146 link Description: 审核队列, Value: localhost:3720/admin/collections/listing-reviews
+							147 link Description: 举报处理, Value: localhost:3720/admin/collections/listing-reports
+							148 link Description: 信息纠错, Value: localhost:3720/admin/collections/information-corrections
+							149 link Description: 房源投放申请, Value: localhost:3720/admin/collections/supply-submissions
+							150 link Description: 城市合伙人申请, Value: localhost:3720/admin/collections/city-partner-applications
+							151 link Description: 提交数据, Value: localhost:3720/admin/collections/form-submissions
+					152 container
+						153 button (expanded) 房源与楼盘, Secondary Actions: Collapse
+						154 content list
+							155 link Description: 房源列表, Value: localhost:3720/admin/collections/listings
+							156 link Description: 楼盘库, Value: localhost:3720/admin/collections/buildings
+							157 link Description: 商户管理, Value: localhost:3720/admin/collections/merchants
+							158 link Description: 楼盘商户关系, Value: localhost:3720/admin/collections/building-merchant-relations
+							159 link Description: 楼盘批量导入, Value: localhost:3720/admin/import/buildings
+							160 link Description: 房源批量导入, Value: localhost:3720/admin/import/listings
+							161 link Description: 导入批次, Value: localhost:3720/admin/collections/supply-import-batches
+							162 link Description: 外部数据同步, Value: localhost:3720/admin/import/source-sync
+					163 button (collapsed) 客户与线索, Secondary Actions: Expand
+					164 button (collapsed) 站点与内容, Secondary Actions: Expand
+					165 button (collapsed) 城市与区域, Secondary Actions: Expand
+					166 button (collapsed) 团队与账号, Secondary Actions: Expand
+					167 button (collapsed) 设置与工具, Secondary Actions: Expand
+				168 button 收起导航
+		3 container
+			4 container
+				5 pop up button (collapsed) Description: 账号菜单, Help: E2E 管理员, Secondary Actions: Expand
+					6 image yas
+				7 button 切换到深色模式
+			8 heading 楼盘库, Value: 1
+				9 text 楼盘库
+			10 link Description: 回收站, Value: localhost:3720/admin/collections/buildings/trash
+			11 link Description: 创建楼盘, Value: localhost:3720/admin/collections/buildings/create
+			12 container
+				13 text field (settable)
+				14 button
+			15 combo box (collapsed) Value: 城市 城市, Secondary Actions: Expand
+				16 container
+					17 text field (settable)
+					18 text 城市
+			19 combo box (collapsed) Value: 发布状态 发布状态, Secondary Actions: Expand
+				20 container
+					21 text field (settable)
+					22 text 发布状态
+			23 combo box (collapsed) Value: 启停状态 启停状态, Secondary Actions: Expand
+				24 container
+					25 text field (settable)
+					26 text 启停状态
+			27 combo box (collapsed) Value: 楼宇等级 未评级, Secondary Actions: Expand
+				28 text 未评级
+			29 text 已选  0  项
+			30 button (disabled) 批量上架
+			31 button (disabled) 批量下架
+			32 button (disabled) 批量启用
+			33 button (disabled) 批量停用
+			34 container
+				35 table
+					36 row
+						37 cell
+							38 container
+								39 checkbox (settable, integer) 0
+						40 cell
+							41 text 楼盘名称
+						42 cell
+							43 text 城市 / 行政区
+						44 cell
+							45 text 等级 / 类型
+						46 cell
+							47 text 发布状态
+						48 cell
+							49 text 启停状态
+						50 cell
+							51 text 更新时间
+						52 cell
+							53 text 操作
+					54 row
+						55 cell
+							56 container
+								57 checkbox (settable, integer) 0
+						58 cell
+							59 link Description: OPT121 楼宇等级验收 opt121-lou-yu-deng-ji-yan-shou, Value: localhost:3720/admin/collections/buildings/1762
+						60 cell
+							61 container
+								62 text 上海 /  静安区
+						63 cell
+							64 text 未评级
+						65 cell
+							66 text 草稿
+						67 cell
+							68 text 启用
+						69 cell
+							70 text 2026/10/18 10:51
+						71 cell
+							72 container
+								73 link Description: 编辑, Value: localhost:3720/admin/collections/buildings/1762
+								74 button 停用
+					75 row
+						76 cell
+							77 container
+								78 checkbox (settable, integer) 0
+						79 cell
+							80 link Description: 南京西路高端商务中心 west-nanjing-premium-center-2302, Value: localhost:3720/admin/collections/buildings/1
+						81 cell
+							82 container
+								83 text 上海 /  静安区
+						84 cell
+							85 container
+								86 text 未评级 联合办公
+						87 cell
+							88 text 已发布
+						89 cell
+							90 text 启用
+						91 cell
+							92 text 2026/10/17 23:09
+						93 cell
+							94 container
+								95 link Description: 编辑, Value: localhost:3720/admin/collections/buildings/1
+								96 link Description: 前台, Value: localhost:3720/buildings/west-nanjing-premium-center-2302
+								97 button 停用
+					98 row
+						99 cell
+							100 container
+								101 checkbox (settable, integer) 0
+						102 cell
+							103 link Description: tester test0814, Value: localhost:3720/admin/collections/buildings/7
+						104 cell
+							105 container
+								106 text 上海 /  浦东新区
+						107 cell
+							108 text 未评级
+						109 cell
+							110 text 已发布
+						111 cell
+							112 text 启用
+						113 cell
+							114 text 2026/09/05 01:04
+						115 cell
+							116 container
+								117 link Description: 编辑, Value: localhost:3720/admin/collections/buildings/7
+								118 link Description: 前台, Value: localhost:3720/buildings/test0814
+								119 button 停用
+				120 text 共 3 条
+				121 content list
+					122 container 上一页
+						169 text .
+					124 container 第 1 页
+						125 text 1
+					126 container 下一页
+						170 text .
+				128 container 页码
+					129 combo box (collapsed) Value: 25 条/页, Secondary Actions: Expand
+						130 text 25 条/页
+	131 container Notifications alt+T
+	132 pop up button (collapsed) Description: Open Next.js Dev Tools, ID: next-logo, Secondary Actions: Expand
+		133 image
+
+The focused UI element is 1 AXWebArea 楼盘库 - Payload, URL: localhost:3720/admin/collections/buildings?grade=ungraded&depth=1&limit=10

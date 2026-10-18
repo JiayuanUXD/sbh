@@ -1,5 +1,6 @@
 import { getPayload } from 'payload'
 import { NextResponse } from 'next/server'
+import { miniMeGradeResponse } from '@/domain/mini-program/grade-schema'
 
 import config from '@/payload.config'
 import {
@@ -107,7 +108,7 @@ export async function GET(request: Request): Promise<Response> {
       favorites: { limit: MINI_ME_FAVORITES_PAGE_LIMIT, hasMore: favorites.hasMore },
       inquiries: { limit: MINI_ME_INQUIRIES_PAGE_LIMIT, hasMore: inquiries.hasMore },
     })
-    return response(miniWriteOk(data, requestId), 200, requestId)
+    return response(miniWriteOk(miniMeGradeResponse(data, new URL(request.url)), requestId), 200, requestId)
   } catch {
     return response(
       miniError('service_unavailable', '服务暂不可用，请稍后重试', requestId),

@@ -58,14 +58,10 @@ export type MiniQuickFilter = Readonly<{
   options: readonly Readonly<{ value: string; label: string; count: number }>[]
 }>
 
-export const MINI_BUILDING_GRADES = [
-  'grade-a',
-  'super-grade-a',
-  'creative-park',
-  'serviced-office',
-] as const
+export { BUILDING_GRADES as MINI_BUILDING_GRADES } from '@/domain/supply/building-grade'
+import { BUILDING_GRADES } from '@/domain/supply/building-grade'
 
-export type MiniBuildingGrade = (typeof MINI_BUILDING_GRADES)[number]
+export type MiniBuildingGrade = (typeof BUILDING_GRADES)[number]
 
 export type MiniBuildingCard = Readonly<{
   id: string

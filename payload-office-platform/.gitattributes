@@ -36,6 +36,11 @@ scripts/migrate-locked.ts -export-ignore
 # seed/：七城地理种子，只给本地 import:geography / collect:geography 用，src/ 不读。
 seed/** export-ignore
 
+# 资讯原稿与封面只供 scripts/import-articles.ts 导入；发布后由数据库与媒体库提供，
+# Next 构建和容器运行不读取 content/。封面随包使 master 的 2026-10-16 部署包
+# 增至 3.61MB，触发原有 3MB 闸门；仅排除导入素材，保留 public/ 与 src/assets/。
+content/** export-ignore
+
 # dev-story 走查页（及只被它引用的演示组件）：生产环境 notFound()。
 # E2E 跑的是完整仓库，不受部署包影响。
 src/app/(frontend)/dev-story/** export-ignore

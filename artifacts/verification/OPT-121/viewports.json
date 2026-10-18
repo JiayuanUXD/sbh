@@ -1,0 +1,34 @@
+[
+  {
+    "width": 375,
+    "height": 812,
+    "hasHeading": true,
+    "hasLegacyBuilding": true,
+    "hasNullGradeBuilding": true,
+    "hasUngraded": true
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "hasHeading": true,
+    "hasLegacyBuilding": true,
+    "hasNullGradeBuilding": true,
+    "hasUngraded": true
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "hasHeading": true,
+    "hasLegacyBuilding": true,
+    "hasNullGradeBuilding": true,
+    "hasUngraded": true
+  },
+  {
+    "width": 1920,
+    "height": 1080,
+    "hasHeading": true,
+    "hasLegacyBuilding": true,
+    "hasNullGradeBuilding": true,
+    "hasUngraded": true
+  }
+]

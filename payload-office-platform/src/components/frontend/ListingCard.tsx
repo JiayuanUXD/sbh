@@ -1,3 +1,4 @@
+import { getBuildingGradeLabel } from '@/domain/supply/building-grade'
 import Link from 'next/link'
 import React from 'react'
 import { formatArea } from '@/lib/frontend/format'
@@ -54,13 +55,6 @@ const DECORATION_LABEL: Record<NonNullable<ListingCardViewModel['decorationStatu
   fully_fitted: '全配齐',
 }
 
-const GRADE_LABEL: Record<string, string> = {
-  'grade-a': '甲级',
-  'super-grade-a': '超甲级',
-  'creative-park': '创意园',
-  'serviced-office': '服务式办公',
-}
-
 /** 标签分类着色：地铁/交通类→forest，装修/配套类→copper，其他→default */
 function tagVariantFor(text: string): 'default' | 'forest' | 'copper' {
   if (/地铁|交通|直达|枢纽/.test(text)) return 'forest'
@@ -89,7 +83,7 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
   }
   highlights.forEach(pushTag)
   if (decorationStatus) pushTag(DECORATION_LABEL[decorationStatus])
-  if (building?.grade) pushTag(GRADE_LABEL[building.grade])
+  if (building) pushTag(getBuildingGradeLabel(building.grade))
 
   const viewClass = view === 'list' ? ' listing-card--list' : ' listing-card--grid'
   const variantClass = variant === 'building-supply' ? ' listing-card--building-supply' : ''

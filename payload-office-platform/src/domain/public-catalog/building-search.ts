@@ -12,6 +12,8 @@
  * 悄悄返回空结果，比直接丢弃筛选条件更危险。
  */
 
+import { BUILDING_GRADES, BUILDING_GRADE_VALUES, normalizeBuildingGrade } from '@/domain/supply/building-grade'
+export { BUILDING_GRADE_VALUES } from '@/domain/supply/building-grade'
 import { completionYear } from '@/lib/frontend/format'
 import type { BuildingSummaryViewModel } from './contracts'
 
@@ -218,49 +220,12 @@ export function buildBuildingCanonicalParams(input: BuildingSearchInput): URLSea
 // 筛选 / 排序 / 分组纯函数（OPT-036 Task 2）
 // ---------------------------------------------------------------------------
 
-/**
- * 楼盘等级排序序位：刻意的产品排序（好在前），不是任何既有声明顺序的复制。
- *
- * `src/components/frontend/building-grade.ts` 的 `BUILDING_GRADE_LABELS` 只是
- * 「枚举值 → 中文标签」的查表映射，键的声明顺序是随手写的，不代表任何等级
- * 高低——所以这里**不跟随**它。用户点「按等级」排序时期待的是好楼优先：
- * 超甲级 > 甲级 > 创意园区 > 独栋办公。（domain 层也不能导入那个文件，
- * 它是组件层模块，跨层导入会违反层次边界；这个顾虑与上面的产品判断无关，
- * 只是恰好都指向「必须在这里独立声明」这个结论。）
- *
- * 说明这个顺序里不严谨的部分：「超甲级/甲级」是楼宇质量评级，「创意园区/
- * 独栋办公」是楼宇类型，两组概念共用同一个 `grade` 枚举字段，本不是同一把尺子
- * 上的刻度。它们排在质量评级之后只是一个约定（"标准写字楼评级 > 其它业态"），
- * 不是可辩护的序数关系。以后这个枚举增删值时必须重新审视这个常量，
- * 而不是假设它会自动跟着枚举定义顺序变。
- */
-const BUILDING_GRADE_ORDER: readonly string[] = [
-  'super-grade-a',
-  'grade-a',
-  'creative-park',
-  'serviced-office',
-]
-
-/**
- * 楼盘等级取值全集（解析层白名单 + 跨城参数白名单共用）。
- *
- * 从 `BUILDING_GRADE_ORDER` 派生，而不是再抄一份字面量：这个枚举的取值域此前在
- * 仓库里有三份（本文件的排序表、`lib/frontend/city-routes.ts` 的跨城白名单、
- * 组件层的 `BUILDING_GRADE_LABELS`），OPT-040 的坑单点名过「别把取值域抄第三份」。
- * 这里只取**集合**语义，与那个常量的**顺序**语义互不干扰——新增等级时两处都要动，
- * 顺序需要重新判断（见上方注释），取值域则必然跟着枚举走。
- *
- * 组件层的标签表不在此列：域层不能反向导入 `components/`（层次边界），它与这里
- * 靠 `BuildingGrade` 联合类型对齐。
- */
-export const BUILDING_GRADE_VALUES: ReadonlySet<string> = new Set(BUILDING_GRADE_ORDER)
-
-/** 未识别的 grade 值排到末尾（既不在白名单里，也不能当作最高优先级）。 */
+const BUILDING_GRADE_ORDER: readonly string[] = BUILDING_GRADES
 const UNKNOWN_GRADE_RANK = BUILDING_GRADE_ORDER.length
 
 function gradeRank(grade: string | null | undefined): number {
-  if (grade == null) return UNKNOWN_GRADE_RANK
-  const idx = BUILDING_GRADE_ORDER.indexOf(grade)
+  const normalized = normalizeBuildingGrade(grade)
+  const idx = normalized ? BUILDING_GRADE_ORDER.indexOf(normalized) : -1
   return idx === -1 ? UNKNOWN_GRADE_RANK : idx
 }
 
@@ -298,7 +263,7 @@ export function applyBuildingFilters(
   return docs.filter((doc) => {
     if (districtSet && (!doc.district || !districtSet.has(doc.district.slug))) return false
     if (businessAreaSet && (!doc.businessDistrict || !businessAreaSet.has(doc.businessDistrict.slug))) return false
-    if (gradeSet && (!doc.grade || !gradeSet.has(doc.grade))) return false
+    if (gradeSet && !gradeSet.has(normalizeBuildingGrade(doc.grade) ?? '')) return false
     if (metroSet && (!doc.nearestMetro || !metroSet.has(doc.nearestMetro.slug))) return false
 
     if (input.onlyWithStock) {

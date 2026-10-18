@@ -271,20 +271,47 @@ describe('Mini API 目录运行时契约', () => {
     expect(parseMiniListingDetailData({ ...validDetail, buildingInfo: null }).buildingInfo).toBeNull()
   })
 
-  it('穷尽映射服务端真实楼盘等级中文文案', () => {
-    const formatter = Object.entries(catalogContracts)
-      .find(([name]) => name === 'buildingGradeLabel')?.[1]
+  it.each([
+    ['super-grade-a', '超甲级'],
+    ['grade-a', '甲级'],
+    ['grade-b', '乙级'],
+    ['ungraded', '未评级'],
+    ['creative-park', '未评级'],
+    ['serviced-office', '未评级'],
+  ])('接收 %s 并提供规范等级中文标签 %s', (grade, label) => {
+    const card = parseMiniBuildingCard({ ...validBuilding, grade })
+    expect(card.grade).toBe(
+      grade === 'creative-park' || grade === 'serviced-office' ? 'ungraded' : grade,
+    )
+    expect(catalogContracts.buildingGradeLabel(card.grade!)).toBe(label)
+    expect(parseMiniBuildingDetailData({ ...validBuildingDetail, grade }).grade).toBe(card.grade)
+    expect(parseMiniHomeData({ ...validHome, featuredBuildings: [{ ...validBuilding, grade }] })
+      .featuredBuildings[0]?.grade).toBe(card.grade)
+  })
 
-    expect(formatter).toBeTypeOf('function')
-    if (typeof formatter !== 'function') return
+  it('首页、楼盘列表、楼盘详情与房源关联楼盘将 null 等级归一为未评级', () => {
+    const emptyGradeBuilding = { ...validBuilding, grade: null }
+    expect(parseMiniBuildingCard(emptyGradeBuilding).grade).toBe('ungraded')
+    expect(parseMiniHomeData({ ...validHome, featuredBuildings: [emptyGradeBuilding] })
+      .featuredBuildings[0]?.grade).toBe('ungraded')
+    const list = parseMiniBuildingsData({
+      ...validBuildings, items: [emptyGradeBuilding], inactiveItems: [emptyGradeBuilding],
+    })
+    expect(list.items[0]?.grade).toBe('ungraded')
+    expect(list.inactiveItems[0]?.grade).toBe('ungraded')
+    const detail = parseMiniBuildingDetailData({
+      ...validBuildingDetail, grade: null, comparableBuildings: [emptyGradeBuilding],
+    })
+    expect(detail.grade).toBe('ungraded')
+    expect(detail.comparableBuildings[0]?.grade).toBe('ungraded')
+    expect(parseMiniListingDetailData({ ...validDetail, buildingInfo: emptyGradeBuilding })
+      .buildingInfo?.grade).toBe('ungraded')
+  })
 
-    const labels: unknown[] = [
-      formatter('grade-a'),
-      formatter('super-grade-a'),
-      formatter('creative-park'),
-      formatter('serviced-office'),
-    ]
-    expect(labels).toEqual(['甲级', '超甲级', '创意园区', '服务式办公'])
+  it.each(['grade-c', 'A', '', 'unknown-grade'])('继续拒绝未知等级 %s', (grade) => {
+    expect(() => parseMiniBuildingCard({ ...validBuilding, grade })).toThrow(/Mini API 目录响应无效/)
+    expect(() => parseMiniBuildingDetailData({ ...validBuildingDetail, grade }))
+      .toThrow(/Mini API 目录响应无效/)
   })
 
   it.each([

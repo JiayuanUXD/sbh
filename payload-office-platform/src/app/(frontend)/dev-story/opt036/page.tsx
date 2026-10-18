@@ -299,7 +299,7 @@ const BUILDING_CARD_FIXTURES: readonly Readonly<{ label: string; building: Build
       id: 206,
       slug: 'no-grade-building',
       name: '西岸智慧谷',
-      grade: undefined,
+      grade: 'ungraded',
       leasableArea: 26410,
       listingCount: 51,
     }),
@@ -354,7 +354,7 @@ const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: Bu
       id: 304,
       slug: 'vacant-no-meta',
       name: '资料待补充楼盘示例',
-      grade: undefined,
+      grade: 'ungraded',
       district: undefined,
       nearestMetro: undefined,
       leasableArea: undefined,
@@ -552,7 +552,8 @@ const BUILDING_FILTER_FORM_C_FIXTURE: Readonly<{
       options: [
         { value: 'super-grade-a', label: '超甲级' },
         { value: 'grade-a', label: '甲级' },
-        { value: 'creative-park', label: '创意园区' },
+        { value: 'grade-b', label: '乙级' },
+        { value: 'ungraded', label: '未评级' },
       ],
     },
     {

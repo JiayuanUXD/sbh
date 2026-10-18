@@ -47,10 +47,10 @@ export type MiniQuickFilter = Readonly<{
 }>
 
 export const MINI_BUILDING_GRADES = [
-  'grade-a',
   'super-grade-a',
-  'creative-park',
-  'serviced-office',
+  'grade-a',
+  'grade-b',
+  'ungraded',
 ] as const
 
 export type MiniBuildingGrade = (typeof MINI_BUILDING_GRADES)[number]
@@ -58,8 +58,8 @@ export type MiniBuildingGrade = (typeof MINI_BUILDING_GRADES)[number]
 const MINI_BUILDING_GRADE_LABELS: Readonly<Record<MiniBuildingGrade, string>> = {
   'grade-a': '甲级',
   'super-grade-a': '超甲级',
-  'creative-park': '创意园区',
-  'serviced-office': '服务式办公',
+  'grade-b': '乙级',
+  'ungraded': '未评级',
 }
 
 export function buildingGradeLabel(grade: MiniBuildingGrade): string {
@@ -323,9 +323,10 @@ function isMiniBuildingGrade(value: string): value is MiniBuildingGrade {
   return MINI_BUILDING_GRADES.some((grade) => grade === value)
 }
 
-function requireNullableMiniBuildingGrade(value: unknown): MiniBuildingGrade | null {
-  if (value === null) return null
+function requireMiniBuildingGrade(value: unknown): MiniBuildingGrade {
+  if (value === null) return 'ungraded'
   const grade = requireString(value)
+  if (grade === 'creative-park' || grade === 'serviced-office') return 'ungraded'
   if (!isMiniBuildingGrade(grade)) return invalidCatalogResponse()
   return grade
 }
@@ -615,7 +616,7 @@ export function parseMiniBuildingCard(value: unknown): MiniBuildingCard {
     name: requireString(record.name),
     district: requireNullableString(record.district),
     address: requireString(record.address),
-    grade: requireNullableMiniBuildingGrade(record.grade),
+    grade: requireMiniBuildingGrade(record.grade),
     completedYear: requireNullableNonNegativeInteger(record.completedYear),
     totalFloors: requireNullableNonNegativeInteger(record.totalFloors),
     occupancyRate: requireNullableNonNegativeNumber(record.occupancyRate),
@@ -693,7 +694,7 @@ export function parseMiniBuildingDetailData(
     name: requireString(record.name),
     address: requireString(record.address),
     district: requireNullableString(record.district),
-    grade: requireNullableMiniBuildingGrade(record.grade),
+    grade: requireMiniBuildingGrade(record.grade),
     completedYear: requireNullableNonNegativeInteger(record.completedYear),
     totalFloors: requireNullableNonNegativeInteger(record.totalFloors),
     standardFloorArea: requireNullableNonNegativeNumber(record.standardFloorArea),

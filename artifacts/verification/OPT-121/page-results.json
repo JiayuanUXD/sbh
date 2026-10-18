@@ -1,0 +1,32 @@
+[
+  {
+    "path": "/api/health",
+    "status": 200,
+    "finalUrl": "http://localhost:3717/api/health"
+  },
+  {
+    "path": "/",
+    "status": 200,
+    "finalUrl": "http://localhost:3717/"
+  },
+  {
+    "path": "/shanghai/buildings",
+    "status": 200,
+    "finalUrl": "http://localhost:3717/shanghai/buildings"
+  },
+  {
+    "path": "/shanghai/buildings?grade=ungraded",
+    "status": 200,
+    "finalUrl": "http://localhost:3717/shanghai/buildings?grade=ungraded"
+  },
+  {
+    "path": "/shanghai/buildings/west-nanjing-premium-center-2302",
+    "status": 200,
+    "finalUrl": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center-2302"
+  },
+  {
+    "path": "/api/mini/v1/buildings?city=shanghai",
+    "status": 200,
+    "finalUrl": "http://localhost:3717/api/mini/v1/buildings?city=shanghai"
+  }
+]

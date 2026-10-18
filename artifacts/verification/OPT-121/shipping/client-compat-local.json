@@ -1,0 +1,42 @@
+[
+  {
+    "path": "/api/mini/v1/buildings?city=shanghai",
+    "status": 200,
+    "grades": [
+      null,
+      "super-grade-a",
+      "grade-a"
+    ],
+    "parser": "4067918eb847e5e4a669ebdcc29d70df82e56845"
+  },
+  {
+    "path": "/api/mini/v1/buildings?city=shanghai&gradeSchema=quality-v1",
+    "status": 200,
+    "grades": [
+      "ungraded",
+      "super-grade-a",
+      "grade-a"
+    ],
+    "parser": "current"
+  },
+  {
+    "path": "/api/mini/v1/buildings?city=shanghai&gradeSchema=unknown-version",
+    "status": 200,
+    "grades": [
+      null,
+      "super-grade-a",
+      "grade-a"
+    ],
+    "parser": "4067918eb847e5e4a669ebdcc29d70df82e56845"
+  },
+  {
+    "path": "/api/mini/v1/buildings?city=shanghai",
+    "status": 200,
+    "grades": [
+      null,
+      "super-grade-a",
+      "grade-a"
+    ],
+    "parser": "4067918eb847e5e4a669ebdcc29d70df82e56845"
+  }
+]

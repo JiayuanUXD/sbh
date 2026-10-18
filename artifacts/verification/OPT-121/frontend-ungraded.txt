@@ -1,0 +1,84 @@
+Browser tab: 1, Title: "上海写字楼 · 商办租赁", URL: "http://localhost:3720/shanghai/buildings?grade=ungraded".
+1 AXWebArea 上海写字楼 · 商办租赁, URL: localhost:3720/shanghai/buildings?grade=ungraded
+	2 link Description: 跳到主要内容, Value: localhost:3720/shanghai/buildings?grade=ungraded#main-content
+	3 container
+		4 link Description: 商办空间首页, Value: localhost:3720/shanghai
+		5 pop up button (collapsed) Description: 切换城市, Secondary Actions: Expand
+		6 container 主导航
+			7 link Description: 首页, Value: localhost:3720/shanghai
+			8 link Description: 找办公室, Value: localhost:3720/shanghai/listings
+			9 link Description: 找楼盘, Value: localhost:3720/shanghai/buildings
+			10 link Description: 共享办公, Value: localhost:3720/shanghai/coworking
+			11 link Description: 委托找房, Value: localhost:3720/entrust?city=shanghai
+			12 link Description: 投放房源, Value: localhost:3720/publish?city=shanghai
+			13 link Description: 资讯, Value: localhost:3720/news
+		14 text 搜索商圈、楼盘或地址
+		15 search text field (settable) 搜索商圈、楼盘或地址
+		16 button 搜索
+		17 link Description: 拨打客服电话 021 6888 8888, Value: tel:02168888888
+	18 container main-content
+		19 container
+			20 heading 上海写字楼, Value: 1
+				21 text 上海写字楼
+			22 text 收录  7 个楼盘 · 当前筛选出  2  个 ，其中  1  个现在有 在租房源
+		23 text 位置
+		24 link Description: 静安区1, Value: localhost:3720/shanghai/buildings?grade=ungraded&district=jingan
+		25 link Description: 浦东新区1, Value: localhost:3720/shanghai/buildings?grade=ungraded&district=pudong
+		26 text 等级
+		27 link Description: 超甲级1, Value: localhost:3720/shanghai/buildings?grade=super-grade-a
+		28 link Description: 甲级4, Value: localhost:3720/shanghai/buildings?grade=grade-a
+		29 link Description: 未评级2, Value: localhost:3720/shanghai/buildings
+		30 text 地铁
+		31 link Description: 南京西路站1, Value: localhost:3720/shanghai/buildings?grade=ungraded&metro=metro-nanjing-west-road
+		32 text 在租面积
+		33 link Description: 500 ㎡以上, Value: localhost:3720/shanghai/buildings?grade=ungraded&leasableAreaMin=500
+		34 link Description: 1,000 ㎡以上, Value: localhost:3720/shanghai/buildings?grade=ungraded&leasableAreaMin=1000
+		35 link Description: 2,000 ㎡以上, Value: localhost:3720/shanghai/buildings?grade=ungraded&leasableAreaMin=2000
+		36 link Description: 5,000 ㎡以上, Value: localhost:3720/shanghai/buildings?grade=ungraded&leasableAreaMin=5000
+		37 text 竣工年代
+		38 link Description: 2020 年后, Value: localhost:3720/shanghai/buildings?grade=ungraded&completedAfter=2020
+		39 link Description: 2010 年后, Value: localhost:3720/shanghai/buildings?grade=ungraded&completedAfter=2010
+		40 link Description: 2000 年后, Value: localhost:3720/shanghai/buildings?grade=ungraded&completedAfter=2000
+		41 link Description: 等级：未评级, Value: localhost:3720/shanghai/buildings
+		42 link Description: 清除全部, Value: localhost:3720/shanghai/buildings
+		43 container
+			44 text 显示第  1 – 2 个 ，共  2 个楼盘
+			45 container 排序
+				46 link Description: 在租最多, Value: localhost:3720/shanghai/buildings?grade=ungraded
+				47 link Description: 在租面积, Value: localhost:3720/shanghai/buildings?grade=ungraded&sort=area-desc
+				48 link Description: 等级, Value: localhost:3720/shanghai/buildings?grade=ungraded&sort=grade
+				49 link Description: 竣工最新, Value: localhost:3720/shanghai/buildings?grade=ungraded&sort=completion-desc
+			50 link Description: 卡片网格, Value: localhost:3720/shanghai/buildings?grade=ungraded
+			51 link Description: 横向列表, Value: localhost:3720/shanghai/buildings?grade=ungraded&view=row
+		52 text 当前有在租 1  个
+		53 link Description: 南京西路高端商务中心，8 套在租, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302
+		54 container
+			55 text 暂无在租 1  个 这些楼盘暂时没有可租的房源
+			56 link Description: tester, Value: localhost:3720/shanghai/buildings/test0814
+	57 container
+		58 link Description: 商办空间, Value: localhost:3720/shanghai
+		59 text 聚合上海甲级写字楼、独栋办公、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。
+		60 container 页脚导航
+			61 heading 浏览, Value: 3
+				62 text 浏览
+			63 content list
+				64 link Description: 在租房源, Value: localhost:3720/shanghai/listings
+				65 link Description: 找写字楼, Value: localhost:3720/shanghai/buildings
+				66 link Description: 资讯中心, Value: localhost:3720/news
+			67 heading 按类型, Value: 3
+				68 text 按类型
+			69 content list
+				70 link Description: 传统办公, Value: localhost:3720/shanghai/listings?type=traditional-office
+				71 link Description: 联合办公, Value: localhost:3720/shanghai/coworking
+				72 link Description: 整层办公, Value: localhost:3720/shanghai/listings?type=full-floor
+			73 heading 服务, Value: 3
+				74 text 服务
+			75 content list
+				76 link Description: 委托找房, Value: localhost:3720/entrust?city=shanghai
+				77 link Description: 投放房源, Value: localhost:3720/publish?city=shanghai
+		78 text ©  2026 商办租赁平台
+		79 link Description: 员工入口, Value: localhost:3720/admin/login
+	80 pop up button (collapsed) Description: Open Next.js Dev Tools, ID: next-logo, Secondary Actions: Expand
+		81 image
+
+The focused UI element is 1 AXWebArea 上海写字楼 · 商办租赁, URL: localhost:3720/shanghai/buildings?grade=ungraded

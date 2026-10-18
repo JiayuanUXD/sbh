@@ -1,3 +1,4 @@
+import { BUILDING_GRADE_SCHEMA_VERSION } from '@/domain/supply/building-grade'
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 type CacheRegistration = Readonly<{
@@ -81,6 +82,7 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
       nextPage: null,
       page: options.page,
     })),
+    searchBuildingsFiltered: vi.fn(async () => ({ docs: [] })),
   }
 })
 
@@ -101,10 +103,26 @@ import {
   getCachedSitemapBuildingsPage,
   getCachedSearchFacets,
   getCachedSearchListings,
+  getCachedSearchBuildingsFiltered,
 } from '@/lib/frontend/cached-queries'
 import { getPlatformHomepageStats, parseSearchInput, scanListingsPage } from '@/domain/public-catalog'
+import { parseBuildingSearchInput } from '@/domain/public-catalog/building-search'
 
 describe('per-city public catalog caches', () => {
+  it('楼宇等级语义变化隔离全部包含grade的公开DTO缓存', async () => {
+    await Promise.all([
+      getCachedHomepage('opt121'), getCachedListingBySlug('opt121', 'listing'),
+      getCachedRelatedListings('opt121', 'listing'), getCachedDetailRecommendations('opt121', 'listing'),
+      getCachedRelatedBuildings('opt121', 'building'), getCachedBuildingDetail('opt121', 'building'),
+      getCachedBuildingBySlug('opt121', 'building'), getCachedSitemapBuildingsPage('opt121', 1, 200),
+      getCachedSearchListings('opt121', '', parseSearchInput(new URLSearchParams())),
+      getCachedSearchBuildingsFiltered('opt121', parseBuildingSearchInput(new URLSearchParams())),
+    ])
+    for (const resource of ['homepage', 'listing-by-slug', 'related-listings', 'detail-recommendations', 'related-buildings', 'building-detail', 'building-by-slug', 'sitemap-buildings-page', 'listing-cards', 'search-buildings-filtered']) {
+      const cache = cacheState.registrations.find(entry => entry.keyParts[0] === resource && entry.keyParts[1] === 'opt121')
+      expect(cache?.keyParts, resource).toContain(BUILDING_GRADE_SCHEMA_VERSION)
+    }
+  })
   beforeEach(() => {
     cacheState.homepageCities.length = 0
     cacheState.homepageRows.length = 0
@@ -143,12 +161,12 @@ describe('per-city public catalog caches', () => {
     )
     expect(homepageCaches).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        keyParts: ['homepage', 'shanghai'],
+        keyParts: ['homepage', 'shanghai', BUILDING_GRADE_SCHEMA_VERSION],
         tags: expect.arrayContaining(['public:home:shanghai']),
         revalidate: 300,
       }),
       expect.objectContaining({
-        keyParts: ['homepage', 'hangzhou'],
+        keyParts: ['homepage', 'hangzhou', BUILDING_GRADE_SCHEMA_VERSION],
         tags: expect.arrayContaining(['public:home:hangzhou']),
         revalidate: 300,
       }),
@@ -238,7 +256,7 @@ describe('per-city public catalog caches', () => {
       ({ keyParts }) => keyParts[0] === 'sitemap-buildings-page' && keyParts[1] === 'suzhou',
     )
     expect(buildingPage).toMatchObject({
-      keyParts: ['sitemap-buildings-page', 'suzhou', 'page:2', 'limit:200'],
+      keyParts: ['sitemap-buildings-page', 'suzhou', 'page:2', 'limit:200', BUILDING_GRADE_SCHEMA_VERSION],
       revalidate: 300,
     })
     expect(buildingPage?.tags).toEqual(expect.arrayContaining([

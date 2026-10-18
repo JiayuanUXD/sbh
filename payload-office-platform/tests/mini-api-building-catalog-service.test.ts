@@ -95,6 +95,11 @@ function observedInput(onPageSizeRead: () => void): BuildingSearchInput {
 }
 
 describe('Mini 楼盘 catalog service 编排', () => {
+  it.each(['creative-park', 'serviced-office'])('旧客户端等级筛选%s归一到未评级', async grade => {
+    io.getCachedMiniBuildings.mockResolvedValue({ asOf: AS_OF, data: { result: resultFixture(), input: { page: 1, pageSize: 24, sort: 'stock-desc' } } })
+    await getMiniBuildings(new URL(`https://example.test/api/mini/v1/buildings?city=shanghai&grade=${grade}`))
+    expect(io.getCachedMiniBuildings).toHaveBeenCalledWith('shanghai', expect.objectContaining({ grade: ['ungraded'] }))
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     io.resolveCityContext.mockResolvedValue({

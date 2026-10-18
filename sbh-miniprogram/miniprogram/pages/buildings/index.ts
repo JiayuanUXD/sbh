@@ -5,7 +5,12 @@ import {
   type InquirySheetSnapshot,
 } from '../../components/inquiry-sheet/controller.js'
 import { getBuildings } from '../../services/catalog.js'
-import type { MiniBuildingCard, MiniBuildingsData } from '../../services/catalog-contracts.js'
+import {
+  MINI_BUILDING_GRADES,
+  buildingGradeLabel,
+  type MiniBuildingCard,
+  type MiniBuildingsData,
+} from '../../services/catalog-contracts.js'
 import { refreshUserAssets } from '../../services/favorites.js'
 import {
   createInquiryService,
@@ -20,10 +25,7 @@ import {
 
 const BUILDING_GRADE_FILTERS = [
   { label: '全部', value: '' },
-  { label: '甲级', value: 'grade-a' },
-  { label: '超甲级', value: 'super-grade-a' },
-  { label: '创意园区', value: 'creative-park' },
-  { label: '服务式办公', value: 'serviced-office' },
+  ...MINI_BUILDING_GRADES.map((value) => ({ label: buildingGradeLabel(value), value })),
 ] as const
 
 const SORTS: Record<string, string> = {
