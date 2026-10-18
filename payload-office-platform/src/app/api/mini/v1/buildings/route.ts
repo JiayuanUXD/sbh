@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { miniBuildingsGradeResponse } from '@/domain/mini-program/grade-schema'
 import {
   miniError,
   miniOk,
@@ -25,7 +26,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     return NextResponse.json(
-      miniOk(snapshot.data, { requestId, asOf: snapshot.asOf }),
+      miniOk(miniBuildingsGradeResponse(snapshot.data, new URL(request.url)), { requestId, asOf: snapshot.asOf }),
       {
         headers: {
           'Cache-Control': MINI_CACHE_CONTROL,

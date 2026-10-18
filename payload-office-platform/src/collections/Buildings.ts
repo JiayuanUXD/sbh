@@ -1,3 +1,4 @@
+import { BUILDING_GRADES, BUILDING_GRADE_LABELS, LEGACY_BUILDING_GRADES, filterBuildingGradeOptions, normalizeBuildingGrade, normalizeBuildingGradeInput, trackBuildingGradeInput } from '@/domain/supply/building-grade'
 import type { CollectionBeforeChangeHook, CollectionConfig, Field, Where } from 'payload'
 import { createCollectionAccess } from '@/domain/auth/access'
 import { isStaffRequest } from '@/domain/member/member-access'
@@ -24,6 +25,7 @@ import {
 } from '@/domain/supply/building'
 import { guardBuildingDelete } from '@/domain/supply/building-delete-cleanup'
 import { protectBuilding } from '@/domain/supply/building-protect'
+import { ensureBuildingSlug } from '@/domain/supply/building-slug'
 import {
   LEGACY_BUILDING_TYPES,
   LEGACY_BUILDING_TYPE_OPTION_LABELS,
@@ -227,7 +229,8 @@ export const Buildings: CollectionConfig = {
   },
   hooks: {
     // OPT-115 第一期：物业类型旧值在校验前换成新值（新旧值共存期的「双读」写侧）。
-    beforeValidate: [normalizeLegacyBuildingType],
+    // 必须先消费字段 hook 记录的提交意图，其余 hook 可能复制 data 对象。
+    beforeValidate: [normalizeBuildingGradeInput, normalizeLegacyBuildingType, ensureBuildingSlug],
     // 楼盘保护（M3.1）：枚举双保险、city 校验、图集上限、版本乐观锁
     // syncBuildingMedia 必须排在 protectBuilding 之前：gallery 由 mediaItems 派生，
     // 只有先派生再校验，protectBuilding 的 BUILDING_GALLERY_MAX 兜底才拦得住 API 直传。
@@ -292,17 +295,20 @@ export const Buildings: CollectionConfig = {
                   label: '楼盘名称',
                   type: 'text',
                   required: true,
-                  admin: { width: COL_3 },
+                  admin: {
+                    width: COL_3,
+                    components: { afterInput: ['/components/admin/ListingSlugBadge#default'] },
+                  },
                 },
                 {
-                  // 楼盘的 slug 没有服务端生成钩子（房源那边由 listing-protect 的 ensureUniqueSlug
-                  // 生成，故能收进标题框的图标）；这里仍是运营手填的必填项，保留为可编辑字段。
                   name: 'slug',
                   label: 'URL 标识',
                   type: 'text',
                   required: true,
                   unique: true,
-                  admin: { width: COL_3, description: '用于前台 URL（/buildings/xxx），发布后不建议再改。' },
+                  // 撤下表单输入，保留 API 输出、required 和唯一约束；由名称旁图标展示已存值。
+                  // 不使用顶层 hidden（会删掉 API 输出）或 admin.hidden（仍参与表单必填校验）。
+                  admin: { disabled: true },
                 },
                 {
                   name: 'status',
@@ -358,12 +364,17 @@ export const Buildings: CollectionConfig = {
                   label: '楼宇等级',
                   type: 'select',
                   admin: { width: COL_3 },
+                  defaultValue: () => 'ungraded',
                   options: [
-                    { label: '甲级', value: 'grade-a' },
-                    { label: '超甲级', value: 'super-grade-a' },
-                    { label: '创意园区', value: 'creative-park' },
-                    { label: '服务式办公', value: 'serviced-office' },
+                    ...BUILDING_GRADES.map(value => ({ label: BUILDING_GRADE_LABELS[value], value })),
+                    ...LEGACY_BUILDING_GRADES.map(value => ({ label: BUILDING_GRADE_LABELS.ungraded, value })),
                   ],
+                  filterOptions: filterBuildingGradeOptions,
+                  validate: (value: unknown) => normalizeBuildingGrade(value) !== undefined || '楼宇等级不是合法取值',
+                  hooks: {
+                    beforeValidate: [trackBuildingGradeInput],
+                    afterRead: [({ value }) => normalizeBuildingGrade(value) ?? value],
+                  },
                 },
               ],
             },

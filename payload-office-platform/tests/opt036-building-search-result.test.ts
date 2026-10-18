@@ -64,10 +64,10 @@ describe('sortBuildings', () => {
     const docs = [b({ slug: 'q', listingCount: 7 }), b({ slug: 'p', listingCount: 7 })]
     expect(sortBuildings(docs, 'stock-desc').map(d => d.slug)).toEqual(['p', 'q'])
   })
-  it('grade 按声明序位排序：超甲级 > 甲级 > 创意园区 > 独栋办公', () => {
+  it('grade 按声明序位排序：超甲级 > 甲级 > 乙级 > 未评级', () => {
     const docs = [
-      b({ slug: 'so', grade: 'serviced-office' as never }),
-      b({ slug: 'cp', grade: 'creative-park' as never }),
+      b({ slug: 'so', grade: 'ungraded' }),
+      b({ slug: 'cp', grade: 'grade-b' }),
       b({ slug: 'ga', grade: 'grade-a' as never }),
       b({ slug: 'sga', grade: 'super-grade-a' as never }),
     ]
@@ -80,7 +80,7 @@ describe('sortBuildings', () => {
       b({ slug: 'sga', grade: 'super-grade-a' as never }),
       b({ slug: 'unknown', grade: 'not-a-real-grade' as never }),
     ]
-    expect(sortBuildings(docs, 'grade').map(d => d.slug)).toEqual(['sga', 'so', 'missing', 'unknown'])
+    expect(sortBuildings(docs, 'grade').map(d => d.slug)).toEqual(['sga', 'missing', 'so', 'unknown'])
   })
   it('grade 同值时按 slug 稳定收束', () => {
     const docs = [

@@ -1,0 +1,71 @@
+{
+  "fixtureId": 1762,
+  "results": [
+    {
+      "input": "creative-park",
+      "read": "ungraded",
+      "partialUpdateRawGrade": "creative-park"
+    },
+    {
+      "input": "serviced-office",
+      "read": "ungraded",
+      "partialUpdateRawGrade": "serviced-office"
+    },
+    {
+      "input": null,
+      "read": "ungraded",
+      "partialUpdateRawGrade": null
+    },
+    {
+      "input": "super-grade-a",
+      "saved": "super-grade-a",
+      "refreshed": "super-grade-a"
+    },
+    {
+      "input": "grade-a",
+      "saved": "grade-a",
+      "refreshed": "grade-a"
+    },
+    {
+      "input": "grade-b",
+      "saved": "grade-b",
+      "refreshed": "grade-b"
+    },
+    {
+      "input": "ungraded",
+      "saved": "ungraded",
+      "refreshed": "ungraded"
+    },
+    {
+      "input": "creative-park",
+      "saved": "ungraded",
+      "refreshed": "ungraded"
+    },
+    {
+      "input": "serviced-office",
+      "saved": "ungraded",
+      "refreshed": "ungraded"
+    },
+    {
+      "input": null,
+      "saved": "ungraded",
+      "refreshed": "ungraded"
+    },
+    {
+      "invalidInput": "garbage",
+      "status": 400
+    },
+    {
+      "invalidInput": 42,
+      "status": 400
+    },
+    {
+      "invalidInput": {},
+      "status": 400
+    },
+    {
+      "invalidInput": [],
+      "status": 400
+    }
+  ]
+}

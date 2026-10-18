@@ -10,6 +10,7 @@ vi.mock('@/lib/mini-program/catalog-service', () => ({
 
 import { GET, runtime } from '@/app/api/mini/v1/home/route'
 const HOME_DATA = {
+  featuredBuildings: [],
   featuredListings: [],
   quickFilters: [],
   stats: { listings: 12, buildings: 4, businessAreas: 3 },

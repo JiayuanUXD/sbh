@@ -1,0 +1,74 @@
+{
+  "rows": [
+    {
+      "id": 1,
+      "grade": "serviced-office",
+      "deleted_at": null
+    },
+    {
+      "id": 2,
+      "grade": "grade-a",
+      "deleted_at": null
+    },
+    {
+      "id": 3,
+      "grade": "grade-a",
+      "deleted_at": null
+    },
+    {
+      "id": 4,
+      "grade": "super-grade-a",
+      "deleted_at": null
+    },
+    {
+      "id": 5,
+      "grade": "grade-a",
+      "deleted_at": null
+    },
+    {
+      "id": 6,
+      "grade": "grade-a",
+      "deleted_at": null
+    },
+    {
+      "id": 7,
+      "grade": null,
+      "deleted_at": null
+    },
+    {
+      "id": 1760,
+      "grade": null,
+      "deleted_at": "2026-10-17T15:35:51.022Z"
+    },
+    {
+      "id": 1761,
+      "grade": null,
+      "deleted_at": "2026-10-17T15:35:51.022Z"
+    }
+  ],
+  "values": [
+    "grade-a",
+    "super-grade-a",
+    "creative-park",
+    "serviced-office"
+  ],
+  "counts": [
+    {
+      "grade": "grade-a",
+      "count": 4
+    },
+    {
+      "grade": "serviced-office",
+      "count": 1
+    },
+    {
+      "grade": "super-grade-a",
+      "count": 1
+    },
+    {
+      "grade": null,
+      "count": 3
+    }
+  ],
+  "pending": []
+}

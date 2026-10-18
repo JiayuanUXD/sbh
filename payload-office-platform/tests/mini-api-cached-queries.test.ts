@@ -1,3 +1,4 @@
+import { BUILDING_GRADE_SCHEMA_VERSION } from '@/domain/supply/building-grade'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type CacheRegistration = {
@@ -118,6 +119,16 @@ function registration(resource: string, city: string): CacheRegistration {
 }
 
 describe('Mini API cached queries', () => {
+  it('mini所有含楼宇grade的DTO缓存隔离旧等级语义', async () => {
+    await Promise.all([
+      getCachedMiniHome('opt121'), getCachedMiniListingDetail('opt121', 'found'),
+      getCachedMiniBuildings('opt121', parseBuildingSearchInput(new URLSearchParams())),
+      getCachedMiniBuildingDetail('opt121', 'building'),
+    ])
+    for (const resource of ['mini-v1-home', 'mini-v1-listing-detail', 'mini-v1-buildings', 'mini-v1-building-detail']) {
+      expect(registration(resource, 'opt121').keyParts).toContain(BUILDING_GRADE_SCHEMA_VERSION)
+    }
+  })
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-08-26T00:00:00.000Z'))

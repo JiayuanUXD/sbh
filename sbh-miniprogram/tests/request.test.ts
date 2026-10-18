@@ -106,7 +106,7 @@ describe('Mini API 请求层', () => {
     })
     expect(transport).toHaveBeenCalledWith({
       environment,
-      path: '/api/mini/v1/listings?city=shanghai',
+      path: '/api/mini/v1/listings?city=shanghai&gradeSchema=quality-v1',
       method: 'GET',
       timeoutMs: 10_000,
       headers: { Accept: 'application/json' },
@@ -130,7 +130,7 @@ describe('Mini API 请求层', () => {
     await expect(request({ path: '/api/mini/v1/listings?city=shanghai', parse: parseUnknown })).resolves.toEqual({ listings: [] })
     expect(transport).toHaveBeenCalledWith({
       environment: cloudEnvironment,
-      path: '/api/mini/v1/listings?city=shanghai',
+      path: '/api/mini/v1/listings?city=shanghai&gradeSchema=quality-v1',
       method: 'GET',
       timeoutMs: 10_000,
       headers: { Accept: 'application/json' },
@@ -169,7 +169,7 @@ describe('Mini API 请求层', () => {
     }).toEqual({
       transportInput: expect.objectContaining({
         environment: expect.objectContaining({ transport: 'cloud-container' }),
-        path: '/api/mini/v1/inquiries',
+        path: '/api/mini/v1/inquiries?gradeSchema=quality-v1',
         method: 'POST',
         data: { submissionRequestId: 'submission-1' },
         headers: {
@@ -235,7 +235,7 @@ describe('Mini API 请求层', () => {
       parse: parseUnknown,
     })).resolves.toEqual({ counts: { favorites: 0, inquiries: 0 } })
     expect(transport).toHaveBeenCalledWith(expect.objectContaining({
-      path: '/api/mini/v1/me',
+      path: '/api/mini/v1/me?gradeSchema=quality-v1',
       method: 'GET',
       headers: {
         Accept: 'application/json',

@@ -15,6 +15,7 @@ import {
   mapMiniListings,
 } from '@/domain/mini-program/mappers'
 import { parseBuildingSearchInput, parseSearchInput } from '@/domain/public-catalog'
+import { miniBuildingGradeSearchParams } from '@/domain/mini-program/grade-schema'
 import { getSiteConfig } from '@/lib/frontend/site-config'
 import {
   getCachedMiniBuildingDetail,
@@ -105,7 +106,7 @@ export async function getMiniBuildings(
   const trustedCity = await liveCity(city)
   if (!trustedCity) return null
 
-  const input = parseBuildingSearchInput(url.searchParams)
+  const input = parseBuildingSearchInput(miniBuildingGradeSearchParams(url.searchParams))
   const snapshot = await getCachedMiniBuildings(trustedCity, input)
   const siteConfig = getSiteConfig()
   return {

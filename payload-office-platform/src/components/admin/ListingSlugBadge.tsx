@@ -4,9 +4,9 @@ import React from 'react'
 import { useDocumentInfo } from '@payloadcms/ui'
 
 /**
- * 「房源标题」输入框右侧的 URL 标识图标（OPT-032 §3.3-C8）。
+ * 房源标题与楼盘名称输入框右侧共用的 URL 标识图标（OPT-032 / OPT-120）。
  *
- * 挂在 title 的 `admin.components.afterInput` 上，只读展示同文档的 slug，
+ * 挂在 title / name 的 `admin.components.afterInput` 上，只读展示同文档的 slug，
  * hover 出「URL 标识: <值>」。这样 slug 不再占一个表单格子，省下的高度与
  * 完全隐藏它一样多，但运营仍能核对生成结果（slug 进前台 URL，发布后不该再改）。
  *

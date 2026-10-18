@@ -1,3 +1,4 @@
+import { BUILDING_GRADE_SCHEMA_VERSION } from '@/domain/supply/building-grade'
 import { unstable_cache } from 'next/cache'
 
 import { getAreaLandingIndex, getAreaLandingPage } from '@/domain/public-catalog/area-landing-facade'
@@ -156,7 +157,7 @@ const getCachedHomepageByCity = memoizeByCity((citySlug) =>
         if (process.env.NODE_ENV === 'production') console.info('[public-catalog:home-cache]', JSON.stringify({ city: citySlug, phase: 'end', elapsedMs: Date.now() - start }))
       }
     },
-    ['homepage', citySlug],
+    ['homepage', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     {
       tags: [
         ...mixedSupplyCacheTags(citySlug),
@@ -198,7 +199,7 @@ export function getCachedPlatformStats(citySlugs: readonly string[]): Promise<Ho
 const getCachedListingBySlugByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (slug: string) => getListingBySlug(slug, createSearchContext(citySlug)),
-    ['listing-by-slug', citySlug],
+    ['listing-by-slug', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     { tags: listingCacheTags(citySlug), revalidate: 300 },
   ),
 )
@@ -215,7 +216,7 @@ const getCachedRelatedListingsByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (listingSlug: string, limit: number = 6) =>
       getRelatedListings(listingSlug, createSearchContext(citySlug), { limit }),
-    ['related-listings', citySlug],
+    ['related-listings', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     { tags: mixedSupplyCacheTags(citySlug), revalidate: 300 },
   ),
 )
@@ -238,7 +239,7 @@ const getCachedDetailRecommendationsByCity = memoizeByCity((citySlug) =>
         limit,
         scan: (input) => getCachedListingScan(citySlug, input, 'all'),
       }),
-    ['detail-recommendations', citySlug],
+    ['detail-recommendations', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     { tags: mixedSupplyCacheTags(citySlug), revalidate: 300 },
   ),
 )
@@ -256,7 +257,7 @@ const getCachedRelatedBuildingsByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (buildingSlug: string, limit: number = 6) =>
       getRelatedBuildings(buildingSlug, createSearchContext(citySlug), { limit }),
-    ['related-buildings', citySlug],
+    ['related-buildings', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     { tags: mixedSupplyCacheTags(citySlug), revalidate: 300 },
   ),
 )
@@ -282,7 +283,7 @@ const getCachedSearchBuildingsFilteredByCity = memoizeByCity((citySlug) =>
       void canonicalQuery
       return searchBuildingsFiltered(input, createSearchContext(citySlug))
     },
-    ['search-buildings-filtered', citySlug],
+    ['search-buildings-filtered', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     {
       tags: [...buildingCacheTags(citySlug), facetsTag(citySlug)],
       revalidate: 300,
@@ -324,7 +325,7 @@ const getCachedSitemapBuildingsPageByCity = memoizeByCity((citySlug) => {
         createSearchContext(citySlug),
         { page, limit },
       ),
-      ['sitemap-buildings-page', citySlug, `page:${page}`, `limit:${limit}`],
+      ['sitemap-buildings-page', citySlug, `page:${page}`, `limit:${limit}`, BUILDING_GRADE_SCHEMA_VERSION],
       {
         tags: [
           ...buildingCacheTags(citySlug),
@@ -390,7 +391,7 @@ export function getCachedSitemapListingsPage(
 const getCachedBuildingDetailByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (slug: string) => getBuildingDetail(slug, createSearchContext(citySlug)),
-    ['building-detail', citySlug],
+    ['building-detail', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     {
       tags: [...mixedSupplyCacheTags(citySlug), facetsTag(citySlug)],
       revalidate: 300,
@@ -409,7 +410,7 @@ export function getCachedBuildingDetail(citySlug: string, slug: string) {
 const getCachedBuildingBySlugByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (slug: string) => getBuildingBySlug(slug, createSearchContext(citySlug)),
-    ['building-by-slug', citySlug],
+    ['building-by-slug', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     { tags: buildingCacheTags(citySlug), revalidate: 300 },
   ),
 )
@@ -509,7 +510,7 @@ const getCachedListingCardsByIdsByCity = memoizeByCity((citySlug) =>
       void idsKey
       return hydrateListingCards(ids, createSearchContext(citySlug))
     },
-    ['listing-cards', citySlug],
+    ['listing-cards', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     { tags: listingCacheTags(citySlug), revalidate: 300 },
   ),
 )
@@ -676,7 +677,7 @@ export function getCachedAreaLandingIndex(citySlug: string) {
 const getCachedAreaLandingByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (slug: string) => getAreaLandingPage(slug, createSearchContext(citySlug, undefined, 'lease')),
-    ['area-landing', citySlug],
+    ['area-landing', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
     // 页面还带相关资讯，所以除了供给 tag 之外要挂资讯类目 tag。
     { tags: [...mixedSupplyCacheTags(citySlug), ARTICLES_CATEGORY_TAG], revalidate: 300 },
   ),

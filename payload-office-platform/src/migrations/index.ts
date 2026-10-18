@@ -93,6 +93,7 @@ import * as migration_20261006_032507_opt_104_source_sync_batches from './202610
 import * as migration_20261008_091723_home_featured_article_flag from './20261008_091723_home_featured_article_flag';
 import * as migration_20261009_103148_mp108_mini_user_assets from './20261009_103148_mp108_mini_user_assets';
 import * as migration_20261015_115450_opt_115_building_type_options_expand from './20261015_115450_opt_115_building_type_options_expand';
+import * as migration_20261017_160929_opt_121_building_grade_options_expand from './20261017_160929_opt_121_building_grade_options_expand';
 
 export const migrations = [
   {
@@ -568,6 +569,11 @@ export const migrations = [
   {
     up: migration_20261015_115450_opt_115_building_type_options_expand.up,
     down: migration_20261015_115450_opt_115_building_type_options_expand.down,
-    name: '20261015_115450_opt_115_building_type_options_expand'
+    name: '20261015_115450_opt_115_building_type_options_expand',
+  },
+  {
+    up: migration_20261017_160929_opt_121_building_grade_options_expand.up,
+    down: migration_20261017_160929_opt_121_building_grade_options_expand.down,
+    name: '20261017_160929_opt_121_building_grade_options_expand'
   },
 ];

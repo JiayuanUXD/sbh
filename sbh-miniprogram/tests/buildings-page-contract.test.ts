@@ -49,15 +49,6 @@ describe('楼盘列表页面合同', () => {
     expect(source).toContain('handleSortFilter')
   })
 
-  it('等级筛选发送公开合同枚举，不再伪装为 A/B', () => {
-    const source = readPageFile('index.ts')
-
-    for (const grade of ['grade-a', 'super-grade-a', 'creative-park', 'serviced-office']) {
-      expect(source).toContain(`'${grade}'`)
-    }
-    expect(source).not.toMatch(/gradeMap[\s\S]*?['"]A['"]|gradeMap[\s\S]*?['"]B['"]/)
-  })
-
   it('默认排序如实显示服务端的在租数量排序，不伪称综合排序', () => {
     const template = readPageFile('index.wxml')
     const source = readPageFile('index.ts')

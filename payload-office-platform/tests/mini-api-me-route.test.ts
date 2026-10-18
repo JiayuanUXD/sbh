@@ -3,6 +3,8 @@ import { createHmac } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { issueAnonymousContextToken } from '@/domain/mini-program/session'
+import { mapBuildingDetail } from '@/domain/public-catalog/mappers'
+import { BUILDING_JINGAN_CENTER } from '@/test/frontend/payload-documents'
 
 const io = vi.hoisted(() => ({
   rateKeys: [] as string[],
@@ -214,6 +216,18 @@ afterEach(() => {
 })
 
 describe('GET /api/mini/v1/me', () => {
+  it.each(['', 'unknown', 'quality-v1'])('收藏楼盘在gradeSchema=%s按能力输出，投影仍为canonical', async schema => {
+    for (const grade of ['grade-b', 'ungraded'] as const) {
+      const building = mapBuildingDetail({ ...BUILDING_JINGAN_CENTER, grade })
+      io.assertBuilding.mockResolvedValue(building)
+      const base = authRequest(tokenFor('openid-a'))
+      const request = new Request(`${base.url}?gradeSchema=${schema}`, { headers: base.headers })
+      const response = await GET(request)
+      expect(response.status).toBe(200)
+      await expect(response.json()).resolves.toMatchObject({ data: { favorites: { buildings: [{ grade: schema === 'quality-v1' ? grade : null }] } } })
+      expect(building?.grade).toBe(grade)
+    }
+  })
   beforeEach(() => {
     __resetMiniRateLimitStateForTests()
   })

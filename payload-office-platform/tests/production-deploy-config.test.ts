@@ -82,6 +82,8 @@ describe('生产部署配置', () => {
     const slimmed = [
       'scripts/seed.ts',
       'seed/geography/shanghai.json',
+      'content/articles/how-office-rent-is-calculated-shanghai.md',
+      'content/articles/covers/how-office-rent-is-calculated-shanghai.jpg',
       'src/app/(frontend)/dev-story/page.tsx',
       '.agent/core.md',
       'CLAUDE.md',

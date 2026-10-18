@@ -455,7 +455,7 @@ async function seed() {
     name: '南京西路高端商务中心',
     city: shanghai.id,
     status: 'published',
-    grade: 'serviced-office',
+    grade: 'ungraded',
     district: jingan.id,
     businessDistrict: nanjingWest.id,
     address: '上海市静安区南京西路商圈',

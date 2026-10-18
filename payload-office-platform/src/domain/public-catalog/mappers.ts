@@ -1,3 +1,4 @@
+import { normalizeBuildingGrade, getBuildingGradeLabel } from '@/domain/supply/building-grade'
 /**
  * 公开目录 Mapper
  *
@@ -474,7 +475,7 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
     slug: raw.slug,
     name: raw.name,
     address: raw.address ?? '',
-    grade: raw.grade ?? undefined,
+    grade: normalizeBuildingGrade(raw.grade),
     district: mapDistrict(districtRaw),
     businessDistrict: mapDistrict(populated?.businessDistrict),
     coverImage: mapMedia(coverRaw, raw.name) ?? undefined,
@@ -940,15 +941,7 @@ function mapBuildingFactGroups(building: PopulatedBuilding): readonly FactGroupV
         ),
         fact(
           '楼宇等级',
-          building.grade === 'grade-a'
-            ? '甲级'
-            : building.grade === 'super-grade-a'
-              ? '超甲级'
-              : building.grade === 'creative-park'
-                ? '创意园区'
-                : building.grade === 'serviced-office'
-                  ? '服务式办公'
-                  : null,
+          getBuildingGradeLabel(building.grade),
         ),
         fact(
           '注册能力',
@@ -1124,7 +1117,7 @@ export function mapBuildingDetail(
     name: building.name,
     address: building.address ?? '',
     buildingType: building.buildingType ?? undefined,
-    grade: building.grade ?? undefined,
+    grade: normalizeBuildingGrade(building.grade),
     district: mapDistrict(building.district),
     businessDistrict: mapDistrict(building.businessDistrict),
     nearestMetro: mapDistrict(building.nearestMetro),

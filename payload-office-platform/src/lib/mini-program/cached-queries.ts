@@ -1,3 +1,4 @@
+import { BUILDING_GRADE_SCHEMA_VERSION } from '@/domain/supply/building-grade'
 import { unstable_cache } from 'next/cache'
 
 import {
@@ -99,7 +100,7 @@ const getCachedMiniHomeByCity = memoizeByCity((city) => unstable_cache(
     ])
     return { asOf: context.asOf, data: { home, facets } }
   },
-  ['mini-v1-home', city],
+  ['mini-v1-home', city, BUILDING_GRADE_SCHEMA_VERSION],
   { tags: miniCacheTags(city), revalidate: 300 },
 ))
 
@@ -144,7 +145,7 @@ const getCachedMiniListingDetailByCity = memoizeByCity((city) => unstable_cache(
       data: detail ? { detail, related } : null,
     }
   },
-  ['mini-v1-listing-detail', city],
+  ['mini-v1-listing-detail', city, BUILDING_GRADE_SCHEMA_VERSION],
   { tags: miniCacheTags(city), revalidate: 300 },
 ))
 
@@ -175,7 +176,7 @@ const getCachedMiniBuildingsByCity = memoizeByCity((city) => unstable_cache(
       data: { result, input },
     }
   },
-  ['mini-v1-buildings', city],
+  ['mini-v1-buildings', city, BUILDING_GRADE_SCHEMA_VERSION],
   { tags: miniBuildingCacheTags(city), revalidate: 300 },
 ))
 
@@ -200,7 +201,7 @@ const getCachedMiniBuildingDetailByCity = memoizeByCity((city) => unstable_cache
       data: { detail, comparable },
     }
   },
-  ['mini-v1-building-detail', city],
+  ['mini-v1-building-detail', city, BUILDING_GRADE_SCHEMA_VERSION],
   { tags: miniBuildingCacheTags(city), revalidate: 300 },
 ))
 

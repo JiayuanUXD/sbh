@@ -257,6 +257,16 @@ describe('validateBuildingRow', () => {
   })
 
   describe('等级列', () => {
+    it.each([['超甲级', 'super-grade-a'], ['甲级', 'grade-a'], ['乙级', 'grade-b'], ['未评级', 'ungraded']])('接受新规范标签 %s', (label, expected) => {
+      const result = validateBuildingRow({ ...goodRow, 等级: label }, 2, ctx)
+      expect(result.ok).toBe(true)
+      expect(result.ok && result.value.grade).toBe(expected)
+    })
+    it.each(['创意园区', '服务式办公'])('拒绝旧业态作为等级：%s', label => {
+      const result = validateBuildingRow({ ...goodRow, 等级: label }, 2, ctx)
+      expect(result.ok).toBe(false)
+      expect(!result.ok && result.errors.some(error => error.code === 'ENUM_UNKNOWN')).toBe(true)
+    })
     it('中文标签映射成枚举值', () => {
       const r = validateBuildingRow({ ...goodRow, 等级: '甲级' }, 2, ctx)
       expect(r.ok).toBe(true)

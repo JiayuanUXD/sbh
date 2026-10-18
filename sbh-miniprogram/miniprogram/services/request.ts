@@ -291,6 +291,23 @@ function isGetMethod(method: RequestMethod): boolean {
   return method === 'GET'
 }
 
+function withBuildingGradeSchema(path: string): string {
+  const queryIndex = path.indexOf('?')
+  const pathname = queryIndex === -1 ? path : path.slice(0, queryIndex)
+  const query = queryIndex === -1 ? [] : path.slice(queryIndex + 1).split('&')
+  const retained = query.filter((entry) => {
+    if (!entry) return false
+    const rawKey = entry.split('=', 1)[0]!
+    try {
+      return decodeURIComponent(rawKey.replace(/\+/g, ' ')) !== 'gradeSchema'
+    } catch {
+      return true
+    }
+  })
+  retained.push('gradeSchema=quality-v1')
+  return `${pathname}?${retained.join('&')}`
+}
+
 function createError(
   kind: MiniApiErrorKind,
   code: string,
@@ -415,7 +432,7 @@ export function createRequestClient(dependencies: RequestDependencies): <T>(opti
     const runtimeEnvironment = dependencies.environment()
     const requestInput: RequestTransportInput = {
       environment: runtimeEnvironment,
-      path: options.path,
+      path: withBuildingGradeSchema(options.path),
       method,
       data: options.data,
       timeoutMs,

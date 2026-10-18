@@ -49,6 +49,8 @@
 
 ## 发布（CI）
 
+2026-10-18 发布预检补充：`content/articles/` 的原稿与封面仅供本地 `scripts/import-articles.ts` 导入，运行时由数据库和媒体库提供；已通过 `.gitattributes` 排除部署归档。此前该素材使包达到 3.61MB，超过现有 3MB 闸门；基线缩至约 2.48MB。每次提交后仍应按 CI 的 `git archive HEAD:payload-office-platform` 检查实际包，确保包含新增迁移与运行时模块，不能用工作区文件大小替代发布包验证。阈值保持不变。
+
 **合并到 `master` 即上线。** Workflow：
 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)。`quality.yml` 在
 `master` 上整体成功后经 `workflow_run` 接力，自动全量切流。

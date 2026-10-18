@@ -2559,7 +2559,7 @@ $listing-col-targets: '.row__fields > .field-type, .row__fields > .listing-reado
   }
 }
 
-// 「房源标题」输入框右侧的 URL 标识图标
+// 房源标题与楼盘名称输入框右侧共用的 URL 标识图标
 .listing-slug-badge {
   position: absolute;
   right: 8px;
@@ -2671,7 +2671,8 @@ $listing-col-targets: '.row__fields > .field-type, .row__fields > .listing-reado
   }
 
   // 标题框里的 URL 图标：窄屏输入框更矮，右内边距同步收一点
-  .collection-edit--listings .field-type.text:has(.listing-slug-badge) input {
+  .collection-edit--listings .field-type.text:has(.listing-slug-badge) input,
+  .collection-edit--buildings .field-type.text:has(.listing-slug-badge) input {
     padding-right: 30px;
   }
 }

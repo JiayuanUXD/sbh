@@ -1,0 +1,243 @@
+Browser tab: 1, Title: "南京西路高端商务中心 · 商办租赁", URL: "http://localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302".
+1 AXWebArea 南京西路高端商务中心 · 商办租赁, URL: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302
+	2 link Description: 跳到主要内容, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302#main-content
+	3 container
+		4 link Description: 商办空间首页, Value: localhost:3720/shanghai
+		5 pop up button (collapsed) Description: 切换城市, Secondary Actions: Expand
+		6 container 主导航
+			7 link Description: 首页, Value: localhost:3720/shanghai
+			8 link Description: 找办公室, Value: localhost:3720/shanghai/listings
+			9 link Description: 找楼盘, Value: localhost:3720/shanghai/buildings
+			10 link Description: 共享办公, Value: localhost:3720/shanghai/coworking
+			11 link Description: 委托找房, Value: localhost:3720/entrust?city=shanghai
+			12 link Description: 投放房源, Value: localhost:3720/publish?city=shanghai
+			13 link Description: 资讯, Value: localhost:3720/news
+		14 text 搜索商圈、楼盘或地址
+		15 search text field (settable) 搜索商圈、楼盘或地址
+		16 button 搜索
+		17 link Description: 拨打客服电话 021 6888 8888, Value: tel:02168888888
+	18 container main-content
+		19 container
+			20 text 南京西路高端商务中心
+			21 container 楼盘内容导航
+				22 link Description: 在租房源, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302#supply
+				23 link Description: 周边与交通, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302#location
+				24 link Description: 楼盘参数, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302#params
+				25 link Description: 同商圈楼盘, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302#related
+			26 pop up button (collapsed) 预约看房, Secondary Actions: Expand
+				27 text 预约看房
+		28 container
+			29 container 面包屑
+				30 content list
+					31 link Description: 首页, Value: localhost:3720/shanghai
+					32 link Description: 办公选址, Value: localhost:3720/shanghai/listings
+					33 text 静安区
+					34 text 南京西路高端商务中心
+			35 heading 南京西路高端商务中心, Value: 1
+				36 text 南京西路高端商务中心
+			37 pop up button (collapsed) 信息纠错, Secondary Actions: Expand
+			38 text 上海市静安区南京西路商圈 · 未评级 · 竣工 2018 年
+		39 container 南京西路高端商务中心 图片拍摄中
+		40 container 楼盘决策信息
+			41 text 2600 元/工位/月  起
+			42 text 页面价格为公开挂牌价，实际价格以顾问报价为准
+			43 text 80–2000 ㎡
+			44 text 可租面积
+			45 container
+				46 text 8  套
+			47 text 当前有效供给 地址 上海市静安区南京西路商圈 地铁 南京西路站 总建筑面积 42000 ㎡ 竣工时间 2018 年 物业公司 静安高端物业管理有限公司 物业费 38 元/㎡/月 标准层高 3.8 m
+			48 container 平台顾问
+				49 text 商办顾问 非服务时段
+				50 text 当前非服务时段，工作日 09:00-18:00 恢复服务，预计 10/19 09:00 恢复
+				51 text 平台商办顾问，按服务时段响应咨询
+				52 pop up button (collapsed) 询价 / 预约看房, Secondary Actions: Expand
+		53 container supply
+			54 heading 在租房源, Value: 2
+				55 text 在租房源
+			56 container 楼盘房源
+				57 container 按业务组切换
+					58 link Description: 租赁 7, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302
+					59 link Description: 联合办公 1, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?group=coworking
+				60 text 单价区间 多种单位 面积区间 80–2,000 ㎡ 可即刻入驻 7 套
+				61 container 按面积筛选
+					62 text 面积
+					63 link Description: 全部, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302
+					64 link Description: 0–100 ㎡, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?areaMin=0&areaMax=100
+					65 link Description: 100–300 ㎡, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?areaMin=100&areaMax=300
+					66 link Description: 300–500 ㎡, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?areaMin=300&areaMax=500
+					67 link Description: 500–1000 ㎡, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?areaMin=500&areaMax=1000
+					68 link Description: 1000 ㎡ 以上, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?areaMin=1000
+				69 container 按价格筛选
+					70 text 单价
+					71 link Description: 全部, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302
+					72 link Description: 10 元及以上, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?priceUnit=rmb-sqm-day&priceMin=10
+				73 link Description: 可即刻入驻, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?availableBefore=2026-10-18
+				74 container 排序
+					75 link Description: 推荐排序, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302
+					76 link Description: 面积从小到大, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?sort=area-asc
+					77 link Description: 面积从大到小, Value: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302?sort=area-desc
+				78 table 租赁房源列表
+					79 container
+						80 text 租赁 房源列表
+					81 row
+						82 cell
+							83 text 房源
+						84 cell
+							85 text 面积 ㎡
+						86 cell
+							87 text 单价
+						88 cell
+							89 text 月租 元/月
+						90 cell
+							91 text 可入驻
+						92 cell
+							93 text 详情
+					94 row
+						95 cell
+							96 image 上海南京西路高端商务中心外景
+							97 link Description: 静安南京西路 · 精装服务式办公室, Value: localhost:3720/shanghai/listings/jingan-serviced-office-42-seats
+							98 text 中区 12F 层 · 拎包入住
+						99 cell
+							100 text 360
+						101 cell
+							102 text 2800 元/工位/月
+						103 cell
+							104 text 117,600
+						105 cell
+							106 text 可即刻
+					107 row
+						108 cell
+							109 image 上海南京西路高端商务中心外景
+							110 link Description: test, Value: localhost:3720/shanghai/listings/test0814
+							111 text 3 层 · 简装
+						112 cell
+							113 text 2,000
+						114 cell
+							115 text 2 元/㎡/月
+						116 cell
+							117 text 4,000
+						118 cell
+							119 text 可即刻
+					120 row
+						121 cell
+							122 image 上海南京西路高端商务中心外景
+							123 link Description: 南京西路 · 媒体样例房源, Value: localhost:3720/shanghai/listings/media-rich-listing
+							124 text 高区 18F 层 · 拎包入住
+						125 cell
+							126 text 540
+						127 cell
+							128 text 3600 元/工位/月
+						129 cell
+							130 text 216,000
+						131 cell
+							132 text 可即刻
+					133 row
+						134 cell
+							135 image 上海南京西路高端商务中心外景
+							136 link Description: 静安 · 整层办公 850㎡, Value: localhost:3720/shanghai/listings/jingan-center-fullfloor
+							137 text 高区 22F 整层 层 · 简装
+						138 cell
+							139 text 850
+						140 cell
+							141 text 11 元/㎡/天
+						142 cell
+							143 text 280,500
+						144 cell
+							145 text 可即刻
+					146 row
+						147 cell
+							148 image 上海南京西路高端商务中心外景
+							149 link Description: 静安 · 精装办公 300㎡ · 价格面议, Value: localhost:3720/shanghai/listings/jingan-price-on-request-300sqm
+							150 text 中区 10F 层 · 精装带家具
+						151 cell
+							152 text 300
+						153 cell
+							154 text —
+						155 cell
+							156 text —
+						157 cell
+							158 text 可即刻
+					159 row
+						160 cell
+							161 image 上海南京西路高端商务中心外景
+							162 link Description: 南京西路高端商务中心 · 80㎡ 服务式办公, Value: localhost:3720/shanghai/listings/wn-80sqm-serviced
+							163 text 低区 5F 层 · 拎包入住
+						164 cell
+							165 text 80
+						166 cell
+							167 text 2800 元/工位/月
+						168 cell
+							169 text 16,800
+						170 cell
+							171 text 可即刻
+					172 row
+						173 cell
+							174 image 上海南京西路高端商务中心外景
+							175 link Description: 南京西路高端商务中心 · 150㎡ 服务式办公, Value: localhost:3720/shanghai/listings/wn-150sqm-serviced
+							176 text 中区 12F 层 · 拎包入住
+						177 cell
+							178 text 150
+						179 cell
+							180 text 2600 元/工位/月
+						181 cell
+							182 text 31,200
+						183 cell
+							184 text 可即刻
+				185 text 共  7 套  · 当前筛选  7  条  · 数据截至  2026-10-18
+			186 container 需求登记
+				187 container
+					188 heading 找房需求登记, Value: 3
+						189 text 找房需求登记
+					190 text 留下需求，顾问按服务时段回电推荐匹配空间
+					191 pop up button (collapsed) 登记需求，顾问回电, Secondary Actions: Expand
+		192 container 周边与交通, ID: location
+			193 heading 周边与交通, Value: 2, ID: location-title
+				194 text 周边与交通
+			195 container 地图加载占位
+				196 text 地图即将加载…
+		197 heading 周边楼盘, Value: 3
+			198 text 周边楼盘
+		199 content list 周边楼盘
+			200 link Description: 甲级 静安待租楼盘 静安区, Value: localhost:3720/shanghai/buildings/empty-building
+		201 container params
+			202 heading 楼盘参数, Value: 2
+				203 text 楼盘参数
+			204 text 建筑 物业类型 联合办公 楼盘等级 未评级 竣工年份 2018 年 总建筑面积 42000 ㎡ 总楼层 28 层 标准层面积 1500 ㎡ 层高 / 净高 3.8 m / 2.8 m 得房率 70% 机电与设施 客梯 / 货梯 6 部 / 1 部 空调 中央空调（VAV 变风量） 供电 双回路供电 网络 电信 / 联通 / 移动 门禁 7×24 智能门禁 电梯分区 低区 1-14 层 / 高区 15-28 层 服务时间 7×24 费用与管理 物业费 38 元/㎡/月 物业公司 静安高端物业管理有限公司 开发商 上海静安商务开发有限公司 停车位 120 个 停车费 1200 元/月 资质与运营 认证 消防验收合格 · LEED 金级认证 可注册 支持注册 最小可租面积 80 ㎡ 楼盘特色
+			205 content list
+				206 text 可即刻入驻
+				207 text 精装带家具
+				208 text 共享会议室
+				209 text 近地铁
+				210 text 前台服务
+				211 text 7×24门禁
+		212 container related
+			213 heading 同商圈楼盘, Value: 2
+				214 text 同商圈楼盘
+			215 link Description: 静安待租楼盘 静安区 上海市静安区南京西路 88 号, Value: localhost:3720/shanghai/buildings/empty-building
+	216 container
+		217 link Description: 商办空间, Value: localhost:3720/shanghai
+		218 text 聚合上海甲级写字楼、独栋办公、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。
+		219 container 页脚导航
+			220 heading 浏览, Value: 3
+				221 text 浏览
+			222 content list
+				223 link Description: 在租房源, Value: localhost:3720/shanghai/listings
+				224 link Description: 找写字楼, Value: localhost:3720/shanghai/buildings
+				225 link Description: 资讯中心, Value: localhost:3720/news
+			226 heading 按类型, Value: 3
+				227 text 按类型
+			228 content list
+				229 link Description: 传统办公, Value: localhost:3720/shanghai/listings?type=traditional-office
+				230 link Description: 联合办公, Value: localhost:3720/shanghai/coworking
+				231 link Description: 整层办公, Value: localhost:3720/shanghai/listings?type=full-floor
+			232 heading 服务, Value: 3
+				233 text 服务
+			234 content list
+				235 link Description: 委托找房, Value: localhost:3720/entrust?city=shanghai
+				236 link Description: 投放房源, Value: localhost:3720/publish?city=shanghai
+		237 text ©  2026 商办租赁平台
+		238 link Description: 员工入口, Value: localhost:3720/admin/login
+	239 pop up button (collapsed) Description: Open Next.js Dev Tools, ID: next-logo, Secondary Actions: Expand
+		240 image
+
+The focused UI element is 1 AXWebArea 南京西路高端商务中心 · 商办租赁, URL: localhost:3720/shanghai/buildings/west-nanjing-premium-center-2302

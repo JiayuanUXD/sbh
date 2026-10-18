@@ -9,19 +9,21 @@ describe('OPT-025 楼盘列表导航性能合同', () => {
   // 单独锁定缓存契约，已随该函数在 OPT-036 Task 13 从 cached-queries.ts 删除
   // （无生产调用方，楼盘列表页自 Task 12 起全部走下面这条 Filtered 版本）。
 
-  it('楼盘筛选缓存同样固定键、依赖楼盘与 facets，并设置 300 秒重新验证阈值', async () => {
+  it('楼盘筛选缓存固定资源键、城市和统一等级版本，依赖楼盘与 facets，并设置 300 秒重新验证阈值', async () => {
     const source = await readFile(
       resolve(ROOT, 'src/lib/frontend/cached-queries.ts'),
       'utf8',
     )
     const wrapper = source.match(
-      /const getCachedSearchBuildingsFilteredByCity = memoizeByCity\([\s\S]*?\n\)\n/,
+      /const getCachedSearchBuildingsFilteredByCity = memoizeByCity\([\s\S]*?\r?\n\)\r?\n/,
     )?.[0]
 
     expect(wrapper).toBeDefined()
     expect(wrapper).toContain('searchBuildingsFiltered(input, createSearchContext(citySlug))')
-    expect(wrapper).toContain("['search-buildings-filtered', citySlug]")
+    expect(source).toContain("import { BUILDING_GRADE_SCHEMA_VERSION } from '@/domain/supply/building-grade'")
+    expect(wrapper).toContain("['search-buildings-filtered', citySlug, BUILDING_GRADE_SCHEMA_VERSION]")
     expect(wrapper).toContain('buildingCacheTags(citySlug)')
+    expect(wrapper).toContain('facetsTag(citySlug)')
     expect(wrapper).toMatch(/revalidate:\s*300/)
   })
 

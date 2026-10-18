@@ -1,0 +1,42 @@
+{
+  "requests": [
+    {
+      "method": "POST",
+      "status": 201,
+      "id": 1760,
+      "name": "OPT120 验证大厦 b7e41a",
+      "slug": "opt120-yan-zheng-da-sha-b7e41a"
+    },
+    {
+      "method": "PATCH",
+      "status": 200,
+      "id": 1760,
+      "name": "OPT120 改名验证大厦 b7e41a",
+      "slug": "opt120-yan-zheng-da-sha-b7e41a"
+    },
+    {
+      "method": "POST",
+      "status": 201,
+      "id": 1761,
+      "name": "OPT120 验证大厦 b7e41a",
+      "slug": "opt120-yan-zheng-da-sha-b7e41a-2"
+    }
+  ],
+  "database": [
+    {
+      "id": 1760,
+      "name": "OPT120 改名验证大厦 b7e41a",
+      "slug": "opt120-yan-zheng-da-sha-b7e41a",
+      "status": "draft",
+      "deleted_at": "2026-10-17T15:35:51.022Z"
+    },
+    {
+      "id": 1761,
+      "name": "OPT120 验证大厦 b7e41a",
+      "slug": "opt120-yan-zheng-da-sha-b7e41a-2",
+      "status": "draft",
+      "deleted_at": "2026-10-17T15:35:51.022Z"
+    }
+  ],
+  "cleanup": true
+}

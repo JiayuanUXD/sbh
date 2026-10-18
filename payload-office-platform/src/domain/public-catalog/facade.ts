@@ -1,3 +1,4 @@
+import { normalizeBuildingGrade } from '@/domain/supply/building-grade'
 /**
  * 公开目录查询门面（Public Catalog Query Facade）
  *
@@ -518,8 +519,9 @@ function buildBuildingFacets(
       const entry = businessAreas.get(doc.businessDistrict.slug)
       businessAreas.set(doc.businessDistrict.slug, { name: doc.businessDistrict.name, count: (entry?.count ?? 0) + 1 })
     }
-    if (doc.grade) {
-      grades.set(doc.grade, (grades.get(doc.grade) ?? 0) + 1)
+    const grade = normalizeBuildingGrade(doc.grade)
+    if (grade) {
+      grades.set(grade, (grades.get(grade) ?? 0) + 1)
     }
     if (doc.nearestMetro) {
       const entry = metros.get(doc.nearestMetro.slug)

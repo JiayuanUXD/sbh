@@ -1,3 +1,4 @@
+import { normalizeBuildingGrade } from '@/domain/supply/building-grade'
 import { availabilityDay } from '@/domain/public-catalog/building-supply'
 import { estimateMonthlyRent } from '@/domain/public-catalog/monthly-estimate'
 import type {
@@ -54,15 +55,7 @@ const PRICE_UNIT_LABELS: Readonly<Record<PriceDisplayUnit, string>> = {
 function miniBuildingGrade(
   value: BuildingSummaryViewModel['grade'],
 ): MiniBuildingGrade | null {
-  switch (value) {
-    case 'grade-a':
-    case 'super-grade-a':
-    case 'creative-park':
-    case 'serviced-office':
-      return value
-    default:
-      return null
-  }
+  return normalizeBuildingGrade(value) ?? null
 }
 
 function normalizedBuildingCount(value: number | undefined): number | null {

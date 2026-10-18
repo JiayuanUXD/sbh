@@ -1,0 +1,203 @@
+Browser tab: 3, Title: "编辑中 - 楼盘 - Payload", URL: "http://localhost:3717/admin/collections/buildings/1".
+1 AXWebArea 编辑中 - 楼盘 - Payload, URL: localhost:3717/admin/collections/buildings/1
+	2 container
+		3 container
+			4 container
+				5 pop up button (collapsed) Description: 账号菜单, Help: E2E 管理员, Secondary Actions: Expand
+					6 image yas
+				7 button 切换到深色模式
+			8 heading 南京西路高端商务中心, Value: 1
+				9 text 南京西路高端商务中心
+			10 content list
+				11 container 编辑
+					12 text 编辑
+				13 link Description: API, Value: localhost:3717/admin/collections/buildings/1/api
+			14 container
+				15 container
+					16 content list
+						17 container
+							18 text 最后修改时间 : 
+						19 container
+							20 text 已创建 : 
+					21 container
+						22 text 运营状态 运营中
+						23 button 停用
+					24 link Description: 预览, Value: localhost:3717/buildings/west-nanjing-premium-center-2302, ID: preview-button
+					25 button (disabled) 保存, ID: action-save
+				26 heading 有效房源聚合, Value: 6
+					27 text 有效房源聚合
+				28 link Description: 查看房源, Value: localhost:3717/admin/collections/listings?building=1
+				29 text 口径:可租(available) + 楼盘运营中(active) + 未删除
+				30 container
+					31 container 有效套数 8 套
+						32 text 有效套数
+						33 text 8 套
+					34 container 总面积 4500 ㎡
+						35 text 总面积
+						36 text 4500 ㎡
+				37 container 租金区间 2300–3600 元/工位/月 11 元/㎡/天
+					38 text 租金区间
+					39 container
+						40 text 2300–3600 元/工位/月 11 元/㎡/天
+				41 container
+					42 button 基础信息
+					43 button 展示内容
+				44 text 楼盘的全部录入项。图片、配套与介绍在「展示内容」页签。
+				45 heading 基本信息, Value: 3
+					46 text 基本信息
+				47 text 维护楼盘名称、URL 标识、发布状态、启停与楼宇等级。
+				48 container
+					49 container
+						50 text 楼盘名称 *
+					51 container
+						52 text field (disabled) 楼盘名称 *, Value: 南京西路高端商务中心, ID: field-name
+						53 container Description: URL 标识 west-nanjing-premium-center-2302, Help: URL 标识: west-nanjing-premium-center-2302
+					54 container field-status
+						55 text 发布状态
+				56 container
+					57 container field-operationalStatus
+						58 text 启停状态
+					59 container field-buildingType
+						60 text 物业类型
+					61 container field-grade
+						62 text 楼宇等级
+				63 container
+					64 container field-verificationStatus
+						65 text 认证状态
+					66 container field-registrationCapability
+						67 text 注册能力
+					68 text 推荐排序
+					69 container
+						70 stepper (disabled, settable, integer) 推荐排序, Value: 0, ID: field-recommendedOrder
+						71 text 数值越小越靠前
+				72 heading 位置交通, Value: 3
+					73 text 位置交通
+				74 text 维护城市、行政区、商圈、地址、地铁和地图坐标。
+				75 container
+					76 text 正在加载地理数据…
+				77 container
+					78 text 地址
+					79 text field (disabled) 地址, Value: 上海市静安区南京西路商圈, ID: field-address
+					80 container field-nearestMetro
+						81 text 最近地铁
+					82 text 纬度
+					83 stepper (disabled, settable, float) 纬度, Value: 31.229000091552734, Details: 31.229, ID: field-latitude
+					84 text 经度
+					85 stepper (disabled, settable, float) 经度, Value: 121.45899963378906, Details: 121.459, ID: field-longitude
+				86 heading 楼宇属性, Value: 3
+					87 text 楼宇属性
+				88 text 维护竣工时间、楼层、物业、停车、开发商与规模、垂直交通和楼宇服务。
+				89 container
+					90 text 竣工时间
+					91 container field-completionDate
+						92 container
+							93 button
+								94 image
+							95 image
+						96 text field (disabled) June
+					97 text 总楼层
+					98 stepper (disabled, settable, integer) 总楼层, Value: 28, ID: field-totalFloors
+					99 text 物业公司
+					100 text field (disabled) 物业公司, Value: 静安高端物业管理有限公司, ID: field-propertyCompany
+					101 text 物业费
+					102 container
+						103 stepper (disabled, settable, integer) 物业费, Value: 38, ID: field-propertyFee
+						104 text 元/㎡/月
+				105 container
+					106 text 停车位数量
+					107 stepper (disabled, settable, integer) 停车位数量, Value: 120, ID: field-parkingSpaces
+					108 text 在售单价（元/㎡）
+					109 container
+						110 stepper (disabled, settable) 在售单价（元/㎡）, ID: field-saleUnitPrice
+						111 text 招商参考口径的在售单价，单值。前台价格展示与筛选一律来自房源的结构化价格，本字段不参与聚合。
+				112 heading 开发商与规模, Value: 3
+					113 text 开发商与规模
+				114 heading 垂直交通, Value: 3
+					115 text 垂直交通
+				116 heading 楼宇服务, Value: 3
+					117 text 楼宇服务
+				118 container field-certifications
+					119 container
+						120 heading 楼盘认证, Value: 3
+							121 text 楼盘认证
+						122 content list
+							123 button 全部折叠
+							124 button 显示全部
+					125 container
+						126 button 切换区块
+						127 sortable (disabled)
+							128 image
+						129 text Certification 01
+						130 image
+						131 container
+							132 text 认证名称 *
+							133 text field (disabled) 认证名称 *, Value: 消防验收合格, ID: field-certifications__0__name
+						134 container
+							135 text 证书编号
+							136 text field (disabled) 证书编号, Value: XA-2018-0421, ID: field-certifications__0__certificateNumber
+						137 container
+							138 text 有效期开始
+							139 container field-certifications__0__validFrom
+								140 container
+									141 button
+										142 image
+									143 image
+								144 text field (disabled) 06/01/2018
+						145 container
+							146 text 有效期结束
+							147 container field-certifications__0__validTo
+								148 container
+									149 button
+										150 image
+									151 image
+								152 text field (disabled) 08/30/2028
+						153 container
+							154 checkbox (disabled, settable, integer) Description: 公开展示, Help: certifications.0.publicVisible, Value: 1, ID: field-certifications__0__publicVisible
+							155 image
+					156 container
+						157 button 切换区块
+						158 sortable (disabled)
+							159 image
+						160 text Certification 02
+						161 image
+						162 container
+							163 text 认证名称 *
+							164 text field (disabled) 认证名称 *, Value: LEED 金级认证, ID: field-certifications__1__name
+						165 container
+							166 text 证书编号
+							167 text field (disabled) 证书编号, Value: LEED-2019-1182, ID: field-certifications__1__certificateNumber
+						168 container
+							169 text 有效期开始
+							170 container field-certifications__1__validFrom
+								171 container
+									172 button
+										173 image
+									174 image
+								175 text field (disabled) 03/01/2019
+						176 container
+							177 text 有效期结束
+							178 container field-certifications__1__validTo
+								179 container
+									180 button
+										181 image
+									182 image
+								183 text field (disabled) 08/30/2028
+						184 container
+							185 checkbox (disabled, settable, integer) Description: 公开展示, Help: certifications.1.publicVisible, Value: 1, ID: field-certifications__1__publicVisible
+							186 image
+					187 button (disabled) 添加 Certification
+						188 text 添加 Certification
+						189 image
+				190 heading 核验与版本, Value: 3
+					191 text 核验与版本
+				192 text 信息 / 价格核验时间由运营维护；版本号由乐观锁驱动，此处只读。
+				193 heading 核验信息, Value: 3
+					194 text 核验信息
+				195 container
+					196 text 版本号
+					197 container 乐观锁版本，每次保存自动递增。
+						198 text i
+					199 text 64
+	200 container Notifications alt+T
+
+The focused UI element is 1 AXWebArea 编辑中 - 楼盘 - Payload, URL: localhost:3717/admin/collections/buildings/1

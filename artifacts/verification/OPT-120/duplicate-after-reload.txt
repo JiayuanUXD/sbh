@@ -1,0 +1,157 @@
+Browser tab: 3, Title: "编辑中 - 楼盘 - Payload", URL: "http://localhost:3720/admin/collections/buildings/1761".
+1 AXWebArea 编辑中 - 楼盘 - Payload, URL: localhost:3720/admin/collections/buildings/1761
+	2 container
+		3 container
+			4 container
+				5 link localhost:3720/admin
+				6 link localhost:3720/admin/collections/buildings
+				7 pop up button (collapsed) Description: 账号菜单, Help: E2E 管理员, Secondary Actions: Expand
+					8 image yas
+				9 button 切换到深色模式
+			10 heading OPT120 验证大厦 b7e41a, Value: 1
+				11 text OPT120 验证大厦 b7e41a
+			12 content list
+				13 container 编辑
+					14 text 编辑
+				15 link Description: API, Value: localhost:3720/admin/collections/buildings/1761/api
+			16 container
+				17 container
+					18 content list
+						19 container 加载中...
+							20 container
+								21 text 最后修改时间 : 
+							22 text 加载中...
+						23 container 加载中...
+							24 container
+								25 text 已创建 : 
+							26 text 加载中...
+					27 container
+						28 text 运营状态 运营中
+						29 button 停用
+					30 button 实时预览
+						31 image
+					32 link Description: 预览, Value: localhost:3720/buildings/opt120-yan-zheng-da-sha-b7e41a-2, ID: preview-button
+					33 button (disabled) 保存, ID: action-save
+					34 button
+				35 heading 有效房源聚合, Value: 6
+					36 text 有效房源聚合
+				37 link Description: 查看房源, Value: localhost:3720/admin/collections/listings?building=1761
+				38 text 口径:可租(available) + 楼盘运营中(active) + 未删除 暂无符合有效供给口径的房源
+				39 button 基础信息
+				40 button 展示内容
+				41 text 楼盘的全部录入项。图片、配套与介绍在「展示内容」页签。
+				42 heading 基本信息, Value: 3
+					43 text 基本信息
+				44 text 维护楼盘名称、URL 标识、发布状态、启停与楼宇等级。
+				45 container
+					46 container
+						47 text 楼盘名称 *
+					48 container
+						49 text field (settable) 楼盘名称 *, Value: OPT120 验证大厦 b7e41a, ID: field-name
+						50 container Description: URL 标识 opt120-yan-zheng-da-sha-b7e41a-2, Help: URL 标识: opt120-yan-zheng-da-sha-b7e41a-2
+					51 container field-status
+						52 text 发布状态
+						53 container
+							54 container
+								55 combo box (collapsed) Secondary Actions: Expand
+				56 container
+					57 container field-operationalStatus
+						58 text 启停状态
+						59 container
+							60 container
+								61 combo box (collapsed) Secondary Actions: Expand
+					62 container field-buildingType
+						63 text 物业类型
+						64 container
+							65 container
+								66 combo box (collapsed) Secondary Actions: Expand
+					67 container field-grade
+						68 text 楼宇等级
+						69 container
+							70 container
+								71 combo box (collapsed) Secondary Actions: Expand
+				72 container
+					73 container field-verificationStatus
+						74 text 认证状态
+						75 container
+							76 container
+								77 combo box (collapsed) Secondary Actions: Expand
+					78 container field-registrationCapability
+						79 text 注册能力
+						80 container
+							81 container
+								82 combo box (collapsed) Secondary Actions: Expand
+					83 text 推荐排序
+					84 container
+						85 stepper (settable, integer) 推荐排序, Value: 0, ID: field-recommendedOrder
+						86 text 数值越小越靠前
+				87 heading 位置交通, Value: 3
+					88 text 位置交通
+				89 text 维护城市、行政区、商圈、地址、地铁和地图坐标。
+				90 container
+					91 text 正在加载地理数据…
+				92 container
+					93 text 地址
+					94 text field (settable) 地址, ID: field-address
+					95 container field-nearestMetro
+						96 text 最近地铁
+						97 container
+							98 container
+								99 combo box (collapsed) Secondary Actions: Expand
+							100 button
+								101 image
+					102 text 纬度
+					103 stepper (settable) 纬度, ID: field-latitude
+					104 text 经度
+					105 stepper (settable) 经度, ID: field-longitude
+				106 heading 楼宇属性, Value: 3
+					107 text 楼宇属性
+				108 text 维护竣工时间、楼层、物业、停车、开发商与规模、垂直交通和楼宇服务。
+				109 container
+					110 text 竣工时间
+					111 text 总楼层
+					112 stepper (settable) 总楼层, ID: field-totalFloors
+					113 text 物业公司
+					114 text field (settable) 物业公司, ID: field-propertyCompany
+					115 text 物业费
+					116 container
+						117 stepper (settable) 物业费, ID: field-propertyFee
+						118 text 元/㎡/月
+				119 container
+					120 text 停车位数量
+					121 stepper (settable) 停车位数量, ID: field-parkingSpaces
+					122 text 在售单价（元/㎡）
+					123 container
+						124 stepper (settable) 在售单价（元/㎡）, ID: field-saleUnitPrice
+						125 text 招商参考口径的在售单价，单值。前台价格展示与筛选一律来自房源的结构化价格，本字段不参与聚合。
+				126 heading 开发商与规模, Value: 3
+					127 text 开发商与规模
+				128 heading 垂直交通, Value: 3
+					129 text 垂直交通
+				130 heading 楼宇服务, Value: 3
+					131 text 楼宇服务
+				132 container field-certifications
+					133 container
+						134 heading 楼盘认证, Value: 3
+							135 text 楼盘认证
+						136 content list
+							137 button
+								138 image
+					139 button 添加 Certification
+						140 text 添加 Certification
+						141 image
+				142 heading 核验与版本, Value: 3
+					143 text 核验与版本
+				144 text 信息 / 价格核验时间由运营维护；版本号由乐观锁驱动，此处只读。
+				145 heading 核验信息, Value: 3
+					146 text 核验信息
+				147 container
+					148 text 版本号
+					149 container 乐观锁版本，每次保存自动递增。
+						150 text i
+					151 text 1
+		152 container Notifications alt+T
+		153 pop up button (collapsed) Description: Open Next.js Dev Tools, ID: next-logo, Secondary Actions: Expand
+			154 image
+
+The focused UI element is 1 AXWebArea 编辑中 - 楼盘 - Payload, URL: localhost:3720/admin/collections/buildings/1761

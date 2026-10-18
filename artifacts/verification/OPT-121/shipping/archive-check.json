@@ -1,0 +1,22 @@
+{
+    "applicationTree":  "b06e1a3b7d90fc84195a37f70023fd853a7a852c",
+    "sourceArchiveBytes":  2487194,
+    "thresholdBytes":  3145728,
+    "reservedBuildInfoBytes":  512,
+    "requiredFiles":  [
+                          "Dockerfile",
+                          "package.json",
+                          "pnpm-lock.yaml",
+                          "patches/payload@3.86.0.patch",
+                          "scripts/migrate-locked.ts",
+                          "src/payload.config.ts",
+                          "src/test/factory/roles.ts",
+                          "src/assets/hero-poster.jpg",
+                          "src/domain/supply/building-slug.ts",
+                          "src/domain/supply/building-grade.ts",
+                          "src/domain/mini-program/grade-schema.ts",
+                          "src/migrations/index.ts",
+                          "src/migrations/20261017_160929_opt_121_building_grade_options_expand.ts"
+                      ],
+    "importedContentFiles":  0
+}

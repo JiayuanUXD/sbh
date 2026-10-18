@@ -1,3 +1,4 @@
+import { BUILDING_GRADES, BUILDING_GRADE_LABELS, buildingGradeWhere, normalizeBuildingGrade } from '@/domain/supply/building-grade'
 import type { ListViewServerProps, Where } from 'payload'
 
 import { shouldDeferToDefaultListView } from './list-view-context'
@@ -32,15 +33,6 @@ import BuildingsListViewClient, { type BuildingRow } from './BuildingsListViewCl
 const PAGE_SIZE_DEFAULT = 25
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
-const BUILDING_GRADES = ['grade-a', 'super-grade-a', 'creative-park', 'serviced-office'] as const
-const BUILDING_GRADE_LABELS: Record<(typeof BUILDING_GRADES)[number], string> = {
-  'grade-a': '甲级',
-  'super-grade-a': '超甲级',
-  'creative-park': '创意园区',
-  'serviced-office': '服务式办公',
-}
-
-/** searchParams 值归一（string | string[] → string | null）。 */
 function firstParam(value: unknown): string | null {
   if (typeof value === 'string' && value.length > 0) return value
   if (Array.isArray(value) && typeof value[0] === 'string' && value[0].length > 0) {
@@ -85,7 +77,7 @@ export default async function BuildingsListView(props: ListViewServerProps) {
   if (q) conditions.push({ name: { like: q } })
   if (status) conditions.push({ status: { equals: status } })
   if (operationalStatus) conditions.push({ operationalStatus: { equals: operationalStatus } })
-  if (grade) conditions.push({ grade: { equals: grade } })
+  if (grade) conditions.push(buildingGradeWhere(grade))
   if (city !== null) conditions.push({ city: { equals: city } })
 
   const [result, cities, permissionCtx] = await Promise.all([
@@ -135,7 +127,7 @@ export default async function BuildingsListView(props: ListViewServerProps) {
     slug: doc.slug ?? null,
     cityName: locationName(doc.city),
     districtName: locationName(doc.district),
-    grade: doc.grade ?? null,
+    grade: normalizeBuildingGrade(doc.grade) ?? null,
     buildingType: doc.buildingType ?? null,
     status: doc.status ?? null,
     operationalStatus: doc.operationalStatus ?? null,

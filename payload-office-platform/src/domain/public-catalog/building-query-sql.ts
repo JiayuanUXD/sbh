@@ -3,6 +3,7 @@ import { BUILDING_CLEARABLE_DIMENSIONS, BUILDING_GRADE_VALUES,
 import { EFFECTIVE_SUPPLY_AGGREGATE_FROM } from './effective-supply-sql';
 import type { BuildingFilteredResult } from './facade';
 import type { SearchContext } from './types';
+import { LEGACY_BUILDING_GRADES } from '@/domain/supply/building-grade';
 
 export type BuildingMetadataRow = {
   id: number; slug: string; name: string; city: unknown;
@@ -39,6 +40,7 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
     input.business ?? 'lease', slugOrderedIds, Intl.DateTimeFormat().resolvedOptions().timeZone,
     [...BUILDING_GRADE_VALUES]];
   const bind = (value: unknown) => { values.push(value); return `$${values.length}`; };
+  const legacyGrades = bind(LEGACY_BUILDING_GRADES);
   const conditions: Partial<Record<BuildingSearchDimension, string>> = {};
   for (const [key, column] of [['district', 'district_slug'], ['businessArea', 'area_slug'],
     ['grade', 'grade'], ['metro', 'metro_slug']] as const) {
@@ -68,14 +70,15 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
   const pageSize = input.pageSize > 0 ? input.pageSize : 1;
   const limit = bind(pageSize);
   const offset = bind(Math.trunc((Math.max(1, input.page) - 1) * pageSize));
+  const normalizedGrade = `CASE WHEN b.grade IS NULL OR b.grade::text = '' OR b.grade::text = ANY(${legacyGrades}::text[]) THEN 'ungraded' ELSE b.grade::text END`;
   return { values, text: `WITH stock AS MATERIALIZED (
     SELECT l.building_id, SUM(l.area)::float8 AS total_area, COUNT(*)::int AS listing_count
     ${EFFECTIVE_SUPPLY_AGGREGATE_FROM} GROUP BY l.building_id
   ), projected AS MATERIALIZED (
     SELECT b.id, dist.slug AS district_slug, dist.name AS district_name,
       ba.slug AS area_slug, ba.name AS area_name, metro.slug AS metro_slug, metro.name AS metro_name,
-      b.grade::text AS grade,
-      COALESCE(array_position($7::text[], b.grade::text), cardinality($7::text[]) + 1) AS grade_rank,
+      ${normalizedGrade} AS grade,
+      COALESCE(array_position($7::text[], ${normalizedGrade}), cardinality($7::text[]) + 1) AS grade_rank,
       EXTRACT(YEAR FROM b.completion_date AT TIME ZONE $6)::int AS completion_year,
       COALESCE(stock.listing_count, 0) AS listing_count,
       NULLIF(CASE WHEN stock.total_area > 0 AND stock.total_area < 'Infinity'::float8

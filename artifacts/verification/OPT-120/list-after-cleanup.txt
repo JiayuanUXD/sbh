@@ -1,0 +1,254 @@
+Browser tab: 3, Title: "楼盘库 - Payload", URL: "http://localhost:3717/admin/collections/buildings?depth=1&limit=10".
+1 AXWebArea 楼盘库 - Payload, URL: localhost:3717/admin/collections/buildings?depth=1&limit=10
+	2 container
+		3 container
+			4 text 内容运营中心
+			5 container 后台主导航
+				6 content list
+					7 button (collapsed) 工作台, Secondary Actions: Expand
+					8 button (collapsed) 待处理, Secondary Actions: Expand
+					9 container
+						10 button (expanded) 房源与楼盘, Secondary Actions: Collapse
+						11 content list
+							12 link Description: 房源列表, Value: localhost:3717/admin/collections/listings
+							13 link Description: 楼盘库, Value: localhost:3717/admin/collections/buildings
+							14 link Description: 商户管理, Value: localhost:3717/admin/collections/merchants
+							15 link Description: 楼盘商户关系, Value: localhost:3717/admin/collections/building-merchant-relations
+							16 link Description: 楼盘批量导入, Value: localhost:3717/admin/import/buildings
+							17 link Description: 房源批量导入, Value: localhost:3717/admin/import/listings
+							18 link Description: 导入批次, Value: localhost:3717/admin/collections/supply-import-batches
+							19 link Description: 外部数据同步, Value: localhost:3717/admin/import/source-sync
+					20 button (collapsed) 客户与线索, Secondary Actions: Expand
+					21 button (collapsed) 站点与内容, Secondary Actions: Expand
+					22 button (collapsed) 城市与区域, Secondary Actions: Expand
+					23 button (collapsed) 团队与账号, Secondary Actions: Expand
+					24 button (collapsed) 设置与工具, Secondary Actions: Expand
+		25 container
+			26 container
+				27 pop up button (collapsed) Description: 账号菜单, Help: E2E 管理员, Secondary Actions: Expand
+					28 image yas
+				29 button 切换到深色模式
+			30 heading 楼盘库, Value: 1
+				31 text 楼盘库
+			32 link Description: 回收站, Value: localhost:3717/admin/collections/buildings/trash
+			33 link Description: 创建楼盘, Value: localhost:3717/admin/collections/buildings/create
+			34 container
+				35 text field (settable)
+				36 button
+			37 combo box (collapsed) Value: 城市 城市, Secondary Actions: Expand
+				38 container
+					39 text field (settable)
+					40 text 城市
+			41 combo box (collapsed) Value: 发布状态 发布状态, Secondary Actions: Expand
+				42 container
+					43 text field (settable)
+					44 text 发布状态
+			45 combo box (collapsed) Value: 启停状态 启停状态, Secondary Actions: Expand
+				46 container
+					47 text field (settable)
+					48 text 启停状态
+			49 combo box (collapsed) Value: 楼宇等级 楼宇等级, Secondary Actions: Expand
+				50 container
+					51 text field (settable)
+					52 text 楼宇等级
+			53 text 已选  0  项
+			54 button (disabled) 批量上架
+			55 button (disabled) 批量下架
+			56 button (disabled) 批量启用
+			57 button (disabled) 批量停用
+			58 container
+				59 table
+					60 row
+						61 cell
+							62 container
+								63 checkbox (settable, integer) 0
+						64 cell
+							65 text 楼盘名称
+						66 cell
+							67 text 城市 / 行政区
+						68 cell
+							69 text 等级 / 类型
+						70 cell
+							71 text 发布状态
+						72 cell
+							73 text 启停状态
+						74 cell
+							75 text 更新时间
+						76 cell
+							77 text 操作
+					78 row
+						79 cell
+							80 container
+								81 checkbox (settable, integer) 0
+						82 cell
+							83 link Description: 南京西路高端商务中心 west-nanjing-premium-center-2302, Value: localhost:3717/admin/collections/buildings/1
+						84 cell
+							85 container
+								86 text 上海 /  静安区
+						87 cell
+							88 container
+								89 text 服务式办公 联合办公
+						90 cell
+							91 text 已发布
+						92 cell
+							93 text 启用
+						94 cell
+							95 text 2026/10/17 23:09
+						96 cell
+							97 container
+								98 link Description: 编辑, Value: localhost:3717/admin/collections/buildings/1
+								99 link Description: 前台, Value: localhost:3717/buildings/west-nanjing-premium-center-2302
+								100 button 停用
+					101 row
+						102 cell
+							103 container
+								104 checkbox (settable, integer) 0
+						105 cell
+							106 link Description: 虹桥国际商务中心 changning-hongqiao, Value: localhost:3717/admin/collections/buildings/6
+						107 cell
+							108 container
+								109 text 上海 /  长宁
+						110 cell
+							111 container
+								112 text 甲级 传统办公
+						113 cell
+							114 text 已发布
+						115 cell
+							116 text 启用
+						117 cell
+							118 text 2026/09/07 00:04
+						119 cell
+							120 container
+								121 link Description: 编辑, Value: localhost:3717/admin/collections/buildings/6
+								122 link Description: 前台, Value: localhost:3717/buildings/changning-hongqiao
+								123 button 停用
+					124 row
+						125 cell
+							126 container
+								127 checkbox (settable, integer) 0
+						128 cell
+							129 link Description: 陆家嘴江景甲级写字楼 lujiazui-grade-a-river-view, Value: localhost:3717/admin/collections/buildings/3
+						130 cell
+							131 container
+								132 text 上海 /  浦东新区
+						133 cell
+							134 container
+								135 text 甲级 传统办公
+						136 cell
+							137 text 已发布
+						138 cell
+							139 text 启用
+						140 cell
+							141 text 2026/09/06 15:09
+						142 cell
+							143 container
+								144 link Description: 编辑, Value: localhost:3717/admin/collections/buildings/3
+								145 link Description: 前台, Value: localhost:3717/buildings/lujiazui-grade-a-river-view
+								146 button 停用
+					147 row
+						148 cell
+							149 container
+								150 checkbox (settable, integer) 0
+						151 cell
+							152 link Description: 徐家汇国际大厦 xuhui-xujiahui, Value: localhost:3717/admin/collections/buildings/5
+						153 cell
+							154 container
+								155 text 上海 /  徐汇
+						156 cell
+							157 container
+								158 text 甲级 传统办公
+						159 cell
+							160 text 已发布
+						161 cell
+							162 text 启用
+						163 cell
+							164 text 2026/09/05 22:50
+						165 cell
+							166 container
+								167 link Description: 编辑, Value: localhost:3717/admin/collections/buildings/5
+								168 link Description: 前台, Value: localhost:3717/buildings/xuhui-xujiahui
+								169 button 停用
+					170 row
+						171 cell
+							172 container
+								173 checkbox (settable, integer) 0
+						174 cell
+							175 link Description: 外滩源大厦 huangpu-bund, Value: localhost:3717/admin/collections/buildings/4
+						176 cell
+							177 container
+								178 text 上海 /  黄浦
+						179 cell
+							180 container
+								181 text 超甲级 传统办公
+						182 cell
+							183 text 已发布
+						184 cell
+							185 text 启用
+						186 cell
+							187 text 2026/09/05 22:50
+						188 cell
+							189 container
+								190 link Description: 编辑, Value: localhost:3717/admin/collections/buildings/4
+								191 link Description: 前台, Value: localhost:3717/buildings/huangpu-bund
+								192 button 停用
+					193 row
+						194 cell
+							195 container
+								196 checkbox (settable, integer) 0
+						197 cell
+							198 link Description: 静安待租楼盘 empty-building, Value: localhost:3717/admin/collections/buildings/2
+						199 cell
+							200 container
+								201 text 上海 /  静安区
+						202 cell
+							203 container
+								204 text 甲级 传统办公
+						205 cell
+							206 text 已发布
+						207 cell
+							208 text 启用
+						209 cell
+							210 text 2026/09/05 01:04
+						211 cell
+							212 container
+								213 link Description: 编辑, Value: localhost:3717/admin/collections/buildings/2
+								214 link Description: 前台, Value: localhost:3717/buildings/empty-building
+								215 button 停用
+					216 row
+						217 cell
+							218 container
+								219 checkbox (settable, integer) 0
+						220 cell
+							221 link Description: tester test0814, Value: localhost:3717/admin/collections/buildings/7
+						222 cell
+							223 container
+								224 text 上海 /  浦东新区
+						225 cell
+							226 text —
+						227 cell
+							228 text 已发布
+						229 cell
+							230 text 启用
+						231 cell
+							232 text 2026/09/05 01:04
+						233 cell
+							234 container
+								235 link Description: 编辑, Value: localhost:3717/admin/collections/buildings/7
+								236 link Description: 前台, Value: localhost:3717/buildings/test0814
+								237 button 停用
+				238 text 共 7 条
+				239 content list
+					240 container 上一页
+						241 text .
+					242 container 第 1 页
+						243 text 1
+					244 container 下一页
+						245 text .
+				246 container 页码
+					247 combo box (collapsed) Value: 10 条/页, Secondary Actions: Expand
+						248 text 10 条/页
+	249 container Notifications alt+T
+	250 pop up button (collapsed) Description: Open Next.js Dev Tools, ID: next-logo, Secondary Actions: Expand
+		251 image
+
+The focused UI element is 1 AXWebArea 楼盘库 - Payload, URL: localhost:3717/admin/collections/buildings?depth=1&limit=10

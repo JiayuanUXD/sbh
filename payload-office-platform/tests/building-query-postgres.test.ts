@@ -14,10 +14,10 @@ const ctx = createSearchContext('shanghai', new Date('2026-10-12T00:00:00Z'))
 const cases = ['', 'page=2', 'page=3', 'page=999', 'sort=area-desc', 'sort=grade', 'sort=completion-desc',
   'district=jingan', 'district=second', 'district=missing', 'district=jingan&district=second',
   'businessArea=area-3', 'businessArea=missing', 'district=jingan&businessArea=area-4',
-  'grade=grade-a', 'grade=creative-park', 'metro=metro', 'metro=missing',
+  'grade=grade-a', 'grade=grade-b', 'grade=ungraded', 'grade=ungraded&sort=grade', 'grade=ungraded&grade=grade-b', 'metro=metro', 'metro=missing',
   'leasableAreaMin=100', 'leasableAreaMax=200', 'leasableAreaMin=100&leasableAreaMax=500',
   'completedAfter=2020', 'completedAfter=2000', 'onlyWithStock=1',
-  'district=jingan&grade=grade-a&onlyWithStock=1', 'grade=serviced-office&completedAfter=2020',
+  'district=jingan&grade=grade-a&onlyWithStock=1', 'grade=ungraded&completedAfter=2020',
   'metro=metro&leasableAreaMin=1000', 'district=missing&grade=grade-a']
 
 // 仅本地隔离库、单连接事务内临时表；正式表不受影响。
@@ -47,7 +47,7 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
       INSERT INTO media VALUES (9001,'/media/m1.jpg');
       INSERT INTO merchants VALUES (1,'active','valid',NULL),(2,'disabled','valid',NULL);
       INSERT INTO merchants_rels VALUES (1,'serviceCities',100),(1,'serviceCities',100),(2,'serviceCities',100);`)
-    const grades = ['super-grade-a', 'grade-a', 'creative-park', 'serviced-office', null] as const
+    const grades = ['super-grade-a', 'grade-a', 'grade-b', 'ungraded', 'creative-park', 'serviced-office', null] as const
     for (let id = 1; id <= 60; id++) {
       const district = id % 2 ? DISTRICT_JINGAN : { ...DISTRICT_JINGAN, id: 2, slug: 'second', name: '另一区' }
       const area = makeArea({ id: id % 3 ? 3 : 4, slug: id % 3 ? 'area-3' : 'area-4', name: id % 3 ? '商圈三' : '商圈四' })

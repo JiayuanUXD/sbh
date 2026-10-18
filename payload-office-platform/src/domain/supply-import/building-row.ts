@@ -7,7 +7,7 @@
  * 时跳过城市校验（管理员无城市上限）。
  */
 
-import { BUILDING_GRADE_LABELS, type BuildingGrade } from '@/components/frontend/building-grade'
+import { BUILDING_GRADE_LABELS, type BuildingGrade } from '@/domain/supply/building-grade'
 import { parseArea, parseFloorNumber, parseUnitPrice } from '@/domain/supply-import/normalize'
 import { resolveLocation } from '@/domain/supply-import/resolve-refs'
 import { resolveMerchantByName } from '@/domain/supply-import/resolve-merchant'
