@@ -1,0 +1,339 @@
+/* 站内搜索页（OPT-122）。只用现有 token，不新增颜色字面量。 */
+
+.sw-page {
+  padding-bottom: var(--ls-sec);
+}
+
+.sw-head {
+  padding-top: var(--ls-sec);
+}
+
+.sw-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  max-width: 720px;
+  margin-top: 16px;
+  /* 输入联想下拉以表单为定位基准（OPT-122 Phase 3）。 */
+  position: relative;
+}
+
+.sw-form__input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-subtle);
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.sw-form__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sw-form__submit {
+  flex: none;
+  height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sw-tabs {
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+  margin-top: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sw-tab {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 10px 0 12px;
+  color: var(--ink-2);
+  font-size: 15px;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.sw-tab--active {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+.sw-tab__count {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sw-section {
+  margin-top: 32px;
+}
+
+.sw-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sw-section__head h2 {
+  display: inline-flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sw-section__head a {
+  flex: none;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.sw-section__count {
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.sw-districts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sw-districts a {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  color: var(--ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.sw-districts span {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sw-tabempty {
+  padding: 32px 0;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.sw-relaxed {
+  margin: 0 0 8px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+/* 分类型零结果：房源 tab 命中楼盘但无在租时，楼盘结果 + 出口 */
+.sw-crossout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0 32px;
+}
+
+.sw-crossout__note {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.sw-crossout__link {
+  align-self: flex-start;
+  color: var(--accent-link);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.sw-crossout__link:hover {
+  text-decoration: underline;
+}
+
+/* 输入联想下拉（OPT-122 Phase 3）。ARIA 结构见 SearchSuggestionList.tsx；
+   定位基准是所在表单（.sw-form / .header-search__form 均为 position:relative）。 */
+.sw-suggest {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-lg);
+}
+
+.sw-suggest__item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.sw-suggest__item--active {
+  background: var(--bg-hover);
+}
+
+.sw-suggest__kind {
+  flex: none;
+  min-width: 30px;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.sw-suggest__name {
+  color: var(--ink);
+}
+
+.sw-suggest__parent {
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.sw-zero {
+  max-width: 920px;
+  padding: 32px 0 8px;
+}
+
+.sw-zero__title {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sw-zero__suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.sw-zero__suggest ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sw-zero__suggest a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.sw-zero__blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-top: 28px;
+}
+
+.sw-zero__block h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sw-zero__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sw-zero__entity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: baseline;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-subtle);
+}
+
+.sw-zero__entity-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sw-zero__entity-note {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.sw-zero__entity a {
+  margin-left: auto;
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.sw-zero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 32px;
+}
+
+.sw-zero__cta p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+@media (max-width: 1199px) {
+  .sw-zero__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 899px) {
+  .sw-zero__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .sw-form { max-width: none; }
+  .sw-tabs { gap: 14px; overflow-x: auto; }
+  .sw-zero__grid { grid-template-columns: minmax(0, 1fr); }
+  .sw-zero__entity a { margin-left: 0; }
+}

@@ -108,7 +108,7 @@ type GlobalContentContract = readonly [
   Assert<Equal<Parameters<SupplyAdapter['findLatestArticles']>, [limit?: number]>>,
   Assert<Equal<
     Parameters<SupplyAdapter['findPublishedArticles']>,
-    [options: Readonly<{ page?: number; pageSize?: number }>]
+    [options: Readonly<{ page?: number; pageSize?: number; q?: string }>]
   >>,
   Assert<Equal<Parameters<SupplyAdapter['findPublishedArticleBySlug']>, [slug: string]>>,
   Assert<Equal<Parameters<SupplyAdapter['findPublishedPageBySlug']>, [slug: string]>>,
@@ -122,7 +122,7 @@ type GlobalContentContract = readonly [
   Assert<Equal<
     Parameters<typeof listPublishedArticles>,
     [
-      options?: Readonly<{ page?: number; pageSize?: number }>,
+      options?: Readonly<{ page?: number; pageSize?: number; q?: string }>,
       adapter?: SupplyAdapter,
     ]
   >>,

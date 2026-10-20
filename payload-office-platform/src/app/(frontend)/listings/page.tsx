@@ -36,7 +36,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   // 因此取默认城市的那一份，与下方页面同一口径。
   const input = await resolveListingSearchInput(siteConfig.defaultCity, toUrlSearchParams(await searchParams))
   const query = buildCanonicalSearchParams(input).toString()
-  return buildPageMetadata({ title: '在租房源', canonicalPath: query ? `/listings?${query}` : '/listings' })
+  const base = buildPageMetadata({ title: '在租房源', canonicalPath: query ? `/listings?${query}` : '/listings' })
+  // 带关键词的列表页是「搜索结果」，不是内容页：保留页面能力，但不进索引。
+  return input.q ? { ...base, robots: { index: false, follow: true } } : base
 }
 export default async function ListingsPage({ searchParams }: Props) {
   const raw = await searchParams

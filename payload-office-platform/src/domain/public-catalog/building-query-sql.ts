@@ -40,6 +40,14 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
     input.business ?? 'lease', slugOrderedIds, Intl.DateTimeFormat().resolvedOptions().timeZone,
     [...BUILDING_GRADE_VALUES]];
   const bind = (value: unknown) => { values.push(value); return `$${values.length}`; };
+  const q = input.q?.trim();
+  const qExact = q ? bind(q) : null;
+  const qPrefix = q ? bind(`${q}%`) : null;
+  const qContains = q ? bind(`%${q}%`) : null;
+  const qCondition = q
+    ? `(b.name ILIKE ${qContains} OR dist.name ILIKE ${qContains}
+      OR ba.name ILIKE ${qContains} OR metro.name ILIKE ${qContains})`
+    : 'TRUE';
   const legacyGrades = bind(LEGACY_BUILDING_GRADES);
   const conditions: Partial<Record<BuildingSearchDimension, string>> = {};
   for (const [key, column] of [['district', 'district_slug'], ['businessArea', 'area_slug'],
@@ -66,7 +74,9 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
   };
   const primarySort = { 'stock-desc': 'listing_count DESC', 'area-desc': 'leasable_area DESC NULLS LAST',
     grade: 'grade_rank ASC', 'completion-desc': 'completion_year DESC NULLS LAST' }[input.sort];
-  const ordering = `has_stock DESC, ${primarySort}, slug_order ASC`;
+  const ordering = q
+    ? `match_score DESC, has_stock DESC, ${primarySort}, slug_order ASC`
+    : `has_stock DESC, ${primarySort}, slug_order ASC`;
   const pageSize = input.pageSize > 0 ? input.pageSize : 1;
   const limit = bind(pageSize);
   const offset = bind(Math.trunc((Math.max(1, input.page) - 1) * pageSize));
@@ -75,10 +85,16 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
     SELECT l.building_id, SUM(l.area)::float8 AS total_area, COUNT(*)::int AS listing_count
     ${EFFECTIVE_SUPPLY_AGGREGATE_FROM} GROUP BY l.building_id
   ), projected AS MATERIALIZED (
-    SELECT b.id, dist.slug AS district_slug, dist.name AS district_name,
+    SELECT b.id, b.name AS building_name, dist.slug AS district_slug, dist.name AS district_name,
       ba.slug AS area_slug, ba.name AS area_name, metro.slug AS metro_slug, metro.name AS metro_name,
       ${normalizedGrade} AS grade,
       COALESCE(array_position($7::text[], ${normalizedGrade}), cardinality($7::text[]) + 1) AS grade_rank,
+      ${q ? `(CASE
+        WHEN b.name ILIKE ${qExact} THEN 100 WHEN b.name ILIKE ${qPrefix} THEN 80 WHEN b.name ILIKE ${qContains} THEN 60
+        WHEN dist.name ILIKE ${qExact} THEN 40 WHEN dist.name ILIKE ${qPrefix} THEN 35 WHEN dist.name ILIKE ${qContains} THEN 30
+        WHEN ba.name ILIKE ${qExact} THEN 40 WHEN ba.name ILIKE ${qPrefix} THEN 35 WHEN ba.name ILIKE ${qContains} THEN 30
+        WHEN metro.name ILIKE ${qExact} THEN 35 WHEN metro.name ILIKE ${qPrefix} THEN 30 WHEN metro.name ILIKE ${qContains} THEN 25
+        ELSE 0 END) AS match_score,` : ''}
       EXTRACT(YEAR FROM b.completion_date AT TIME ZONE $6)::int AS completion_year,
       COALESCE(stock.listing_count, 0) AS listing_count,
       NULLIF(CASE WHEN stock.total_area > 0 AND stock.total_area < 'Infinity'::float8
@@ -94,6 +110,7 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
     WHERE b.status = 'published' AND b.operational_status = 'active' AND b.deleted_at IS NULL
       AND city.status = 'active' AND dist.status = 'active' AND city.slug = $3
       AND ($4::text <> 'sale' OR stock.listing_count > 0)
+      AND ${qCondition}
   ), base AS MATERIALIZED (
     SELECT *, (listing_count > 0 OR COALESCE(leasable_area, 0) > 0) AS has_stock FROM projected
   ), matched AS MATERIALIZED (SELECT * FROM base WHERE ${filter()}), selected AS MATERIALIZED (

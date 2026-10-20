@@ -1,6 +1,22 @@
 import { BUILDING_GRADE_SCHEMA_VERSION } from '@/domain/supply/building-grade'
 import { unstable_cache } from 'next/cache'
+import { getPayload } from 'payload'
 
+import config from '@/payload.config'
+import { buildSearchVocabulary } from '@/domain/search/vocabulary-build'
+import {
+  resolveVocabularyTerm,
+  type SearchVocabulary,
+  type VocabularyEntry,
+} from '@/domain/search/vocabulary'
+import { escapeLikePattern, normalizeSearchQuery, type NormalizedQuery } from '@/domain/search/normalize'
+import { expandSearchTerms } from '@/domain/search/expand'
+import { relaxQuery } from '@/domain/search/relax'
+import { buildListingPageQuery } from '@/domain/public-catalog/listing-query-sql'
+import {
+  buildSearchVocabularyQuery,
+  type SearchVocabularyRow,
+} from '@/domain/public-catalog/search-vocabulary-sql'
 import { getAreaLandingIndex, getAreaLandingPage } from '@/domain/public-catalog/area-landing-facade'
 
 import {
@@ -12,6 +28,7 @@ import {
   assembleListingSearchResult,
   buildCanonicalSearchParams,
   buildListingScanCacheKey,
+  buildPagination,
   buildingsCityTag,
   createSearchContext,
   facetsTag,
@@ -312,6 +329,40 @@ export function getCachedSearchBuildingsFiltered(
   )
 }
 
+export type SiteSearchBuildings = Readonly<{
+  result: Awaited<ReturnType<typeof getCachedSearchBuildingsFiltered>>
+  query: NormalizedQuery
+  resolved: readonly VocabularyEntry[]
+}>
+
+/** 站内搜索的楼盘分页：复用楼盘列表的同一套公开谓词与分面，不另写 where。 */
+export async function getCachedSiteSearchBuildings(
+  citySlug: string,
+  rawQuery: string,
+  page = 1,
+): Promise<SiteSearchBuildings | null> {
+  const city = canonicalCitySlug(citySlug)
+  const normalized = normalizeSearchQuery(rawQuery)
+  if (normalized.normalized.length === 0) return null
+  const vocabulary = await getCachedSearchVocabulary(city)
+  const expanded = expandSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
+  // 楼盘 SQL 只接受一个 substring：用扩展后的第一个词（拼音已被换成中文实体名），
+  // 没有扩展时退回原词。多词的 AND/OR 是房源搜索的语义，不硬塞进楼盘。
+  const buildingTerm = expanded.listingTerms[0] ?? normalized.normalized
+  const input: BuildingSearchInput = {
+    q: buildingTerm,
+    sort: 'stock-desc',
+    page: Math.max(1, page),
+    pageSize: 24,
+  }
+  const result = await getCachedSearchBuildingsFiltered(city, input)
+  return {
+    result,
+    query: normalized,
+    resolved: resolveVocabularyTerm(vocabulary, normalized.normalized),
+  }
+}
+
 type SitemapBuildingPageLoader = () => ReturnType<typeof searchBuildingsPage>
 
 const getCachedSitemapBuildingsPageByCity = memoizeByCity((citySlug) => {
@@ -549,6 +600,98 @@ export async function getCachedSearchListings(
   return assembleListingSearchResult(page, cards, input)
 }
 
+export type SiteSearchListings = Readonly<{
+  result: Awaited<ReturnType<typeof getCachedSearchListings>>
+  query: NormalizedQuery
+  terms: readonly string[]
+  relaxed: boolean
+  /** 放宽时被忽略的词，用于「已忽略『整层』」标注；未放宽为空数组。 */
+  relaxedTerms: readonly string[]
+  resolved: readonly VocabularyEntry[]
+}>
+
+/**
+ * 站内搜索的房源分页：归一化 → 词表扩展 → AND 查询 → 失败降级 OR。
+ *
+ * 与 `/listings` 共用 `buildListingPageQuery` 的有效供给谓词与价格归一，
+ * 只多传一个 `ranking`；不复制 where。词项必须先用 `escapeLikePattern`
+ * 转义，否则 `%` / `_` 会被当通配符。
+ */
+const getCachedSiteSearchListingPageByCity = memoizeByCity((citySlug) =>
+  unstable_cache(
+    async (input: ListingSearchInput, terms: readonly string[], mode: 'and' | 'or') => {
+      const payload = await getPayload({ config })
+      const query = buildListingPageQuery(
+        input,
+        createSearchContext(citySlug, undefined, 'lease'),
+        { terms, mode },
+      )
+      const result = await payload.db.pool.query<{ ids: number[]; total: number; filtered: boolean }>(
+        query.text,
+        query.values,
+      )
+      const row = result.rows[0]
+      if (!row || !Number.isSafeInteger(Number(row.total)) || Number(row.total) < 0 || !Array.isArray(row.ids)) {
+        throw new Error('站内搜索分页查询返回无效计数')
+      }
+      return {
+        ids: row.ids,
+        pagination: buildPagination(Number(row.total), input.page, input.pageSize),
+        filteredByRentUnit: row.filtered,
+      }
+    },
+    ['site-search-listing-page', citySlug, 'v1'],
+    { tags: listingCacheTags(citySlug), revalidate: 300 },
+  ),
+)
+
+export async function getCachedSiteSearchListings(
+  citySlug: string,
+  rawQuery: string,
+  page = 1,
+): Promise<SiteSearchListings | null> {
+  const city = canonicalCitySlug(citySlug)
+  const normalized = normalizeSearchQuery(rawQuery)
+  if (normalized.terms.length === 0) return null
+
+  const vocabulary = await getCachedSearchVocabulary(city)
+  const expanded = expandSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
+  const terms = expanded.listingTerms.map(escapeLikePattern)
+  const input: ListingSearchInput = { sort: 'recommended', page: Math.max(1, page), pageSize: 24 }
+  const load = getCachedSiteSearchListingPageByCity(city)
+
+  let selection = await load(input, terms, 'and')
+  let relaxed = false
+  let relaxedTerms: readonly string[] = []
+  if (selection.pagination.totalDocs === 0) {
+    // 按 relaxQuery 的候选顺序试：先「去掉最后一个词」，再「全部改 OR」。
+    // 第一个有结果的候选胜出，其 dropped 即页面上标注的已忽略词。
+    for (const candidate of relaxQuery(expanded.listingTerms)) {
+      const attempt = await load(
+        input,
+        candidate.terms.map(escapeLikePattern),
+        candidate.mode === 'or' ? 'or' : 'and',
+      )
+      if (attempt.pagination.totalDocs > 0) {
+        selection = attempt
+        relaxed = true
+        relaxedTerms = candidate.dropped
+        break
+      }
+    }
+  }
+
+  const cards = await getCachedListingCardsByIds(city, selection.ids)
+  return {
+    result: assembleListingSearchResult(selection, cards, input),
+    query: normalized,
+    terms: expanded.listingTerms,
+    relaxed,
+    relaxedTerms,
+    resolved: expanded.resolved,
+  }
+}
+
 const getCachedListingSelectionByCity = memoizeByCity((citySlug) => unstable_cache(
   async (input: ListingSearchInput, businessType: SearchChannel) => getListingPageSelection(
     input, createSearchContext(citySlug, undefined, businessType)),
@@ -577,6 +720,73 @@ const getCachedListingDistrictOptionsByCity = memoizeByCity((citySlug) =>
 export function getCachedListingDistrictOptions(citySlug: string) {
   const city = canonicalCitySlug(citySlug)
   return getCachedListingDistrictOptionsByCity(city)()
+}
+
+/**
+ * 站内搜索的 L2 词表：按城市缓存，拼音在构建时算一次。
+ *
+ * 词表只依赖公开实体名，与具体 `q` 无关；同城所有搜索共用一条缓存。
+ */
+const getCachedSearchVocabularyByCity = memoizeByCity((citySlug) =>
+  unstable_cache(
+    async () => {
+      const payload = await getPayload({ config })
+      const query = buildSearchVocabularyQuery(citySlug)
+      const result = await payload.db.pool.query<SearchVocabularyRow>(query.text, query.values)
+      if (result.rows.length >= 100000) throw new Error('搜索词表超过安全上限')
+      return buildSearchVocabulary(result.rows, citySlug)
+    },
+    ['search-vocabulary', citySlug, 'v1'],
+    {
+      tags: [listingsCityTag(citySlug), buildingsCityTag(citySlug), facetsTag(citySlug)],
+      revalidate: 300,
+    },
+  ),
+)
+
+export function getCachedSearchVocabulary(citySlug: string): Promise<SearchVocabulary> {
+  const city = canonicalCitySlug(citySlug)
+  return getCachedSearchVocabularyByCity(city)()
+}
+
+export type SearchFallback = Readonly<{
+  districts: readonly Readonly<{ id: number; slug: string; name: string; count: number }>[]
+  buildings: Awaited<ReturnType<typeof getCachedSearchBuildingsFiltered>>['docs']
+  listings: Awaited<ReturnType<typeof getCachedSearchListings>>['docs']
+}>
+
+/**
+ * 零结果页的策展内容：热门区域 / 热门楼盘 / 推荐房源。
+ *
+ * 与 `q` 无关，按城市缓存；三类各自命中已有缓存，不额外发明一套聚合。
+ * 楼盘按在租套数、区域按房源数、房源按推荐排序取前几个，页面上最多三块。
+ */
+const getCachedSearchFallbackByCity = memoizeByCity((citySlug) =>
+  unstable_cache(
+    async (): Promise<SearchFallback> => {
+      const emptyListings: ListingSearchInput = { sort: 'recommended', page: 1, pageSize: 24 }
+      const [facets, buildings, listings] = await Promise.all([
+        getCachedSearchFacets(citySlug, '', emptyListings),
+        getCachedSearchBuildingsFiltered(citySlug, { sort: 'stock-desc', page: 1, pageSize: 24 }),
+        getCachedSearchListings(citySlug, '', emptyListings),
+      ])
+      return {
+        districts: [...facets.districts].sort((a, b) => b.count - a.count).slice(0, 6),
+        buildings: buildings.docs.slice(0, 4),
+        listings: listings.docs.slice(0, 4),
+      }
+    },
+    ['search-fallback', citySlug, 'v1'],
+    {
+      tags: [facetsTag(citySlug), ...listingCacheTags(citySlug)],
+      revalidate: 300,
+    },
+  ),
+)
+
+export function getCachedSearchFallback(citySlug: string): Promise<SearchFallback> {
+  const city = canonicalCitySlug(citySlug)
+  return getCachedSearchFallbackByCity(city)()
 }
 
 /**
@@ -654,6 +864,28 @@ export const getCachedArticleBySlug = unstable_cache(
     revalidate: 300,
   },
 )
+
+/**
+ * 站内搜索的资讯分页：标题/摘要 contains，只查已发布。
+ * 资讯是全站内容，不按城市分键，避免同一条查询为每个城市各存一份。
+ */
+const getCachedSiteSearchArticlesPage = unstable_cache(
+  async (q: string, page: number) => listPublishedArticles({ q, page, pageSize: 10 }),
+  ['site-search-articles', 'v1'],
+  {
+    tags: [ARTICLES_CATEGORY_TAG],
+    revalidate: 300,
+  },
+)
+
+export async function getCachedSiteSearchArticles(
+  rawQuery: string,
+  page = 1,
+): Promise<Awaited<ReturnType<typeof listPublishedArticles>> | null> {
+  const normalized = normalizeSearchQuery(rawQuery)
+  if (normalized.normalized.length === 0) return null
+  return getCachedSiteSearchArticlesPage(normalized.normalized, Math.max(1, page))
+}
 
 // ---------------------------------------------------------------------------
 // 区域 / 商圈落地页（OPT-119）

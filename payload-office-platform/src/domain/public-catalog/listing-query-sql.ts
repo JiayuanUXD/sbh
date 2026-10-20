@@ -9,6 +9,17 @@ import type { ListingSearchInput, SearchContext } from './types'
 
 type Query = Readonly<{ text: string; values: unknown[] }>
 
+/**
+ * 站内搜索的排序输入。
+ *
+ * `terms` 必须是**已做 LIKE 转义**的词项（来自 `normalizeSearchQuery().terms[].escaped`），
+ * 这里不再二次处理；`mode` 决定词项之间是 AND 还是 OR。不传时行为与列表页完全一致。
+ */
+export type ListingSearchRanking = Readonly<{
+  terms: readonly string[]
+  mode?: 'and' | 'or'
+}>
+
 // 映射表与展示 mapper 共用；这里只翻译为 SQL，不另维护单位枚举。
 const structuredUnit = `CASE ${Object.entries(DISPLAY_UNIT_BY_PERIOD_BASIS).flatMap(([period, bases]) =>
   Object.entries(bases).map(([basis, unit]) =>
@@ -27,7 +38,11 @@ const unit = `CASE WHEN ${structuredValid} THEN (${structuredUnit}) WHEN ${legac
 export const LISTING_PRICE_AMOUNT_SQL = amount
 export const LISTING_PRICE_UNIT_SQL = unit
 
-function filteredQuery(input: ListingSearchInput, ctx: SearchContext) {
+function filteredQuery(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  ranking?: ListingSearchRanking,
+) {
   const values: unknown[] = [ctx.asOf, null, ctx.city, ctx.businessType ?? null]
   const bind = (value: unknown) => { values.push(value); return `$${values.length}` }
   const conditions: string[] = []
@@ -45,6 +60,40 @@ function filteredQuery(input: ListingSearchInput, ctx: SearchContext) {
     conditions.push(`(l.title ILIKE ${pattern} OR b.name ILIKE ${pattern}
       OR dist.name ILIKE ${pattern} OR ba.name ILIKE ${pattern} OR metro.name ILIKE ${pattern})`)
   }
+
+  // 站内搜索：每个词项都算「命中条件 + 命中分」，词项之间按 mode 连接。
+  // 分数只用于排序；命中集合仍由 ILIKE 决定。
+  const termClauses = (ranking?.terms ?? []).map((term) => {
+    const exact = bind(term)
+    const prefix = bind(`${term}%`)
+    const contains = bind(`%${term}%`)
+    return {
+      condition: `(l.title ILIKE ${contains} OR b.name ILIKE ${contains} OR dist.name ILIKE ${contains}
+        OR ba.name ILIKE ${contains} OR metro.name ILIKE ${contains})`,
+      score: `(CASE
+        WHEN l.title ILIKE ${exact} THEN 100
+        WHEN l.title ILIKE ${prefix} THEN 80
+        WHEN l.title ILIKE ${contains} THEN 60
+        WHEN b.name ILIKE ${exact} THEN 90
+        WHEN b.name ILIKE ${prefix} THEN 70
+        WHEN b.name ILIKE ${contains} THEN 50
+        WHEN dist.name ILIKE ${exact} THEN 40
+        WHEN dist.name ILIKE ${prefix} THEN 35
+        WHEN dist.name ILIKE ${contains} THEN 30
+        WHEN ba.name ILIKE ${exact} THEN 40
+        WHEN ba.name ILIKE ${prefix} THEN 35
+        WHEN ba.name ILIKE ${contains} THEN 30
+        WHEN metro.name ILIKE ${exact} THEN 35
+        WHEN metro.name ILIKE ${prefix} THEN 30
+        WHEN metro.name ILIKE ${contains} THEN 25
+        ELSE 0 END)`,
+    }
+  })
+
+  if (termClauses.length > 0) {
+    const joiner = (ranking?.mode ?? 'and') === 'or' ? ' OR ' : ' AND '
+    conditions.push(`(${termClauses.map((clause) => clause.condition).join(joiner)})`)
+  }
   const priceConditions: string[] = []
   if (input.priceUnit) {
     const selectedUnit = bind(input.priceUnit)
@@ -56,30 +105,38 @@ function filteredQuery(input: ListingSearchInput, ctx: SearchContext) {
   }
   const from = effectiveSupplySqlFrom(`LEFT JOIN locations ba ON ba.id = b.business_district_id
     LEFT JOIN locations metro ON metro.id = b.nearest_metro_id`)
+  const matchScore = termClauses.length > 0
+    ? termClauses.map((clause) => clause.score).join(' + ')
+    : undefined
   const text = `WITH normalized AS (
     SELECT l.id, l.is_featured, date_trunc('milliseconds', l.updated_at) AS updated_at,
       l.listing_type::text AS listing_type, CASE WHEN l.business_type::text = 'sale' THEN 'sale' ELSE 'lease' END AS business_type,
       dist.id AS district_id, dist.slug AS district_slug, dist.name AS district_name,
       ba.id AS area_id, ba.slug AS area_slug, ba.name AS area_name,
-      (${amount}) AS price_amount, (${unit}) AS price_unit
+      (${amount}) AS price_amount, (${unit}) AS price_unit${matchScore ? `, (${matchScore}) AS match_score` : ''}
     ${from} ${conditions.map(condition => `AND ${condition}`).join('\n')}
   ), matched AS MATERIALIZED (
     SELECT *, business_type || ':' || price_unit AS price_key FROM normalized
     ${priceConditions.length ? `WHERE ${priceConditions.join(' AND ')}` : ''}
   )`
-  return { text, values, bind }
+  return { text, values, bind, matchScore }
 }
 
-export function buildListingPageQuery(input: ListingSearchInput, ctx: SearchContext): Query {
-  const query = filteredQuery(input, ctx)
+export function buildListingPageQuery(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  ranking?: ListingSearchRanking,
+): Query {
+  const query = filteredQuery(input, ctx, ranking)
   const priceSort = input.sort === 'price-asc' || input.sort === 'price-desc'
   let scope = 'SELECT * FROM matched'
   if (priceSort && input.priceUnit) scope += ` WHERE price_unit = ${query.bind(input.priceUnit)}`
   if (priceSort && !input.priceUnit) scope += ` WHERE (SELECT COUNT(DISTINCT price_key) FROM matched) <= 1
     OR price_key = (SELECT price_key FROM matched WHERE price_key IS NOT NULL ORDER BY id LIMIT 1)`
-  const sort = priceSort
+  const baseSort = priceSort
     ? `price_amount ${input.sort === 'price-desc' ? 'DESC' : 'ASC'} NULLS LAST, id ASC`
     : `${input.sort === 'newest' ? '' : 'COALESCE(is_featured, false) DESC, '}COALESCE(updated_at, 'epoch'::timestamptz) DESC, id ASC`
+  const sort = query.matchScore ? `match_score DESC, ${baseSort}` : baseSort
   const limit = query.bind(input.pageSize > 0 ? input.pageSize : 1)
   const offset = query.bind((Math.max(1, input.page) - 1) * (input.pageSize > 0 ? input.pageSize : 1))
   return { text: `${query.text}, selected AS MATERIALIZED (${scope})

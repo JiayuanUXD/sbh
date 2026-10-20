@@ -14,6 +14,7 @@ import './styles.css'
 import './styles/surface.css'
 import './styles/home.css'
 import './styles/list.css'
+import './styles/search.css'
 import './styles/detail.css'
 import './styles/area.css'
 // recruit.css 必须在 styles.css 之后：招募页要在本页作用域内覆写 .filter-bar__input /

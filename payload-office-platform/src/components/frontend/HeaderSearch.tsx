@@ -2,7 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { buildListingSearchHref, listingsPathFor } from '@/lib/frontend/search-submit'
+import { buildSiteSearchHref, siteSearchPathFor } from '@/lib/frontend/search-submit'
+
+import SearchSuggestionList from './search/SearchSuggestionList'
+import { useSearchSuggestions } from './search/useSearchSuggestions'
 
 /**
  * 顶栏常驻搜索（OPT-075）。
@@ -35,8 +38,14 @@ export default function HeaderSearch({
   const inputId = useId()
   const [open, setOpen] = useState(false)
   const [keyword, setKeyword] = useState(initialKeyword ?? '')
+  const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
+  /* 输入联想（OPT-122 Phase 3）。
+     enabled = focused 单向闩锁（聚焦后不随失焦复位）：带着 q 落到搜索结果页时，
+     回填的 keyword 不会让联想在用户碰都没碰过输入框的情况下自动展开（实测 375 下
+     顶栏与页面表单两个 listbox 同时出现）。失焦收起走 suggestions.close()。 */
+  const suggestions = useSearchSuggestions({ citySlug, query: keyword, enabled: focused })
 
   /* 回填同步。
    *
@@ -80,7 +89,20 @@ export default function HeaderSearch({
   function submit(e: React.FormEvent) {
     e.preventDefault()
     setOpen(false)
-    router.push(buildListingSearchHref(citySlug, { q: keyword }))
+    router.push(buildSiteSearchHref(citySlug, { q: keyword }))
+  }
+
+  /* 联想键盘：↑/↓/Esc 由 hook 处理；Enter 命中激活项时直达实体页，
+     Esc 先只收联想（stopPropagation 挡住下面 document 级的收抽屉监听），
+     再按一次才收整个搜索层——两段式，和 SiteNav 抽屉一个口径。 */
+  function onInputKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape' && suggestions.open) e.stopPropagation()
+    const picked = suggestions.consumeKeyDown(e)
+    if (picked) {
+      suggestions.close()
+      setOpen(false)
+      router.push(picked.href)
+    }
   }
 
   return (
@@ -101,13 +123,16 @@ export default function HeaderSearch({
         /* 原生 GET 表单兜底：JS 未就绪（水合前、脚本失败）时回车也能搜到，
            浏览器会自己拼出 `?q=…`。有 JS 时下面的 onSubmit preventDefault 接管，
            走客户端导航而不是整页刷新。input 的 name="q" 是这条兜底的一半，别删。 */
-        action={listingsPathFor(citySlug)}
+        action={siteSearchPathFor(citySlug)}
         method="get"
         onSubmit={submit}
         /* 收起态在 <1280 是 display:none，天然不可聚焦；≥1280 常驻可见。
            不用 inert/hidden 属性，避免与 CSS 断点各说一套。 */
         onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false)
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            setOpen(false)
+            suggestions.close()
+          }
         }}
       >
         <SearchIcon className="header-search__icon" />
@@ -123,10 +148,33 @@ export default function HeaderSearch({
           placeholder="搜索商圈、楼盘或地址"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onKeyDown={onInputKeyDown}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={suggestions.open}
+          aria-controls={suggestions.listboxId}
+          aria-activedescendant={
+            suggestions.activeIndex >= 0 ? suggestions.optionId(suggestions.activeIndex) : undefined
+          }
         />
         <button type="submit" className="header-search__submit">
           搜索
         </button>
+        {suggestions.open ? (
+          <SearchSuggestionList
+            id={suggestions.listboxId}
+            items={suggestions.items}
+            activeIndex={suggestions.activeIndex}
+            optionId={suggestions.optionId}
+            onHover={suggestions.select}
+            onPick={(item) => {
+              suggestions.close()
+              setOpen(false)
+              router.push(item.href)
+            }}
+          />
+        ) : null}
       </form>
     </div>
   )
