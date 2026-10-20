@@ -1,9 +1,15 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * OPT-122 站内搜索 E2E：入口 → 三类结果 → tab → 零结果 → 兼容跳转。
+ * OPT-122 站内搜索 E2E：入口 → 三类结果 → tab → 零结果 → 兼容跳转 → 联想。
  * 只断言结构与关键文案，不锁具体 seed 数量（种子数据会变）。
+ *
+ * CI 的 quality.yml 主趟不设 MULTI_CITY_ROUTING_ENABLED（关闭态），顶栏的
+ * citySlug 来自 `multiCityRoutingEnabled && currentCity`，关闭态为空、联想按设计
+ * 不发请求——与既有 detail-pages / coworking 等 spec 同一套跳过口径。
  */
+const ROUTING_ENABLED = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
+
 test.describe('站内搜索', () => {
   test('顶栏搜索落到 /search 并渲染分类结果', async ({ page }) => {
     await page.goto('/shanghai/listings')
@@ -52,6 +58,7 @@ test.describe('站内搜索', () => {
   })
 
   test('顶栏联想：键盘选出楼盘并直达详情页', async ({ page }) => {
+    test.skip(!ROUTING_ENABLED, 'MULTI_CITY_ROUTING_ENABLED 未开启：顶栏无城市上下文，联想不请求')
     await page.goto('/shanghai/listings')
     await page.locator('.header-search__input').fill('上海中心')
 

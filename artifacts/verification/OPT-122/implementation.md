@@ -119,6 +119,9 @@
 
 - 搜索单测 73 passed（新增 `tests/search-suggestions.test.ts` 15 条）。
 - E2E `tests/e2e/search.spec.ts` **10 passed**（新增联想 ×2、分类型零结果、放宽标注、拼音别名直达；dev 与 `next start` 生产模式各跑一遍）。
+- **CI 适配**：CI 主趟不设 `MULTI_CITY_ROUTING_ENABLED`（关闭态），顶栏 `citySlug` 为空、
+  联想按设计不请求——「顶栏联想」用例按 `detail-pages` 等既有 spec 的口径加
+  `test.skip(!ROUTING_ENABLED)`；开启态（生产形态）仍 10/10 全过，关闭态 9 passed / 1 skipped。
 - 全量 `vitest` 6627 passed / 2 failed：`staging-cloudrun-package`（既有环境超时）与
   `supply-sync-chunk`（并发抖动）——**主树对照实验证明与 OPT-122 无关**：不含 OPT-122
   代码的主树全量跑同样挂这两个（6554 passed / 2 failed，失败项一致）。
