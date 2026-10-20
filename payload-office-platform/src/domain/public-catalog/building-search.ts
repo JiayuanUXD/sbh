@@ -59,6 +59,8 @@ export type BuildingSearchInput = Readonly<{
   completedAfter?: number
   /** true 时只保留 leasableArea > 0 的楼盘 */
   onlyWithStock?: boolean
+  /** 关键词：楼盘名 / 行政区 / 商圈 / 地铁名，站内搜索与 `/buildings?q=` 共用。 */
+  q?: string
   /**
    * 出售口径（OPT-096）：只认 `'sale'`；缺省即租赁。**不是筛选维度**——它决定的是
    * 「在租 / 在售」这套口径本身（聚合、量词、分组），不进「清除全部」。
@@ -112,6 +114,14 @@ function parsePositiveNumber(sp: URLSearchParams, key: string): number | undefin
   const n = Number(raw)
   if (!Number.isFinite(n) || n < 0) return undefined
   return n
+}
+
+/** 关键词：trim + 100 字上限，空串视为未生效。 */
+function parseKeyword(sp: URLSearchParams): string | undefined {
+  const raw = sp.get('q')
+  if (raw == null) return undefined
+  const trimmed = Array.from(raw.trim()).slice(0, 100).join('')
+  return trimmed.length > 0 ? trimmed : undefined
 }
 
 function parseCompletedAfter(sp: URLSearchParams): number | undefined {
@@ -173,11 +183,13 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
   const completedAfter = parseCompletedAfter(sp)
   const onlyWithStock = sp.get('onlyWithStock') === '1' ? true : undefined
   const business = sp.get('business') === 'sale' ? ('sale' as const) : undefined
+  const q = parseKeyword(sp)
   const sort = parseSort(sp)
   const page = parsePage(sp)
 
   return {
     ...(city ? { city } : {}),
+    ...(q ? { q } : {}),
     ...(district ? { district } : {}),
     ...(businessArea ? { businessArea } : {}),
     ...(grade ? { grade } : {}),
@@ -202,6 +214,7 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
 export function buildBuildingCanonicalParams(input: BuildingSearchInput): URLSearchParams {
   const sp = new URLSearchParams()
   if (input.city) sp.set('city', input.city)
+  if (input.q) sp.set('q', input.q)
   if (input.district) for (const v of [...input.district].sort()) sp.append('district', v)
   if (input.businessArea) for (const v of [...input.businessArea].sort()) sp.append('businessArea', v)
   if (input.grade) for (const v of [...input.grade].sort()) sp.append('grade', v)

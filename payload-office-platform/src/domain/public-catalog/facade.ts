@@ -1408,7 +1408,7 @@ export async function getArticleBySlug(
  * 仅返回已发布资讯，按 publishedAt 倒序。page 从 1 起。
  */
 export async function listPublishedArticles(
-  options: Readonly<{ page?: number; pageSize?: number }> = {},
+  options: Readonly<{ page?: number; pageSize?: number; q?: string }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<ArticleListResult> {
   const { docs, totalDocs } = await adapter.findPublishedArticles(options)

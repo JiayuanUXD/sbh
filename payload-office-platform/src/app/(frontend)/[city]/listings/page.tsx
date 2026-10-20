@@ -46,8 +46,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     canonicalQuery: query || undefined,
     multiCityRoutingEnabled: getMultiCityRoutingEnabled(),
   })
+  // 带关键词的列表页是「搜索结果」，不是内容页：保留页面能力，但不进索引。
+  const withQNoindex = input.q ? { ...base, robots: { index: false, follow: true } } : base
   // 纯地点筛选（只有一个 district / businessArea）→ canonical 合并到区域落地页（OPT-119）。
-  return withLocationFilterCanonical(base, { citySlug: city.slug, serviceStatus: city.serviceStatus, canonicalQuery: query })
+  return withLocationFilterCanonical(withQNoindex, { citySlug: city.slug, serviceStatus: city.serviceStatus, canonicalQuery: query })
 }
 
 export default async function CityListingsPage({ params, searchParams }: Props) {

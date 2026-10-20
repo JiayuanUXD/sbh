@@ -326,7 +326,7 @@ export interface SupplyAdapter {
    * page 从 1 起，pageSize 控制每页条数；depth=2 填充 coverImage。
    */
   findPublishedArticles(
-    options: Readonly<{ page?: number; pageSize?: number }>,
+    options: Readonly<{ page?: number; pageSize?: number; q?: string }>,
   ): Promise<{ docs: readonly Article[]; totalDocs: number }>;
 
   /**
@@ -1914,11 +1914,15 @@ GROUP BY l.building_id
       const payload = await getPayload();
       const page = Math.max(options.page ?? 1, 1);
       const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48);
+      const q = options.q?.trim();
       const result = await payload.find({
         collection: "articles",
         where: {
           status: { equals: "published" },
           deletedAt: { exists: false },
+          ...(q
+            ? { or: [{ title: { contains: q } }, { excerpt: { contains: q } }] }
+            : {}),
         },
         depth: 2, // coverImage 填充为 Media
         limit: pageSize,

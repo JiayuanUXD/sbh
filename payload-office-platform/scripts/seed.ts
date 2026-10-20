@@ -528,6 +528,38 @@ async function seed() {
     summary: '虹桥商务区核心办公，近虹桥枢纽。',
   })
 
+  // OPT-122：代码别名（shzx / IFC）指向的楼盘，零在租。既让拼音/首字母
+  // 扩展可端到端验证，也给「楼盘存在但暂无在租」的分类型零结果提供样本。
+  await upsertBySlug<AnyDoc>(payload, 'buildings', 'shanghai-tower', {
+    name: '上海中心',
+    city: shanghai.id,
+    status: 'published',
+    operationalStatus: 'active',
+    grade: 'super-grade-a',
+    district: pudong.id,
+    businessDistrict: lujiazui.id,
+    address: '上海市浦东新区银城中路 501 号',
+    latitude: 31.2337,
+    longitude: 121.5055,
+    amenities: [metro.id],
+    summary: '陆家嘴地标建筑，超甲级办公，暂无公开在租房源。',
+  })
+
+  await upsertBySlug<AnyDoc>(payload, 'buildings', 'shanghai-ifc', {
+    name: '上海国金中心',
+    city: shanghai.id,
+    status: 'published',
+    operationalStatus: 'active',
+    grade: 'super-grade-a',
+    district: pudong.id,
+    businessDistrict: lujiazui.id,
+    address: '上海市浦东新区世纪大道 8 号',
+    latitude: 31.2377,
+    longitude: 121.4997,
+    amenities: [metro.id],
+    summary: '陆家嘴核心超甲级综合体，暂无公开在租房源。',
+  })
+
   console.log('Locations and buildings seeded!');
 
   console.log('Upserting listings...');

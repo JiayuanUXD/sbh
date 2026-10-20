@@ -769,6 +769,10 @@ ol {
   border: 1px solid var(--header-well-edge);
   border-radius: var(--r-pill);
   background: var(--header-well);
+  /* 输入联想下拉以表单为定位基准（OPT-122 Phase 3）。
+     对 <1280 的绝对定位覆盖层无影响：那条规则相对 .site-header__inner 定位，
+     不受自身 position 影响。 */
+  position: relative;
   box-shadow: var(--header-well-shadow);
   color: var(--ink-3);
   transition: background var(--duration-fast) var(--ease-standard),

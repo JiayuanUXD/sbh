@@ -24,6 +24,8 @@ export type CityPageType =
   | 'building-detail'
   // OPT-119：区域 / 商圈落地页 `/{city}/area/{slug}`；行政区与商圈共用一个路由（slug 全局唯一）。
   | 'area-detail'
+  // 站内搜索（OPT-122）：城市作用域的独立查询页，不进导航。
+  | 'search'
   | 'news'
   | 'news-detail'
   | 'privacy'
@@ -252,6 +254,7 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
   if (segments.length === 1 && segments[0] === 'listings') return route('listings', null)
   if (segments.length === 1 && segments[0] === 'sale') return route('sale', null)
   if (segments.length === 1 && segments[0] === 'coworking') return route('coworking', null)
+  if (segments.length === 1 && segments[0] === 'search') return route('search', null)
   if (segments.length === 2 && segments[0] === 'listings') {
     return canonicalPathSegment(segments[1]) ? route('listing-detail', null, canonicalPathSegment(segments[1])) : route('unknown', null)
   }
@@ -266,6 +269,7 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
   if (resource === 'listings' && !slug) return route('listings', citySlug)
   if (resource === 'sale' && !slug) return route('sale', citySlug)
   if (resource === 'coworking' && !slug) return route('coworking', citySlug)
+  if (resource === 'search' && !slug) return route('search', citySlug)
   if (resource === 'buildings' && !slug) return route('buildings', citySlug)
   if (resource === 'listings' && slug) {
     const detailSlug = canonicalPathSegment(slug)
@@ -381,6 +385,17 @@ function selectListingQuery(params: URLSearchParams): URLSearchParams {
   return selected
 }
 
+function selectSearchQuery(params: URLSearchParams): URLSearchParams {
+  const selected = new URLSearchParams()
+  const q = readSingle(params, 'q')
+  const tab = readSingle(params, 'tab')
+  const page = readSingle(params, 'page')
+  if (q) selected.set('q', q)
+  if (tab && ['all', 'listings', 'buildings', 'news'].includes(tab)) selected.set('tab', tab)
+  if (page && /^\d+$/.test(page) && Number(page) > 1) selected.set('page', page)
+  return selected
+}
+
 function selectBuildingQuery(params: URLSearchParams): URLSearchParams {
   const selected = new URLSearchParams()
   const grade = readSingle(params, 'grade')
@@ -418,6 +433,8 @@ export function buildCityPath(citySlug: string, pageType: CityPageType): string 
       return `/${citySlug}/sale`
     case 'coworking':
       return `/${citySlug}/coworking`
+    case 'search':
+      return `/${citySlug}/search`
     case 'buildings':
     case 'building-detail':
     case 'area-detail':
@@ -475,6 +492,11 @@ export function switchCityUrl(sourceUrl: unknown, destinationCitySlug: string): 
       return withQuery(
         `/${destinationCitySlug}/coworking`,
         selectListingQuery(route.params),
+      )
+    case 'search':
+      return withQuery(
+        `/${destinationCitySlug}/search`,
+        selectSearchQuery(route.params),
       )
     case 'buildings':
       return withQuery(
@@ -541,6 +563,8 @@ export function legacyCanonicalPath(sourceUrl: unknown): string | null {
       return withQuery('/sale', passThroughQuery(route.params))
     case 'coworking':
       return withQuery('/coworking', passThroughQuery(route.params))
+    case 'search':
+      return withQuery('/search', selectSearchQuery(route.params))
     case 'listing-detail':
       return route.detailSlug ? `/listings/${route.detailSlug}` : null
     case 'buildings':
@@ -583,6 +607,8 @@ export function prefixedCanonicalPath(sourceUrl: unknown, citySlug: string): str
       return withQuery(`/${citySlug}/sale`, passThroughQuery(route.params))
     case 'coworking':
       return withQuery(`/${citySlug}/coworking`, passThroughQuery(route.params))
+    case 'search':
+      return withQuery(`/${citySlug}/search`, selectSearchQuery(route.params))
     case 'listing-detail':
       return route.detailSlug ? `/${citySlug}/listings/${route.detailSlug}` : null
     case 'buildings':

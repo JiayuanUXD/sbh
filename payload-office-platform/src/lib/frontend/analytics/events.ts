@@ -93,6 +93,23 @@ export const ANALYTICS_EVENTS = {
   /** 楼盘列表页结果点击 */
   building_result_click: ['city', 'building_id', 'rank', 'page_index', 'section'],
 
+  // ── 站内搜索（OPT-122）──────────────────────────────────────────────────
+  //
+  // 不上报 q 原文，只报长度与派生结果；去重键是 q 的轻量 hash + tab + page。
+  /** 站内搜索结果呈现（三类计数 / 零结果 / 是否放宽） */
+  site_search: [
+    'city',
+    'q_length',
+    'tab',
+    'page',
+    'result_total',
+    'result_listings',
+    'result_buildings',
+    'result_news',
+    'zero_result',
+    'relaxed',
+  ],
+
   // ── 页面停留与浏览深度（OPT-064 新增）───────────────────────────────────
   //
   // Umami 自己按相邻 pageview 的时间差推算停留时长，会话最后一页恒缺失

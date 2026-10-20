@@ -1,0 +1,47 @@
+# OPT-122 验收 metadata 实测（生产模式 `next start -p 3721`）
+
+- 日期：2026-10-20（验收复测）
+- 命令形态：`curl -s http://localhost:3721/<path>`，抓取 title / robots / canonical
+
+## /shanghai/search?q=虹桥
+
+```html
+<title>搜索 · 上海 · 商办租赁</title>
+<meta name="robots" content="noindex, follow"/>
+<link rel="canonical" href="http://localhost:3721"/>
+```
+
+注：搜索页未显式设置 canonical，`rel=canonical` 输出来自根布局默认值（站点根）。页面为 noindex，canonical 无实际搜索语义影响，记为观察项。
+
+## /shanghai/search?q=虹桥&tab=buildings&page=2
+
+```html
+<title>搜索 · 上海 · 商办租赁</title>
+<meta name="robots" content="noindex, follow"/>
+```
+
+## /shanghai/listings?q=虹桥
+
+```html
+<title>上海在租房源 · 商办租赁</title>
+<meta name="robots" content="noindex, follow"/>
+<link rel="canonical" href="http://localhost:3721/shanghai/listings?q=虹桥"/>
+```
+
+## /search?q=虹桥&tab=buildings&page=2（无城市前缀）
+
+```text
+HTTP/1.1 307 Temporary Redirect
+Location: http://localhost:3721/shanghai/search?q=虹桥&tab=buildings&page=2
+```
+
+q / tab / page 全部保留。
+
+## tab 计数与区块一致性（四次查询抽样）
+
+| q | 全部 | 房源 | 楼盘 | 资讯 | all 页区块 |
+|---|---|---|---|---|---|
+| 虹桥 | 2 | 1 | 1 | 0 | 房源 1、楼盘 1（资讯 0 不渲染） |
+| 外滩源大厦 | 3 | 2 | 1 | 0 | 房源 2、楼盘 1 |
+| 静安待租楼盘 | 1 | 0 | 1 | 0 | 楼盘 1（房源 0 不渲染） |
+| lujiazui | 3 | 2 | 1 | 0 | 与中文查询「虹桥」同分布，拼音扩展生效 |

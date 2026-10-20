@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import React, { useId, useRef, useState } from 'react'
-import { buildListingSearchHref } from '@/lib/frontend/search-submit'
+import { buildListingSearchHref, buildSiteSearchHref } from '@/lib/frontend/search-submit'
 
 /** 与 HeroSearch.tsx 原样搬运：类型选项，取值/顺序必须一致。 */
 const TYPE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
@@ -46,13 +46,13 @@ export default function HomeSearchPill({ districts, citySlug }: Readonly<{
      两个入口各拼一次 query 的话，同一个词搜出来会是两条不同的 canonical。 */
   function submit(e: React.FormEvent) {
     e.preventDefault()
+    const keyword = keywordRef.current?.value ?? ''
+    // 带区域/类型/面积 = 明确的房源筛选意图，仍去列表页；只填关键词才是站内搜索。
+    const hasListingFilters = Boolean(district || type || area)
     router.push(
-      buildListingSearchHref(citySlug, {
-        q: keywordRef.current?.value ?? '',
-        district,
-        type,
-        area,
-      }),
+      hasListingFilters
+        ? buildListingSearchHref(citySlug, { q: keyword, district, type, area })
+        : buildSiteSearchHref(citySlug, { q: keyword }),
     )
   }
 
