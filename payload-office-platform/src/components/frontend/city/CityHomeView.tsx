@@ -14,6 +14,9 @@ import type { getCachedHomepage } from '@/lib/frontend/cached-queries'
 import type { SiteSettingsView } from '@/lib/frontend/site-settings'
 import { orderByFeaturedRegions } from '@/lib/frontend/featured-regions'
 import { resolveTypeCardCovers } from '@/lib/frontend/type-card-covers'
+import { serializeJsonLd } from '@/lib/frontend/detail-metadata'
+import { buildSiteJsonLd } from '@/lib/frontend/site-jsonld'
+import { siteConfig } from '@/lib/frontend/site-config'
 
 type Homepage = Awaited<ReturnType<typeof getCachedHomepage>>
 
@@ -66,8 +69,14 @@ export default function CityHomeView({ city, homepage, routeMode, bandStats, sit
   // OPT-060：类型卡封面 = 城市覆盖 → 全局默认（最后一级回落在 HomeTypeCards 里）。
   // 与精选区域一样，刻意留在 unstable_cache 之外——配置变更不打供给侧失效标签。
   const typeCards = resolveTypeCardCovers(siteSettings.typeCards, city.profile.typeCardOverrides)
+  const siteJsonLd = buildSiteJsonLd(siteConfig.siteOrigin, siteSettings.siteName, siteSettings.logo?.src)
   return (
     <div className="hm-home">
+      <script
+        type="application/ld+json"
+        // 转义 </script> 防止存储型 XSS：JSON.stringify 不会转义 <，站点名与 logo 都来自后台配置。
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteJsonLd) }}
+      />
       <HomeHero
         city={city}
         districts={heroDistricts}
