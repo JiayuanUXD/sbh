@@ -71,6 +71,7 @@ import {
   parseListingSearchInput,
 } from './search-params'
 import { paginate, stableSortCards } from './stable-sort'
+import { diversify, rotationBucket, rotationSeed } from './rotation'
 import {
   applyMemoryFilters,
   collectListingScanPages,
@@ -922,12 +923,20 @@ export async function getHomepage(
     featuredLimit?: number
     latestArticlesLimit?: number
     scan?: ListingScanProvider
+    /** 时间桶号（24h）；默认按当前时钟取。缓存层会把它传进来并纳入 cache key。 */
+    bucket?: number
   }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<HomepageData> {
   const featuredLimit = options.featuredLimit ?? 8
-  // 精选楼盘只取展示张数。此前过取 30 栋是给商圈卡挑封面用的，OPT-093 后商圈卡
-  // 改从 allEffectiveBuildings 聚合，这里不必再多取。
+  // 候选池 = 展示张数的 3 倍（至少 24）：桶内打散得先有牌可洗，池子等于张数时
+  // 洗了等于没洗。两条 rail 的候选资格（有效供给 / isFeatured）不变，池子只是放大。
+  const poolLimit = Math.max(featuredLimit * 3, 24)
+  // 运营置顶位：前 2 个不参与洗牌。未配置任何排序时它们就是「最近更新」的前两条，
+  // 洗牌后仍然稳定，避免运营觉得「我调的顺序第二天就没了」。
+  const pinnedSlots = Math.min(2, featuredLimit)
+  const bucket = options.bucket ?? rotationBucket()
+  const seed = rotationSeed(ctx.city, bucket)
   const articlesLimit = options.latestArticlesLimit ?? 5
   const measure = async <T>(query: string, run: () => Promise<T>): Promise<T> => {
     const start = Date.now()
@@ -966,10 +975,10 @@ export async function getHomepage(
     listingAggregate,
     buildingOverview,
   ] = await Promise.all([
-    measure('featured-listings', () => adapter.findFeaturedListings(ctx, featuredLimit)),
+    measure('featured-listings', () => adapter.findFeaturedListings(ctx, poolLimit)),
     measure('districts', () => adapter.findEffectiveDistricts(ctx)),
     businessAreasQuery,
-    measure('featured-buildings', () => adapter.findFeaturedBuildings(ctx, featuredLimit)),
+    measure('featured-buildings', () => adapter.findFeaturedBuildings(ctx, poolLimit)),
     // 多取一条：首页右侧列表要去掉左侧主推那篇（HomeNewsList），主推落在最新
     // 五条里时靠第六条补位，否则右侧只剩四条。
     measure('latest-articles', () => adapter.findLatestArticles(articlesLimit + 1)),
@@ -987,7 +996,27 @@ export async function getHomepage(
 
   const cards = mapListingsToCards(featuredListings)
   const lastEffAt = buildLastEffAtLookup(featuredListings)
-  const sorted = stableSortCards(cards, 'recommended', lastEffAt)
+  const ranked = stableSortCards(cards, 'recommended', lastEffAt)
+  /* 精选房源：桶内洗牌，但**精选必须在补位之前**。
+     ① 勾了「首页推荐」的按 seed 洗牌后取前 N；② 不足 N 张时才用非精选补位，
+     补位保持确定性顺序（更新时间倒序）——补位项不该越过运营勾选的精选项。 */
+  const featuredRanked = ranked.filter((card) => card.isFeatured)
+  const backfillRanked = ranked.filter((card) => !card.isFeatured)
+  const rotatedFeatured = diversify(featuredRanked, {
+    take: featuredLimit,
+    pinned: pinnedSlots,
+    maxPerGroup: 2,
+    // 同楼盘最多 2 套：卡片带 building 投影，零额外查询。
+    groupOf: (card) =>
+      card.building?.businessDistrict?.slug
+      ?? card.building?.district?.slug
+      ?? card.building?.slug
+      ?? `listing:${card.id}`,
+    seed,
+  })
+  const sorted = rotatedFeatured.length < featuredLimit
+    ? [...rotatedFeatured, ...backfillRanked.slice(0, featuredLimit - rotatedFeatured.length)]
+    : rotatedFeatured
 
   const districtVMs: DistrictViewModel[] = []
   for (const d of districts) {
@@ -995,14 +1024,22 @@ export async function getHomepage(
     if (vm) districtVMs.push(vm)
   }
 
-  // 精选楼盘：先全部映射为 VM（带 district + coverImage），再按排序取前 N 张
+  // 精选楼盘：先全部映射为 VM（带 district + coverImage），再桶内洗牌取前 N 张。
+  // 洗牌保留前 2 个（recommendedOrder 最小的两栋），同商圈最多 2 栋。
   const buildingVMs: BuildingSummaryViewModel[] = []
   for (const b of featuredBuildings) {
     const vm = mapBuildingSummary(b)
     if (vm) buildingVMs.push(vm)
   }
+  const rotatedBuildings = diversify(buildingVMs, {
+    take: featuredLimit,
+    pinned: pinnedSlots,
+    maxPerGroup: 2,
+    groupOf: (building) => building.businessDistrict?.slug ?? building.district?.slug ?? building.slug,
+    seed,
+  })
   const featuredBuildingSlice = await measure('featured-building-aggregate', () => attachSupplyAggregates(
-    buildingVMs.slice(0, featuredLimit),
+    [...rotatedBuildings],
     ctx,
     adapter,
   ))

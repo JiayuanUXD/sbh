@@ -6,6 +6,7 @@
 
 - `app/(frontend)` 负责路由、Metadata、页面编排和错误边界。
 - `domain/public-catalog` 负责公开查询门面、DTO 和 mapper。
+- 首页两条 rail 的曝光轮换在 `domain/public-catalog/rotation.ts`：候选池 = 展示张数 ×3（≥24）→ 桶内洗牌（seed = 城市 + **24h 桶号**）→ 前 2 位运营置顶不洗 → 同商圈/同楼盘最多 2 个，供给不足自动放宽。**桶号必须作为实参进 `getCachedHomepage` 的 `unstable_cache`**：种子若在缓存回调里取 `Date.now()`，300s revalidate 一重算就会变成 5 分钟一换。别把 `pinned` 去掉，那是运营花钱买的曝光位。
 - `domain/supply` 是公开房源资格唯一来源：所有公开消费者（列表、详情、推荐、sitemap、咨询候选）复用同一有效供给服务，禁止用旧 `status=available` 或简化谓词降级。
 - 页面和组件只消费 Public Catalog DTO，不接收原始 Payload 文档。
 - `components/frontend` 只消费只读 DTO。

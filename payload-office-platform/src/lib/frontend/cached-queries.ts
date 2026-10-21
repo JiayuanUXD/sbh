@@ -18,6 +18,7 @@ import {
   type SearchVocabularyRow,
 } from '@/domain/public-catalog/search-vocabulary-sql'
 import { getAreaLandingIndex, getAreaLandingPage } from '@/domain/public-catalog/area-landing-facade'
+import { rotationBucket } from '@/domain/public-catalog/rotation'
 
 import {
   ARTICLES_CATEGORY_TAG as PUBLIC_ARTICLES_CATEGORY_TAG,
@@ -165,13 +166,16 @@ const getCachedHomepageByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     // 首页是租赁语境（精选房源、热门商圈、按类型浏览都按租金展示），
     // 出售供给不参与首页曝光，等出售频道上线后单独规划入口。
-    async () => {
+    //
+    // `bucket` 参与缓存 key（unstable_cache 会把实参算进 key）：桶内洗牌的结果
+    // 必须在同一天里稳定，否则 300s revalidate 一重算就换一批，变成 5 分钟一换。
+    async (bucket: number) => {
       const start = Date.now()
-      if (process.env.NODE_ENV === 'production') console.info('[public-catalog:home-cache]', JSON.stringify({ city: citySlug, phase: 'start' }))
+      if (process.env.NODE_ENV === 'production') console.info('[public-catalog:home-cache]', JSON.stringify({ city: citySlug, bucket, phase: 'start' }))
       try {
-        return await getHomepage(createSearchContext(citySlug, undefined, 'lease'))
+        return await getHomepage(createSearchContext(citySlug, undefined, 'lease'), { bucket })
       } finally {
-        if (process.env.NODE_ENV === 'production') console.info('[public-catalog:home-cache]', JSON.stringify({ city: citySlug, phase: 'end', elapsedMs: Date.now() - start }))
+        if (process.env.NODE_ENV === 'production') console.info('[public-catalog:home-cache]', JSON.stringify({ city: citySlug, bucket, phase: 'end', elapsedMs: Date.now() - start }))
       }
     },
     ['homepage', citySlug, BUILDING_GRADE_SCHEMA_VERSION],
@@ -188,7 +192,8 @@ const getCachedHomepageByCity = memoizeByCity((citySlug) =>
 
 export function getCachedHomepage(citySlug: string) {
   const city = canonicalCitySlug(citySlug)
-  return getCachedHomepageByCity(city)()
+  // 24h 桶号作为实参进 key：同一天命中同一条缓存；跨天自动换 key，顺序随之轮换。
+  return getCachedHomepageByCity(city)(rotationBucket())
 }
 
 // 根页 `/`（平台入口）跨城汇总 stats：城市清单不固定（新城上线即变），不能像
