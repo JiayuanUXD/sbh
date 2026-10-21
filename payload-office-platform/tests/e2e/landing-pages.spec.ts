@@ -107,6 +107,30 @@ test.describe('主导航入口调整', () => {
     await expect(nav.locator('.site-nav__link[aria-current="page"]')).toHaveCount(1)
     await expect(nav.locator('.site-nav__sub[aria-current="page"]')).toHaveText('租赁')
   })
+
+  test('点过父项再 hover 相邻项，不会同时展开两个下拉面板', async ({ page }) => {
+    /* 2026-10-21 线上截图：点「找办公室」跳到 /listings 后，链接仍持有焦点，
+       `.site-nav__group:focus-within` 一直把菜单撑着；指针移到「找楼盘」时
+       onPointerLeave 解除抑制，旧菜单靠焦点重新展开，两个面板同现。
+       修复是在指针点击后 blur 组内焦点（SiteNav.tsx 的 onClick）。 */
+    await page.goto('/shanghai')
+    const nav = page.getByRole('navigation', { name: '主导航' })
+    const office = nav.locator('.site-nav__group', { has: page.getByRole('link', { name: '找办公室' }) })
+    const building = nav.locator('.site-nav__group', { has: page.getByRole('link', { name: '找楼盘' }) })
+
+    await office.hover()
+    await expect(office.locator('.site-nav__menu')).toBeVisible()
+
+    await office.locator('.site-nav__link').click()
+    await page.waitForURL(/\/listings/)
+    // 点击后焦点不应留在导航里，否则 :focus-within 会让面板一直开着
+    await expect.poll(() => page.evaluate(() =>
+      Boolean((document.activeElement as HTMLElement | null)?.closest?.('.site-nav')))).toBe(false)
+
+    await building.hover()
+    await expect(page.locator('.site-nav__menu:visible')).toHaveCount(1)
+    await expect(building.locator('.site-nav__menu')).toBeVisible()
+  })
 })
 
 test.describe('/entrust 委托找房', () => {

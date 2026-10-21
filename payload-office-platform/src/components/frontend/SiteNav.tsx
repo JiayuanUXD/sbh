@@ -251,7 +251,20 @@ export default function SiteNav({
               // 事件 detail 恒为 0，此时焦点还在菜单里，收起来是错的（而且会把焦点
               // 留在一个 visibility:hidden 的元素上）。
               onClick={(e) => {
-                if (e.detail > 0) setSuppressedGroup(item.href)
+                if (e.detail > 0) {
+                  setSuppressedGroup(item.href)
+                  /* 指针点击后浏览器把焦点留在这个链接上，`:focus-within` 会一直把菜单
+                     撑着——指针已经移到别的分组、甚至已经跳到新页面，它都不收；再 hover
+                     相邻分组就是两个面板同时可见（2026-10-21 线上截图复现）。
+                     这里主动 blur 掉组内焦点，让「点过的那项」不再靠焦点保持展开。
+                     只在焦点确实在本组内时动手，避免误伤搜索框等外部焦点。
+                     键盘 Enter 的 click 事件 detail 恒为 0，走不到这里——键盘路径仍靠
+                     focus-within 展开，Tab 进子项的行为不变。 */
+                  const active = document.activeElement
+                  if (active instanceof HTMLElement && e.currentTarget.contains(active)) {
+                    active.blur()
+                  }
+                }
               }}
               // 指针离开即解除：移开再移回来要能重新展开。
               onPointerLeave={releaseSuppression}
