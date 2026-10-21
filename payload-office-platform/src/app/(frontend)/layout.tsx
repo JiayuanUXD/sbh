@@ -2,6 +2,7 @@ import React from 'react'
 import type { Metadata, Viewport } from 'next'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
+import { readSiteVerification } from '@/lib/frontend/site-verification'
 import SiteHeader from '@/components/frontend/SiteHeader'
 import SiteFooter from '@/components/frontend/SiteFooter'
 import Script from 'next/script'
@@ -35,6 +36,8 @@ export const dynamic = 'force-dynamic'
 // F0.5：metadataBase 由类型化环境配置提供，禁止硬编码生产域名。
 // 见 specs/frontend-mvp/tasks.md 与 design.md §11。
 // 所有页面 canonical / OG 默认基于此 URL 解析相对路径。
+const siteVerification = readSiteVerification()
+
 export const metadata: Metadata = {
   metadataBase: siteConfig.siteUrl,
   title: {
@@ -56,6 +59,8 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  // OPT-123：站长平台验证标记，来自运行时环境变量，缺省时不输出（见 site-verification.ts）。
+  ...(siteVerification ? { verification: siteVerification } : {}),
 }
 
 // F2.1：theme-color 与设计 token 中的 bg 颜色保持一致，
