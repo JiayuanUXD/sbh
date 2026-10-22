@@ -1,6 +1,6 @@
 # Task Packet：OPT-125 楼盘最近地铁按坐标回填
 
-> 状态：**脚本待合并；生产计划与写库待用户确认**（分支 `data/opt-125-nearest-metro-backfill-65ab`）
+> 状态：**生产已回填（2026-10-22，用户确认 800m）；脚本待合并**（分支 `data/opt-125-nearest-metro-backfill-65ab`）
 > 创建日期：2026-10-22
 > 来源：资讯日更复盘发现「地铁沿线」类选题没有数据支撑 → 用户选择「在这里完成」
 
@@ -50,4 +50,5 @@
 
 - 单测 `tests/nearest-metro.test.ts`：距离、坐标异常判定、同城约束、已填不动、阈值收紧 / 放宽、线路汇总。
 - 本地独立库 `sbh_dev_metro`（种子 + 导入上海 394 个站点）：plan 只读连接生效；execute 300m 写入 3 栋，其它列执行前后逐字节一致、版本号 +1；重复执行全部跳过；比计划宽的阈值被拒；rollback 只回滚仍等于写入值的楼。证据见 `artifacts/verification/OPT-125/`。
-- **未验证**：生产数据的计划与执行（待第 5 节确认）。
+- 生产（用户 2026-10-22 授权只读计划、确认阈值 800m）：只读计划 4,427 栋参与计算，≤800m 3,154 栋；执行写入 3,154、跳过 0；线上已发布楼盘有最近地铁 3,109 栋（其余为未发布楼盘）；抽查衡辰商业广场详情「地铁 威宁路」，`?metro=shanghai-metro-weining-lu` 80 套、`?metro=shanghai-metro-nanjing-xilu` 615 套。回滚清单 `artifacts/verification/OPT-125/production/applied-*.jsonl`。
+- 遗留人工项：嘉兴万达广场挂在上海（城市错）；临沂路500号、盘古创业坐标疑似错误；陆家嘴 4 栋与御河企业公馆的手工值与坐标不一致（见 plan-summary.md）。
