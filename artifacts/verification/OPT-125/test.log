@@ -1,0 +1,14 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 test /Users/liujiayuan/App/wt-metro/payload-office-platform
+> vitest run
+
+
+ RUN  v4.1.10 /Users/liujiayuan/App/wt-metro/payload-office-platform
+
+
+ Test Files  495 passed (495)
+      Tests  6667 passed (6667)
+   Start at  18:07:15
+   Duration  21.72s (transform 20.04s, setup 0ms, import 173.26s, tests 38.77s, environment 4.89s)
+
