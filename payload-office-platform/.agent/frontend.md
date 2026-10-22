@@ -391,6 +391,7 @@ e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一�
 - **底部咨询模块只属于楼盘、房源详情页**：内容页（`/pages/[slug]`）和资讯详情页（`/news/[slug]`）不挂「需要专业选址建议？/ 提交需求」（OPT-118，`tests/content-pages-no-bottom-cta.test.ts` 守着）。
 - `/news` 没有任何已发布资讯时 `noindex` 且不进 sitemap（空列表是薄内容）。
 - 资讯内容放 `content/articles/*.md`，用 `scripts/import-articles.ts` 导入，默认草稿；不支持表格 / 图片 / 嵌套列表（渲染器与后台编辑器都没有对应节点）。数据类文章的数字必须能追溯到口径，不得编造（OPT-118）。
+- 日更流水线（OPT-124）：`pnpm news:data` 取数并与前台对账 → 写稿 → `pnpm news:check` 核对规则、数字、关联与站内链接 → `pnpm news:publish` 用专用低权限账号走 REST 新建（只新建不覆盖）。说明见 `scripts/news/README.md`。内容规则只有一份，在 `scripts/lib/article-content.ts`，单测与命令行共用。
 - 公共供给最长缓存 5 分钟，并由领域事件失效。
 - 分析只记录匿名 ID、枚举、上下文和结果；曝光按可见性去重。
 

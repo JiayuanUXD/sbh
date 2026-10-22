@@ -1,0 +1,18 @@
+[news:check] shanghai-small-office-under-100sqm-guide：正文 1446 字，核对数字 80 个
+[news:check]   ✗ 数字「80」在 numbers.json 里找不到出处（excerpt：…安。各区的数量、挂牌价、80㎡ 的月租，以及什么时候…）
+[news:check]   ✗ 数字「1,550」在 numbers.json 里找不到出处（正文第 8 块（paragraph）：…浦、静安三个区加起来约 1,550 条，要在市中心找小办公…）
+[news:check]   ✗ 数字「80」在 numbers.json 里找不到出处（正文第 9 块（heading）：…80 平的办公室，一个月多少…）
+[news:check]   ✗ 数字「0.84万」在 numbers.json 里找不到出处（正文第 11 块（list）：… 浦东新区、长宁区：约 0.84 万。 虹口区：约 0.…）
+[news:check]   ✗ 数字「0.74万」在 numbers.json 里找不到出处（正文第 11 块（list）：…84 万。 虹口区：约 0.74 万。 闵行区、杨浦区：…）
+[news:check]   ✗ 数字「0.63万」在 numbers.json 里找不到出处（正文第 11 块（list）：…。 闵行区、杨浦区：约 0.63 万。…）
+[news:check]   ✗ 数字「80」在 numbers.json 里找不到出处（正文第 12 块（paragraph）：…算法是日单价 × 80㎡ × 30 天。物业费…）
+[news:check]   ✗ 数字「80」在 numbers.json 里找不到出处（正文第 14 块（paragraph）：…的还要乘一个得房率。标 80㎡、得房率 70%，实际…）
+[news:check]   ✗ 数字「56」在 numbers.json 里找不到出处（正文第 14 块（paragraph）：…率 70%，实际只有约 56㎡ 能摆工位。怎么算，见…）
+[news:check] 不通过：9 个问题
+[news:check] shanghai-office-rent-by-district-2026-10：正文 1722 字，核对数字 136 个
+[news:check]   ✗ 数字「1.2万」在 numbers.json 里找不到出处（正文第 12 块（list）：… 长宁区：100㎡ 约 1.2 万，200㎡ 约 2.…）
+[news:check]   ✗ 数字「1.1万」在 numbers.json 里找不到出处（正文第 12 块（list）：… 杨浦区：100㎡ 约 1.1 万，200㎡ 约 2.…）
+[news:check]   ✗ 数字「2.1万」在 numbers.json 里找不到出处（正文第 12 块（list）：….1 万，200㎡ 约 2.1 万。 普陀区：100㎡…）
+[news:check]   ✗ 数字「0.9万」在 numbers.json 里找不到出处（正文第 12 块（list）：… 普陀区：100㎡ 约 0.9 万，200㎡ 约 1.…）
+[news:check]   ✗ 数字「2.7」在 numbers.json 里找不到出处（正文第 17 块（paragraph）：…定、宝山在 2.2 到 2.7 之间，不到黄浦的一半。…）
+[news:check] 不通过：5 个问题

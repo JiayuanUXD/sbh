@@ -1,0 +1,9 @@
+1 | e2e-news-pipeline-lujiazui-test | published | 3
+2 | e2e-news-pipeline-draft-test | draft | 4
+3 | e2e-news-pipeline-lujiazui-test.jpg | article
+4 | e2e-news-pipeline-draft-test.jpg | article
+1 | relatedBuildings | lujiazui-grade-a-river-view
+1 | relatedDistricts | lujiazui
+1 | relatedDistricts | pudong
+2 | relatedBuildings | lujiazui-grade-a-river-view
+2 | relatedDistricts | huangpu

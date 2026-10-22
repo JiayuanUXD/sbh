@@ -12,6 +12,11 @@
  *       不连库：把将要写入的字段（含 Lexical 正文）导出成 JSON，供没有 DATABASE_URL 的环境（如经 CloudBase MCP）使用。
  *   pnpm node --env-file-if-exists=.env.local --import tsx scripts/import-articles.ts --execute [--status=draft|published]
  *       用 Payload Local API 按 slug 幂等 upsert，需要 DATABASE_URL。默认写成**草稿**。
+ *   以上三种都可以加 `--only=<slug>`：仍校验全部文件（站内链接要能指到别的文章），但只导出 / 写入这一篇。
+ *       日更场景必须带：不带的话 `--execute --status=draft` 会把目录里已发布的文章一起改回草稿。
+ *
+ * frontmatter 可选 `relatedDistricts` / `relatedBuildings`（逗号分隔的 slug）：`--execute` 时换成 id 写入关联，
+ * 查不到就整篇失败；没写这两个字段就不动库里已有的关联。`--emit` 导出里原样带上 slug，由调用方自己解析。
  *
  * ## 红线
  *
@@ -25,7 +30,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { coverPathFor, loadArticleFiles, toArticleData } from './lib/article-content'
+import {
+  coverPathFor,
+  lintArticle,
+  lintCover,
+  loadArticleFiles,
+  resolveRelated,
+  selectArticles,
+  toArticleData,
+} from './lib/article-content'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(here, '../content/articles')
@@ -37,10 +50,17 @@ function arg(name: string): string | undefined {
 const flag = (name: string) => process.argv.includes(`--${name}`)
 
 async function main() {
-  const articles = loadArticleFiles(CONTENT_DIR)
+  const articles = selectArticles(loadArticleFiles(CONTENT_DIR), arg('only'))
   const status = arg('status') ?? 'draft'
   if (status !== 'draft' && status !== 'published') throw new Error(`--status 只能是 draft 或 published，得到 ${status}`)
   const now = new Date()
+
+  // 内容规则与单测同一份（lintArticle / lintCover）：不合格的文章不导出、不写库
+  const problems: string[] = []
+  for (const a of articles) {
+    for (const p of [...lintArticle(a), ...(await lintCover(CONTENT_DIR, a))]) problems.push(`${a.slug}: ${p}`)
+  }
+  if (problems.length > 0) throw new Error(`内容规则不通过：\n  - ${problems.join('\n  - ')}`)
 
   // biome-ignore lint/suspicious/noConsole: CLI script
   console.log(`[import-articles] ${articles.length} 篇通过校验：`)
@@ -57,6 +77,7 @@ async function main() {
       return {
         data: toArticleData(a, { status, now }),
         cover: cover ? { file: path.relative(process.cwd(), cover), alt: a.coverAlt } : null,
+        related: { districts: a.relatedDistricts, buildings: a.relatedBuildings },
       }
     })
     fs.writeFileSync(emit, JSON.stringify(docs, null, 2))
@@ -75,6 +96,18 @@ async function main() {
   const { default: config } = await import('../src/payload.config')
   const { upsertBySlug } = await import('../src/lib/runtime/upsert-by-slug')
   const payload = await getPayload({ config })
+  // 关联只认行政区 / 商圈（与 Articles.relatedDistricts 的 filterOptions 一致），楼盘按 slug
+  const lookup = async (kind: 'location' | 'building', slug: string): Promise<number | null> => {
+    const found =
+      kind === 'location'
+        ? await payload.find({ collection: 'locations', where: { slug: { equals: slug }, type: { in: ['district', 'business_area'] } }, limit: 1, depth: 0 })
+        : await payload.find({ collection: 'buildings', where: { slug: { equals: slug } }, limit: 1, depth: 0 })
+    const id = (found.docs[0] as { id?: unknown } | undefined)?.id
+    return typeof id === 'number' ? id : null
+  }
+  // 先把全部关联解析完再写库：有一个 slug 查不到就一篇都不写，不留半截状态
+  const relatedBySlug = new Map<string, Awaited<ReturnType<typeof resolveRelated>>>()
+  for (const a of articles) relatedBySlug.set(a.slug, await resolveRelated(a, lookup))
   let created = 0
   let updated = 0
   let covered = 0
@@ -82,7 +115,10 @@ async function main() {
     // 已存在的文章保留原发布时间（见 toArticleData）；trash:true 与 upsertBySlug 同口径，回收站里的行也要找到
     const existing = await payload.find({ collection: 'articles', where: { slug: { equals: a.slug } }, limit: 1, trash: true, depth: 0 })
     const existingPublishedAt = (existing.docs[0] as { publishedAt?: string | null } | undefined)?.publishedAt ?? null
-    const result = await upsertBySlug<{ id: number; coverImage?: unknown }>(payload, 'articles', a.slug, toArticleData(a, { status, now, existingPublishedAt }))
+    const result = await upsertBySlug<{ id: number; coverImage?: unknown }>(payload, 'articles', a.slug, {
+      ...toArticleData(a, { status, now, existingPublishedAt }),
+      ...relatedBySlug.get(a.slug),
+    })
     if (result.created) created += 1
     else updated += 1
 
