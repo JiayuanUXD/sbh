@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const { findCityProfiles, memoizeCityProfile, stalePublicProfiles, unstableCache } = vi.hoisted(() => {
+const { findCityProfiles, lastProfileDocs, memoizeCityProfile, stalePublicProfiles, unstableCache } = vi.hoisted(() => {
   const stalePublicProfiles: { enabled: boolean; value: readonly unknown[] } = {
     enabled: false,
     value: [],
@@ -8,8 +8,12 @@ const { findCityProfiles, memoizeCityProfile, stalePublicProfiles, unstableCache
   // 按 Next unstable_cache 的真实语义模拟单城缓存：只记住 resolve 出来的值，
   // reject 不入缓存（下一次照常重算）。用来证明「查库报错」不会被缓存成「城市不存在」。
   const memoizeCityProfile = { enabled: false }
+  // 精选区域改由商圈扩展供数：测试里仍用「profile 文档带 featuredRegions」的写法造数据，
+  // 由下面的 payload mock 把它翻译成对 business-area-extensions 的查询结果。
+  const lastProfileDocs: { value: readonly Record<string, unknown>[] } = { value: [] }
   return {
     findCityProfiles: vi.fn(),
+    lastProfileDocs,
     memoizeCityProfile,
     stalePublicProfiles,
     unstableCache: vi.fn((
@@ -40,7 +44,21 @@ vi.mock('react', () => ({
   cache: (fn: (...args: unknown[]) => unknown) => fn,
 }))
 vi.mock('payload', () => ({
-  getPayload: async () => ({ find: findCityProfiles }),
+  getPayload: async () => ({
+    find: async (args: { collection: string }) => {
+      if (args.collection === 'business-area-extensions') {
+        const docs = lastProfileDocs.value.flatMap((doc) =>
+          (Array.isArray(doc.featuredRegions) ? doc.featuredRegions : []).map(
+            (businessArea: unknown, index: number) => ({ businessArea, featuredOrder: index + 1 }),
+          ),
+        )
+        return { docs }
+      }
+      const result = await findCityProfiles(args)
+      lastProfileDocs.value = result?.docs ?? []
+      return result
+    },
+  }),
 }))
 vi.mock('@/payload.config', () => ({ default: {} }))
 
@@ -327,10 +345,15 @@ describe('city context resolver', () => {
 
     const profiles = await listPublicCityProfiles()
 
-    expect(profiles).toHaveLength(1)
+    // 苏州那条精选区域属于 99 号城市：精选区域现在按「商圈所属城市」归到各城，
+    // 跨城的数据不会再落进苏州的 profile，所以苏州是一份有效但精选为空的 profile，
+    // 而不是像旧的 profile 字段那样被整份判废。其余三座城市的区域停用 / 不可见 /
+    // slug 非规范，仍然让各自的 profile 失效（生产里停用与不可见在查询里就被滤掉了）。
+    expect(profiles.map((p) => p.citySlug)).toEqual(['shanghai', 'suzhou'])
     expect(profiles[0]?.featuredRegions).toEqual([
       { id: 11, slug: 'pudong', name: 'Pudong', type: 'district', parentName: null, description: null },
     ])
+    expect(profiles[1]?.featuredRegions).toEqual([])
     expect(findCityProfiles).toHaveBeenLastCalledWith(
       expect.objectContaining({ collection: 'city-site-profiles', depth: 2 }),
     )

@@ -209,7 +209,7 @@ OPT-038 锁定，样式在 `styles/recruit.css`（`.rc-*`），组件在 `compon
 - 表单卡下方**没有**合规声明（「提交申请不代表合作确认……」已于 OPT-101 按产品裁定从两面一起去掉）。
   `city-partner-page-seo.test.ts` 的四个禁词断言只禁词，不要求任何声明存在。
 - 次要入口段 `.rc-section--tail` 的 `padding-top: 0` 只在商圈段垫在上面时成立；紧邻灰底带时
-  （`/city-partner` 恒如此、城市路由 `featuredRegions` 为空时如此）由
+  （`/city-partner` 恒如此、城市路由精选区域为空时如此）由
   `.rc-section--band + .rc-section--tail` 补回一份 `--pad`，否则灰卡贴灰带零间距。
 
 ### 容器 1024，且主栏 552 **不能**写成常量
@@ -294,10 +294,10 @@ className。所以「白底 · 零边框 · radius `--r-card`(18) · padding 40�
 - 两条都要动已上线页面的渲染路径（详情页 / 首页），属**设计系统层面的一次性重构，不该塞进任何一个改版批次**。
   在那之前：复用它们，别为了「命名干净」在招募页另造第三种白面板或第二个 section 标题类。
 
-### 本地库夹具事实：`featuredRegions` 全空
+### 本地库夹具事实：精选区域全空
 
-本地 7 个 `CitySiteProfiles` 的 `featuredRegions` **全是空数组**，`Locations.description` 非空的只有上海的 11 个节点。
-所以「商圈段」在本地默认路由上**整段不渲染是正常的**，不是回归；要验它必须临时写库
+精选区域的数据源已迁到商圈扩展的 `featuredOrder`（在「商圈管理」里设置；`CitySiteProfiles.featuredRegions` 已冻结为回填来源）。本地七城**没有任何商圈配了精选序号**，`Locations.description` 非空的只有上海的 11 个节点。
+所以「商圈段」在本地默认路由上**整段不渲染是正常的**，不是回归；要验它必须临时给商圈扩展写 `featuredOrder`
 （写库探针的纪律见 `testing.md`：先断言干净起点、`finally` 原样还原、还原后自查）。
 
 ### 埋点现状（别以为已有）

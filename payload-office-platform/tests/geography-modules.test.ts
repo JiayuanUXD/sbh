@@ -57,9 +57,9 @@ describe('geography-modules/四模块共享列表配置', () => {
     }
   })
 
-  it('商圈模块 11 列，含边界/封面两个 flag 列', () => {
+  it('商圈模块 12 列，含边界/封面两个 flag 列和首页精选序号', () => {
     const m = GEOGRAPHY_MODULES.business_area!
-    expect(m.columns).toHaveLength(11)
+    expect(m.columns).toHaveLength(12)
     // 边界/封面是 flag 列，取自 row 布尔字段（hasBoundary/hasCover），非计数
     const flags = m.columns.filter((c) => c.kind === 'flag')
     expect(flags.map((f) => f.key)).toEqual(['hasBoundary', 'hasCover'])
@@ -75,14 +75,15 @@ describe('geography-modules/四模块共享列表配置', () => {
       'metroLines',
       'hasBoundary',
       'hasCover',
+      'featuredOrder',
       'status',
       'frontendVisible',
     ])
   })
 
-  it('商圈模块提供「仅看缺边界」「仅看缺封面」快捷 chip', () => {
+  it('商圈模块提供「仅看缺边界」「仅看缺封面」「仅看首页精选」快捷 chip', () => {
     const chips = GEOGRAPHY_MODULES.business_area?.chips
-    expect(chips?.map((c) => c.key)).toEqual(['missingBoundary', 'missingCover'])
+    expect(chips?.map((c) => c.key)).toEqual(['missingBoundary', 'missingCover', 'featured'])
     expect(chips?.every((c) => c.label.length > 0)).toBe(true)
     // 其余模块无快捷 chip
     for (const type of ['city', 'district', 'metro_line'] as const) {

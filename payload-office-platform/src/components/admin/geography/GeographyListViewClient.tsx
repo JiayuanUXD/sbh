@@ -43,6 +43,11 @@ export type GeographyRow = {
   hasBoundary: boolean
   /** 封面列用：该商圈是否配置了 coverImage。从 coverImage 派生，勿另算（OPT-062） */
   hasCover: boolean
+  /** 首页精选序号（商圈扩展的 featuredOrder）；未精选为 null */
+  featuredOrder: number | null
+  /** 抽屉保存精选序号用：该商圈的扩展记录 id / 版本号；无扩展记录为 null */
+  extensionId: number | null
+  extensionVersion: number | null
   /** 抽屉编辑用：当前封面的 id 与预览 url（OPT-062）。未配为 null。 */
   coverImage: { id: number; url: string } | null
   counts: Record<string, number>
@@ -59,6 +64,7 @@ type ClientModule = {
   emptyHint: string
   create?: { parentFilter: 'city' | 'district' }
   supportsCover?: boolean
+  supportsFeatured?: boolean
 }
 
 type Props = {
@@ -207,11 +213,22 @@ export default function GeographyListViewClient({
     setSaving(true)
     setSaveError(null)
     try {
-      const res = await fetch(`/api/locations/${detail.id}`, {
-        method: 'PATCH',
+      // 商圈走专用端点：基础信息与首页精选序号（写另一张表）在服务端同一事务提交，
+      // 不会出现「基础信息存上了、精选序号失败」的半成功。其它模块仍是普通 PATCH。
+      const original = rows.find((r) => r.id === detail.id)
+      const featuredChanged =
+        module.supportsFeatured && (original?.featuredOrder ?? null) !== (detail.featuredOrder ?? null)
+      const url = module.supportsFeatured
+        ? `/api/locations/${detail.id}/save-business-area`
+        : `/api/locations/${detail.id}`
+      const res = await fetch(url, {
+        method: module.supportsFeatured ? 'POST' : 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ...(featuredChanged
+            ? { featuredOrder: detail.featuredOrder ?? null, extensionVersion: detail.extensionVersion }
+            : {}),
           name: detail.name,
           status: detail.status,
           frontendVisible: detail.frontendVisible,
@@ -366,7 +383,7 @@ export default function GeographyListViewClient({
         />
       )}
 
-      {/* 轻量编辑抽屉：名称 / 状态 / 前台可见 / 排序 / 坐标，带 version 乐观锁 */}
+      {/* 轻量编辑抽屉：名称 / 状态 / 前台可见 / 排序 / 坐标（商圈另有首页精选序号），带 version 乐观锁 */}
       <Drawer
         width={440}
         title={detail ? `编辑 ${detail.name}` : '编辑'}
@@ -421,6 +438,23 @@ export default function GeographyListViewClient({
                 onChange={(v) => setDetail({ ...detail, sortOrder: typeof v === 'number' ? v : 0 })}
               />
             </Form.Item>
+            {module.supportsFeatured ? (
+              <Form.Item
+                label="首页精选序号"
+                extra="填 1–99 进入本城首页精选，序号小的靠前；留空不精选。与上面的「排序」无关。要求商圈启用且前台可见，每城最多 12 个。"
+              >
+                <InputNumber
+                  value={detail.featuredOrder ?? undefined}
+                  min={1}
+                  max={99}
+                  precision={0}
+                  placeholder="留空不精选"
+                  onChange={(v) =>
+                    setDetail({ ...detail, featuredOrder: typeof v === 'number' ? v : null })
+                  }
+                />
+              </Form.Item>
+            ) : null}
             {module.supportsCover ? (
               <Form.Item label="封面图">
                 {detail.coverImage ? (

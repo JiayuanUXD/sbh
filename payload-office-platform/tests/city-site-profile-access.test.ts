@@ -46,13 +46,19 @@ describe('CitySiteProfiles collection boundary', () => {
     expect(accessHandler(CitySiteProfiles.access?.delete)({})).toBe(false)
   })
 
-  it('keeps profile operations behind location:manage and featured regions bounded', () => {
-    expect(field('featuredRegions')).toMatchObject({
+  it('keeps profile operations behind location:manage and freezes the migrated featured regions', () => {
+    // 精选区域已迁到商圈扩展（featuredOrder）。旧字段与表为回填迁移/回滚保留，
+    // 但隐藏且冻结写入：不能再有人往一个没人读的地方配置。
+    const legacy = field('featuredRegions')
+    expect(legacy).toMatchObject({
       type: 'relationship',
       relationTo: 'locations',
       hasMany: true,
-      maxRows: 12,
+      admin: { hidden: true, readOnly: true },
     })
+    const access = (legacy as { access?: { create?: () => boolean; update?: () => boolean } }).access
+    expect(access?.create?.()).toBe(false)
+    expect(access?.update?.()).toBe(false)
     // OPT-074 起是两个：地理一致性 guard 在前，原有的 protectCitySiteProfile 在后。
     // 断言身份而不只是数量——数量守卫挡不住「换了个 hook 但个数没变」。
     const beforeChange = CitySiteProfiles.hooks?.beforeChange ?? []

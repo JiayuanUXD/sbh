@@ -13,11 +13,17 @@
  * 故「禁止在扩展页修改基础字段」由数据模型结构天然保证，无需额外校验。
  */
 
+import { sql } from 'drizzle-orm'
 import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import { assertValidCoordinates } from '@/domain/geography/location-hierarchy'
 import { InvalidOperationError, VersionConflictError } from '@/domain/shared/errors'
 import { findByIdSafe } from '@/domain/shared/transaction-safety'
-import { assertValidBoundary, normalizeAliases } from './business-area-extension'
+import {
+  MAX_FEATURED_AREAS_PER_CITY,
+  assertValidBoundary,
+  assertValidFeaturedOrder,
+  normalizeAliases,
+} from './business-area-extension'
 
 /** relationship 值可能是 id 或已 populate 的对象；统一取出 id */
 function toId(value: unknown): number | string | null {
@@ -47,6 +53,7 @@ type LocationNode = {
   parent?: unknown
   status?: unknown
   city?: unknown
+  frontendVisible?: unknown
 }
 
 async function loadNode(req: PayloadRequest, id: number | string): Promise<LocationNode | null> {
@@ -75,6 +82,32 @@ async function findInactiveInChain(
     currentId = toId(node.parent)
   }
   return null
+}
+
+/** 精选名额锁的 advisory lock 命名空间（两段式键的第一段，'FARE'）；第二段是城市 id。 */
+const FEATURED_LOCK_NAMESPACE = 0x46415245
+
+/**
+ * 串行化同一城市的「数名额 → 写入」。
+ *
+ * 只靠 count 判上限有竞态：某城已有 11 个、两个运营同时再加一个，两边都读到 11 并各自通过，
+ * 最终 13 条，读侧只取前 12 条，必有一个「提示保存成功」的配置不展示。
+ * 事务级 advisory lock 在本次写入事务提交/回滚时自动释放；后到者拿到锁后再 count，
+ * 在 READ COMMITTED 下能看到先到者已提交的行，于是被正确拒绝。
+ *
+ * 取不到事务 session（单测 / 无事务脚本）时跳过：没有事务就没有可串行化的窗口可言。
+ */
+async function lockFeaturedAreasForCity(req: PayloadRequest, cityId: number | string): Promise<void> {
+  const transactionID = req.transactionID
+  const key = Number(cityId)
+  if (transactionID === undefined || transactionID === null || !Number.isInteger(key)) return
+  const session = (
+    req.payload.db as unknown as {
+      sessions?: Record<string, { db?: { execute?: (query: unknown) => Promise<unknown> } }>
+    }
+  ).sessions?.[String(transactionID)]
+  if (typeof session?.db?.execute !== 'function') return
+  await session.db.execute(sql`SELECT pg_advisory_xact_lock(${FEATURED_LOCK_NAMESPACE}::int, ${key}::int)`)
 }
 
 export const protectBusinessAreaExtension: CollectionBeforeChangeHook = async ({
@@ -134,6 +167,45 @@ export const protectBusinessAreaExtension: CollectionBeforeChangeHook = async ({
   assertValidBoundary(data?.boundary)
   assertValidCoordinates(data?.extendedCenterLatitude, data?.extendedCenterLongitude)
   data.aliases = normalizeAliases(data?.aliases)
+
+  // —— 首页精选序号：留空不校验；填写则要求商圈前台可见，且每城不超过上限 ——
+  // 下游（首页卡片 / chips / 招商页 / 未开城页）只认前台可见的商圈，这里挡在写入口，
+  // 免得运营填了序号却因商圈不可见而静默不生效。
+  const featuredOrder = assertValidFeaturedOrder(data?.featuredOrder)
+  if (featuredOrder !== null) {
+    if (areaNode.frontendVisible !== true) {
+      throw new InvalidOperationError({
+        domain: 'geography',
+        code: 'FEATURED_AREA_NOT_VISIBLE',
+        message: '商圈前台不可见，不能设为首页精选；请先到「城市与区域」打开前台可见性',
+      })
+    }
+    const areaCityId = toId(areaNode.city)
+    if (areaCityId !== null) {
+      await lockFeaturedAreasForCity(req, areaCityId)
+      const currentId = operation === 'update' ? toId(originalDoc?.id) : null
+      const { totalDocs } = await req.payload.count({
+        collection: 'business-area-extensions',
+        where: {
+          and: [
+            { 'businessArea.city': { equals: areaCityId } },
+            { featuredOrder: { exists: true } },
+            ...(currentId !== null ? [{ id: { not_equals: currentId } }] : []),
+          ],
+        },
+        req,
+      })
+      if (totalDocs >= MAX_FEATURED_AREAS_PER_CITY) {
+        throw new InvalidOperationError({
+          domain: 'geography',
+          code: 'FEATURED_LIMIT_EXCEEDED',
+          message: `每城最多精选 ${MAX_FEATURED_AREAS_PER_CITY} 个商圈，请先取消其它商圈的精选`,
+        })
+      }
+    }
+  }
+  // 部分更新没带该字段时保持原值，别把它清成 null
+  if (data && 'featuredOrder' in data) data.featuredOrder = featuredOrder
 
   // —— 站点关联：存在 + type=metro_station + 启用 + 同城 ——
   // 同城校验直接比对商圈与站点的反范式 city 字段（O(1)），

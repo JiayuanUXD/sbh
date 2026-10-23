@@ -67,6 +67,26 @@ export function normalizeAliases(input: unknown): Array<{ alias: string }> {
 }
 
 // ────────────────────────────────────────────────────────────
+// 首页精选序号
+// ────────────────────────────────────────────────────────────
+
+/** 每城可精选的商圈上限（沿用原 `CitySiteProfiles.featuredRegions` 的 maxRows） */
+export const MAX_FEATURED_AREAS_PER_CITY = 12
+
+/** 精选序号：null/undefined 表示不精选；否则须为 1–99 的整数 */
+export function assertValidFeaturedOrder(value: unknown): number | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 99) {
+    throw new InvalidOperationError({
+      domain: 'geography',
+      code: 'FEATURED_ORDER_INVALID',
+      message: '首页精选序号必须是 1–99 的整数，或留空表示不精选',
+    })
+  }
+  return value
+}
+
+// ────────────────────────────────────────────────────────────
 // 边界多边形校验（GeoJSON Polygon 外环）
 // ────────────────────────────────────────────────────────────
 

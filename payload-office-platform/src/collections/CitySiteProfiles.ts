@@ -146,19 +146,8 @@ export const CitySiteProfiles: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      // OPT-074：精选区域只校验类型与启用。
-      // 「必须属于本 profile 的城市」这条无法用 parentField 表达——商圈的 parent
-      // 是行政区，与 city 隔了一级——交给组件层的 scopeCityField 裁剪候选。
-      // 生产实测该项为 0，且 profile 的 city 建后不可改，风险可接受。
-      createLocationFieldGuard([
-        { field: 'city', type: 'city', label: '城市' },
-        {
-          field: 'featuredRegions',
-          type: ['district', 'business_area'],
-          many: true,
-          label: '精选区域',
-        },
-      ]),
+      // 精选区域已迁到「商圈管理」的商圈扩展（`featuredOrder`），这里只剩城市校验。
+      createLocationFieldGuard([{ field: 'city', type: 'city', label: '城市' }]),
       protectCitySiteProfile,
     ],
     afterChange: [invalidateCitySiteProfileAfterChange],
@@ -324,31 +313,20 @@ export const CitySiteProfiles: CollectionConfig = {
               },
             },
             {
+              // 已废弃：精选区域迁到「商圈管理」的商圈扩展（`featuredOrder`），读侧已不再读这里。
+              // 字段与 `city_site_profiles_rels` 表**刻意保留**——它是回填迁移的数据源，也是
+              // 回滚的退路；按「扩展 → 回填 → 双读 → 切换 → 收敛」，物理删除（DROP TABLE）要等
+              // 生产确认回填无误、并经用户批准后另开迁移。冻结写入，防止有人往一个没人读的地方配置。
               name: 'featuredRegions',
-              label: '精选区域',
+              label: '精选区域（已迁移）',
               type: 'relationship',
               relationTo: 'locations',
               hasMany: true,
-              maxRows: 12,
-              filterOptions: () => locationTypeFilter(['district', 'business_area']),
-              // OPT-074：级联多选，候选按本 profile 的城市裁剪
+              access: { create: () => false, update: () => false },
               admin: {
-                description:
-                  '只能选启用且前台可见的行政区 / 商圈（不可见的在下拉里有标注、勾不上）。要用某个不可见商圈，先到「城市与区域」里打开它的前台可见性。',
-                components: {
-                  Field: {
-                    path: '/components/admin/LocationCascadeField',
-                    clientProps: {
-                      selectableTypes: ['district', 'business_area'],
-                      many: true,
-                      scopeCityField: 'city',
-                      // protectCitySiteProfile 要求前台可见；不在选择时挡住，运营会选到
-                      // 不可见商圈、保存被拒而无感（线上两个同名「虹桥」踩过）
-                      frontendVisibleOnly: true,
-                      placeholder: '选择精选的行政区 / 商圈',
-                    },
-                  },
-                },
+                hidden: true,
+                readOnly: true,
+                description: '已迁到「商圈管理」→ 商圈 → 首页精选序号。',
               },
             },
             {
@@ -362,7 +340,7 @@ export const CitySiteProfiles: CollectionConfig = {
               ],
               admin: {
                 description:
-                  '首页热门商圈展示 3 张或 5 张。该城可见且有在营楼盘的商圈不足时会自动减少。',
+                  '首页热门商圈展示 3 张或 5 张。精选商圈到「商圈管理」里设置；该城可见且有在营楼盘的商圈不足时会自动减少。',
               },
             },
             {

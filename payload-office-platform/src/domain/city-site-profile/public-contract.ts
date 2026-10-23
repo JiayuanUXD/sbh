@@ -43,7 +43,8 @@ export type PublicCitySiteProfile = Readonly<{
   intro: Readonly<{ heading: string; body: string }>
   contact: Readonly<{ heading: string; body: string }>
   /**
-   * 精选区域（运营在 `CitySiteProfiles.featuredRegions` 选定的行政区 / 商圈）。
+   * 精选区域（运营在「商圈管理」给商圈设的 `featuredOrder`，按序号升序；历史上还可以是行政区，
+   * 现已放弃，`type` 保留 'district' 只是为了不牵动全部消费方与夹具）。
    *
    * `parentName` / `description` 是 OPT-038 Task 4 补上的映射：两个字段在
    * `Locations` 上一直存在（`parent` 上级区域、`description` 区域介绍），
