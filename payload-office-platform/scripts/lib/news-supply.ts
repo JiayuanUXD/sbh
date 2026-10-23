@@ -11,6 +11,7 @@
  * - 分位数照 PostgreSQL `percentile_cont` 线性插值，再按 `ROUND(x::numeric, 2)` 的方式舍入到分，
  *   这样快照里的中位数能与落地页逐位比对。
  */
+import { AREA_LANDING_MIN_PRICE_SAMPLES } from '../../src/domain/public-catalog/area-landing'
 import { DISPLAY_UNIT_BY_PERIOD_BASIS, LEGACY_PRICE } from '../../src/domain/public-catalog/mappers'
 
 /** 与前台区域落地页相同的计价单位（`AREA_LANDING_PRICE_UNIT`）。 */
@@ -272,18 +273,25 @@ export function parseLandingPriceSummary(html: string): LandingPriceSummary | nu
   return { median: Number(m[1]), p25: Number(m[2]), p75: Number(m[3]), sampleCount: Number(m[4].replace(/,/g, '')) }
 }
 
+/** 落地页展示价格摘要的最少报价样本数，直接用前台的常量 */
+export const LANDING_MIN_PRICE_SAMPLES = AREA_LANDING_MIN_PRICE_SAMPLES
+
 export type ReconcileRow = Readonly<{ scope: string; field: string; frontend: number | null; ours: number | null; ok: boolean }>
 
 /**
  * 逐项比对：全市总数、列表页各区计数（按区名），以及抽查的落地页价格摘要（按 slug，样本数 + P25/中位数/P75）。
  * 前台有、我们没有，或数值不等，都算不一致。
+ *
+ * 只对上全市总数不算通过：对账是简化 REST 谓词的兜底（`.agent/supply.md`），覆盖不全时必须失败。
+ * 所以还要求：列表页解析出了各区计数；列表页上出现、且报价样本够落地页展示（≥ 10）的行政区，每个都有落地页价格摘要。
  */
 export function reconcile(
   snapshot: SupplySnapshot,
   listPage: Readonly<{ total: number; districts: Readonly<Record<string, number>> }>,
   landings: ReadonlyMap<string, LandingPriceSummary>,
-): { ok: boolean; rows: ReconcileRow[] } {
+): { ok: boolean; rows: ReconcileRow[]; coverageProblems: string[] } {
   const rows: ReconcileRow[] = []
+  const coverageProblems: string[] = []
   const push = (scope: string, field: string, frontend: number | null, ours: number | null) =>
     rows.push({ scope, field, frontend, ours, ok: frontend !== null && ours !== null && Math.abs(frontend - ours) < 1e-9 })
 
@@ -300,5 +308,13 @@ export function reconcile(
     push(label, '中位数', summary.median, ours?.median ?? null)
     push(label, 'P75', summary.p75, ours?.p75 ?? null)
   }
-  return { ok: rows.length > 0 && rows.every((r) => r.ok), rows }
+  if (Object.keys(listPage.districts).length === 0) coverageProblems.push('列表页没解析出各区计数（「位置」筛选行），行政区分布没有核对')
+  for (const name of Object.keys(listPage.districts)) {
+    const d = byName.get(name)
+    if (d && d.priceSampleCount >= LANDING_MIN_PRICE_SAMPLES && !landings.has(d.slug)) {
+      coverageProblems.push(`${name} 在列表页上有、报价样本 ${d.priceSampleCount} 条，却没拿到落地页价格摘要（404 或页面文案变了）`)
+    }
+  }
+  if (landings.size === 0) coverageProblems.push('一个落地页价格摘要都没拿到，P25 / 中位数 / P75 没有核对')
+  return { ok: rows.length > 0 && rows.every((r) => r.ok) && coverageProblems.length === 0, rows, coverageProblems }
 }

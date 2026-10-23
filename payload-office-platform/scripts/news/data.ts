@@ -146,10 +146,11 @@ async function main() {
   }
 
   const result = reconcile(snapshot, listPage, landings)
-  fs.writeFileSync(file('reconcile.json'), JSON.stringify({ asOf, ok: result.ok, rows: result.rows, skipped }, null, 2))
+  fs.writeFileSync(file('reconcile.json'), JSON.stringify({ asOf, ok: result.ok, rows: result.rows, coverageProblems: result.coverageProblems, skipped }, null, 2))
   const bad = result.rows.filter((r) => !r.ok)
   log(`对账：${result.rows.length} 项，不一致 ${bad.length} 项；落地页抽查 ${landings.size} 个${skipped.length ? `，跳过 ${skipped.join('、')}` : ''}`)
   for (const r of bad) log(`  ✗ ${r.scope} ${r.field}：前台 ${String(r.frontend)}，我们 ${String(r.ours)}`)
+  for (const p of result.coverageProblems) log(`  ✗ 覆盖不足：${p}`)
 
   const archive = arg('archive')
   if (archive) {

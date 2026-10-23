@@ -112,6 +112,15 @@ describe('reconcile：与前台逐项比对', () => {
     expect(r.rows).toHaveLength(6)
   })
 
+  it('只对上全市总数不算通过：区计数没解析出来、或该有的落地页价格摘要缺失，都失败', () => {
+    const noDistricts = reconcile(snapshot, { total: 100, districts: {} }, new Map([['huangpu', { median: 4, p25: 3, p75: 5, sampleCount: 55 }]]))
+    expect(noDistricts.ok).toBe(false)
+    expect(noDistricts.coverageProblems.join()).toContain('各区计数')
+    const noLanding = reconcile(snapshot, { total: 100, districts: { 黄浦区: 60 } }, new Map())
+    expect(noLanding.ok).toBe(false)
+    expect(noLanding.coverageProblems.join()).toContain('黄浦区')
+  })
+
   it('总数、区计数、价格任一不等或前台有我们没有，都不通过', () => {
     expect(reconcile(snapshot, { total: 101, districts: {} }, new Map()).ok).toBe(false)
     expect(reconcile(snapshot, { total: 100, districts: { 静安区: 5 } }, new Map()).ok).toBe(false)
