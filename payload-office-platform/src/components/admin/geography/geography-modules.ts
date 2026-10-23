@@ -82,6 +82,11 @@ export type GeographyModuleConfig = {
    * `chips` 都是按模块配的，这条跟着同一套模式走，「哪些模块有封面」才只有一处。
    */
   supportsCover?: boolean
+  /**
+   * 抽屉里是否提供「首页精选序号」（商圈扩展的 `featuredOrder`，写另一张表）。
+   * 只有商圈有扩展表；与 `supportsCover` 同理放在模块配置里，别在组件里按 type 判断。
+   */
+  supportsFeatured?: boolean
 }
 
 const CITY_COLUMNS: GeographyColumn[] = [
@@ -118,6 +123,7 @@ const BUSINESS_AREA_COLUMNS: GeographyColumn[] = [
   { key: 'metroLines', label: '关联线路数', kind: 'count', source: 'metroLines' },
   { key: 'hasBoundary', label: '边界', kind: 'flag', source: 'hasBoundary' },
   { key: 'hasCover', label: '封面', kind: 'flag', source: 'hasCover' },
+  { key: 'featuredOrder', label: '首页精选序号', kind: 'field', source: 'featuredOrder' },
   { key: 'status', label: '状态', kind: 'field', source: 'status' },
   { key: 'frontendVisible', label: '前台可见', kind: 'field', source: 'frontendVisible' },
 ]
@@ -169,10 +175,12 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     chips: [
       { key: 'missingBoundary', label: '仅看缺边界' },
       { key: 'missingCover', label: '仅看缺封面' },
+      { key: 'featured', label: '仅看首页精选' },
     ],
     emptyHint: '暂无商圈',
     counter: countForBusinessAreas,
     supportsCover: true,
+    supportsFeatured: true,
   },
   metro_line: {
     type: 'metro_line',

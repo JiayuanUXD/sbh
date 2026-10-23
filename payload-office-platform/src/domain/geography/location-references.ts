@@ -79,11 +79,6 @@ const REFERENCE_SPECS: CountSpec[] = [
     label: '城市站点配置（城市）',
     where: (id) => ({ city: { equals: id } }),
   },
-  {
-    collection: 'city-site-profiles',
-    label: '城市站点配置（精选区域）',
-    where: (id) => ({ featuredRegions: { in: [id] } }),
-  },
 ]
 
 /**

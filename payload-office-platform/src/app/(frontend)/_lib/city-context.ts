@@ -20,6 +20,7 @@ import {
   normalizeFeaturedDistrictCount,
 } from '@/domain/city-site-profile/schema'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
+import { MAX_FEATURED_AREAS_PER_CITY } from '@/domain/geography/business-area-extension'
 import { mapTypeCardOverrides } from '@/lib/frontend/type-card-covers'
 
 export type PublicCityOption = Readonly<{
@@ -275,6 +276,59 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
 }
 
 /**
+ * 精选区域的数据源是商圈扩展的 `featuredOrder`（运营在「商圈管理」里设置），
+ * 不再是 profile 上的 `featuredRegions` 字段。这里按城市一次查出，塞回 profile 文档的
+ * `featuredRegions`，让下游的映射、DTO 与全部消费方保持不变。
+ *
+ * 过滤放在查询里（启用 + 前台可见 + 同城）而不是留给映射：`mapFeaturedRegions`
+ * 遇到任何一条不合格的区域会把**整份 profile** 判废、让这座城市整体消失。商圈
+ * 在被精选之后又被停用或下线是常态，应静默跳过那一条，而不是连坐整座城市。
+ *
+ * 取数 depth 2 同上：扩展 → businessArea(1) → parent(2)，区位副标要用 parent.name。
+ */
+async function attachFeaturedRegions(
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  profiles: readonly unknown[],
+): Promise<readonly unknown[]> {
+  const cityIds = profiles
+    .map((profile) => (isRecord(profile) && isRecord(profile.city) ? profile.city.id : null))
+    .filter(isIdentifier)
+  if (cityIds.length === 0) return profiles
+
+  const result = await payload.find({
+    collection: 'business-area-extensions',
+    depth: 2,
+    limit: 1000,
+    pagination: false,
+    sort: ['featuredOrder', 'id'],
+    where: {
+      and: [
+        { featuredOrder: { exists: true } },
+        { 'businessArea.city': { in: cityIds } },
+        { 'businessArea.status': { equals: 'active' } },
+        { 'businessArea.frontendVisible': { equals: true } },
+      ],
+    },
+  })
+
+  const regionsByCity = new Map<string, unknown[]>()
+  for (const extension of result.docs as readonly unknown[]) {
+    const area = isRecord(extension) ? extension.businessArea : null
+    const owningCityId = isRecord(area) ? relationshipId(area.city) : null
+    if (owningCityId === null) continue
+    const key = String(owningCityId)
+    const list = regionsByCity.get(key) ?? []
+    if (list.length < MAX_FEATURED_AREAS_PER_CITY) list.push(area)
+    regionsByCity.set(key, list)
+  }
+
+  return profiles.map((profile) => {
+    if (!isRecord(profile) || !isRecord(profile.city)) return profile
+    return { ...profile, featuredRegions: regionsByCity.get(String(profile.city.id)) ?? [] }
+  })
+}
+
+/**
  * `depth: 2` 不是可以顺手调小的常数（两处取数同此约束）。
  *
  * 实测（scripts/verification/opt038-featured-regions-depth-probe.ts，本地库上海 profile）：
@@ -294,7 +348,9 @@ async function findPublicCityProfile(slug: string): Promise<PublicCitySiteProfil
     where: { 'city.slug': { equals: slug } },
   })
   const profile = result.docs[0]
-  return profile ? mapPublicCityProfile(profile) : null
+  if (!profile) return null
+  const [withRegions] = await attachFeaturedRegions(payload, [profile])
+  return mapPublicCityProfile(withRegions)
 }
 
 async function findPublicCityProfiles(): Promise<readonly PublicCitySiteProfile[]> {
@@ -305,7 +361,8 @@ async function findPublicCityProfiles(): Promise<readonly PublicCitySiteProfile[
     limit: 500,
     sort: ['sortOrder', 'id'],
   })
-  return result.docs
+  const withRegions = await attachFeaturedRegions(payload, result.docs)
+  return withRegions
     .map(mapPublicCityProfile)
     .filter((profile): profile is PublicCitySiteProfile => profile !== null)
 }

@@ -15,7 +15,10 @@ type Node = {
   parent?: number | null
   status?: string
   city?: number | null
+  frontendVisible?: boolean
 }
+
+let featuredOthers = 0
 
 function makeReq(nodes: Node[]) {
   const byId = new Map(nodes.map((n) => [n.id, n]))
@@ -26,10 +29,13 @@ function makeReq(nodes: Node[]) {
     parent: n.parent ?? null,
     status: n.status,
     city: n.city ?? null,
+    frontendVisible: n.frontendVisible,
   })
   return {
     _state: state,
     payload: {
+      // 精选序号的每城上限校验：数「同城其它已精选的扩展」
+      count: async () => ({ totalDocs: featuredOthers }),
       findByID: async ({ id }: { id: number | string }) => {
         const n = byId.get(Number(id))
         if (!n) throw new Error('not found')
@@ -210,5 +216,50 @@ describe('business-area-extension-protect/别名与版本', () => {
       data: { businessArea: 3, version: 5 },
     } as never)) as Record<string, unknown>
     expect(out.version).toBe(6)
+  })
+})
+
+describe('business-area-extension-protect/首页精选序号', () => {
+  const visibleGraph: Node[] = GRAPH.map((n) => (n.id === 3 ? { ...n, frontendVisible: true } : n))
+  const createFeatured = (data: Record<string, unknown>, nodes: Node[] = visibleGraph) =>
+    protectBusinessAreaExtension({
+      operation: 'create',
+      originalDoc: undefined,
+      req: makeReq(nodes),
+      data: { businessArea: 3, ...data },
+    } as never) as Promise<Record<string, unknown>>
+
+  it('留空（null/undefined）→ 不校验可见性与上限', async () => {
+    featuredOthers = 99
+    await expect(createFeatured({ featuredOrder: null }, GRAPH)).resolves.toBeDefined()
+    await expect(createFeatured({}, GRAPH)).resolves.toBeDefined()
+  })
+
+  it('非正整数 → FEATURED_ORDER_INVALID', async () => {
+    featuredOthers = 0
+    for (const bad of [0, -1, 1.5, '2', 100]) {
+      await expect(createFeatured({ featuredOrder: bad })).rejects.toMatchObject({
+        code: 'FEATURED_ORDER_INVALID',
+      })
+    }
+  })
+
+  it('商圈前台不可见 → FEATURED_AREA_NOT_VISIBLE', async () => {
+    featuredOthers = 0
+    await expect(createFeatured({ featuredOrder: 1 }, GRAPH)).rejects.toMatchObject({
+      code: 'FEATURED_AREA_NOT_VISIBLE',
+    })
+  })
+
+  it('同城已有 12 个其它精选 → FEATURED_LIMIT_EXCEEDED', async () => {
+    featuredOthers = 12
+    await expect(createFeatured({ featuredOrder: 1 })).rejects.toMatchObject({
+      code: 'FEATURED_LIMIT_EXCEEDED',
+    })
+  })
+
+  it('同城其它精选 11 个 → 可再加第 12 个', async () => {
+    featuredOthers = 11
+    await expect(createFeatured({ featuredOrder: 12 })).resolves.toMatchObject({ featuredOrder: 12 })
   })
 })

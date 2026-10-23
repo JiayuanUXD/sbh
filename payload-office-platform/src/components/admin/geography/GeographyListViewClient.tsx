@@ -43,6 +43,11 @@ export type GeographyRow = {
   hasBoundary: boolean
   /** 封面列用：该商圈是否配置了 coverImage。从 coverImage 派生，勿另算（OPT-062） */
   hasCover: boolean
+  /** 首页精选序号（商圈扩展的 featuredOrder）；未精选为 null */
+  featuredOrder: number | null
+  /** 抽屉保存精选序号用：该商圈的扩展记录 id / 版本号；无扩展记录为 null */
+  extensionId: number | null
+  extensionVersion: number | null
   /** 抽屉编辑用：当前封面的 id 与预览 url（OPT-062）。未配为 null。 */
   coverImage: { id: number; url: string } | null
   counts: Record<string, number>
@@ -59,6 +64,7 @@ type ClientModule = {
   emptyHint: string
   create?: { parentFilter: 'city' | 'district' }
   supportsCover?: boolean
+  supportsFeatured?: boolean
 }
 
 type Props = {
@@ -202,6 +208,31 @@ export default function GeographyListViewClient({
     setDetail(row)
   }
 
+  /** 写商圈扩展的 featuredOrder：已有扩展记录则带版本号 PATCH，没有则 POST 新建。成功返回 null，失败返回原因。 */
+  const saveFeaturedOrder = async (row: GeographyRow): Promise<string | null> => {
+    const featuredOrder = row.featuredOrder ?? null
+    // 没有扩展记录且要清空：无事可做
+    if (row.extensionId === null && featuredOrder === null) return null
+    const res = await fetch(
+      row.extensionId !== null
+        ? `/api/business-area-extensions/${row.extensionId}`
+        : '/api/business-area-extensions',
+      {
+        method: row.extensionId !== null ? 'PATCH' : 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          row.extensionId !== null
+            ? { featuredOrder, version: row.extensionVersion }
+            : { businessArea: row.id, featuredOrder },
+        ),
+      },
+    )
+    if (res.ok) return null
+    const body = (await res.json().catch(() => ({}))) as { errors?: Array<{ message?: string }> }
+    return body.errors?.[0]?.message || `HTTP ${res.status}`
+  }
+
   const save = async () => {
     if (!detail) return
     setSaving(true)
@@ -233,6 +264,21 @@ export default function GeographyListViewClient({
         // Payload REST 集合更新错误形状：{ errors: [{ message }] }（含 VersionConflictError 文案）
         setSaveError(data.errors?.[0]?.message || `保存失败（HTTP ${res.status}）`)
         return
+      }
+      // 首页精选序号写的是商圈扩展表，与上面的基础信息是两次请求：基础信息先落库
+      // （精选要求商圈启用且前台可见，同一次保存里刚打开可见性的情况必须先生效）。
+      if (module.supportsFeatured) {
+        const original = rows.find((r) => r.id === detail.id)
+        if ((original?.featuredOrder ?? null) !== (detail.featuredOrder ?? null)) {
+          const failure = await saveFeaturedOrder(detail)
+          if (failure) {
+            // 基础信息已保存：同步新版本号，免得重试时撞上版本冲突，并刷新列表
+            setDetail({ ...detail, version: data.doc.version })
+            setSaveError(`基础信息已保存，但首页精选序号未保存：${failure}`)
+            router.refresh()
+            return
+          }
+        }
       }
       Message.success('已保存')
       setDetail(null)
@@ -366,7 +412,7 @@ export default function GeographyListViewClient({
         />
       )}
 
-      {/* 轻量编辑抽屉：名称 / 状态 / 前台可见 / 排序 / 坐标，带 version 乐观锁 */}
+      {/* 轻量编辑抽屉：名称 / 状态 / 前台可见 / 排序 / 坐标（商圈另有首页精选序号），带 version 乐观锁 */}
       <Drawer
         width={440}
         title={detail ? `编辑 ${detail.name}` : '编辑'}
@@ -421,6 +467,23 @@ export default function GeographyListViewClient({
                 onChange={(v) => setDetail({ ...detail, sortOrder: typeof v === 'number' ? v : 0 })}
               />
             </Form.Item>
+            {module.supportsFeatured ? (
+              <Form.Item
+                label="首页精选序号"
+                extra="填 1–99 进入本城首页精选，序号小的靠前；留空不精选。与上面的「排序」无关。要求商圈启用且前台可见，每城最多 12 个。"
+              >
+                <InputNumber
+                  value={detail.featuredOrder ?? undefined}
+                  min={1}
+                  max={99}
+                  precision={0}
+                  placeholder="留空不精选"
+                  onChange={(v) =>
+                    setDetail({ ...detail, featuredOrder: typeof v === 'number' ? v : null })
+                  }
+                />
+              </Form.Item>
+            ) : null}
             {module.supportsCover ? (
               <Form.Item label="封面图">
                 {detail.coverImage ? (

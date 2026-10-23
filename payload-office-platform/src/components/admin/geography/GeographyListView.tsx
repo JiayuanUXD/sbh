@@ -13,6 +13,15 @@ import GeographyListViewClient, { type GeographyRow } from './GeographyListViewC
 const PAGE_SIZE = 25
 
 /** relationship 值可能是 id 或已 populate 的对象；只取对象里的 name。 */
+/** relationship 值（id 或已 populate 的对象）→ 数字 id */
+function idOf(value: unknown): number | null {
+  if (typeof value === 'number') return value
+  if (typeof value === 'object' && value !== null && 'id' in value && typeof value.id === 'number') {
+    return value.id
+  }
+  return null
+}
+
 function popName(value: unknown): string | null {
   if (value && typeof value === 'object' && 'name' in value) {
     const n = (value as { name?: unknown }).name
@@ -105,6 +114,17 @@ async function renderGeographyListContent(props: AdminViewServerProps) {
     and.push({ id: { in: missingIds } })
   }
 
+  if (chipSet.has('featured')) {
+    const featured = await payload.find({
+      collection: 'business-area-extensions',
+      where: { featuredOrder: { exists: true } },
+      depth: 0,
+      limit: 1000,
+      pagination: false,
+    })
+    and.push({ id: { in: featured.docs.map((d) => idOf(d.businessArea)).filter((v): v is number => v !== null) } })
+  }
+
   const result = await payload.find({
     collection: 'locations',
     where: { and },
@@ -124,6 +144,28 @@ async function renderGeographyListContent(props: AdminViewServerProps) {
   const boundaryStatus =
     needsBoundary && ids.length > 0 ? await fetchBusinessAreaBoundaryStatus(payload, ids) : new Map<number, boolean>()
 
+  // 仅商圈模块有「首页精选序号」：按本页商圈 id 取扩展行（序号 + 抽屉保存要用的 id / 版本号）
+  const needsFeatured = geoModule.columns.some((c) => c.source === 'featuredOrder')
+  const extensions = new Map<number, { id: number; version: number; featuredOrder: number | null }>()
+  if (needsFeatured && ids.length > 0) {
+    const ext = await payload.find({
+      collection: 'business-area-extensions',
+      where: { businessArea: { in: ids } },
+      depth: 0,
+      limit: ids.length,
+      pagination: false,
+    })
+    for (const e of ext.docs) {
+      const areaId = idOf(e.businessArea)
+      if (areaId === null) continue
+      extensions.set(areaId, {
+        id: e.id,
+        version: typeof e.version === 'number' ? e.version : 1,
+        featuredOrder: typeof e.featuredOrder === 'number' ? e.featuredOrder : null,
+      })
+    }
+  }
+
   const rows: GeographyRow[] = docs.map((d) => ({
     id: d.id,
     name: d.name,
@@ -137,6 +179,9 @@ async function renderGeographyListContent(props: AdminViewServerProps) {
     parentName: popName(d.parent),
     cityName: popName(d.city),
     hasBoundary: boundaryStatus.get(d.id) ?? false,
+    featuredOrder: extensions.get(d.id)?.featuredOrder ?? null,
+    extensionId: extensions.get(d.id)?.id ?? null,
+    extensionVersion: extensions.get(d.id)?.version ?? null,
     // OPT-062 终审 D：`hasCover`（封面列 + 「仅看缺封面」chip 的口径）与 `coverImage`
     // （抽屉编辑用、要求可渲染的 url）刻意用两条不同的判据，别再拿 toCoverRef 统一算：
     //   - `hasCover` 只看字段是否非空，与上面 chip 里的 `coverImage: { exists: false }`
@@ -172,6 +217,7 @@ async function renderGeographyListContent(props: AdminViewServerProps) {
         emptyHint: geoModule.emptyHint,
         create: geoModule.create ? { parentFilter: geoModule.create.parentFilter } : undefined,
         supportsCover: geoModule.supportsCover,
+        supportsFeatured: geoModule.supportsFeatured,
       }}
       rows={rows}
       total={result.totalDocs}

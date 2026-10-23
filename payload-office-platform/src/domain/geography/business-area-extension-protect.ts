@@ -17,7 +17,12 @@ import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import { assertValidCoordinates } from '@/domain/geography/location-hierarchy'
 import { InvalidOperationError, VersionConflictError } from '@/domain/shared/errors'
 import { findByIdSafe } from '@/domain/shared/transaction-safety'
-import { assertValidBoundary, normalizeAliases } from './business-area-extension'
+import {
+  MAX_FEATURED_AREAS_PER_CITY,
+  assertValidBoundary,
+  assertValidFeaturedOrder,
+  normalizeAliases,
+} from './business-area-extension'
 
 /** relationship 值可能是 id 或已 populate 的对象；统一取出 id */
 function toId(value: unknown): number | string | null {
@@ -47,6 +52,7 @@ type LocationNode = {
   parent?: unknown
   status?: unknown
   city?: unknown
+  frontendVisible?: unknown
 }
 
 async function loadNode(req: PayloadRequest, id: number | string): Promise<LocationNode | null> {
@@ -134,6 +140,44 @@ export const protectBusinessAreaExtension: CollectionBeforeChangeHook = async ({
   assertValidBoundary(data?.boundary)
   assertValidCoordinates(data?.extendedCenterLatitude, data?.extendedCenterLongitude)
   data.aliases = normalizeAliases(data?.aliases)
+
+  // —— 首页精选序号：留空不校验；填写则要求商圈前台可见，且每城不超过上限 ——
+  // 下游（首页卡片 / chips / 招商页 / 未开城页）只认前台可见的商圈，这里挡在写入口，
+  // 免得运营填了序号却因商圈不可见而静默不生效。
+  const featuredOrder = assertValidFeaturedOrder(data?.featuredOrder)
+  if (featuredOrder !== null) {
+    if (areaNode.frontendVisible !== true) {
+      throw new InvalidOperationError({
+        domain: 'geography',
+        code: 'FEATURED_AREA_NOT_VISIBLE',
+        message: '商圈前台不可见，不能设为首页精选；请先到「城市与区域」打开前台可见性',
+      })
+    }
+    const areaCityId = toId(areaNode.city)
+    if (areaCityId !== null) {
+      const currentId = operation === 'update' ? toId(originalDoc?.id) : null
+      const { totalDocs } = await req.payload.count({
+        collection: 'business-area-extensions',
+        where: {
+          and: [
+            { 'businessArea.city': { equals: areaCityId } },
+            { featuredOrder: { exists: true } },
+            ...(currentId !== null ? [{ id: { not_equals: currentId } }] : []),
+          ],
+        },
+        req,
+      })
+      if (totalDocs >= MAX_FEATURED_AREAS_PER_CITY) {
+        throw new InvalidOperationError({
+          domain: 'geography',
+          code: 'FEATURED_LIMIT_EXCEEDED',
+          message: `每城最多精选 ${MAX_FEATURED_AREAS_PER_CITY} 个商圈，请先取消其它商圈的精选`,
+        })
+      }
+    }
+  }
+  // 部分更新没带该字段时保持原值，别把它清成 null
+  if (data && 'featuredOrder' in data) data.featuredOrder = featuredOrder
 
   // —— 站点关联：存在 + type=metro_station + 启用 + 同城 ——
   // 同城校验直接比对商圈与站点的反范式 city 字段（O(1)），

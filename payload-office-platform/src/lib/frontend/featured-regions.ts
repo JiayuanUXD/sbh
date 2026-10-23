@@ -8,8 +8,11 @@
  * 运营想这个月主推陆家嘴，只能去挨个调楼盘的排序值。首屏 chips 更直接：
  * `districts.slice(0, 4)`，自动取前四，完全不可干预。
  *
- * 而 `CitySiteProfiles.featuredRegions`（关联 locations）**字段早就存在**，
- * 只被 `/city-partner` 与未开城页消费，首页从没接过。本模块就是那根线。
+ * 精选区域最初是 `CitySiteProfiles.featuredRegions`（关联 locations），只被 `/city-partner`
+ * 与未开城页消费，首页从没接过，本模块就是接上首页的那根线。
+ * 现在它的数据源是商圈扩展的 `featuredOrder`（运营在「商圈管理」设置），由 `city-context.ts`
+ * 按城市取出后仍以 `profile.featuredRegions` 的形状交给下游；本模块只关心顺序，不关心来源。
+ * 只有商圈会被精选（行政区已放弃），所以首屏 chips（行政区）不再受它影响。
  *
  * ## 为什么是重排而不是过滤
  *

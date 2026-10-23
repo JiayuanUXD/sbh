@@ -46,6 +46,9 @@ function buildRow(overrides: Partial<GeographyRow> = {}): GeographyRow {
     cityName: null,
     hasBoundary: true,
     hasCover: false,
+    featuredOrder: null,
+    extensionId: null,
+    extensionVersion: null,
     coverImage: null,
     counts: {},
     ...overrides,
@@ -127,5 +130,18 @@ describe('抽屉封面区块渲染守卫（OPT-062 终审 A）', () => {
     const text = await openDrawerAndGetText({ ...BASE_MODULE })
     expect(text).not.toContain('封面图')
     expect(text).not.toContain('从素材库选择')
+  })
+})
+
+describe('抽屉首页精选序号渲染守卫', () => {
+  it('supportsFeatured=true（商圈）时，抽屉里有「首页精选序号」且点明与「排序」无关', async () => {
+    const text = await openDrawerAndGetText({ ...BASE_MODULE, supportsFeatured: true })
+    expect(text).toContain('首页精选序号')
+    expect(text).toContain('与上面的「排序」无关')
+  })
+
+  it('supportsFeatured 未设置（城市 / 行政区 / 地铁）时不出现（负对照：精选只存在于商圈扩展）', async () => {
+    const text = await openDrawerAndGetText({ ...BASE_MODULE })
+    expect(text).not.toContain('首页精选序号')
   })
 })

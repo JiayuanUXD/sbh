@@ -7,6 +7,10 @@ import {
 import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
 import { activeLocationFilter, locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { protectBusinessAreaExtension } from '@/domain/geography/business-area-extension-protect'
+import {
+  invalidateBusinessAreaExtensionCache,
+  invalidateDeletedBusinessAreaExtensionCache,
+} from '@/domain/geography/business-area-extension-cache-hook'
 import { GEOGRAPHY_MENU_CODES } from '@/domain/geography/geography-menu-codes'
 
 /**
@@ -88,6 +92,8 @@ export const BusinessAreaExtensions: CollectionConfig = {
       ]),
       protectBusinessAreaExtension,
     ],
+    afterChange: [invalidateBusinessAreaExtensionCache],
+    afterDelete: [invalidateDeletedBusinessAreaExtensionCache],
   },
   fields: [
     {
@@ -165,6 +171,18 @@ export const BusinessAreaExtensions: CollectionConfig = {
       filterOptions: () => activeLocationFilter(['metro_station']),
       admin: {
         description: '仅可关联同城、已启用的既有地铁站；不改变站点基础属性。',
+      },
+    },
+    {
+      name: 'featuredOrder',
+      label: '首页精选序号',
+      type: 'number',
+      min: 1,
+      max: 99,
+      admin: {
+        step: 1,
+        description:
+          '填写后该商圈进入本城「首页精选」（热门商圈卡片、首屏 chips、招商页、未开城页），序号小的靠前；留空表示不精选。每城最多 12 个，商圈须启用且前台可见。',
       },
     },
     {

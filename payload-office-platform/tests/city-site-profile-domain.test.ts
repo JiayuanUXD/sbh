@@ -122,45 +122,14 @@ describe('city-site-profile contract', () => {
   })
 
   /**
-   * 精选区域的校验失败必须是**字段级** ValidationError 并点名是哪个节点：
-   * 此前抛的是 InvalidOperationError，后台只有一条几秒消失的 toast、字段无红字、
-   * 保存按钮还变灰，运营以为存上了，退出再进值就「消失」。线上两个同名「虹桥」
-   * 里闵行那个正是前台不可见的，选错一个整条保存作废。
+   * 精选区域已迁到商圈扩展（`featuredOrder`，校验在 protectBusinessAreaExtension）。
+   * profile 上的旧 `featuredRegions` 字段冻结写入，保护 hook 不再校验它：
+   * 即便历史值里混着跨城 / 不可见 / 非区域节点，也不能让 profile 的保存失败。
    */
-  async function featuredRegionError(featuredRegions: number[]) {
-    try {
-      await protectCitySiteProfile(makeHookArgs({ ...validInput('杭州'), featuredRegions }))
-    } catch (error) {
-      return error as { name: string; data?: { errors?: Array<{ path: string; label?: string; message: string }> } }
-    }
-    throw new Error('expected rejection')
-  }
-
-  it('rejects a featured region from another city with a field-level error naming it', async () => {
-    const error = await featuredRegionError([2, 6])
-    expect(error.name).toBe('ValidationError')
-    expect(error.data?.errors).toEqual([
-      { path: 'featuredRegions', label: '精选区域', message: expect.stringContaining('朝阳区') },
-    ])
-    expect(error.data?.errors?.[0].message).toContain('不属于当前城市')
-  })
-
-  it('rejects hidden featured regions and names the hidden node', async () => {
-    const error = await featuredRegionError([2, 4])
-    expect(error.name).toBe('ValidationError')
-    expect(error.data?.errors).toEqual([
-      { path: 'featuredRegions', label: '精选区域', message: expect.stringContaining('上城区') },
-    ])
-    expect(error.data?.errors?.[0].message).toContain('前台不可见')
-  })
-
-  it('rejects featured regions that are not district or business area', async () => {
-    const error = await featuredRegionError([2, 7])
-    expect(error.data?.errors?.[0]).toEqual({
-      path: 'featuredRegions',
-      label: '精选区域',
-      message: expect.stringContaining('1号线'),
-    })
+  it('no longer validates the frozen legacy featuredRegions value', async () => {
+    await expect(
+      protectCitySiteProfile(makeHookArgs({ ...validInput('杭州'), featuredRegions: [2, 6, 4, 7] })),
+    ).resolves.toBeDefined()
   })
 
 })

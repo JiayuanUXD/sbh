@@ -25,6 +25,7 @@ const { Text } = Typography
  *   - extendedCenterLatitude / extendedCenterLongitude：扩展中心点
  *   - aliases：别名列表
  *   - metroStations：同城、已启用的既有站点多选
+ *   - featuredOrder：首页精选序号（空=不精选；热门商圈卡片 / chips / 招商页 / 未开城页共用）
  *   - version：乐观锁（PATCH 时携带；并发旧页面触发 409 版本冲突）
  *
  * 读写都走 REST（GET / POST / PATCH /api/business-area-extensions），请求携带后台会话，
@@ -38,6 +39,8 @@ export default function BusinessAreaExtensionPanel() {
   const locationId = toId(id)
   const cityId = toId(data?.city)
   const isBusinessArea = data?.type === 'business_area'
+  // 精选的前提：商圈启用且前台可见（保护 hook 也会拒绝）；条件不满足时在面板里先讲清楚
+  const canFeature = data?.status === 'active' && data?.frontendVisible === true
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -47,6 +50,7 @@ export default function BusinessAreaExtensionPanel() {
   const [latText, setLatText] = useState('')
   const [lngText, setLngText] = useState('')
   const [aliases, setAliases] = useState<string[]>([])
+  const [featuredText, setFeaturedText] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [stationOptions, setStationOptions] = useState<StationOpt[]>([])
 
@@ -106,6 +110,7 @@ export default function BusinessAreaExtensionPanel() {
               return String(a)
             }),
           )
+          setFeaturedText(typeof doc.featuredOrder === 'number' ? String(doc.featuredOrder) : '')
           setSelectedIds(selected)
         } else {
           setExtId(null)
@@ -114,6 +119,7 @@ export default function BusinessAreaExtensionPanel() {
           setLatText('')
           setLngText('')
           setAliases([])
+          setFeaturedText('')
           setSelectedIds([])
         }
       } catch {
@@ -150,7 +156,17 @@ export default function BusinessAreaExtensionPanel() {
       }
     }
 
+    let featuredOrder: number | null = null
+    if (featuredText.trim() !== '') {
+      featuredOrder = Number(featuredText)
+      if (!Number.isInteger(featuredOrder) || featuredOrder < 1 || featuredOrder > 99) {
+        Message.error('首页精选序号必须是 1–99 的整数，或留空表示不精选')
+        return
+      }
+    }
+
     const body = {
+      featuredOrder,
       boundary,
       extendedCenterLatitude: lat,
       extendedCenterLongitude: lng,
@@ -185,7 +201,7 @@ export default function BusinessAreaExtensionPanel() {
     } finally {
       setSaving(false)
     }
-  }, [boundaryText, latText, lngText, aliases, selectedIds, extId, version, locationId])
+  }, [boundaryText, latText, lngText, aliases, featuredText, selectedIds, extId, version, locationId])
 
   if (!isBusinessArea) return null
 
@@ -206,6 +222,22 @@ export default function BusinessAreaExtensionPanel() {
         <Spin />
       ) : (
         <Form layout="vertical">
+          <Form.Item
+            label="首页精选序号"
+            extra={
+              canFeature
+                ? '填写后进入本城首页精选（热门商圈卡片、首屏 chips、招商页、未开城页），序号小的靠前；留空表示不精选。每城最多 12 个。热门商圈卡片还要求该商圈下有在营楼盘，否则不会出卡。'
+                : '该商圈当前未启用或前台不可见，不能设为精选。请先在「城市与区域」里启用并打开前台可见性。'
+            }
+          >
+            <Input
+              value={featuredText}
+              onChange={setFeaturedText}
+              placeholder="1–99，留空不精选"
+              style={{ width: 180 }}
+              disabled={!canFeature && featuredText.trim() === ''}
+            />
+          </Form.Item>
           <Form.Item
             label="边界多边形（GeoJSON Polygon）"
             extra="留空表示清除边界；外环须闭合、坐标合法且不自交。"
@@ -286,6 +318,7 @@ type ExtensionDoc = {
   id: unknown
   version?: unknown
   boundary?: unknown
+  featuredOrder?: unknown
   extendedCenterLatitude?: unknown
   extendedCenterLongitude?: unknown
   aliases?: unknown[]
