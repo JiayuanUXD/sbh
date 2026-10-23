@@ -7,7 +7,10 @@
  * - 只在同城站点里找（楼盘 city = 站点 city），避免跨城边界误配。
  * - 已经填了最近地铁的楼不动（多是运营手工维护的），只在报告里列出与计算结果不一致的。
  * - 坐标缺失、越界、落在国境外、或像是经纬度写反了的，进人工处理清单，不猜。
+ * - 计划文件里**不出现楼盘坐标**：坐标受字段权限保护（Buildings.afterRead 对无 building:coordinate 权限者清空），
+ *   计划会作为验证证据入库，只存坐标指纹（sha256），执行时用它判断坐标是否变过。
  */
+import { createHash } from 'node:crypto'
 
 export type StationPoint = Readonly<{
   id: number
@@ -35,15 +38,15 @@ export type Proposal = Readonly<{
   buildingSlug: string
   buildingName: string
   status: string | null
-  lat: number
-  lng: number
+  /** 坐标指纹（见 coordinateFingerprint），不存原始坐标 */
+  coordinateFingerprint: string
   stationId: number
   stationName: string
   lineId: number | null
   distanceMeters: number
 }>
 
-export type InvalidCoordinate = Readonly<{ buildingId: number; buildingSlug: string; buildingName: string; lat: number | null; lng: number | null; reason: string }>
+export type InvalidCoordinate = Readonly<{ buildingId: number; buildingSlug: string; buildingName: string; reason: string }>
 
 export type AlreadySet = Readonly<{
   buildingId: number
@@ -87,6 +90,12 @@ export function haversineMeters(a: Readonly<{ lat: number; lng: number }>, b: Re
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
+/** 坐标指纹：数值规范到 15 位有效数字后取 sha256，numeric 列读成字符串或数字都得到同一个值。 */
+export function coordinateFingerprint(lat: number, lng: number): string {
+  const norm = (v: number) => String(Number(v.toPrecision(15)))
+  return createHash('sha256').update(`${norm(lat)},${norm(lng)}`).digest('hex')
+}
+
 /** 坐标能不能用；不能用时给出原因（进人工清单）。范围取中国大陆的粗略外框。 */
 export function coordinateProblem(lat: number | null, lng: number | null): string | null {
   if (lat === null || lng === null) return null
@@ -98,7 +107,7 @@ export function coordinateProblem(lat: number | null, lng: number | null): strin
   return '坐标不在国内范围'
 }
 
-function nearestOf(point: Readonly<{ lat: number; lng: number }>, stations: readonly StationPoint[]): { station: StationPoint; distance: number } | null {
+export function nearestOf(point: Readonly<{ lat: number; lng: number }>, stations: readonly StationPoint[]): { station: StationPoint; distance: number } | null {
   let best: { station: StationPoint; distance: number } | null = null
   for (const s of stations) {
     const d = haversineMeters(point, s)
@@ -158,7 +167,7 @@ export function buildNearestMetroPlan(input: Readonly<{
       continue
     }
     if (problem !== null) {
-      invalid.push({ buildingId: b.id, buildingSlug: b.slug, buildingName: b.name, lat: b.lat, lng: b.lng, reason: problem })
+      invalid.push({ buildingId: b.id, buildingSlug: b.slug, buildingName: b.name, reason: problem })
       continue
     }
     if (b.cityId === null) {
@@ -174,8 +183,7 @@ export function buildNearestMetroPlan(input: Readonly<{
       buildingSlug: b.slug,
       buildingName: b.name,
       status: b.status,
-      lat: b.lat,
-      lng: b.lng,
+      coordinateFingerprint: coordinateFingerprint(b.lat, b.lng),
       stationId: nearest.station.id,
       stationName: nearest.station.name,
       lineId: nearest.station.lineId,

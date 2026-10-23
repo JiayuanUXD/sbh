@@ -12,8 +12,9 @@
  *       计划阈值可以放宽，用来看分布；真正写多少由 execute 的 --max-distance 决定。
  *
  *   pnpm buildings:nearest-metro:execute --plan=<plan.json> --max-distance=<米> --out=<目录>
- *       写库：只执行计划里距离 ≤ max-distance 的建议（不能比计划阈值更宽）。逐栋复核：仍未填、坐标没变，
- *       再带上读到的 version 经 Local API 更新（并发改过会触发乐观锁冲突、跳过）。每写一栋就追加一行到
+ *       写库：只执行计划里距离 ≤ max-distance 的建议（不能比计划阈值更宽），计划默认 24 小时内有效
+ *       （--max-plan-age-hours 可调）。逐栋复核：仍未填、城市没变、坐标指纹没变，且按**当前**站点重算的最近站
+ *       仍是计划里那个站、距离仍在阈值内，再带上读到的 version 经 Local API 更新（并发改过会触发乐观锁冲突、跳过）。每写一栋就追加一行到
  *       applied-<时间>.jsonl，中途中断也能回滚。计划里记录的数据库与当前连接不一致时拒绝执行。
  *
  *   pnpm buildings:nearest-metro:rollback --applied=<applied-….jsonl> --out=<目录>
@@ -27,7 +28,9 @@ import path from 'node:path'
 import {
   DISTANCE_BUCKETS,
   buildNearestMetroPlan,
+  coordinateFingerprint,
   lineCoverage,
+  nearestOf,
   selectProposals,
   type BuildingPoint,
   type NearestMetroPlan,
@@ -71,6 +74,7 @@ type PlanFile = NearestMetroPlan & Readonly<{
   generatedAt: string
   database: string
   city: string
+  cityId: number
   lineNames: Record<string, string>
 }>
 
@@ -138,7 +142,7 @@ async function plan(): Promise<void> {
     }))
 
     const result = buildNearestMetroPlan({ buildings, stations, maxDistanceMeters: maxDistance })
-    const file: PlanFile = { generatedAt: new Date().toISOString(), database: databaseFingerprint(rawUrl), city, lineNames, ...result }
+    const file: PlanFile = { generatedAt: new Date().toISOString(), database: databaseFingerprint(rawUrl), city, cityId, lineNames, ...result }
     fs.writeFileSync(path.join(out, 'plan.json'), JSON.stringify(file, null, 2))
     fs.writeFileSync(path.join(out, 'plan-summary.md'), summarize(file, stations))
     log(`计划已写入 ${out}：建议 ${result.counts.proposals} 栋（≤ ${maxDistance}m），超出阈值 ${result.counts.tooFar} 栋，坐标异常 ${result.counts.invalidCoordinates} 栋`)
@@ -210,7 +214,7 @@ function summarize(file: PlanFile, stations: readonly StationPoint[]): string {
     '',
     `## 坐标异常（${file.invalid.length}，不回填）`,
     '',
-    ...(file.invalid.length === 0 ? ['无'] : ['| 楼盘 id | 楼盘 | 纬度 | 经度 | 原因 |', '| --- | --- | --- | --- | --- |', ...file.invalid.map((i) => `| ${i.buildingId} | ${i.buildingName} | ${i.lat} | ${i.lng} | ${i.reason} |`)]),
+    ...(file.invalid.length === 0 ? ['无'] : ['| 楼盘 id | 楼盘 | 原因 |', '| --- | --- | --- |', ...file.invalid.map((i) => `| ${i.buildingId} | ${i.buildingName} | ${i.reason} |`)]),
     '',
     `## 已填值与坐标计算不一致（${disagreements.length}，不改，供人工看）`,
     '',
@@ -240,8 +244,10 @@ async function withPayload<T>(fn: (payload: import('payload').Payload) => Promis
 }
 
 const idOf = (v: unknown): number | null => (typeof v === 'number' ? v : typeof v === 'object' && v !== null && typeof (v as { id?: unknown }).id === 'number' ? (v as { id: number }).id : null)
-/** numeric 列经不同读法可能是 number 或数字字符串，按数值比较 */
-const sameCoord = (a: unknown, b: number) => (typeof a === 'number' || (typeof a === 'string' && a.trim() !== '')) && Math.abs(Number(a) - b) < 1e-9
+/** numeric 列经不同读法可能是 number 或数字字符串；空值返回 null */
+const numOrNull = (v: unknown): number | null => (typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : null)
+/** 计划默认 24 小时内有效：站点、楼盘城市与坐标都可能在这期间变化 */
+const DEFAULT_MAX_PLAN_AGE_HOURS = 24
 
 async function execute(): Promise<void> {
   const out = requireOut()
@@ -251,17 +257,42 @@ async function execute(): Promise<void> {
   const file = JSON.parse(fs.readFileSync(planPath, 'utf8')) as PlanFile
   const current = databaseFingerprint(process.env.DATABASE_URL ?? '')
   if (file.database !== current) throw new Error(`计划是对着 ${file.database} 出的，当前连接是 ${current}：拒绝执行`)
+  const maxAgeHours = Number(arg('max-plan-age-hours') ?? DEFAULT_MAX_PLAN_AGE_HOURS)
+  const ageHours = (Date.now() - Date.parse(file.generatedAt)) / 3_600_000
+  if (!(ageHours <= maxAgeHours)) throw new Error(`计划是 ${ageHours.toFixed(1)} 小时前生成的，超过 ${maxAgeHours} 小时：请重新出计划`)
+  if (typeof file.cityId !== 'number') throw new Error('计划文件缺少 cityId（旧版本计划），请重新出计划')
   const selected = selectProposals(file, Number(maxRaw))
   const appliedPath = path.join(out, `applied-${timestamp()}.jsonl`)
   const skipped: Array<{ buildingId: number; reason: string }> = []
   let applied = 0
   log(`执行计划 ${planPath}：阈值 ${maxRaw}m 内 ${selected.length} 栋 → 回滚清单 ${appliedPath}`)
   await withPayload(async (payload) => {
+    // 执行时按**当前**站点重算最近站：计划之后新增 / 移动 / 停用的站点都要算进去，与计划不一致就不写
+    const stationDocs = await payload.find({
+      collection: 'locations',
+      where: { and: [{ type: { equals: 'metro_station' } }, { status: { equals: 'active' } }, { city: { equals: file.cityId } }] },
+      pagination: false,
+      depth: 0,
+    })
+    const stations: StationPoint[] = []
+    for (const raw of stationDocs.docs as unknown as Array<Record<string, unknown>>) {
+      const lat = numOrNull(raw.centerLatitude)
+      const lng = numOrNull(raw.centerLongitude)
+      if (lat === null || lng === null || typeof raw.id !== 'number') continue
+      stations.push({ id: raw.id, name: String(raw.name), slug: String(raw.slug), lineId: idOf(raw.parent), cityId: file.cityId, lat, lng })
+    }
+    log(`当前站点 ${stations.length} 个`)
     for (const [i, p] of selected.entries()) {
       try {
         const doc = (await payload.findByID({ collection: 'buildings', id: p.buildingId, depth: 0 })) as unknown as Record<string, unknown>
+        const lat = numOrNull(doc.latitude)
+        const lng = numOrNull(doc.longitude)
+        const nearest = lat !== null && lng !== null ? nearestOf({ lat, lng }, stations) : null
         if (idOf(doc.nearestMetro) !== null) skipped.push({ buildingId: p.buildingId, reason: '已有最近地铁' })
-        else if (!sameCoord(doc.latitude, p.lat) || !sameCoord(doc.longitude, p.lng)) skipped.push({ buildingId: p.buildingId, reason: '坐标与计划时不同' })
+        else if (idOf(doc.city) !== file.cityId) skipped.push({ buildingId: p.buildingId, reason: '城市与计划时不同' })
+        else if (lat === null || lng === null || coordinateFingerprint(lat, lng) !== p.coordinateFingerprint) skipped.push({ buildingId: p.buildingId, reason: '坐标与计划时不同' })
+        else if (!nearest || nearest.station.id !== p.stationId) skipped.push({ buildingId: p.buildingId, reason: '按当前站点重算，最近站已不是计划中的站' })
+        else if (nearest.distance > Number(maxRaw)) skipped.push({ buildingId: p.buildingId, reason: '按当前站点重算，距离超出阈值' })
         else {
           await payload.update({
             collection: 'buildings',

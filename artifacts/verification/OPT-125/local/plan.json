@@ -59,60 +59,55 @@
       "buildingSlug": "west-nanjing-premium-center",
       "buildingName": "南京西路高端商务中心",
       "status": "published",
-      "lat": 31.229,
-      "lng": 121.459,
       "stationId": 90,
       "stationName": "南京西路",
       "lineId": 79,
-      "distanceMeters": 132
+      "distanceMeters": 132,
+      "coordinateFingerprint": "5407f52469deb8bb68287b8aa5b50980005d0312806d35324e388f125a39bedf"
     },
     {
       "buildingId": 2,
       "buildingSlug": "empty-building",
       "buildingName": "静安待租楼盘",
       "status": "published",
-      "lat": 31.228,
-      "lng": 121.458,
       "stationId": 90,
       "stationName": "南京西路",
       "lineId": 79,
-      "distanceMeters": 279
+      "distanceMeters": 279,
+      "coordinateFingerprint": "1d7f1d6c37be2c50b288b3d23b8e1f5c55097b62d356a78fd02158ec1d55e4ea"
     },
     {
       "buildingId": 3,
       "buildingSlug": "lujiazui-grade-a-river-view",
       "buildingName": "陆家嘴江景甲级写字楼",
       "status": "published",
-      "lat": 31.239,
-      "lng": 121.499,
       "stationId": 92,
       "stationName": "陆家嘴",
       "lineId": 79,
-      "distanceMeters": 309
+      "distanceMeters": 309,
+      "coordinateFingerprint": "54e04610f7c51bab2292e77cfbc12f5e6721c4f28d3fef690fb9d2a9d92492d2"
     },
     {
       "buildingId": 7,
       "buildingSlug": "shanghai-tower",
       "buildingName": "上海中心",
       "status": "published",
-      "lat": 31.2337,
-      "lng": 121.5055,
       "stationId": 92,
       "stationName": "陆家嘴",
       "lineId": 79,
-      "distanceMeters": 600
+      "distanceMeters": 600,
+      "coordinateFingerprint": "66f0a398479f3f416a5b28f2db4f21de6e3150905fe3c1d144a56384906100f0"
     },
     {
       "buildingId": 8,
       "buildingSlug": "shanghai-ifc",
       "buildingName": "上海国金中心",
       "status": "published",
-      "lat": 31.2377,
-      "lng": 121.4997,
       "stationId": 92,
       "stationName": "陆家嘴",
       "lineId": 79,
-      "distanceMeters": 239
+      "distanceMeters": 239,
+      "coordinateFingerprint": "7f69eb9f4765021bb2bb53540d0cd2e32ca33ab94820ac57711407122bb2524c"
     }
   ],
   "tooFar": [],

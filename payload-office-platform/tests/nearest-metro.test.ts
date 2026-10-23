@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildNearestMetroPlan,
+  coordinateFingerprint,
   coordinateProblem,
   haversineMeters,
   lineCoverage,
@@ -94,6 +95,22 @@ describe('buildNearestMetroPlan', () => {
     ])
     expect(plan.counts).toMatchObject({ buildings: 5, alreadySet: 2, noCoordinates: 1, invalidCoordinates: 1, noCity: 1, proposals: 0 })
     expect(plan.invalid[0]).toMatchObject({ buildingId: 7, reason: '经纬度疑似写反' })
+  })
+})
+
+describe('计划里不出现楼盘坐标（坐标受字段权限保护，计划会入库）', () => {
+  it('建议与异常清单只带坐标指纹，没有经纬度；指纹对数字和数字字符串一致', () => {
+    const plan = buildNearestMetroPlan({
+      stations: [LUJIAZUI],
+      maxDistanceMeters: 1000,
+      buildings: [building({ id: 1, lat: 31.2353, lng: 121.5058 }), building({ id: 2, lat: 121.5058, lng: 31.2353 })],
+    })
+    const text = JSON.stringify(plan)
+    expect(text).not.toContain('31.2353')
+    expect(text).not.toContain('121.5058')
+    expect(plan.proposals[0].coordinateFingerprint).toBe(coordinateFingerprint(31.2353, 121.5058))
+    expect(coordinateFingerprint(Number('31.235300'), Number('121.50580'))).toBe(coordinateFingerprint(31.2353, 121.5058))
+    expect(coordinateFingerprint(31.2354, 121.5058)).not.toBe(coordinateFingerprint(31.2353, 121.5058))
   })
 })
 
