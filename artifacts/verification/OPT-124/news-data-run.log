@@ -1,0 +1,14 @@
+[news:data] locations 1/4 页，累计 500
+[news:data] locations 4/4 页，累计 1680
+[news:data] buildings 1/9 页，累计 500
+[news:data] buildings 9/9 页，累计 4313
+[news:data] 快照：在租 33721 条，元/㎡/天 报价 33677 条，全市中位数 4.25
+[news:data] 对账：62 项，不一致 0 项；落地页抽查 13 个，跳过 jiading（落地页 404）、baoshan（落地页 404）、qingpu（落地页 404）、songjiang（落地页 404）、fengxian（落地页 404）、dapuqiao（落地页 404）、beiwaitan（落地页 404）、longhua（落地页 404）、xintiandi（落地页 404）、wantiguan（落地页 404）、waitan（落地页 404）
+[news:data] 快照已归档：/private/tmp/claude-633476574/-Users-liujiayuan--claude-spares-spare-viHcKX/5b84f608-1324-4f30-b0da-0e192efbaf75/scratchpad/news-snapshots/2026-10-22.json
+[news:data] 与前台有效供给逐项一致。输出目录：/private/tmp/claude-633476574/-Users-liujiayuan--claude-spares-spare-viHcKX/5b84f608-1324-4f30-b0da-0e192efbaf75/scratchpad/news-data
+
+real	1m43.869s
+user	0m1.352s
+sys	0m0.307s
+
+[exited with code 0]

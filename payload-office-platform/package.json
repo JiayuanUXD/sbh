@@ -47,7 +47,10 @@
     "verify:unique-violation": "node --env-file-if-exists=.env.local --import tsx scripts/verify-unique-violation.ts",
     "import:geography": "node --env-file-if-exists=.env.local --import tsx scripts/import-geography.ts",
     "collect:geography": "node --env-file-if-exists=.env.local --import tsx scripts/collect-geography.ts --all",
-    "data:audit": "node --env-file-if-exists=.env.local --import tsx scripts/data-audit.ts"
+    "data:audit": "node --env-file-if-exists=.env.local --import tsx scripts/data-audit.ts",
+    "news:data": "node --import tsx scripts/news/data.ts",
+    "news:check": "node --import tsx scripts/news/check.ts",
+    "news:publish": "node --import tsx scripts/news/publish.ts"
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.16",
