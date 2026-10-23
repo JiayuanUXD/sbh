@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-10-22T10:00:04.232Z",
+  "database": "localhost:5432/sbh_dev_metro",
+  "city": "shanghai",
+  "lineNames": {
+    "50": "地铁1号线",
+    "79": "地铁2号线",
+    "109": "地铁3号线",
+    "136": "地铁4号线",
+    "151": "地铁5号线",
+    "167": "地铁6号线",
+    "193": "地铁7号线",
+    "221": "地铁8号线",
+    "246": "地铁9号线",
+    "277": "地铁10号线",
+    "304": "地铁11号线",
+    "338": "地铁12号线",
+    "358": "地铁13号线",
+    "377": "地铁14号线",
+    "397": "地铁15号线",
+    "415": "地铁16号线",
+    "428": "地铁17号线",
+    "440": "地铁18号线",
+    "453": "地铁浦江线",
+    "459": "磁悬浮线",
+    "460": "机场联络线"
+  },
+  "maxDistanceMeters": 2000,
+  "counts": {
+    "buildings": 8,
+    "alreadySet": 0,
+    "noCoordinates": 3,
+    "invalidCoordinates": 0,
+    "noCity": 0,
+    "noStationInCity": 0,
+    "proposals": 5,
+    "tooFar": 0
+  },
+  "distribution": {
+    "count": 5,
+    "p10": 175,
+    "p25": 239,
+    "median": 279,
+    "p75": 309,
+    "p90": 484,
+    "max": 600,
+    "within": {
+      "300": 3,
+      "500": 4,
+      "800": 5,
+      "1000": 5,
+      "1500": 5,
+      "2000": 5
+    }
+  },
+  "proposals": [
+    {
+      "buildingId": 1,
+      "buildingSlug": "west-nanjing-premium-center",
+      "buildingName": "南京西路高端商务中心",
+      "status": "published",
+      "stationId": 90,
+      "stationName": "南京西路",
+      "lineId": 79,
+      "distanceMeters": 132,
+      "coordinateFingerprint": "5407f52469deb8bb68287b8aa5b50980005d0312806d35324e388f125a39bedf"
+    },
+    {
+      "buildingId": 2,
+      "buildingSlug": "empty-building",
+      "buildingName": "静安待租楼盘",
+      "status": "published",
+      "stationId": 90,
+      "stationName": "南京西路",
+      "lineId": 79,
+      "distanceMeters": 279,
+      "coordinateFingerprint": "1d7f1d6c37be2c50b288b3d23b8e1f5c55097b62d356a78fd02158ec1d55e4ea"
+    },
+    {
+      "buildingId": 3,
+      "buildingSlug": "lujiazui-grade-a-river-view",
+      "buildingName": "陆家嘴江景甲级写字楼",
+      "status": "published",
+      "stationId": 92,
+      "stationName": "陆家嘴",
+      "lineId": 79,
+      "distanceMeters": 309,
+      "coordinateFingerprint": "54e04610f7c51bab2292e77cfbc12f5e6721c4f28d3fef690fb9d2a9d92492d2"
+    },
+    {
+      "buildingId": 7,
+      "buildingSlug": "shanghai-tower",
+      "buildingName": "上海中心",
+      "status": "published",
+      "stationId": 92,
+      "stationName": "陆家嘴",
+      "lineId": 79,
+      "distanceMeters": 600,
+      "coordinateFingerprint": "66f0a398479f3f416a5b28f2db4f21de6e3150905fe3c1d144a56384906100f0"
+    },
+    {
+      "buildingId": 8,
+      "buildingSlug": "shanghai-ifc",
+      "buildingName": "上海国金中心",
+      "status": "published",
+      "stationId": 92,
+      "stationName": "陆家嘴",
+      "lineId": 79,
+      "distanceMeters": 239,
+      "coordinateFingerprint": "7f69eb9f4765021bb2bb53540d0cd2e32ca33ab94820ac57711407122bb2524c"
+    }
+  ],
+  "tooFar": [],
+  "invalid": [],
+  "alreadySet": []
+}
