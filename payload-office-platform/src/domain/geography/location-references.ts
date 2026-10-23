@@ -79,6 +79,14 @@ const REFERENCE_SPECS: CountSpec[] = [
     label: '城市站点配置（城市）',
     where: (id) => ({ city: { equals: id } }),
   },
+  {
+    collection: 'city-site-profiles',
+    // 旧字段已迁到商圈扩展（featuredOrder）并冻结，但 `city_site_profiles_rels` 刻意保留作回滚来源。
+    // locations 的外键是 ON DELETE CASCADE：不计入引用的话，只被旧精选关系引用的节点能被物理删除，
+    // 并连带抹掉这份回滚数据。待旧数据经批准收敛（DROP）后，这一条再一起删。
+    label: '城市站点配置（精选区域）',
+    where: (id) => ({ featuredRegions: { in: [id] } }),
+  },
 ]
 
 /**

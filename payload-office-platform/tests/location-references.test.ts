@@ -34,18 +34,18 @@ describe('location-references/countLocationReferences', () => {
       'users.cityScope': 0,
       'locations.parent': 5,
       'city-site-profiles.city': 1,
+      'city-site-profiles.featuredRegions': 2,
     })
     const report = await countLocationReferences(payload, 7)
-    expect(report.total).toBe(3 + 1 + 2 + 5 + 1)
+    expect(report.total).toBe(3 + 1 + 2 + 5 + 1 + 2)
     expect(report.referenced).toBe(true)
-    // 5 个非零来源
-    expect(report.sources).toHaveLength(5)
+    // 6 个非零来源
+    expect(report.sources).toHaveLength(6)
     const labels = report.sources.map((s) => s.label)
     expect(labels).toContain('楼盘（行政区）')
     expect(labels).toContain('下级节点')
     expect(labels).toContain('城市站点配置（城市）')
-    // 精选区域已迁到商圈扩展（featuredOrder），profile 上的旧字段不再计入引用
-    expect(labels).not.toContain('城市站点配置（精选区域）')
+    expect(labels).toContain('城市站点配置（精选区域）')
     expect(labels).not.toContain('楼盘（商圈）') // 0 被过滤
   })
 
@@ -71,8 +71,8 @@ describe('location-references/countLocationReferences', () => {
   it('对每个来源规格各调用一次 count', async () => {
     const payload = makePayload({})
     await countLocationReferences(payload, 1)
-    // 7 条规格：buildings×3 + leads + users + locations + city-site-profiles
-    expect((payload as { count: { mock: { calls: unknown[] } } }).count.mock.calls).toHaveLength(7)
+    // 8 条规格：buildings×3 + leads + users + locations + city-site-profiles×2
+    expect((payload as { count: { mock: { calls: unknown[] } } }).count.mock.calls).toHaveLength(8)
   })
 
   it('默认 overrideAccess:false（随权限脱敏,用于「查看引用」）', async () => {

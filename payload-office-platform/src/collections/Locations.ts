@@ -24,6 +24,7 @@ import {
 } from '@/domain/geography/location-hierarchy'
 import { protectLocation } from '@/domain/geography/location-protect'
 import { protectLocationDelete } from '@/domain/geography/location-delete-guard'
+import { createBusinessAreaSaveEndpoint } from '@/endpoints/business-area-save-endpoint'
 import { createLocationReferencesEndpoint } from '@/endpoints/location-references-endpoint'
 import { createLocationSearchEndpoint } from '@/endpoints/location-search-endpoint'
 import { createLocationTreeEndpoint } from '@/endpoints/location-tree-endpoint'
@@ -269,6 +270,8 @@ export const Locations: CollectionConfig = {
     createLocationSearchEndpoint(),
     // OPT-074 级联选择数据源：GET /api/locations/tree
     createLocationTreeEndpoint(),
+    // 商圈抽屉保存：基础信息 + 首页精选序号，同一事务。POST /api/locations/:id/save-business-area
+    createBusinessAreaSaveEndpoint(),
   ],
   admin: {
     group: false,
