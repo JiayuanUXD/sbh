@@ -1,0 +1,453 @@
+{
+  "asOf": "2026-10-22T09:28:36.777Z",
+  "ok": true,
+  "rows": [
+    {
+      "scope": "全市",
+      "field": "在租条数",
+      "frontend": 33721,
+      "ours": 33721,
+      "ok": true
+    },
+    {
+      "scope": "黄浦区",
+      "field": "在租条数",
+      "frontend": 6740,
+      "ours": 6740,
+      "ok": true
+    },
+    {
+      "scope": "静安区",
+      "field": "在租条数",
+      "frontend": 2533,
+      "ours": 2533,
+      "ok": true
+    },
+    {
+      "scope": "徐汇区",
+      "field": "在租条数",
+      "frontend": 6219,
+      "ours": 6219,
+      "ok": true
+    },
+    {
+      "scope": "长宁区",
+      "field": "在租条数",
+      "frontend": 1891,
+      "ours": 1891,
+      "ok": true
+    },
+    {
+      "scope": "浦东新区",
+      "field": "在租条数",
+      "frontend": 5220,
+      "ours": 5220,
+      "ok": true
+    },
+    {
+      "scope": "虹口区",
+      "field": "在租条数",
+      "frontend": 3266,
+      "ours": 3266,
+      "ok": true
+    },
+    {
+      "scope": "普陀区",
+      "field": "在租条数",
+      "frontend": 1675,
+      "ours": 1675,
+      "ok": true
+    },
+    {
+      "scope": "杨浦区",
+      "field": "在租条数",
+      "frontend": 1856,
+      "ours": 1856,
+      "ok": true
+    },
+    {
+      "scope": "闵行区",
+      "field": "在租条数",
+      "frontend": 1323,
+      "ours": 1323,
+      "ok": true
+    },
+    {
+      "scope": "黄浦区",
+      "field": "报价样本数",
+      "frontend": 6730,
+      "ours": 6730,
+      "ok": true
+    },
+    {
+      "scope": "黄浦区",
+      "field": "P25",
+      "frontend": 4.25,
+      "ours": 4.25,
+      "ok": true
+    },
+    {
+      "scope": "黄浦区",
+      "field": "中位数",
+      "frontend": 5.36,
+      "ours": 5.36,
+      "ok": true
+    },
+    {
+      "scope": "黄浦区",
+      "field": "P75",
+      "frontend": 6.8,
+      "ours": 6.8,
+      "ok": true
+    },
+    {
+      "scope": "徐汇区",
+      "field": "报价样本数",
+      "frontend": 6216,
+      "ours": 6216,
+      "ok": true
+    },
+    {
+      "scope": "徐汇区",
+      "field": "P25",
+      "frontend": 3.96,
+      "ours": 3.96,
+      "ok": true
+    },
+    {
+      "scope": "徐汇区",
+      "field": "中位数",
+      "frontend": 4.31,
+      "ours": 4.31,
+      "ok": true
+    },
+    {
+      "scope": "徐汇区",
+      "field": "P75",
+      "frontend": 5.1,
+      "ours": 5.1,
+      "ok": true
+    },
+    {
+      "scope": "浦东新区",
+      "field": "报价样本数",
+      "frontend": 5213,
+      "ours": 5213,
+      "ok": true
+    },
+    {
+      "scope": "浦东新区",
+      "field": "P25",
+      "frontend": 3.34,
+      "ours": 3.34,
+      "ok": true
+    },
+    {
+      "scope": "浦东新区",
+      "field": "中位数",
+      "frontend": 4.25,
+      "ours": 4.25,
+      "ok": true
+    },
+    {
+      "scope": "浦东新区",
+      "field": "P75",
+      "frontend": 5.53,
+      "ours": 5.53,
+      "ok": true
+    },
+    {
+      "scope": "虹口区",
+      "field": "报价样本数",
+      "frontend": 3265,
+      "ours": 3265,
+      "ok": true
+    },
+    {
+      "scope": "虹口区",
+      "field": "P25",
+      "frontend": 3.08,
+      "ours": 3.08,
+      "ok": true
+    },
+    {
+      "scope": "虹口区",
+      "field": "中位数",
+      "frontend": 4.25,
+      "ours": 4.25,
+      "ok": true
+    },
+    {
+      "scope": "虹口区",
+      "field": "P75",
+      "frontend": 5.7,
+      "ours": 5.7,
+      "ok": true
+    },
+    {
+      "scope": "静安区",
+      "field": "报价样本数",
+      "frontend": 2519,
+      "ours": 2519,
+      "ok": true
+    },
+    {
+      "scope": "静安区",
+      "field": "P25",
+      "frontend": 3.52,
+      "ours": 3.52,
+      "ok": true
+    },
+    {
+      "scope": "静安区",
+      "field": "中位数",
+      "frontend": 4.25,
+      "ours": 4.25,
+      "ok": true
+    },
+    {
+      "scope": "静安区",
+      "field": "P75",
+      "frontend": 5.95,
+      "ours": 5.95,
+      "ok": true
+    },
+    {
+      "scope": "长宁区",
+      "field": "报价样本数",
+      "frontend": 1886,
+      "ours": 1886,
+      "ok": true
+    },
+    {
+      "scope": "长宁区",
+      "field": "P25",
+      "frontend": 3.08,
+      "ours": 3.08,
+      "ok": true
+    },
+    {
+      "scope": "长宁区",
+      "field": "中位数",
+      "frontend": 3.96,
+      "ours": 3.96,
+      "ok": true
+    },
+    {
+      "scope": "长宁区",
+      "field": "P75",
+      "frontend": 5.1,
+      "ours": 5.1,
+      "ok": true
+    },
+    {
+      "scope": "杨浦区",
+      "field": "报价样本数",
+      "frontend": 1856,
+      "ours": 1856,
+      "ok": true
+    },
+    {
+      "scope": "杨浦区",
+      "field": "P25",
+      "frontend": 2.64,
+      "ours": 2.64,
+      "ok": true
+    },
+    {
+      "scope": "杨浦区",
+      "field": "中位数",
+      "frontend": 3.52,
+      "ours": 3.52,
+      "ok": true
+    },
+    {
+      "scope": "杨浦区",
+      "field": "P75",
+      "frontend": 4.25,
+      "ours": 4.25,
+      "ok": true
+    },
+    {
+      "scope": "普陀区",
+      "field": "报价样本数",
+      "frontend": 1671,
+      "ours": 1671,
+      "ok": true
+    },
+    {
+      "scope": "普陀区",
+      "field": "P25",
+      "frontend": 2.64,
+      "ours": 2.64,
+      "ok": true
+    },
+    {
+      "scope": "普陀区",
+      "field": "中位数",
+      "frontend": 3.08,
+      "ours": 3.08,
+      "ok": true
+    },
+    {
+      "scope": "普陀区",
+      "field": "P75",
+      "frontend": 3.52,
+      "ours": 3.52,
+      "ok": true
+    },
+    {
+      "scope": "闵行区",
+      "field": "报价样本数",
+      "frontend": 1323,
+      "ours": 1323,
+      "ok": true
+    },
+    {
+      "scope": "闵行区",
+      "field": "P25",
+      "frontend": 1.58,
+      "ours": 1.58,
+      "ok": true
+    },
+    {
+      "scope": "闵行区",
+      "field": "中位数",
+      "frontend": 2.64,
+      "ours": 2.64,
+      "ok": true
+    },
+    {
+      "scope": "闵行区",
+      "field": "P75",
+      "frontend": 3.26,
+      "ours": 3.26,
+      "ok": true
+    },
+    {
+      "scope": "漕河泾",
+      "field": "报价样本数",
+      "frontend": 1837,
+      "ours": 1837,
+      "ok": true
+    },
+    {
+      "scope": "漕河泾",
+      "field": "P25",
+      "frontend": 3.52,
+      "ours": 3.52,
+      "ok": true
+    },
+    {
+      "scope": "漕河泾",
+      "field": "中位数",
+      "frontend": 4.14,
+      "ours": 4.14,
+      "ok": true
+    },
+    {
+      "scope": "漕河泾",
+      "field": "P75",
+      "frontend": 4.34,
+      "ours": 4.34,
+      "ok": true
+    },
+    {
+      "scope": "人民广场",
+      "field": "报价样本数",
+      "frontend": 1340,
+      "ours": 1340,
+      "ok": true
+    },
+    {
+      "scope": "人民广场",
+      "field": "P25",
+      "frontend": 4.05,
+      "ours": 4.05,
+      "ok": true
+    },
+    {
+      "scope": "人民广场",
+      "field": "中位数",
+      "frontend": 5.53,
+      "ours": 5.53,
+      "ok": true
+    },
+    {
+      "scope": "人民广场",
+      "field": "P75",
+      "frontend": 6.8,
+      "ours": 6.8,
+      "ok": true
+    },
+    {
+      "scope": "陆家嘴",
+      "field": "报价样本数",
+      "frontend": 1004,
+      "ours": 1004,
+      "ok": true
+    },
+    {
+      "scope": "陆家嘴",
+      "field": "P25",
+      "frontend": 4.25,
+      "ours": 4.25,
+      "ok": true
+    },
+    {
+      "scope": "陆家嘴",
+      "field": "中位数",
+      "frontend": 5.95,
+      "ours": 5.95,
+      "ok": true
+    },
+    {
+      "scope": "陆家嘴",
+      "field": "P75",
+      "frontend": 6.8,
+      "ours": 6.8,
+      "ok": true
+    },
+    {
+      "scope": "淮海中路",
+      "field": "报价样本数",
+      "frontend": 897,
+      "ours": 897,
+      "ok": true
+    },
+    {
+      "scope": "淮海中路",
+      "field": "P25",
+      "frontend": 4.68,
+      "ours": 4.68,
+      "ok": true
+    },
+    {
+      "scope": "淮海中路",
+      "field": "中位数",
+      "frontend": 5.1,
+      "ours": 5.1,
+      "ok": true
+    },
+    {
+      "scope": "淮海中路",
+      "field": "P75",
+      "frontend": 6.12,
+      "ours": 6.12,
+      "ok": true
+    }
+  ],
+  "skipped": [
+    "jiading（落地页 404）",
+    "baoshan（落地页 404）",
+    "qingpu（落地页 404）",
+    "songjiang（落地页 404）",
+    "fengxian（落地页 404）",
+    "dapuqiao（落地页 404）",
+    "beiwaitan（落地页 404）",
+    "longhua（落地页 404）",
+    "xintiandi（落地页 404）",
+    "wantiguan（落地页 404）",
+    "waitan（落地页 404）"
+  ]
+}
