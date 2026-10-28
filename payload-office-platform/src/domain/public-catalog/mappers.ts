@@ -22,6 +22,7 @@ import type {
   BuildingSummaryViewModel,
   CoordinatesViewModel,
   DistrictViewModel,
+  MetroStationViewModel,
   DistrictCardViewModel,
   ArticleCardViewModel,
   ArticleDetailViewModel,
@@ -419,6 +420,17 @@ export function mapDistrict(raw: unknown): DistrictViewModel | undefined {
   return { id: raw.id, slug: raw.slug, name: raw.name }
 }
 
+/** 地铁站 → 区域视图 + 所属线路（parent 已展开且确为线路时才带 `line`）。 */
+export function mapMetroStation(raw: unknown): MetroStationViewModel | undefined {
+  const station = mapDistrict(raw)
+  if (!station) return undefined
+  const parent = (raw as Location).parent
+  if (isLocation(parent) && parent.type === 'metro_line') {
+    return { ...station, line: { slug: parent.slug, name: parent.name } }
+  }
+  return station
+}
+
 /**
  * 公开坐标精度：小数点后 4 位（约 11m，楼盘级近似坐标）。
  *
@@ -481,7 +493,7 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
     coverImage: mapMedia(coverRaw, raw.name) ?? undefined,
     summary: raw.summary ?? undefined,
     coordinates: mapCoordinates(raw.latitude, raw.longitude),
-    nearestMetro: mapDistrict(populated?.nearestMetro),
+    nearestMetro: mapMetroStation(populated?.nearestMetro),
     completionDate: raw.completionDate ?? undefined,
     typicalFloorArea:
       typeof raw.developerAndScale?.typicalFloorArea === 'number'

@@ -69,6 +69,7 @@ function resultFixture(): BuildingFilteredResult {
       districts: [{ slug: 'jing-an', name: '静安区', count: 1 }],
       businessAreas: [],
       grades: [],
+      metroLines: [],
       metros: [],
     },
     dimensionHits: {
@@ -77,7 +78,6 @@ function resultFixture(): BuildingFilteredResult {
       grade: 1,
       metro: 1,
       leasableArea: 1,
-      completedAfter: 1,
       onlyWithStock: 1,
     },
   }

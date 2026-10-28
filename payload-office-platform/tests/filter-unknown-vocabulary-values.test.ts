@@ -161,6 +161,7 @@ describe('楼盘列表：同一类回落在三个维度上一起收口', () => {
     districts: [{ slug: 'jingan', name: '静安', count: 3 }],
     businessAreas: [{ slug: 'jingan-temple', name: '静安寺', count: 3 }],
     grades: [{ value: 'grade-a', count: 3 }],
+    metroLines: [],
     metros: [{ slug: 'jingansi', name: '静安寺', count: 3 }],
   }
 

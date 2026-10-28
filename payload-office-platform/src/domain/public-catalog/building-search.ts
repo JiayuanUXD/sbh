@@ -19,7 +19,6 @@ import type { BuildingSummaryViewModel } from './contracts'
 
 const DEFAULT_PAGE_SIZE = 24 as const
 const MAX_ARRAY_LEN = 20
-const MIN_COMPLETED_YEAR = 1900
 const MAX_PAGE = 10000
 
 export type BuildingSort = 'stock-desc' | 'area-desc' | 'grade' | 'completion-desc'
@@ -53,10 +52,14 @@ export type BuildingSearchInput = Readonly<{
   businessArea?: readonly string[]
   grade?: readonly string[]
   metro?: readonly string[]
+  /**
+   * 地铁线路（slug）。与 `metro`（站点）同属 `metro` 维度，站点从属于线路。
+   * 同时出现时以站点为准：站点已经唯一确定线路，线路条件被忽略（见 `applyBuildingFilters`），
+   * 不会拼出「1 号线 + 2 号线的站」这种恒空组合。
+   */
+  metroLine?: readonly string[]
   leasableAreaMin?: number
   leasableAreaMax?: number
-  /** 竣工年代下限，四位年份，如 2010 */
-  completedAfter?: number
   /** true 时只保留 leasableArea > 0 的楼盘 */
   onlyWithStock?: boolean
   /** 关键词：楼盘名 / 行政区 / 商圈 / 地铁名，站内搜索与 `/buildings?q=` 共用。 */
@@ -124,18 +127,6 @@ function parseKeyword(sp: URLSearchParams): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
-function parseCompletedAfter(sp: URLSearchParams): number | undefined {
-  const raw = sp.get('completedAfter')
-  if (raw == null || raw === '') return undefined
-  // 严格四位年份格式，拒绝 "19"、"2010.5"、"2010abc" 这类噪声输入
-  if (!/^\d{4}$/.test(raw)) return undefined
-  const year = Number(raw)
-  const currentYear = new Date().getFullYear()
-  // 上界为当前年份，含边界：今年竣工的楼盘也应能被 completedAfter=今年 筛出。
-  if (year < MIN_COMPLETED_YEAR || year > currentYear) return undefined
-  return year
-}
-
 function parsePage(sp: URLSearchParams): number {
   const raw = sp.get('page')
   if (raw == null || raw === '') return 1
@@ -172,6 +163,7 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
   // 因此不丢弃、只在展示时不回显取值（见 `lib/frontend/filter-dimension.ts`）。
   const grade = keepWhitelisted(parseDedupedStringArray(sp, 'grade'), BUILDING_GRADE_VALUES)
   const metro = parseDedupedStringArray(sp, 'metro')
+  const metroLine = parseDedupedStringArray(sp, 'metroLine')
 
   let leasableAreaMin = parsePositiveNumber(sp, 'leasableAreaMin')
   let leasableAreaMax = parsePositiveNumber(sp, 'leasableAreaMax')
@@ -180,7 +172,6 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
     leasableAreaMax = undefined
   }
 
-  const completedAfter = parseCompletedAfter(sp)
   const onlyWithStock = sp.get('onlyWithStock') === '1' ? true : undefined
   const business = sp.get('business') === 'sale' ? ('sale' as const) : undefined
   const q = parseKeyword(sp)
@@ -194,9 +185,9 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
     ...(businessArea ? { businessArea } : {}),
     ...(grade ? { grade } : {}),
     ...(metro ? { metro } : {}),
+    ...(metroLine ? { metroLine } : {}),
     ...(leasableAreaMin != null ? { leasableAreaMin } : {}),
     ...(leasableAreaMax != null ? { leasableAreaMax } : {}),
-    ...(completedAfter != null ? { completedAfter } : {}),
     ...(onlyWithStock != null ? { onlyWithStock } : {}),
     ...(business ? { business } : {}),
     sort,
@@ -218,10 +209,10 @@ export function buildBuildingCanonicalParams(input: BuildingSearchInput): URLSea
   if (input.district) for (const v of [...input.district].sort()) sp.append('district', v)
   if (input.businessArea) for (const v of [...input.businessArea].sort()) sp.append('businessArea', v)
   if (input.grade) for (const v of [...input.grade].sort()) sp.append('grade', v)
+  if (input.metroLine) for (const v of [...input.metroLine].sort()) sp.append('metroLine', v)
   if (input.metro) for (const v of [...input.metro].sort()) sp.append('metro', v)
   if (input.leasableAreaMin != null) sp.set('leasableAreaMin', String(input.leasableAreaMin))
   if (input.leasableAreaMax != null) sp.set('leasableAreaMax', String(input.leasableAreaMax))
-  if (input.completedAfter != null) sp.set('completedAfter', String(input.completedAfter))
   if (input.onlyWithStock) sp.set('onlyWithStock', '1')
   if (input.business) sp.set('business', input.business)
   if (input.sort !== DEFAULT_SORT) sp.set('sort', input.sort)
@@ -261,8 +252,6 @@ function completionYearOf(doc: BuildingSummaryViewModel): number | null {
  * 都视为不命中——绝不能当 0 处理：0 是「确认无在租」，undefined 是「未知」，
  * 两者混淆会让「面积≥1000」筛选把未知楼盘错误地当作 0 排除（这一点恰好与预期
  * 结果一致，但语义上必须显式判断，不能依赖 `0 >= 1000` 恰好为 false 的巧合）。
- *
- * `completedAfter` 比较 `completionDate` 的年份；该字段缺失或非法同样视为不命中。
  */
 export function applyBuildingFilters(
   docs: readonly BuildingSummaryViewModel[],
@@ -272,12 +261,15 @@ export function applyBuildingFilters(
   const businessAreaSet = input.businessArea ? new Set(input.businessArea) : null
   const gradeSet = input.grade ? new Set(input.grade) : null
   const metroSet = input.metro ? new Set(input.metro) : null
+  // 站点优先：选了站点就不再看线路（站点已决定线路，线路条件只会让不一致的 URL 恒空）。
+  const metroLineSet = !metroSet && input.metroLine ? new Set(input.metroLine) : null
 
   return docs.filter((doc) => {
     if (districtSet && (!doc.district || !districtSet.has(doc.district.slug))) return false
     if (businessAreaSet && (!doc.businessDistrict || !businessAreaSet.has(doc.businessDistrict.slug))) return false
     if (gradeSet && !gradeSet.has(normalizeBuildingGrade(doc.grade) ?? '')) return false
     if (metroSet && (!doc.nearestMetro || !metroSet.has(doc.nearestMetro.slug))) return false
+    if (metroLineSet && (!doc.nearestMetro?.line || !metroLineSet.has(doc.nearestMetro.line.slug))) return false
 
     if (input.onlyWithStock) {
       // 与 partitionByStock 同一 OR 语义：listingCount 是权威在租信号，
@@ -293,10 +285,6 @@ export function applyBuildingFilters(
       if (doc.leasableArea == null || doc.leasableArea > input.leasableAreaMax) return false
     }
 
-    if (input.completedAfter != null) {
-      const year = completionYearOf(doc)
-      if (year == null || year < input.completedAfter) return false
-    }
 
     return true
   })
@@ -375,15 +363,14 @@ export type BuildingSearchDimension =
   | 'grade'
   | 'metro'
   | 'leasableArea'
-  | 'completedAfter'
   | 'onlyWithStock'
 
 /**
- * 「清除全部」的作用域：楼盘页七个维度全部可清。
+ * 「清除全部」的作用域：楼盘页六个维度全部可清。
  *
  * 与房源页 `LISTING_CLEARABLE_DIMENSIONS` 刻意不同——那边把 `priceUnit` 排除在外
  * （换单位由分段控件负责，不归「清除条件」管），楼盘页没有这类「看哪一类价格」的
- * 类目型状态，七个维度都是用户自己叠加的收窄条件。
+ * 类目型状态，六个维度都是用户自己叠加的收窄条件。
  */
 export const BUILDING_CLEARABLE_DIMENSIONS: readonly BuildingSearchDimension[] = [
   'district',
@@ -391,7 +378,6 @@ export const BUILDING_CLEARABLE_DIMENSIONS: readonly BuildingSearchDimension[] =
   'grade',
   'metro',
   'leasableArea',
-  'completedAfter',
   'onlyWithStock',
 ]
 
@@ -402,9 +388,9 @@ export const BUILDING_DIMENSION_PARAM_KEYS: Readonly<
   district: ['district'],
   businessArea: ['businessArea'],
   grade: ['grade'],
-  metro: ['metro'],
+  // 站点与线路同属一个维度：「取消地铁」「清除全部」要连线路一起清，只清一半会长回来。
+  metro: ['metro', 'metroLine'],
   leasableArea: ['leasableAreaMin', 'leasableAreaMax'],
-  completedAfter: ['completedAfter'],
   onlyWithStock: ['onlyWithStock'],
 }
 
@@ -417,7 +403,7 @@ export const BUILDING_DIMENSION_PARAM_KEYS: Readonly<
  *   2. 空态②的逐条退路命中数——「取消『等级：超甲级』这一个条件后有 8 个」。
  *
  * 与 `omitListingSearchDimensions` 同型；那边 `priceUnit` 还要连带剥派生字段，
- * 楼盘这边七个维度彼此独立，只需按 `BUILDING_DIMENSION_PARAM_KEYS` 描述的字段删。
+ * 楼盘这边六个维度彼此独立，只需按 `BUILDING_DIMENSION_PARAM_KEYS` 描述的字段删。
  */
 export function omitBuildingSearchDimensions(
   input: BuildingSearchInput,
@@ -428,12 +414,14 @@ export function omitBuildingSearchDimensions(
   if (drop.has('district')) delete next.district
   if (drop.has('businessArea')) delete next.businessArea
   if (drop.has('grade')) delete next.grade
-  if (drop.has('metro')) delete next.metro
+  if (drop.has('metro')) {
+    delete next.metro
+    delete next.metroLine
+  }
   if (drop.has('leasableArea')) {
     delete next.leasableAreaMin
     delete next.leasableAreaMax
   }
-  if (drop.has('completedAfter')) delete next.completedAfter
   if (drop.has('onlyWithStock')) delete next.onlyWithStock
   return next as unknown as BuildingSearchInput
 }

@@ -193,11 +193,14 @@ export type BuildingFilteredResult = Readonly<{
     districts: ReadonlyArray<{ slug: string; name: string; count: number }>
     businessAreas: ReadonlyArray<{ slug: string; name: string; count: number }>
     grades: ReadonlyArray<{ value: string; count: number }>
-    metros: ReadonlyArray<{ slug: string; name: string; count: number }>
+    /** 地铁线路（站点的所属线路去重），「地铁」行的候选。 */
+    metroLines: ReadonlyArray<{ slug: string; name: string; count: number }>
+    /** 地铁站，带所属线路 slug；「站点」行只展示选中线路下的站点。 */
+    metros: ReadonlyArray<{ slug: string; name: string; count: number; lineSlug?: string }>
   }>
   /**
    * 单独放宽某一个维度后的命中数（空态②逐条退路：「取消『位置：静安』这一个条件 → 12」）。
-   * 七个维度恒有值，未生效的维度其值等于当前 `totalDocs`（放宽一个没生效的条件不改变结果）。
+   * 六个维度恒有值，未生效的维度其值等于当前 `totalDocs`（放宽一个没生效的条件不改变结果）。
    */
   dimensionHits: Readonly<Record<BuildingSearchDimension, number>>
 }>
@@ -509,7 +512,8 @@ function buildBuildingFacets(
   const districts = new Map<string, { name: string; count: number }>()
   const businessAreas = new Map<string, { name: string; count: number }>()
   const grades = new Map<string, number>()
-  const metros = new Map<string, { name: string; count: number }>()
+  const metros = new Map<string, { name: string; count: number; lineSlug?: string }>()
+  const metroLines = new Map<string, { name: string; count: number }>()
 
   for (const doc of docs) {
     if (doc.district) {
@@ -526,7 +530,15 @@ function buildBuildingFacets(
     }
     if (doc.nearestMetro) {
       const entry = metros.get(doc.nearestMetro.slug)
-      metros.set(doc.nearestMetro.slug, { name: doc.nearestMetro.name, count: (entry?.count ?? 0) + 1 })
+      metros.set(doc.nearestMetro.slug, {
+        name: doc.nearestMetro.name,
+        count: (entry?.count ?? 0) + 1,
+        ...(doc.nearestMetro.line ? { lineSlug: doc.nearestMetro.line.slug } : {}),
+      })
+      if (doc.nearestMetro.line) {
+        const line = metroLines.get(doc.nearestMetro.line.slug)
+        metroLines.set(doc.nearestMetro.line.slug, { name: doc.nearestMetro.line.name, count: (line?.count ?? 0) + 1 })
+      }
     }
   }
 
@@ -534,7 +546,13 @@ function buildBuildingFacets(
     districts: Array.from(districts.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
     businessAreas: Array.from(businessAreas.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
     grades: Array.from(grades.entries()).map(([value, count]) => ({ value, count })),
-    metros: Array.from(metros.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
+    metroLines: Array.from(metroLines.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
+    metros: Array.from(metros.entries()).map(([slug, { name, count, lineSlug }]) => ({
+      slug,
+      name,
+      count,
+      ...(lineSlug ? { lineSlug } : {}),
+    })),
   }
 }
 
@@ -610,11 +628,22 @@ export async function searchBuildingsFiltered(
   // 一旦选了某个商圈，其余区计数全 0（那个商圈只属于当前这个区），「位置」行塌成只剩
   // 已选的那一个区，用户再也切不走。商圈候选只剥 businessArea——district 留着，级联正是靠它成立。
   const districtsWithoutArea = applyBuildingFilters(allDocs, omitBuildingSearchDimensions(input, ['district', 'businessArea']))
+  // 站点候选：剥站点、**留线路**（级联靠它把站点收窄到所选线路）。但选了站点时线路由站点
+  // 决定（过滤口径「站点优先」，视图层也按站点所属线路展示站点行），此时 URL 上不一致的
+  // metroLine 不能再参与计数——否则那条线的其它站点全是 0 被隐藏，用户切不过去。
+  const stationsScope = applyBuildingFilters(allDocs, {
+    ...omitBuildingSearchDimensions(input, ['metro']),
+    ...(input.metroLine && !input.metro ? { metroLine: input.metroLine } : {}),
+  })
   const facets = {
     districts: overlay(allFacets.districts, buildBuildingFacets(districtsWithoutArea).districts, (d) => d.slug),
     businessAreas: overlay(allFacets.businessAreas, facetsOf('businessArea').businessAreas, (a) => a.slug),
     grades: overlay(allFacets.grades, facetsOf('grade').grades, (g) => g.value),
-    metros: overlay(allFacets.metros, facetsOf('metro').metros, (m) => m.slug),
+    // 线路候选连站点一起剥（omitBuildingSearchDimensions('metro') 同时删 metro / metroLine）：
+    // 只剥线路的话，选了站点后其余线路计数全 0，「地铁」行塌成只剩一条线。
+    metroLines: overlay(allFacets.metroLines, facetsOf('metro').metroLines, (l) => l.slug),
+    // 站点候选只剥站点、**留着线路**：级联正是靠线路条件把站点收窄到所选线路。
+    metros: overlay(allFacets.metros, buildBuildingFacets(stationsScope).metros, (m) => m.slug),
   }
   const dimensionHits = {
     district: hitsOf('district'),
@@ -622,7 +651,6 @@ export async function searchBuildingsFiltered(
     grade: hitsOf('grade'),
     metro: hitsOf('metro'),
     leasableArea: hitsOf('leasableArea'),
-    completedAfter: hitsOf('completedAfter'),
     onlyWithStock: hitsOf('onlyWithStock'),
   }
 

@@ -54,21 +54,32 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
     ['grade', 'grade'], ['metro', 'metro_slug']] as const) {
     if (input[key]) conditions[key] = `${column} = ANY(${bind(input[key])}::text[])`;
   }
+  // 站点优先：选了站点就不再看线路，口径与内存路径 applyBuildingFilters 一致——
+  // 命中集合与站点候选的计数都不再用 URL 上（可能不一致的）线路。
+  // 线路条件单独留一份：站点候选的计数要「剥站点、留线路」（见 facet 的 keepMetroLine）。
+  const metroLineCondition = input.metroLine && !input.metro
+    ? `line_slug = ANY(${bind(input.metroLine)}::text[])` : null;
+  if (metroLineCondition) conditions.metro = metroLineCondition;
   const areaConditions: string[] = [];
   if (input.leasableAreaMin != null) areaConditions.push(`leasable_area >= ${bind(input.leasableAreaMin)}`);
   if (input.leasableAreaMax != null) areaConditions.push(`leasable_area <= ${bind(input.leasableAreaMax)}`);
   if (areaConditions.length) conditions.leasableArea = areaConditions.join(' AND ');
-  if (input.completedAfter != null) conditions.completedAfter = `completion_year >= ${bind(input.completedAfter)}`;
   if (input.onlyWithStock) conditions.onlyWithStock = 'has_stock';
-  const filter = (omitted: readonly BuildingSearchDimension[] = []) => Object.entries(conditions)
-    .filter(([key]) => !omitted.includes(key as BuildingSearchDimension)).map(([, condition]) => `(${condition})`).join(' AND ') || 'TRUE';
-  const facet = (slugColumn: string, nameColumn: string | null, omitted: readonly BuildingSearchDimension[]) => {
+  // keepMetroLine：剥掉 metro 维度时仍保留线路条件（站点候选靠它收窄到所选线路）。
+  const filter = (omitted: readonly BuildingSearchDimension[] = [], keepMetroLine = false) => [
+    ...Object.entries(conditions)
+      .filter(([key]) => !omitted.includes(key as BuildingSearchDimension)).map(([, condition]) => condition),
+    ...(keepMetroLine && metroLineCondition && omitted.includes('metro') ? [metroLineCondition] : []),
+  ].map(condition => `(${condition})`).join(' AND ') || 'TRUE';
+  const facet = (slugColumn: string, nameColumn: string | null, omitted: readonly BuildingSearchDimension[],
+    opts: { keepMetroLine?: boolean; extraSlugColumn?: string } = {}) => {
     const object = nameColumn
-      ? "jsonb_build_object('slug', slug, 'name', name, 'count', cnt)"
+      ? `jsonb_build_object('slug', slug, 'name', name, 'count', cnt${opts.extraSlugColumn ? ", 'lineSlug', extra_slug" : ''})`
       : "jsonb_build_object('value', slug, 'count', cnt)";
     return `(SELECT COALESCE(jsonb_agg(${object} ORDER BY first_seen), '[]'::jsonb) FROM (
       SELECT ${slugColumn} AS slug, ${nameColumn ? `(array_agg(${nameColumn} ORDER BY universe_order DESC))[1] AS name,` : ''}
-        COUNT(*) FILTER (WHERE ${filter(omitted)})::int AS cnt, MIN(universe_order) AS first_seen
+        ${opts.extraSlugColumn ? `(array_agg(${opts.extraSlugColumn} ORDER BY universe_order DESC))[1] AS extra_slug,` : ''}
+        COUNT(*) FILTER (WHERE ${filter(omitted, opts.keepMetroLine)})::int AS cnt, MIN(universe_order) AS first_seen
       FROM base WHERE ${slugColumn} IS NOT NULL ${nameColumn ? '' : `AND ${slugColumn} <> ''`}
       GROUP BY ${slugColumn}) candidates)`;
   };
@@ -87,6 +98,7 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
   ), projected AS MATERIALIZED (
     SELECT b.id, b.name AS building_name, dist.slug AS district_slug, dist.name AS district_name,
       ba.slug AS area_slug, ba.name AS area_name, metro.slug AS metro_slug, metro.name AS metro_name,
+      mline.slug AS line_slug, mline.name AS line_name,
       ${normalizedGrade} AS grade,
       COALESCE(array_position($7::text[], ${normalizedGrade}), cardinality($7::text[]) + 1) AS grade_rank,
       ${q ? `(CASE
@@ -105,6 +117,7 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
     JOIN locations dist ON dist.id = b.district_id
     LEFT JOIN locations ba ON ba.id = b.business_district_id
     LEFT JOIN locations metro ON metro.id = b.nearest_metro_id
+    LEFT JOIN locations mline ON mline.id = metro.parent_id AND mline.type = 'metro_line'
     JOIN unnest($5::int[]) WITH ORDINALITY AS tie(id, slug_order) ON tie.id = b.id
     LEFT JOIN stock ON stock.building_id = b.id
     WHERE b.status = 'published' AND b.operational_status = 'active' AND b.deleted_at IS NULL
@@ -127,7 +140,8 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
       'districts', ${facet('district_slug', 'district_name', ['district', 'businessArea'])},
       'businessAreas', ${facet('area_slug', 'area_name', ['businessArea'])},
       'grades', ${facet('grade', null, ['grade'])},
-      'metros', ${facet('metro_slug', 'metro_name', ['metro'])}),
+      'metroLines', ${facet('line_slug', 'line_name', ['metro'])},
+      'metros', ${facet('metro_slug', 'metro_name', ['metro'], { keepMetroLine: true, extraSlugColumn: 'line_slug' })}),
     'dimensionHits', jsonb_build_object(${BUILDING_CLEARABLE_DIMENSIONS.map(dimension =>
       `'${dimension}', (SELECT COUNT(*) FILTER (WHERE ${filter([dimension])})::int FROM base)`).join(',')})
   ) AS result` };
