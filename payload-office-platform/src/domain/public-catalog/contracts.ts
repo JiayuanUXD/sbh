@@ -119,6 +119,17 @@ export type DistrictViewModel = Readonly<{
 }>
 
 /**
+ * 最近地铁站：在区域视图之上多带所属线路。
+ *
+ * 线路取自站点的 `parent`（地铁站从属于线路，见 `location-hierarchy.ts`）。换乘站只存
+ * 一条记录、归首开线路，所以这里的 `line` 是「首开线路」，不是「途经的全部线路」。
+ * 站点的 parent 没被展开（只是 id）时没有 `line`，调用方按「线路未知」处理。
+ */
+export type MetroStationViewModel = DistrictViewModel & Readonly<{
+  line?: Readonly<{ slug: string; name: string }>
+}>
+
+/**
  * 资讯详情页的「相关区域」。
  *
  * `citySlug` 是该区域**所属城市**的 slug，供落地页链接 `/{city}/area/{slug}` 使用：资讯本身不带城市，
@@ -159,7 +170,7 @@ export type BuildingSummaryViewModel = Readonly<PublicCityIdentity & {
    */
   coordinates?: CoordinatesViewModel
   /** 最近地铁站（P1 Task 3 位置面板静态区展示） */
-  nearestMetro?: DistrictViewModel
+  nearestMetro?: MetroStationViewModel
   /** 在租面积（楼内有效房源面积总和，单位㎡）；楼盘列表页卡片展示 */
   leasableArea?: number
   /**
@@ -171,7 +182,7 @@ export type BuildingSummaryViewModel = Readonly<PublicCityIdentity & {
    * 不渲染 0。楼盘列表页卡片展示。
    */
   listingCount?: number
-  /** 竣工日期（ISO 字符串）；楼盘列表页 completedAfter 筛选与 completion-desc 排序用 */
+  /** 竣工日期（ISO 字符串）；楼盘列表页 completion-desc 排序用 */
   completionDate?: string
   /**
    * 标准层面积（单位㎡），来自 Buildings.developerAndScale.typicalFloorArea——

@@ -11,12 +11,13 @@ import { enumLabel, vocabularyName } from './filter-dimension'
  * 楼盘列表页筛选行（形态 C）的构造。
  *
  * 设计依据：docs/SBH设计任务讨论/楼盘列表.dc.html specRows「筛选维度」——
- * 区域 · 商圈 · 等级 · 地铁 · 在租面积 · 竣工年代（6 行文本条件；『仅看有在租』开关
- * 已于 OPT-103 移除，`onlyWithStock` 维度保留给老链接补 chip）。
+ * 区域 · 商圈 · 等级 · 地铁（线路 → 站点）· 在租面积（文本条件行；『仅看有在租』开关
+ * 已于 OPT-103 移除，`onlyWithStock` 维度保留给老链接补 chip；竣工年代筛选已下线，
+ * 老链接上的 `?completedAfter=` 解析时被忽略）。
  *
  * ## 与 comp 的两处差异（显式取舍，不是遗漏）
  *
- *   - **在租面积 / 竣工年代是「下限」单选而不是 comp 的区间桶**：`FilterRow` 一行
+ *   - **在租面积是「下限」单选而不是 comp 的区间桶**：`FilterRow` 一行
  *     只写一个 URL 参数（`buildOptionHref` 的契约），区间要同时写两个键。与房源页
  *     的价格行同一处置（见 listing-filter-rows.ts 顶部注释），选项文案照实写
  *     「500 ㎡以上」「2010 年后」，不写含糊的「500–2000㎡」再偷偷只按下限查。
@@ -67,15 +68,6 @@ export type BuildingFilterDimensionSpec = Readonly<{
 /** 在租面积下限门槛（㎡）：产品档位，不是从数据算出来的分位数，跨城市跨时间可比。 */
 const AREA_MIN_BUCKETS: readonly number[] = [500, 1000, 2000, 5000]
 
-/**
- * 竣工年代下限门槛。
- *
- * comp 的四档是区间（2020 后 / 2010–2019 / 2000–2009 / 2000 前），这里按下限重述为
- * 单调档位：越靠前越新。「2000 年前」在下限模型里等价于「不限」，因此不出现——
- * 一个点了等于什么都没筛的选项就是死控件。
- */
-const COMPLETED_AFTER_BUCKETS: readonly number[] = [2020, 2010, 2000]
-
 /** 数字读法：与 listing-filter-rows.ts 的 compactNumber 同一惯例。 */
 function compactNumber(value: number): string {
   if (value >= 10000 && value % 1000 === 0) {
@@ -95,12 +87,13 @@ export type BuildingFacets = Readonly<{
   districts: ReadonlyArray<{ slug: string; name: string; count: number }>
   businessAreas: ReadonlyArray<{ slug: string; name: string; count: number }>
   grades: ReadonlyArray<{ value: string; count: number }>
-  metros: ReadonlyArray<{ slug: string; name: string; count: number }>
+  metroLines: ReadonlyArray<{ slug: string; name: string; count: number }>
+  metros: ReadonlyArray<{ slug: string; name: string; count: number; lineSlug?: string }>
 }>
 
 export type BuildingFilterRowsResult = Readonly<{
   rows: readonly FilterRow[]
-  /** 七个维度（六行文本条件 + 保留给老链接的 onlyWithStock 开关），顺序即空态②退路的展示顺序。 */
+  /** 六个维度（五行文本条件 + 保留给老链接的 onlyWithStock 开关），顺序即空态②退路的展示顺序。 */
   dimensions: readonly BuildingFilterDimensionSpec[]
 }>
 
@@ -119,8 +112,8 @@ export function buildBuildingFilterRows(params: Readonly<{
   const activeBusinessArea = firstOrUndefined(input.businessArea)
   const activeGrade = firstOrUndefined(input.grade)
   const activeMetro = firstOrUndefined(input.metro)
+  const activeMetroLineParam = firstOrUndefined(input.metroLine)
   const activeAreaMin = input.leasableAreaMin != null ? String(input.leasableAreaMin) : undefined
-  const activeCompletedAfter = input.completedAfter != null ? String(input.completedAfter) : undefined
 
   const districtOptions = facets.districts
     .filter((d) => keepOption(d.count, d.slug === activeDistrict))
@@ -143,18 +136,36 @@ export function buildBuildingFilterRows(params: Readonly<{
     .filter((g) => keepOption(g.count, g.value === activeGrade))
     .map((g) => ({ value: g.value, label: BUILDING_GRADE_LABELS[g.value], ...(g.count > 0 ? { count: g.count } : {}) }))
 
-  const metroOptions = facets.metros
-    .filter((m) => keepOption(m.count, m.slug === activeMetro))
-    .map((m) => ({ value: m.slug, label: m.name, ...(m.count > 0 ? { count: m.count } : {}) }))
+  /**
+   * 地铁两级（线路 → 站点），级联闸门与商圈同型：**没选线路时站点行恒为空**，整行由
+   * `FilterFormC` 的「无候选值的行不渲染」规则隐藏——上百个站平铺进一条文本行放不下。
+   *
+   * 当前线路：选了站点就以**站点所属线路**为准（`?metro=<站点>` 老链接、搜索联想进来的
+   * 都只带站点，线路要反推；URL 上同时带了不一致的 `metroLine` 时站点说了算，与过滤口径一致），
+   * 否则用 URL 上的 `metroLine`。站点不在候选里（名字叫不出）就反推不出线路，
+   * 此时站点行不渲染，条件由编排层的补充 chip 展示与清除。
+   */
+  const activeMetroLine =
+    (activeMetro ? facets.metros.find((m) => m.slug === activeMetro)?.lineSlug : undefined) ??
+    activeMetroLineParam
+
+  // 线路按名字的自然序排：1 号线 < 2 号线 < 10 号线，非数字线名（浦江线、机场联络线）殿后。
+  const lineCollator = new Intl.Collator('zh-Hans-CN', { numeric: true })
+  const metroLineOptions = [...facets.metroLines]
+    .filter((l) => keepOption(l.count, l.slug === activeMetroLine))
+    .sort((a, b) => lineCollator.compare(a.name, b.name))
+    .map((l) => ({ value: l.slug, label: l.name, ...(l.count > 0 ? { count: l.count } : {}) }))
+
+  const metroOptions = activeMetroLine
+    ? facets.metros
+        .filter((m) => m.lineSlug === activeMetroLine)
+        .filter((m) => keepOption(m.count, m.slug === activeMetro))
+        .map((m) => ({ value: m.slug, label: m.name, ...(m.count > 0 ? { count: m.count } : {}) }))
+    : []
 
   const areaOptions = AREA_MIN_BUCKETS.map((threshold) => ({
     value: String(threshold),
     label: `${compactNumber(threshold)} ㎡以上`,
-  }))
-
-  const completionOptions = COMPLETED_AFTER_BUCKETS.map((year) => ({
-    value: String(year),
-    label: `${year} 年后`,
   }))
 
   const rows: FilterRow[] = [
@@ -162,9 +173,10 @@ export function buildBuildingFilterRows(params: Readonly<{
     { key: 'district', label: '位置', options: districtOptions, clearsKeys: ['businessArea'], ...(activeDistrict ? { activeValue: activeDistrict } : {}) },
     { key: 'businessArea', label: '商圈', options: businessAreaOptions, ...(activeBusinessArea ? { activeValue: activeBusinessArea } : {}) },
     { key: 'grade', label: '等级', options: gradeOptions, ...(activeGrade ? { activeValue: activeGrade } : {}) },
-    { key: 'metro', label: '地铁', options: metroOptions, ...(activeMetro ? { activeValue: activeMetro } : {}) },
+    // 换线 / 清线连站点一起清：站点从属于线路，留着上一条线的站点就是「2 号线 + 1 号线的站」这种恒空组合。
+    { key: 'metroLine', label: '地铁', options: metroLineOptions, clearsKeys: ['metro'], ...(activeMetroLine ? { activeValue: activeMetroLine } : {}) },
+    { key: 'metro', label: '站点', options: metroOptions, ...(activeMetro ? { activeValue: activeMetro } : {}) },
     { key: 'leasableAreaMin', label: '在租面积', options: areaOptions, ...(activeAreaMin ? { activeValue: activeAreaMin } : {}) },
-    { key: 'completedAfter', label: '竣工年代', options: completionOptions, ...(activeCompletedAfter ? { activeValue: activeCompletedAfter } : {}) },
   ]
 
   // 区域 / 地铁的名称只能来自 facets。facets 的候选清单取自这次扫描的全集
@@ -174,7 +186,10 @@ export function buildBuildingFilterRows(params: Readonly<{
   // 同样会缺席。存在性判定不在这里做（区域在路由层按地点表判，见
   // `(frontend)/_lib/search-input.ts`；地铁没有词表可判，一律保留过滤）。
   const districtName = vocabularyName(activeDistrict, facets.districts)
-  const metroName = vocabularyName(activeMetro, facets.metros)
+  // 维度文案：选了站点说站点，只选了线路说线路（两者在同一个「地铁」维度里，一个 chip）。
+  const metroName = activeMetro
+    ? vocabularyName(activeMetro, facets.metros)
+    : vocabularyName(activeMetroLineParam, facets.metroLines)
 
   const dimensions: BuildingFilterDimensionSpec[] = [
     {
@@ -205,7 +220,7 @@ export function buildBuildingFilterRows(params: Readonly<{
       dimension: 'metro',
       label: '地铁',
       paramKeys: BUILDING_DIMENSION_PARAM_KEYS.metro,
-      active: activeMetro != null,
+      active: activeMetro != null || activeMetroLineParam != null,
       activeText: metroName,
     },
     {
@@ -230,13 +245,6 @@ export function buildBuildingFilterRows(params: Readonly<{
           ? { leasableAreaMax: `${compactNumber(input.leasableAreaMax)} ㎡以下` }
           : {}),
       },
-    },
-    {
-      dimension: 'completedAfter',
-      label: '竣工年代',
-      paramKeys: BUILDING_DIMENSION_PARAM_KEYS.completedAfter,
-      active: input.completedAfter != null,
-      activeText: input.completedAfter != null ? `${input.completedAfter} 年后` : null,
     },
     {
       dimension: 'onlyWithStock',

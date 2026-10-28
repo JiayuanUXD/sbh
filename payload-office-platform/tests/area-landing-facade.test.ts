@@ -62,13 +62,13 @@ function makeAdapter(overrides: Partial<SupplyAdapter> = {}) {
   return Object.assign(adapter, { articleQuery: findArticlesByRelatedLocations })
 }
 
-const DIMENSION_HITS = { district: 0, businessArea: 0, grade: 0, metro: 0, leasableArea: 0, completedAfter: 0, onlyWithStock: 0 }
+const DIMENSION_HITS = { district: 0, businessArea: 0, grade: 0, metro: 0, leasableArea: 0, onlyWithStock: 0 }
 
 function searchResult(docs: readonly BuildingSummaryViewModel[]): BuildingFilteredResult {
   return {
     docs, groups: { withStock: docs, withoutStock: [] }, totalDocs: docs.length, withStockTotal: docs.length,
     withoutStockTotal: 0, unfilteredTotalDocs: docs.length, page: 1, totalPages: 1,
-    facets: { districts: [], businessAreas: [], grades: [], metros: [] },
+    facets: { districts: [], businessAreas: [], grades: [], metroLines: [], metros: [] },
     dimensionHits: DIMENSION_HITS,
   }
 }

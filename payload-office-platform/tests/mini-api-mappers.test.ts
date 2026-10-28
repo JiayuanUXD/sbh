@@ -429,14 +429,13 @@ describe('Mini API mappers', () => {
       unfilteredTotalDocs: 25,
       page: 1,
       totalPages: 2,
-      facets: { districts: [], businessAreas: [], grades: [], metros: [] },
+      facets: { districts: [], businessAreas: [], grades: [], metroLines: [], metros: [] },
       dimensionHits: {
         district: 25,
         businessArea: 25,
         grade: 25,
         metro: 25,
         leasableArea: 25,
-        completedAfter: 25,
         onlyWithStock: 25,
       },
     } satisfies BuildingFilteredResult

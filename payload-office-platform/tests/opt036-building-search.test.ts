@@ -23,22 +23,16 @@ describe('parseBuildingSearchInput', () => {
   it('数值维度非法或越界时丢弃而非报错', () => {
     expect(parse('leasableAreaMin=abc').leasableAreaMin).toBeUndefined()
     expect(parse('leasableAreaMin=-5').leasableAreaMin).toBeUndefined()
-    expect(parse('completedAfter=19').completedAfter).toBeUndefined()
-    expect(parse('completedAfter=2010').completedAfter).toBe(2010)
   })
   it('数值维度拒绝前后空白，与 parseBuildingSupplyNumber 口径一致', () => {
     expect(parse('leasableAreaMin=%20500').leasableAreaMin).toBeUndefined()
     expect(parse('leasableAreaMin=500%20').leasableAreaMin).toBeUndefined()
     expect(parse('leasableAreaMin=500').leasableAreaMin).toBe(500)
   })
-  it('completedAfter 上界为当前年份（含边界），拒绝当前年份+1', () => {
-    const currentYear = new Date().getFullYear()
-    expect(parse(`completedAfter=${currentYear}`).completedAfter).toBe(currentYear)
-    expect(parse(`completedAfter=${currentYear + 1}`).completedAfter).toBeUndefined()
-  })
-  it('completedAfter 下界为 1900（含边界），拒绝 1899', () => {
-    expect(parse('completedAfter=1900').completedAfter).toBe(1900)
-    expect(parse('completedAfter=1899').completedAfter).toBeUndefined()
+  it('竣工年代筛选已下线：老链接上的 completedAfter 被忽略，不进 canonical、不影响其它条件', () => {
+    const input = parse('completedAfter=2010&grade=grade-a')
+    expect('completedAfter' in input).toBe(false)
+    expect(buildBuildingCanonicalParams(input).toString()).toBe('grade=grade-a')
   })
   it('min 大于 max 时两者都丢弃，不产生空结果陷阱', () => {
     const input = parse('leasableAreaMin=900&leasableAreaMax=100')

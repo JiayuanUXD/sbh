@@ -31,7 +31,7 @@ type BuildingsResult = Awaited<ReturnType<typeof getCachedSearchBuildingsFiltere
  * OPT-036 楼盘列表页编排层。
  *
  * 设计依据：docs/SBH设计任务讨论/楼盘列表.dc.html。组合顺序照 comp：
- * 页头 → 筛选条 C（6 行文本条件：位置 / 商圈 / 等级 / 地铁 / 在租面积 / 竣工年代；
+ * 页头 → 筛选条 C（6 行文本条件：位置 / 商圈 / 等级 / 地铁 / 站点 / 在租面积；
  * OPT-103 移除了「仅看有在租」开关，`?onlyWithStock=1` 老链接经 extraPicks 补 chip）
  * → 结果工具条 → 有在租组（4 列卡片网格）→ 分组标题 → 暂无在租组（两列紧凑行）→ 分页。
  *
@@ -240,7 +240,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   const isOutOfRange = page > totalPages && totalDocs > 0
   const isEmpty = totalDocs === 0
   // 有筛选 → 空态②（条件收得太紧，逐条给退路）；无筛选 → 空态①（这个城市还没有
-  // 收录楼盘）。楼盘页七个维度全是收窄型，没有房源页那种「只挑了类目」的中间态。
+  // 收录楼盘）。楼盘页六个维度全是收窄型，没有房源页那种「只挑了类目」的中间态。
   const showEmptyFiltered = isEmpty && hasActiveFilters
   const showEmptyNoStock = isEmpty && !hasActiveFilters
 

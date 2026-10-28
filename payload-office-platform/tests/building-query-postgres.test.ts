@@ -15,9 +15,11 @@ const cases = ['', 'page=2', 'page=3', 'page=999', 'sort=area-desc', 'sort=grade
   'district=jingan', 'district=second', 'district=missing', 'district=jingan&district=second',
   'businessArea=area-3', 'businessArea=missing', 'district=jingan&businessArea=area-4',
   'grade=grade-a', 'grade=grade-b', 'grade=ungraded', 'grade=ungraded&sort=grade', 'grade=ungraded&grade=grade-b', 'metro=metro', 'metro=missing',
+  'metroLine=line-2', 'metroLine=line-1', 'metroLine=missing', 'metro=metro&metroLine=line-1',
+  'metroLine=line-2&district=jingan', 'metro=metro-b', 'metroLine=line-1&grade=grade-a',
   'leasableAreaMin=100', 'leasableAreaMax=200', 'leasableAreaMin=100&leasableAreaMax=500',
-  'completedAfter=2020', 'completedAfter=2000', 'onlyWithStock=1',
-  'district=jingan&grade=grade-a&onlyWithStock=1', 'grade=ungraded&completedAfter=2020',
+  'onlyWithStock=1',
+  'district=jingan&grade=grade-a&onlyWithStock=1', 'grade=ungraded&sort=completion-desc',
   'metro=metro&leasableAreaMin=1000', 'district=missing&grade=grade-a']
 
 // 仅本地隔离库、单连接事务内临时表；正式表不受影响。
@@ -31,7 +33,7 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
     const payload = await getPayload({ config })
     client = await payload.db.pool.connect()
     await client.query('BEGIN')
-    await client.query(`CREATE TEMP TABLE locations (id int, slug text, name text, type text, status text) ON COMMIT DROP;
+    await client.query(`CREATE TEMP TABLE locations (id int, slug text, name text, type text, status text, parent_id int) ON COMMIT DROP;
       CREATE TEMP TABLE media (id int, url text) ON COMMIT DROP;
       CREATE TEMP TABLE buildings (id int, slug text, name text, city_id int, district_id int,
         business_district_id int, nearest_metro_id int, cover_image_id int, grade text,
@@ -41,9 +43,11 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
       CREATE TEMP TABLE listing_reports (target_listing_id int, supply_paused boolean) ON COMMIT DROP;
       CREATE TEMP TABLE listings (id int, building_id int, merchant_id int, business_type text, area numeric,
         publication_status text, review_status text, supply_visibility_hold text, deleted_at timestamptz) ON COMMIT DROP;
-      INSERT INTO locations VALUES (100,'shanghai','上海','city','active'),(1,'jingan','静安','district','active'),
-        (2,'second','另一区','district','active'),(3,'area-3','商圈三','business_area','active'),
-        (4,'area-4','商圈四','business_area','active'),(5,'metro','地铁','metro_station','active');
+      INSERT INTO locations VALUES (100,'shanghai','上海','city','active',NULL),(1,'jingan','静安','district','active',100),
+        (2,'second','另一区','district','active',100),(3,'area-3','商圈三','business_area','active',1),
+        (4,'area-4','商圈四','business_area','active',1),
+        (6,'line-2','2号线','metro_line','active',100),(7,'line-1','1号线','metro_line','active',100),
+        (5,'metro','地铁','metro_station','active',6),(8,'metro-b','地铁乙','metro_station','active',7);
       INSERT INTO media VALUES (9001,'/media/m1.jpg');
       INSERT INTO merchants VALUES (1,'active','valid',NULL),(2,'disabled','valid',NULL);
       INSERT INTO merchants_rels VALUES (1,'serviceCities',100),(1,'serviceCities',100),(2,'serviceCities',100);`)
@@ -51,7 +55,11 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
     for (let id = 1; id <= 60; id++) {
       const district = id % 2 ? DISTRICT_JINGAN : { ...DISTRICT_JINGAN, id: 2, slug: 'second', name: '另一区' }
       const area = makeArea({ id: id % 3 ? 3 : 4, slug: id % 3 ? 'area-3' : 'area-4', name: id % 3 ? '商圈三' : '商圈四' })
-      const metro = id % 2 ? makeArea({ id: 5, slug: 'metro', name: '地铁', type: 'metro_station' }) : null
+      // 两个站分属两条线（站点 parent 展开成线路，与线上 SQL 的 metro.parent_id 对应）；偶数 id 没有最近地铁。
+      const line2 = makeArea({ id: 6, slug: 'line-2', name: '2号线', type: 'metro_line' })
+      const line1 = makeArea({ id: 7, slug: 'line-1', name: '1号线', type: 'metro_line' })
+      const metro = id % 4 === 1 ? makeArea({ id: 5, slug: 'metro', name: '地铁', type: 'metro_station', parent: line2 })
+        : id % 4 === 3 ? makeArea({ id: 8, slug: 'metro-b', name: '地铁乙', type: 'metro_station', parent: line1 }) : null
       const date = id % 5 === 0 ? null : id % 7 === 0 ? '2019-12-31T23:59:59Z' : `${2000 + id % 25}-01-01T00:00:00Z`
       const doc = makeBuilding({ id, slug: `building-${id % 2 ? '_' : '-'}${id}`, district,
         businessDistrict: area, nearestMetro: metro, grade: grades[id % grades.length], completionDate: date,

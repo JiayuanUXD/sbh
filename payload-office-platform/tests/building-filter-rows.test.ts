@@ -15,6 +15,7 @@ const FACETS: BuildingFacets = {
     { slug: 'bund', name: '外滩', count: 0 },
   ],
   grades: [{ value: 'grade-a', count: 3 }],
+  metroLines: [],
   metros: [],
 }
 
@@ -22,9 +23,9 @@ const rowsFor = (query: string) =>
   buildBuildingFilterRows({ input: parseBuildingSearchInput(new URLSearchParams(query)), facets: FACETS })
 
 describe('楼盘筛选行：商圈', () => {
-  it('行序：位置 → 商圈 → 等级 → 地铁 → 在租面积 → 竣工年代；没有开关行', () => {
+  it('行序：位置 → 商圈 → 等级 → 地铁（线路）→ 站点 → 在租面积；没有开关行、没有竣工年代行', () => {
     expect(rowsFor('').rows.map((r) => r.key)).toEqual([
-      'district', 'businessArea', 'grade', 'metro', 'leasableAreaMin', 'completedAfter',
+      'district', 'businessArea', 'grade', 'metroLine', 'metro', 'leasableAreaMin',
     ])
   })
 

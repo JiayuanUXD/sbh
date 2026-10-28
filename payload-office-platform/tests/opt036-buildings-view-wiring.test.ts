@@ -88,7 +88,7 @@ function buildResult(over: Partial<{
   unfilteredTotalDocs: number
   page: number
   totalPages: number
-  facets: { districts: { slug: string; name: string; count: number }[]; businessAreas: { slug: string; name: string; count: number }[]; grades: { value: string; count: number }[]; metros: { slug: string; name: string; count: number }[] }
+  facets: { districts: { slug: string; name: string; count: number }[]; businessAreas: { slug: string; name: string; count: number }[]; grades: { value: string; count: number }[]; metroLines: { slug: string; name: string; count: number }[]; metros: { slug: string; name: string; count: number; lineSlug?: string }[] }
 }> = {}) {
   const withStock = over.withStock ?? []
   const withoutStock = over.withoutStock ?? []
@@ -109,6 +109,7 @@ function buildResult(over: Partial<{
       districts: [{ slug: 'jingan', name: '静安区', count: 2 }],
       businessAreas: [],
       grades: [{ value: 'grade-a', count: 3 }],
+      metroLines: [],
       metros: [],
     },
     dimensionHits: {
@@ -117,7 +118,6 @@ function buildResult(over: Partial<{
       grade: 7,
       metro: 7,
       leasableArea: 7,
-      completedAfter: 7,
       onlyWithStock: 7,
     },
   } as unknown as Parameters<typeof CityBuildingsView>[0]['result']
@@ -268,7 +268,7 @@ describe('CityBuildingsView 编排层守卫', () => {
 
   it('筛选条底栏与空态②的「清除全部」是同一个 href（同名必须同义）', () => {
     const tree = renderView(
-      '?district=jingan&grade=grade-a&completedAfter=2010&onlyWithStock=1',
+      '?district=jingan&grade=grade-a&leasableAreaMin=1000&onlyWithStock=1',
       buildResult({ totalDocs: 0 }),
     )
     const filterForm = findByDisplayName(tree, 'FilterFormC')
@@ -349,13 +349,13 @@ describe('CityBuildingsView 编排层守卫', () => {
     ])
   })
 
-  it('落在预设之外的竣工年代（单键维度）走整维度回退分支，同样可见', () => {
+  it('叫不出名字的站点（没有行能显示它）走整维度回退分支，同样可见、可清', () => {
     const picks = (findByDisplayName(
-      renderView('?completedAfter=2013', buildResult({ withStock: [doc('a', 2)] })),
+      renderView('?metro=not-a-station', buildResult({ withStock: [doc('a', 2)] })),
       'FilterFormC',
     )!.node.props as { extraPicks?: readonly { key: string; label: string; href: string }[] }).extraPicks
     expect(picks).toEqual([
-      { key: 'completedAfter', label: '竣工年代：2013 年后', href: '/shanghai/buildings' },
+      { key: 'metro', label: '地铁', href: '/shanghai/buildings' },
     ])
   })
 
@@ -471,10 +471,10 @@ describe('CityBuildingsView 编排层守卫', () => {
     const result = buildResult({ facets: {
       districts: [{ slug: 'jingan', name: '静安区', count: 2 }],
       businessAreas: [{ slug: 'jingan-temple', name: '静安寺', count: 1 }],
-      grades: [], metros: [],
+      grades: [], metroLines: [], metros: [],
     } })
     const keys = (q: string) => shellRows(findByDisplayName(renderView(q, result), 'MobileFilterShell')!).rows.map((r) => r.key)
-    expect(keys('')).toEqual(['district', 'businessArea', 'grade', 'metro', 'leasableAreaMin', 'completedAfter'])
+    expect(keys('')).toEqual(['district', 'businessArea', 'grade', 'metroLine', 'metro', 'leasableAreaMin'])
     const areaRow = (q: string) => shellRows(findByDisplayName(renderView(q, result), 'MobileFilterShell')!).rows.find((r) => r.key === 'businessArea')!
     expect(areaRow('').options).toEqual([])
     expect(areaRow('?district=jingan').options.map((o) => o.value)).toEqual(['jingan-temple'])
