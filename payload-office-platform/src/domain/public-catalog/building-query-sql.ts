@@ -54,11 +54,12 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
     ['grade', 'grade'], ['metro', 'metro_slug']] as const) {
     if (input[key]) conditions[key] = `${column} = ANY(${bind(input[key])}::text[])`;
   }
-  // 站点优先：选了站点就不再看线路，口径与内存路径 applyBuildingFilters 一致。
+  // 站点优先：选了站点就不再看线路，口径与内存路径 applyBuildingFilters 一致——
+  // 命中集合与站点候选的计数都不再用 URL 上（可能不一致的）线路。
   // 线路条件单独留一份：站点候选的计数要「剥站点、留线路」（见 facet 的 keepMetroLine）。
-  const metroLineCondition = input.metroLine
+  const metroLineCondition = input.metroLine && !input.metro
     ? `line_slug = ANY(${bind(input.metroLine)}::text[])` : null;
-  if (metroLineCondition && !input.metro) conditions.metro = metroLineCondition;
+  if (metroLineCondition) conditions.metro = metroLineCondition;
   const areaConditions: string[] = [];
   if (input.leasableAreaMin != null) areaConditions.push(`leasable_area >= ${bind(input.leasableAreaMin)}`);
   if (input.leasableAreaMax != null) areaConditions.push(`leasable_area <= ${bind(input.leasableAreaMax)}`);

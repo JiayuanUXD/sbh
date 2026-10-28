@@ -628,9 +628,12 @@ export async function searchBuildingsFiltered(
   // 一旦选了某个商圈，其余区计数全 0（那个商圈只属于当前这个区），「位置」行塌成只剩
   // 已选的那一个区，用户再也切不走。商圈候选只剥 businessArea——district 留着，级联正是靠它成立。
   const districtsWithoutArea = applyBuildingFilters(allDocs, omitBuildingSearchDimensions(input, ['district', 'businessArea']))
+  // 站点候选：剥站点、**留线路**（级联靠它把站点收窄到所选线路）。但选了站点时线路由站点
+  // 决定（过滤口径「站点优先」，视图层也按站点所属线路展示站点行），此时 URL 上不一致的
+  // metroLine 不能再参与计数——否则那条线的其它站点全是 0 被隐藏，用户切不过去。
   const stationsScope = applyBuildingFilters(allDocs, {
     ...omitBuildingSearchDimensions(input, ['metro']),
-    ...(input.metroLine ? { metroLine: input.metroLine } : {}),
+    ...(input.metroLine && !input.metro ? { metroLine: input.metroLine } : {}),
   })
   const facets = {
     districts: overlay(allFacets.districts, buildBuildingFacets(districtsWithoutArea).districts, (d) => d.slug),

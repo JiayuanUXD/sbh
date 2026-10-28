@@ -9,6 +9,8 @@ import {
 import { buildBuildingPageQuery } from '@/domain/public-catalog/building-query-sql'
 import { mapMetroStation } from '@/domain/public-catalog/mappers'
 import { createSearchContext } from '@/domain/public-catalog/types'
+import { searchBuildingsFiltered } from '@/domain/public-catalog/facade'
+import { DISTRICT_JINGAN, makeArea, makeBuilding, makeHomepageAdapter } from './helpers/opt035-fixtures'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts'
 import { buildBuildingFilterRows, type BuildingFacets } from '@/lib/frontend/building-filter-rows'
 
@@ -154,6 +156,35 @@ describe('mapMetroStation', () => {
   })
 })
 
+describe('站点候选计数（真实查询）：URL 上线路与站点不一致', () => {
+  const line1 = makeArea({ id: 6, slug: 'line-1', name: '1号线', type: 'metro_line' })
+  const line2 = makeArea({ id: 7, slug: 'line-2', name: '2号线', type: 'metro_line' })
+  const st = (id: number, slug: string, parent: ReturnType<typeof makeArea>) =>
+    makeArea({ id, slug, name: slug, type: 'metro_station', parent })
+  const raws = [
+    makeBuilding({ id: 1, slug: 'b1', district: DISTRICT_JINGAN, nearestMetro: st(11, 'jingansi', line2) }),
+    makeBuilding({ id: 2, slug: 'b2', district: DISTRICT_JINGAN, nearestMetro: st(12, 'lujiazui', line2) }),
+    makeBuilding({ id: 3, slug: 'b3', district: DISTRICT_JINGAN, nearestMetro: st(13, 'renmin', line1) }),
+  ]
+  const adapter = makeHomepageAdapter({ findEffectiveBuildings: async () => raws })
+  const ctx = createSearchContext('shanghai', new Date('2026-10-28T00:00:00Z'))
+
+  it('?metroLine=line-1&metro=jingansi（站点属 line-2）：站点说了算，line-2 的其它站点计数不归零', async () => {
+    const result = await searchBuildingsFiltered({ metro: ['jingansi'], metroLine: ['line-1'], ...base }, ctx, adapter)
+    expect(result.docs.map((d) => d.slug)).toEqual(['b1'])
+    const counts = new Map(result.facets.metros.map((m) => [m.slug, m.count]))
+    expect(counts.get('jingansi')).toBe(1)
+    expect(counts.get('lujiazui')).toBe(1)
+  })
+
+  it('只选线路时站点候选仍收窄到该线路', async () => {
+    const result = await searchBuildingsFiltered({ metroLine: ['line-1'], ...base }, ctx, adapter)
+    const counts = new Map(result.facets.metros.map((m) => [m.slug, m.count]))
+    expect(counts.get('renmin')).toBe(1)
+    expect(counts.get('jingansi')).toBe(0)
+  })
+})
+
 describe('楼盘数据库查询：线路', () => {
   const ctx = createSearchContext('shanghai')
   const query = (input: object) => buildBuildingPageQuery({ ...base, ...input }, ctx, [1])
@@ -168,11 +199,13 @@ describe('楼盘数据库查询：线路', () => {
     expect(q.text).toContain('line_slug = ANY(')
   })
 
-  it('选了站点时命中集合只看站点（站点优先，与内存路径一致）；线路仍用于站点候选的收窄', () => {
+  it('选了站点时命中集合与站点候选计数都只看站点（站点优先，与内存路径一致）', () => {
     const q = query({ metro: ['jingansi'], metroLine: ['line-2'] })
     const matched = q.text.slice(q.text.indexOf('matched AS MATERIALIZED'), q.text.indexOf('selected AS MATERIALIZED'))
     expect(matched).toContain('metro_slug = ANY(')
     expect(matched).not.toContain('line_slug = ANY(')
-    expect(q.text).toContain('line_slug = ANY(')
+    // 站点候选的计数也不再用不一致的线路：整条 SQL 里没有线路条件
+    expect(q.text).not.toContain('line_slug = ANY(')
+    expect(q.values).not.toContainEqual(['line-2'])
   })
 })
