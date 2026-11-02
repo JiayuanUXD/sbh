@@ -9,6 +9,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { segmentSearchTerms } from '@/domain/search/segment'
+import type { SearchVocabulary } from '@/domain/search/vocabulary'
 
 import { testVocabulary } from './search-fixtures'
 
@@ -80,4 +81,43 @@ describe('segmentSearchTerms', () => {
     seg(terms)
     expect(terms).toEqual(['陆家嘴整层办公室'])
   })
+
+  describe('没打完的名称不当长句切', () => {
+    // 生产词表会带上当前城市（见 buildSearchVocabularyQuery），城市名太泛，不能当实体切
+    const withCity: SearchVocabulary = {
+      city: 'shanghai',
+      entries: [
+        ...testVocabulary.entries,
+        { kind: 'city', id: 1, slug: 'shanghai', name: '上海', aliases: [], pinyin: 'shanghai', initials: 'sh' },
+      ],
+    }
+    const segWithCity = (terms: string[]) => segmentSearchTerms(terms, withCity)
+
+    it('「上海国金」是上海国金中心的前缀，原样放行，不切成 上海 + 国金', () => {
+      expect(segWithCity(['上海国金']).terms).toEqual(['上海国金'])
+      expect(segWithCity(['上海国金']).entityTerms).toEqual([])
+    })
+
+    it('没打完的别名同理（上海中心大 是 上海中心大厦 的前缀）', () => {
+      expect(segWithCity(['上海中心大']).terms).toEqual(['上海中心大'])
+    })
+
+    it('名称中间的片段也算没打完（国金中 ⊂ 上海国金中心）', () => {
+      expect(segWithCity(['国金中心']).terms).toEqual(['上海国金中心'])
+      expect(segWithCity(['海国金中']).terms).toEqual(['海国金中'])
+    })
+
+    it('城市名不参与切分：只命中城市的长句原样放行', () => {
+      expect(segWithCity(['上海办公室出租']).terms).toEqual(['上海办公室出租'])
+      expect(segWithCity(['上海办公室出租']).entries).toEqual([])
+    })
+
+    it('城市名与真实体并存时，只切真实体', () => {
+      const result = segWithCity(['上海陆家嘴整层'])
+      // 「上海」作为剩余片段保留成普通词项，不进 entityTerms，楼盘检索不会退化成按城市匹配
+      expect(result.terms).toEqual(['上海', '陆家嘴', '整层'])
+      expect(result.entityTerms).toEqual(['陆家嘴'])
+    })
+  })
 })
+

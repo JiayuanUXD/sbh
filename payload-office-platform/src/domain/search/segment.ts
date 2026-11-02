@@ -13,6 +13,9 @@
  *   - 从左到右，每个位置取最长的词表命中（名称或别名，至少 2 字）；别名换成规范名，
  *     与拼音别名的处理一致；
  *   - 一个实体都没命中就原样放行，口水词也不剥；
+ *   - 城市名不参与切分：太泛，切出来楼盘检索会退化成只搜「上海」；
+ *   - 整个词是某个名称 / 别名的一部分（用户还没打完，如「上海国金」⊂「上海国金中心」）
+ *     不当长句切——切了会丢掉有效的限定词；整词恰好是别名时仍归一到规范名；
  *   - 剩余片段只按整词去掉口水词（「租金」不会被误伤成「金」），去完不足 2 字的丢弃。
  */
 
@@ -42,7 +45,12 @@ const FILLER_PHRASES: readonly string[] = [
   '写字楼', '办公室', '办公楼', '出租', '求租', '附近', '周边', '的',
 ].sort((a, b) => b.length - a.length)
 
-type SurfaceIndex = Readonly<{ surfaces: ReadonlySet<string>; maxLength: number }>
+type SurfaceIndex = Readonly<{
+  surfaces: ReadonlySet<string>
+  /** 全部名称 / 别名（含城市名之外的所有 kind），用于判断「没打完的名称」。 */
+  all: readonly string[]
+  maxLength: number
+}>
 
 const indexCache = new WeakMap<SearchVocabulary, SurfaceIndex>()
 
@@ -52,6 +60,8 @@ function surfaceIndex(vocab: SearchVocabulary): SurfaceIndex {
   const surfaces = new Set<string>()
   let maxLength = 0
   for (const entry of vocab.entries) {
+    // 城市名太泛：「上海办公室出租」切出「上海」会让楼盘检索退化成按城市匹配。
+    if (entry.kind === 'city') continue
     for (const surface of [entry.name, ...entry.aliases]) {
       const key = nameKey(surface)
       if (ASCII_ALNUM.test(key) || Array.from(key).length < MIN_SURFACE_LENGTH) continue
@@ -59,7 +69,7 @@ function surfaceIndex(vocab: SearchVocabulary): SurfaceIndex {
       maxLength = Math.max(maxLength, Array.from(key).length)
     }
   }
-  const built = { surfaces, maxLength }
+  const built = { surfaces, all: [...surfaces], maxLength }
   indexCache.set(vocab, built)
   return built
 }
@@ -74,7 +84,7 @@ export function segmentSearchTerms(
   terms: readonly string[],
   vocab: SearchVocabulary,
 ): SegmentedTerms {
-  const { surfaces, maxLength } = surfaceIndex(vocab)
+  const { surfaces, all, maxLength } = surfaceIndex(vocab)
   const out: string[] = []
   const entityTerms: string[] = []
   const entries: VocabularyEntry[] = []
@@ -90,6 +100,12 @@ export function segmentSearchTerms(
   for (const term of terms) {
     const chars = Array.from(term)
     if (chars.length < MIN_SEGMENT_TERM_LENGTH || ASCII_ALNUM.test(term)) {
+      push(term)
+      continue
+    }
+
+    // 没打完的名称（严格子串）不当长句切；整词恰好是名称 / 别名时仍走下面的归一。
+    if (!surfaces.has(term) && all.some((surface) => surface.includes(term))) {
       push(term)
       continue
     }
