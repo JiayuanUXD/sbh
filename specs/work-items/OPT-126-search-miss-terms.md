@@ -292,3 +292,21 @@ P0 与 P1 互相独立，可并行。P1 合并即上线（见仓库 `CLAUDE.md`�
 - 「整层」「500平」「3万以内」这类类目 / 数值意图仍当普通词项，没有转筛选（建议 2，未做）。
 - 单字拦截只拦「整条查询就一个字」；多词里带单字不拦。
 
+## 22. 别名迁成 Payload 集合（2026-11-02，建议 5 的落地）
+
+| 项 | 实际 |
+|---|---|
+| 集合 | `search-aliases`（`src/collections/SearchAliases.ts`）：`canonicalName`（规范名称）+ `alias`（别名）+ `note`；唯一键 `(canonicalName, alias)`；后台入口「站点与内容 → 搜索别名」 |
+| 权限 | 菜单码 `search-aliases`、操作码 `search_alias:manage`；ADM 通配、OPS 由迁移 `20261102_125316_search_aliases_grant_ops_codes` 授予，`src/test/factory/roles.ts` 夹具同步；MGR / BRK / CSR 无 |
+| 录入规则 | `src/domain/search/alias-rules.ts`：别名 2–40 字、至少含一个字母 / 数字 / 汉字、不能与规范名相同（比较键 NFKC / 小写 / 去空白）；保存前自动去掉两端空白 |
+| 并入词表 | `buildSearchVocabulary(rows, city, extraAliases)`：代码别名在前、运营别名在后，按比较键去重；规范名对不上任何实体时被忽略。之后别名同时影响 拼音 / 首字母扩展、长句分词（别名换成规范名）、错字纠错、联想 |
+| 加载与缓存 | `getCachedSearchVocabulary` 里读 `search_aliases`（上限 5000 行）；读失败（表缺失、连接抖动）时只记 `search_aliases_load_failed` 警告并退回只用代码别名，**搜索不因别名读不到而挂**。词表缓存 key 升到 `v2`，沿用 5 分钟 revalidate——运营保存后**最多 5 分钟生效，不需要发版** |
+| 迁移 | `20261102_125315_search_aliases`（`payload migrate:create` 生成，只含新表与 `locked_documents_rels` 列，未手改）+ 授权迁移 |
+| 验证 | `artifacts/verification/OPT-126/p7-search-aliases.txt` |
+
+**为什么集合不分城市**：与代码别名一致，规范名是全局的；词表按城市构建，同一名称在不同城市对应不同实体时，别名在两个城市都会生效——目前七城没有这种同名冲突，真出现再加 `city` 字段。
+
+**没做**：未命中词列表里没有「一键补别名」按钮；运营看到高频未命中词后，到「搜索别名」里手工新增（备注里可写明来源）。要做联动需要在 miss-terms 的 admin 视图上加自定义 Cell / Action，成本和收益都不值得现在上。
+
+**已知局限**：规范名要与前台显示的名称完全一致，写错了不报错只是不生效（集合不做存在性校验，因为词表按城市构建）；别名越多，单字之外的误命中风险越大，靠 2 字下限和人工复核控制。
+

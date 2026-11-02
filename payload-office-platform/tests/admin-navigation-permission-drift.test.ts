@@ -365,6 +365,15 @@ const OPT_126_NEW_LEAVES: readonly LeafFixture[] = [
     collectionSlug: 'search-miss-terms',
     requiredOperationCode: 'search_miss:manage',
   },
+  // 搜索别名：专用菜单码 + search_alias:manage，与 SearchAliases.access 同码；OPS 由迁移授予
+  {
+    id: 'search-aliases',
+    label: '搜索别名',
+    href: '/admin/collections/search-aliases',
+    menuCodes: ['search-aliases'],
+    collectionSlug: 'search-aliases',
+    requiredOperationCode: 'search_alias:manage',
+  },
 ]
 
 /** 允许新增 badgeKey 的两片叶子（Task 3 会补上对应的角标查询）。 */

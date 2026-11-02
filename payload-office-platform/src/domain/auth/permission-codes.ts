@@ -65,6 +65,8 @@ export const MENU_CODES = [
   'site-settings',
   // 站内搜索未命中词（OPT-126）
   'search-miss-terms',
+  // 站内搜索别名：运营维护口语 / 简称写法（OPT-126 后续）
+  'search-aliases',
   // 个人区
   'my-leads',
   'my-customers',
@@ -136,6 +138,8 @@ export const OPERATION_CODES = [
   'member:manage',
   // 站内搜索未命中词：读 / 改处置状态 / 删除（OPT-126）。创建不对任何人开放
   'search_miss:manage',
+  // 站内搜索别名：读 / 新建 / 改 / 删。别名只影响词项到实体的解析，不改实体名称
+  'search_alias:manage',
   'role:manage', // 创建/复制/编辑角色
   'audit:view', // 查看审计日志详情
   'audit:export', // 导出审计日志

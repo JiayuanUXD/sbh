@@ -1,0 +1,24 @@
+OPT-126 后续：搜索别名迁成 Payload 集合，运营后台自助维护（本地 dev，独立库 sbh_dev_search_alias，种子数据，2026-11-02）
+登录：本地夹具运营账号 e2e-ops@example.com（scripts/seed.ts 的公开夹具，非真凭据），仅本地开发库。
+
+迁移：
+  payload migrate:create search_aliases 在「已迁移到 master 状态」的新库上生成，只含 search_aliases 表 + payload_locked_documents_rels.search_aliases_id；正文未手改。
+  另有手写数据迁移 20261102_125316_search_aliases_grant_ops_codes（给 OPS 加菜单码 / 操作码，写法同 P1 的 grant 迁移）。
+  本地 payload migrate 两个迁移都执行成功；migrate:dry-run 仍是原有的 8 条告警（均为既有迁移），无新增。
+
+后台（/admin/collections/search-aliases）：
+  1. 菜单与路由：OPS 登录后左侧「搜索别名」入口可见，/create 页标题「创建中 - 搜索别名」，字段 规范名称 / 别名 / 备注。
+  2. 校验：别名只填「魔」点保存 => 字段下方「别名至少 2 个字，单字会命中一大片结果」，toast「下面的字段是无效的：别名」，库里 0 行。
+  3. 保存（三步铁证）：
+     - 抓包：POST /api/search-aliases?depth=0 => 201；之后 payload-preferences 200
+     - 响应：跳到 /admin/collections/search-aliases/1，toast「成功创建 搜索别名」
+     - 强刷：重新打开 /search-aliases/1，canonicalName=上海中心、alias=魔都第一高楼 回显一致；库里 1|上海中心|魔都第一高楼|
+
+前台（别名不在任何楼盘名里：select count(*) from buildings where name ilike '%魔都第一高楼%' => 0，旧行为必然 0 条）：
+  /shanghai/search?q=魔都第一高楼          => 1 条，楼盘「上海中心」
+  /shanghai/search?q=魔都第一高楼的办公室  => 1 条，楼盘「上海中心」（长句里切出别名，规范名替换）
+  /shanghai/search?q=魔都第一高楼 整层     => 3 条（房源 2 / 楼盘 1，文字 AND 失败后放宽）
+  /shanghai/search?q=上海中心              => 1 条，与别名结果一致
+  （验证时没有预先搜索过，避免词表缓存 5 分钟；生产里运营保存后最多 5 分钟生效。）
+
+未在浏览器验的：BRK / CSR / MGR 访问被拒——由 tests/search-aliases-access.test.ts 覆盖（四种操作，匿名 / 会员 / BRK / CSR / MGR 拒绝，OPS / ADM 放行），导航快照测试同步改了 ADM 43 片 / OPS 28 片叶子。

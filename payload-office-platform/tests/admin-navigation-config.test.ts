@@ -157,6 +157,7 @@ describe('admin navigation config', () => {
         expectedLeaf('search-miss-terms', '未命中搜索词', '/admin/collections/search-miss-terms', [
           'search-miss-terms',
         ]),
+        expectedLeaf('search-aliases', '搜索别名', '/admin/collections/search-aliases', ['search-aliases']),
       ]),
       expectedGroup('geography', '城市与区域', [
         expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
@@ -253,6 +254,7 @@ describe('admin navigation config', () => {
       'information-corrections',
       // OPT-126
       'search-miss-terms',
+      'search-aliases',
     ])
     const collectionSlugs = allLeaves()
       .map((leaf) => leaf.collectionSlug)

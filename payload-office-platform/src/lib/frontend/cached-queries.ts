@@ -3,7 +3,7 @@ import { unstable_cache } from 'next/cache'
 import { getPayload } from 'payload'
 
 import config from '@/payload.config'
-import { buildSearchVocabulary } from '@/domain/search/vocabulary-build'
+import { buildSearchVocabulary, groupAliasRows, type AliasRow } from '@/domain/search/vocabulary-build'
 import {
   resolveVocabularyTerm,
   type SearchVocabulary,
@@ -765,9 +765,18 @@ const getCachedSearchVocabularyByCity = memoizeByCity((citySlug) =>
       const query = buildSearchVocabularyQuery(citySlug)
       const result = await payload.db.pool.query<SearchVocabularyRow>(query.text, query.values)
       if (result.rows.length >= 100000) throw new Error('搜索词表超过安全上限')
-      return buildSearchVocabulary(result.rows, citySlug)
+      // 运营维护的别名（search-aliases 集合）。读失败（表缺失、连接抖动）时退回只用代码别名，
+      // 搜索本身不能因为别名读不到而挂；上限 5000 行，正常远低于此。
+      const aliasRows = await payload.db.pool
+        .query<AliasRow>('SELECT canonical_name, alias FROM search_aliases ORDER BY id LIMIT 5000')
+        .then((aliases) => aliases.rows)
+        .catch((error: unknown) => {
+          payload.logger.warn({ err: error }, 'search_aliases_load_failed')
+          return [] as AliasRow[]
+        })
+      return buildSearchVocabulary(result.rows, citySlug, groupAliasRows(aliasRows))
     },
-    ['search-vocabulary', citySlug, 'v1'],
+    ['search-vocabulary', citySlug, 'v2'],
     {
       tags: [listingsCityTag(citySlug), buildingsCityTag(citySlug), facetsTag(citySlug)],
       revalidate: 300,

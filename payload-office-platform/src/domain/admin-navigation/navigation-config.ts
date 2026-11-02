@@ -190,6 +190,11 @@ export const ADMIN_NAV_GROUPS = [
       collectionSlug: 'search-miss-terms',
       requiredOperationCode: 'search_miss:manage',
     }),
+    // 运营维护的搜索别名（口语 / 简称），与代码里的别名合并进词表；码与 SearchAliases.access 同一个。
+    leaf('search-aliases', '搜索别名', '/admin/collections/search-aliases', ['search-aliases'], {
+      collectionSlug: 'search-aliases',
+      requiredOperationCode: 'search_alias:manage',
+    }),
   ]),
   group('geography', '城市与区域', 'location', [
     leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {

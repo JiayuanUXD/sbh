@@ -9,6 +9,7 @@
 import { pinyin } from 'pinyin-pro'
 
 import { SEARCH_ALIASES } from './aliases'
+import { nameKey } from './vocabulary'
 import type { SearchVocabulary, VocabularyEntry, VocabularyKind } from './vocabulary'
 
 export type SearchVocabularyRow = Readonly<{
@@ -38,9 +39,41 @@ export function initialsOf(name: string): string {
   }).join('').toLowerCase()
 }
 
+/** 运营维护的别名：规范名 → 别名列表（来自 search-aliases 集合）。 */
+export type ExtraAliases = Readonly<Record<string, readonly string[]>>
+
+export type AliasRow = Readonly<{ canonical_name: string | null; alias: string | null }>
+
+/** search_aliases 表的行 → 规范名分组。脏行（缺字段 / 非字符串）直接忽略，保持行顺序。 */
+export function groupAliasRows(rows: readonly AliasRow[]): ExtraAliases {
+  const grouped: Record<string, string[]> = {}
+  for (const row of rows) {
+    if (typeof row.canonical_name !== 'string' || typeof row.alias !== 'string') continue
+    ;(grouped[row.canonical_name] ??= []).push(row.alias)
+  }
+  return grouped
+}
+
+/**
+ * 合并代码别名与运营别名：代码在前；与规范名相同、空白、比较键重复的丢掉。
+ * 比较键用 `nameKey`（NFKC、小写、去空白），与词表解析一致，所以 `IFC` 与 `ifc` 算同一个。
+ */
+function mergeAliases(name: string, extra: readonly string[]): readonly string[] {
+  const merged: string[] = []
+  const seen = new Set<string>([nameKey(name)])
+  for (const alias of [...(SEARCH_ALIASES[name] ?? []), ...extra]) {
+    const key = nameKey(alias)
+    if (key.length === 0 || seen.has(key)) continue
+    seen.add(key)
+    merged.push(alias)
+  }
+  return merged
+}
+
 export function buildSearchVocabulary(
   rows: readonly SearchVocabularyRow[],
   city: string,
+  extraAliases: ExtraAliases = {},
 ): SearchVocabulary {
   const seen = new Set<string>()
   const entries: VocabularyEntry[] = []
@@ -56,7 +89,7 @@ export function buildSearchVocabulary(
       slug: row.slug,
       name: row.name,
       ...(row.parent_name ? { parentName: row.parent_name } : {}),
-      aliases: SEARCH_ALIASES[row.name] ?? [],
+      aliases: mergeAliases(row.name, extraAliases[row.name] ?? []),
       pinyin: pinyinOf(row.name),
       initials: initialsOf(row.name),
     })
