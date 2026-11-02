@@ -66,6 +66,7 @@ vi.mock('@/lib/rate-limit-pg', () => ({
 }))
 
 import { DELETE, GET, POST } from '@/app/(frontend)/api/search-misses/route'
+import { __resetSearchMissPruneForTests } from '@/app/(frontend)/api/search-misses/prune-state'
 
 const NO_RESULTS = {
   listings: { result: { pagination: { totalDocs: 0 } }, relaxed: false },
@@ -98,7 +99,8 @@ function makeReq(opts: { body?: unknown; headers?: Record<string, string | null>
   })
 }
 
-const upsertCalls = () => poolQuery.mock.calls.filter(([p]) => p.text.includes('search_miss_terms'))
+const upsertCalls = () => poolQuery.mock.calls.filter(([p]) => p.text.includes('INSERT INTO search_miss_terms'))
+const pruneCalls = () => poolQuery.mock.calls.filter(([p]) => p.text.includes('DELETE FROM search_miss_terms'))
 
 beforeEach(() => {
   poolQuery.mockClear()
@@ -107,6 +109,7 @@ beforeEach(() => {
   loggerError.mockReset()
   rateStore.clear()
   rateStoreDown = false
+  __resetSearchMissPruneForTests()
   resolveCityContext.mockReset()
   listingsQuery.mockReset()
   buildingsQuery.mockReset()
@@ -237,5 +240,48 @@ describe('失败静默', () => {
     expect(res.status).toBe(500)
     expect(await res.text()).toBe('')
     expect(loggerError).toHaveBeenCalled()
+  })
+})
+
+describe('保留期清理（请求顺带，§9）', () => {
+  it('首个处理的请求触发一次 DELETE，间隔内的后续请求不再触发', async () => {
+    expect((await POST(makeReq())).status).toBe(204)
+    expect((await POST(makeReq({ body: { city: 'shanghai', q: '另一个词' } }))).status).toBe(204)
+    const calls = pruneCalls()
+    expect(calls).toHaveLength(1)
+    expect(calls[0]![0].values).toEqual([30, 180])
+  })
+
+  it('有结果（不入库）的请求同样占用清理窗口，不重复删', async () => {
+    mockResults({
+      listings: { result: { pagination: { totalDocs: 5 } }, relaxed: false },
+      buildings: { result: { totalDocs: 0 } },
+      articles: { totalDocs: 0 },
+    })
+    expect((await POST(makeReq())).status).toBe(204)
+    expect(upsertCalls()).toHaveLength(0)
+    expect(pruneCalls()).toHaveLength(1)
+  })
+
+  it('被拒绝的请求（非同源 / 非法 body / 限流）不触发清理', async () => {
+    await POST(makeReq({ headers: { origin: 'http://evil.example' } }))
+    await POST(makeReq({ body: '{not json' }))
+    expect(pruneCalls()).toHaveLength(0)
+  })
+
+  it('DELETE 失败：仍 204，只记 warn，不影响 upsert', async () => {
+    poolQuery.mockImplementation(async (params) => {
+      if (params.text.includes('DELETE FROM search_miss_terms')) throw new Error('boom')
+      return { rows: [], rowCount: 1 }
+    })
+    try {
+      const res = await POST(makeReq())
+      expect(res.status).toBe(204)
+      expect(upsertCalls()).toHaveLength(1)
+      expect(loggerWarn).toHaveBeenCalledWith(expect.anything(), 'search_miss_prune_failed')
+      expect(loggerError).not.toHaveBeenCalled()
+    } finally {
+      poolQuery.mockImplementation(async () => ({ rows: [], rowCount: 1 }))
+    }
   })
 })

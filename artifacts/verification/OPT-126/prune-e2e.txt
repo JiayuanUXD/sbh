@@ -1,0 +1,24 @@
+## 种子：过期 / 未过期各两行（city=zz-prune-e2e），其余为空
+DELETE 0
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+-- before
+重复179天|3
+重复181天|3
+单次29天|1
+单次31天|1
+## 真实请求（dev server，真实 PG）
+POST /api/search-misses -> 204
+-- after
+重复179天|3
+单次29天|1
+## 节流：再种一行过期词并立即再发请求（1 小时窗口内不应被删）
+INSERT 0 1
+POST -> 204
+窗口内不删
+## 服务端日志
+[19:37:30] [32mINFO[39m: [36msearch_miss_outcome[39m
+[19:37:30] [32mINFO[39m: [36msearch_miss_pruned[39m
+[19:37:30] [32mINFO[39m: [36msearch_miss_outcome[39m

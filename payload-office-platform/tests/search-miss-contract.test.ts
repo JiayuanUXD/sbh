@@ -9,6 +9,8 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { SEARCH_MISS_RETENTION_DAYS } from '@/lib/search-miss/prune-search-miss'
+
 const read = (relative: string) => readFileSync(path.join(__dirname, '..', relative), 'utf8')
 
 describe('SearchMissBeacon 边界', () => {
@@ -42,6 +44,11 @@ describe('隐私政策页', () => {
     expect(privacy).toContain('未检索到结果的搜索关键词')
     expect(privacy).toContain('不关联您的身份')
     expect(privacy).toContain('不会保存')
+  })
+
+  it('保留期天数与清理常量一致（改一边必须改另一边）', () => {
+    expect(privacy).toContain(`满 ${SEARCH_MISS_RETENTION_DAYS.once} 天后删除`)
+    expect(privacy).toContain(`最长保留 ${SEARCH_MISS_RETENTION_DAYS.repeated} 天`)
   })
 
   it('不再声称「统计里完全不含搜索词」而与采集矛盾', () => {

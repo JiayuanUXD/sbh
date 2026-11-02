@@ -3,6 +3,7 @@ import { getPayload, type Payload } from 'payload'
 
 import config from '@/payload.config'
 import type { PoolLike } from '@/lib/rate-limit-pg'
+import { pruneSearchMissTerms } from '@/lib/search-miss/prune-search-miss'
 import { upsertSearchMiss } from '@/lib/search-miss/upsert-search-miss'
 
 const databaseAvailable = typeof process.env.DATABASE_URL === 'string' &&
@@ -95,5 +96,30 @@ describe.skipIf(!databaseAvailable)('search_miss_terms 原生 upsert（真实 Po
     })
     expect(found.docs).toHaveLength(1)
     expect(found.docs[0]).toMatchObject({ missKind: 'zero', count: 50, status: 'new' })
+  })
+  it('保留期清理：单次词 30 天、重复词 180 天，边界两侧各验一行（真实 DELETE）', async () => {
+    const seed = async (term: string, count: number, daysAgo: number, status = 'new') => {
+      await upsertSearchMiss(pool, { city: CITY, term, missKind: 'zero', lastResultTotal: 0 })
+      await pool.query({
+        text: `UPDATE search_miss_terms
+               SET count = $3, status = $4, last_seen_at = now() - make_interval(days => $5::int)
+               WHERE city = $1 AND term = $2`,
+        values: [CITY, term, count, status, daysAgo],
+      })
+    }
+    await seed('单次-29天', 1, 29)
+    await seed('单次-31天', 1, 31)
+    await seed('重复-179天', 2, 179)
+    await seed('重复-181天', 2, 181)
+    await seed('单次-已忽略-40天', 1, 40, 'ignored')
+
+    const deleted = await pruneSearchMissTerms(pool)
+    expect(deleted).toBeGreaterThanOrEqual(3)
+
+    const left = (await rows()).map((r) => r.term)
+    expect(left).toEqual(expect.arrayContaining(['单次-29天', '重复-179天']))
+    expect(left).not.toContain('单次-31天')
+    expect(left).not.toContain('重复-181天')
+    expect(left).not.toContain('单次-已忽略-40天')
   })
 })

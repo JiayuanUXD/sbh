@@ -9,7 +9,8 @@
  *     PG 限流表不可用时放行（failOpen），统计宁可少记也不拦用户；
  *   - 结果数不信客户端，服务端用搜索页同一组 cached 查询复核；
  *   - 文本只进自有表，且只存脱敏归一化词；响应与日志里没有任何查询文本；
- *   - 处理过的请求（无论是否入库）一律 204，不向调用方暴露分类结果。
+ *   - 处理过的请求（无论是否入库）一律 204，不向调用方暴露分类结果；
+ *   - 保留期清理（§9）顺带在此执行：每实例每小时一次 DELETE，失败只记 warn，不影响响应。
  */
 
 import { getPayload } from 'payload'
@@ -32,7 +33,10 @@ import {
   recordSearchMiss,
   type RecordSearchMissDeps,
 } from '@/lib/search-miss/record-search-miss'
+import { maybePruneSearchMissTerms } from '@/lib/search-miss/prune-search-miss'
 import { upsertSearchMiss } from '@/lib/search-miss/upsert-search-miss'
+
+import { searchMissPruneRef } from './prune-state'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -118,6 +122,16 @@ export async function POST(req: Request): Promise<Response> {
     const outcome = await recordSearchMiss(input, deps)
     // 只记结果枚举：被丢弃的按原因计数（`dropped:*`），日志里没有任何查询文本。
     payload.logger.info({ outcome }, 'search_miss_outcome')
+
+    // 保留期清理：放在响应之前但独立 try，失败不改变结果；每实例每小时最多一次。
+    if (pool) {
+      try {
+        const pruned = await maybePruneSearchMissTerms(pool as PoolLike, searchMissPruneRef, Date.now())
+        if (pruned.ran) payload.logger.info({ deleted: pruned.deleted }, 'search_miss_pruned')
+      } catch (error) {
+        payload.logger.warn({ err: error }, 'search_miss_prune_failed')
+      }
+    }
     return noContent()
   } catch (error) {
     payload.logger.error({ err: error }, 'search_miss_failed')
