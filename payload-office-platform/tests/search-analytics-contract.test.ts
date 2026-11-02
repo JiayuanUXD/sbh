@@ -31,6 +31,7 @@ const EXPECTED_KEYS = [
   'script',
   'entity_hit',
   'suggested',
+  'too_short',
 ] as const
 
 const TEXT_LIKE_KEY = /^(?:q|query|term|terms|keyword|keywords|text|raw|search|search_text|normalized)$/i
