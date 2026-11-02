@@ -1,0 +1,8 @@
+- 20261102_090441_opt_126_grant_ops_search_miss_codes
+    up: true, down: true, json: false
+    no forbidden patterns
+
+Rollback guidance:
+  每个迁移必须提供 down() 函数；回滚前先在 PG 数据副本验证。高风险回滚（含 DELETE / DROP）需用户明确确认。回滚后立即执行 migrate:verify 校验数据完整性。
+
+⚠️  8 warning(s) — 复核后可继续

@@ -63,6 +63,8 @@ export const MENU_CODES = [
   'audit-logs',
   // 站点运营配置（OPT-053）：品牌 / 合规文案 / 页脚 / 首页区块
   'site-settings',
+  // 站内搜索未命中词（OPT-126）
+  'search-miss-terms',
   // 个人区
   'my-leads',
   'my-customers',
@@ -132,6 +134,8 @@ export const OPERATION_CODES = [
   'user:manage', // 创建/启停账号
   // 会员管理（OPT-088）：读列表 / 改昵称与状态 / 解锁；会员自己的操作不经此码，走 /api/member/*
   'member:manage',
+  // 站内搜索未命中词：读 / 改处置状态 / 删除（OPT-126）。创建不对任何人开放
+  'search_miss:manage',
   'role:manage', // 创建/复制/编辑角色
   'audit:view', // 查看审计日志详情
   'audit:export', // 导出审计日志

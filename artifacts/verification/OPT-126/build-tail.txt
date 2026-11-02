@@ -1,0 +1,40 @@
+├ ƒ /api/search-misses
+├ ƒ /api/supply-submissions
+├ ƒ /api/watermark-preview
+├ ƒ /api/watermark-rebake
+├ ○ /apple-icon.png
+├ ƒ /buildings
+├ ƒ /buildings/[slug]
+├ ƒ /city-partner
+├ ƒ /coworking
+├ ƒ /dev-story
+├ ƒ /dev-story/building-detail-demo
+├ ƒ /dev-story/opt036
+├ ƒ /dev-story/opt037
+├ ƒ /dev-story/opt038
+├ ƒ /entrust
+├ ○ /icon.svg
+├ ƒ /listings
+├ ƒ /listings/[slug]
+├ ƒ /login
+├ ƒ /login/reset
+├ ƒ /news
+├ ƒ /news/[slug]
+├ ƒ /pages/[slug]
+├ ƒ /pages/privacy
+├ ƒ /publish
+├ ○ /robots.txt
+├ ƒ /sale
+├ ƒ /search
+├ ƒ /sitemap.xml
+├ ƒ /sitemaps/[city]/[kind]/[page]
+└ ƒ /sitemaps/static.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
+exit=0

@@ -42,6 +42,7 @@ import { DisplayTags } from './collections/DisplayTags'
 import { ListingReviews } from './collections/ListingReviews'
 import { ListingReports } from './collections/ListingReports'
 import { InformationCorrections } from './collections/InformationCorrections'
+import { SearchMissTerms } from './collections/SearchMissTerms'
 import { SupplySubmissions } from './collections/SupplySubmissions'
 import { CityPartnerApplications } from './collections/CityPartnerApplications'
 import { DomainEvents } from './collections/DomainEvents'
@@ -418,6 +419,7 @@ const configPromise = buildConfig({
     ListingReviews,
     ListingReports,
     InformationCorrections,
+    SearchMissTerms,
     SupplySubmissions,
     CityPartnerApplications,
     DomainEvents,

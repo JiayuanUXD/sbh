@@ -1,0 +1,25 @@
+{
+ "firstVisit": [
+  {
+   "via": "sendBeacon",
+   "url": "/api/search-misses",
+   "blobType": "application/json",
+   "body": "{\"city\":\"shanghai\",\"q\":\"抓包第二个词\"}"
+  },
+  {
+   "via": "response",
+   "status": 204,
+   "method": "POST",
+   "contentType": "application/json"
+  }
+ ],
+ "reloadSameSession": [],
+ "hardReload": [],
+ "q=13812345678": [],
+ "q=a@b.com": [],
+ "q=https://x.com": [],
+ "q=字字字字字字字字字字字字字字字字字字字字字": [],
+ "q=静安": [],
+ "hasResults": [],
+ "page2": []
+}

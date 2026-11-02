@@ -1,0 +1,5 @@
+[17:16:13] [32mINFO[39m: [36mMigrating: 20261102_090440_opt_126_search_miss_terms[39m
+[17:16:13] [32mINFO[39m: [36mMigrated:  20261102_090440_opt_126_search_miss_terms (8ms)[39m
+[17:16:13] [32mINFO[39m: [36mMigrating: 20261102_090441_opt_126_grant_ops_search_miss_codes[39m
+[17:16:13] [32mINFO[39m: [36mMigrated:  20261102_090441_opt_126_grant_ops_search_miss_codes (1ms)[39m
+[17:16:13] [32mINFO[39m: [36mDone.[39m

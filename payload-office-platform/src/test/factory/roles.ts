@@ -70,6 +70,8 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
       'forms',
       'form-submissions',
       'members',
+      // OPT-126：迁移 *_opt_126_grant_ops_search_miss_codes 授予，夹具同步（否则 seed 会擦掉）
+      'search-miss-terms',
     ],
     operationPermissions: [
       'task:read',
@@ -108,6 +110,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
       'listing:update',
       // OPT-088 会员管理：迁移 *_opt_088_grant_ops_member_codes 授予，夹具同步（否则 seed 会擦掉）
       'member:manage',
+      'search_miss:manage',
     ],
     fieldPermissions: [
       'phone:full', // 运营可看完整手机号

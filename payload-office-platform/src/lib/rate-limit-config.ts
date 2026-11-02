@@ -101,3 +101,18 @@ export const SUPPLY_SUBMISSION_RATE_LIMIT_CONFIG: RateLimitConfig = {
   pruneIntervalMs: 5 * 60_000,
   failOpen: true,
 }
+
+/**
+ * 站内搜索未命中词采集端点限流配置（OPT-126）：每 IP 每分钟 20 次。
+ *
+ * beacon 每次搜索页渲染最多发一次（本会话同 city+q 只发一次），正常用户一分钟远到不了 20；
+ * 配额独立，限流键加 'search-miss:' 前缀（见 api/search-misses/route.ts）。
+ * failOpen：统计类端点，限流表异常时宁可少记也不拦用户（此时库照常写，只是不限速）。
+ */
+export const SEARCH_MISS_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60_000,
+  max: 20,
+  maxKeys: 100_000,
+  pruneIntervalMs: 5 * 60_000,
+  failOpen: true,
+}

@@ -185,6 +185,11 @@ export const ADMIN_NAV_GROUPS = [
     // 表单的「定义」属于站点内容，表单的「提交」属于待处理——两者按使用场景分开，
     // 不再共用一个「表单中心」组。
     leaf('forms', '表单管理', '/admin/collections/forms', ['forms']),
+    // OPT-126：站内搜索没搜到的词，运营据此补别名 / 补数据。码与 SearchMissTerms.access 同一个。
+    leaf('search-miss-terms', '未命中搜索词', '/admin/collections/search-miss-terms', ['search-miss-terms'], {
+      collectionSlug: 'search-miss-terms',
+      requiredOperationCode: 'search_miss:manage',
+    }),
   ]),
   group('geography', '城市与区域', 'location', [
     leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {

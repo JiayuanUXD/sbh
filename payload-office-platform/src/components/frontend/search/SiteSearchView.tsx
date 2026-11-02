@@ -21,6 +21,7 @@ import type {
 import SearchTabs from './SearchTabs'
 import SearchZeroState from './SearchZeroState'
 import SearchAnalytics from './SearchAnalytics'
+import SearchMissBeacon from './SearchMissBeacon'
 import SiteSearchForm from './SiteSearchForm'
 
 const EMPTY_FALLBACK: SearchFallback = { districts: [], buildings: [], listings: [] }
@@ -119,6 +120,15 @@ export default function SiteSearchView({
           city={city.slug}
           q={q}
           tab={tab}
+          page={page}
+          counts={counts}
+          relaxed={listings?.relaxed ?? false}
+        />
+      ) : null}
+      {hasQuery ? (
+        <SearchMissBeacon
+          city={city.slug}
+          q={q}
           page={page}
           counts={counts}
           relaxed={listings?.relaxed ?? false}
