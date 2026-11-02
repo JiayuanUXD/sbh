@@ -68,6 +68,7 @@ import {
   buildRecommendationCandidatesQuery,
   type RecommendationScope,
 } from "./listing-query-sql";
+import { articleSearchClauses } from "@/domain/search/article-where";
 import { buildPagination } from "./stable-sort";
 import type { ListingPageSelection, ScanFacets } from "./listing-scan";
 import { PUBLIC_BUILDING_METADATA_SQL, buildBuildingPageQuery,
@@ -1914,15 +1915,14 @@ GROUP BY l.building_id
       const payload = await getPayload();
       const page = Math.max(options.page ?? 1, 1);
       const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48);
-      const q = options.q?.trim();
+      // 逐词匹配（词间 AND，词内标题 OR 摘要），见 article-where.ts。
+      const searchClauses = articleSearchClauses(options.q?.trim());
       const result = await payload.find({
         collection: "articles",
         where: {
           status: { equals: "published" },
           deletedAt: { exists: false },
-          ...(q
-            ? { or: [{ title: { contains: q } }, { excerpt: { contains: q } }] }
-            : {}),
+          ...(searchClauses.length > 0 ? { and: searchClauses } : {}),
         },
         depth: 2, // coverImage 填充为 Media
         limit: pageSize,
