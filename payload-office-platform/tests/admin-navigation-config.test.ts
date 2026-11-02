@@ -153,6 +153,10 @@ describe('admin navigation config', () => {
         expectedLeaf('articles', '资讯中心', '/admin/collections/articles', ['articles']),
         expectedLeaf('media', '素材库', '/admin/collections/media', ['media']),
         expectedLeaf('forms', '表单管理', '/admin/collections/forms', ['forms']),
+        // OPT-126 站内搜索未命中词
+        expectedLeaf('search-miss-terms', '未命中搜索词', '/admin/collections/search-miss-terms', [
+          'search-miss-terms',
+        ]),
       ]),
       expectedGroup('geography', '城市与区域', [
         expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
@@ -247,6 +251,8 @@ describe('admin navigation config', () => {
       'building-merchant-relations',
       // OPT-049：三个此前只能靠 Payload 原生导航看到的集合
       'information-corrections',
+      // OPT-126
+      'search-miss-terms',
     ])
     const collectionSlugs = allLeaves()
       .map((leaf) => leaf.collectionSlug)

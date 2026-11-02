@@ -1,0 +1,3 @@
+ FAIL  tests/mini-user-assets-postgres.test.ts [ tests/mini-user-assets-postgres.test.ts ]
+ Test Files  1 failed | 15 passed (16)
+      Tests  283 passed (283)

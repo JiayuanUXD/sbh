@@ -1,0 +1,8 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 migrate:drift /Users/liujiayuan/App/sbh/.claude/worktrees/opt-126-search-miss-terms-4a47ab/payload-office-platform
+> node --env-file-if-exists=.env.local --import tsx scripts/migrate-drift-check.ts
+
+(node:36679) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[migrate:drift] OK —— config 与最新快照一致。

@@ -1,0 +1,6 @@
+○ [SKIP] pg:supply-validity-exclude-constraint
+    M3.3 引入 Building 商户有效期关系时添加 EXCLUDE 约束验证
+
+Total: 352 checks | 0 fail | 28 warn
+
+⚠️  28 warning(s) — 复核后可继续

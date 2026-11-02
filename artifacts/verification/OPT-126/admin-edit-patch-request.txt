@@ -1,0 +1,4 @@
+OPS 运营账号在后台改处置状态时抓到的保存请求（浏览器 fetch 钩子）：
+PATCH /api/search-miss-terms/174?depth=0&fallback-locale=null -> 200
+_payload={"city":"shanghai","term":"抓包第二个词","note":"OPT-126 验收备注","count":3,"status":"handled","missKind":"zero","updatedAt":"2026-11-02T09:13:06.279Z","createdAt":"2026-11-02T09:12:18.392Z","lastSeenAt":"2026-11-02T09:13:06.279Z","resolution":"alias-added","firstSeenAt":"2026-11-02T09:12:18.392Z","lastResultTotal":0}
+注：表单会把只读事实字段一并提交，服务端 field access.update=false 会丢弃它们；事实字段不会被改动，见 db-after-save。

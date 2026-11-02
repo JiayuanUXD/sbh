@@ -352,6 +352,21 @@ const OPT_104_NEW_LEAVES: readonly LeafFixture[] = [
   },
 ]
 
+/**
+ * OPT-126 新增「未命中搜索词」入口。权限判据单独评审：专用菜单码 + search_miss:manage，
+ * 与 SearchMissTerms.access 同码；ADM 通配、OPS 由迁移 20261102_090441 授予。
+ */
+const OPT_126_NEW_LEAVES: readonly LeafFixture[] = [
+  {
+    id: 'search-miss-terms',
+    label: '未命中搜索词',
+    href: '/admin/collections/search-miss-terms',
+    menuCodes: ['search-miss-terms'],
+    collectionSlug: 'search-miss-terms',
+    requiredOperationCode: 'search_miss:manage',
+  },
+]
+
 /** 允许新增 badgeKey 的两片叶子（Task 3 会补上对应的角标查询）。 */
 const ALLOWED_NEW_BADGE_KEYS: Readonly<Record<string, string>> = {
   'information-corrections': 'informationCorrections',
@@ -374,11 +389,12 @@ function comparable(leaf: LeafFixture | AdminNavLeaf) {
 }
 
 describe('导航重组不得改动叶子的权限判据（G1）', () => {
-  it('叶子集合 = master 的集合减去退出导航的那片 + OPT-088 / OPT-104 新增的那片', () => {
+  it('叶子集合 = master 的集合减去退出导航的那片 + OPT-088 / OPT-104 / OPT-126 新增的那片', () => {
     const expected = [
       ...MASTER_LEAVES.map((leaf) => leaf.id).filter((id) => !REMOVED_LEAF_IDS.has(id)),
       ...OPT_088_NEW_LEAVES.map((leaf) => leaf.id),
       ...OPT_104_NEW_LEAVES.map((leaf) => leaf.id),
+      ...OPT_126_NEW_LEAVES.map((leaf) => leaf.id),
     ]
 
     expect([...currentLeaves().map((leaf) => leaf.id)].sort()).toEqual([...expected].sort())
@@ -389,6 +405,7 @@ describe('导航重组不得改动叶子的权限判据（G1）', () => {
       ...MASTER_LEAVES.map((leaf) => [leaf.id, leaf] as const),
       ...OPT_088_NEW_LEAVES.map((leaf) => [leaf.id, leaf] as const),
       ...OPT_104_NEW_LEAVES.map((leaf) => [leaf.id, leaf] as const),
+      ...OPT_126_NEW_LEAVES.map((leaf) => [leaf.id, leaf] as const),
     ])
 
     for (const leaf of currentLeaves()) {

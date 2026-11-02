@@ -26,13 +26,16 @@ export interface ListResultAnalytics {
    *   - `vacant` 楼盘页「暂无在租」组的降权紧凑行——**不是**用户选的版式，
    *              它恒定渲染成紧凑行，不随 `?view=` 改变
    *
+   *   - `search` 站内搜索结果页的结果卡（OPT-126 P2）。来源标记：与列表页的 `grid` / `row`
+   *              分开，分析端按 section 过滤即可，不会混进列表页点击率
+   *
    * `vacant` 是 OPT-081 加的。在此之前楼盘页那一组发的是 `row`，当时不冲突
    * （楼盘页没有版式切换）；加上切换之后，有在租组在 row 版式下也要发 `row`，
    * 两者会在同一页撞成同一个取值，这个维度就失去了它存在的理由。
    * **口径变更**：`building_result_click` 的 `section='row'` 在 OPT-081 之前
    * 指「暂无在租紧凑行」，之后指「用户选中的横排卡」，两段数据不可直接合并。
    */
-  section: 'grid' | 'row' | 'vacant'
+  section: 'grid' | 'row' | 'vacant' | 'search'
   listingId?: number
   buildingId?: number
 }
@@ -81,7 +84,7 @@ export function positiveInteger(value: string | undefined): number | null {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
 }
 
-export const LIST_SECTIONS = ['grid', 'row', 'vacant'] as const
+export const LIST_SECTIONS = ['grid', 'row', 'vacant', 'search'] as const
 
 /**
  * 取值域守卫。**这是 fail-closed 的闸门**：`ListClickAnalytics` 用它判断整条点击

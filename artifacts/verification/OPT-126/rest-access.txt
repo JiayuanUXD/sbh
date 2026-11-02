@@ -1,0 +1,8 @@
+## 匿名 REST
+GET /api/search-miss-terms -> 403
+POST /api/search-miss-terms (匿名创建) -> 403
+brk: 列表 GET -> 403 ; 创建 POST -> 403
+csr: 列表 GET -> 403 ; 创建 POST -> 403
+mgr: 列表 GET -> 403 ; 创建 POST -> 403
+ops: 列表 GET -> 200 ; 创建 POST -> 403
+adm: 列表 GET -> 200 ; 创建 POST -> 403

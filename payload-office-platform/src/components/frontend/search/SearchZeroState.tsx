@@ -3,6 +3,7 @@ import Link from 'next/link'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
+import { searchFunnelAttrs } from '@/domain/search/funnel-analytics'
 import type { SearchFallback } from '@/lib/frontend/cached-queries'
 
 /**
@@ -39,9 +40,14 @@ export default function SearchZeroState({
         <div className="sw-zero__suggest">
           <span>你是不是想找：</span>
           <ul>
-            {suggestions.map((value) => (
+            {suggestions.map((value, index) => (
               <li key={value}>
-                <Link href={suggestionHref(value)}>{value}</Link>
+                <Link
+                  href={suggestionHref(value)}
+                  {...searchFunnelAttrs({ event: 'search_suggestion_click', position: index + 1 })}
+                >
+                  {value}
+                </Link>
               </li>
             ))}
           </ul>
@@ -53,7 +59,12 @@ export default function SearchZeroState({
           <div className="sw-zero__entity">
             <span className="sw-zero__entity-name">{entity.name}</span>
             <span className="sw-zero__entity-note">该楼盘暂无在租房源</span>
-            <Link href={`/${citySlug}/buildings/${entity.slug}`}>查看楼盘 →</Link>
+            <Link
+              href={`/${citySlug}/buildings/${entity.slug}`}
+              {...searchFunnelAttrs({ event: 'search_fallback_click', block: 'entity', position: 1 })}
+            >
+              查看楼盘 →
+            </Link>
           </div>
         ) : null}
 
@@ -61,9 +72,12 @@ export default function SearchZeroState({
           <div className="sw-zero__block">
             <h3>热门区域</h3>
             <ul className="sw-districts">
-              {fallback.districts.map((district) => (
+              {fallback.districts.map((district, index) => (
                 <li key={district.slug}>
-                  <Link href={`/${citySlug}/area/${district.slug}`}>
+                  <Link
+                    href={`/${citySlug}/area/${district.slug}`}
+                    {...searchFunnelAttrs({ event: 'search_fallback_click', block: 'district', position: index + 1 })}
+                  >
                     {district.name}
                     <span>{district.count} 套</span>
                   </Link>
@@ -77,8 +91,16 @@ export default function SearchZeroState({
           <div className="sw-zero__block">
             <h3>热门楼盘</h3>
             <div className="sw-zero__grid">
-              {fallback.buildings.slice(0, 4).map((building) => (
-                <BuildingResultCard key={building.slug} building={building} citySlug={citySlug} />
+              {/* display: contents 的包装层只承载埋点属性，不参与网格布局；
+                  卡片自身不带列表埋点（不传 analytics），兜底点击走 search_fallback_click。 */}
+              {fallback.buildings.slice(0, 4).map((building, index) => (
+                <div
+                  key={building.slug}
+                  style={{ display: 'contents' }}
+                  {...searchFunnelAttrs({ event: 'search_fallback_click', block: 'building', position: index + 1 })}
+                >
+                  <BuildingResultCard building={building} citySlug={citySlug} />
+                </div>
               ))}
             </div>
           </div>
@@ -88,8 +110,14 @@ export default function SearchZeroState({
           <div className="sw-zero__block">
             <h3>推荐房源</h3>
             <div className="sw-zero__grid">
-              {fallback.listings.slice(0, 4).map((listing) => (
-                <ListingResultCard key={listing.slug} listing={listing} citySlug={citySlug} />
+              {fallback.listings.slice(0, 4).map((listing, index) => (
+                <div
+                  key={listing.slug}
+                  style={{ display: 'contents' }}
+                  {...searchFunnelAttrs({ event: 'search_fallback_click', block: 'listing', position: index + 1 })}
+                >
+                  <ListingResultCard listing={listing} citySlug={citySlug} />
+                </div>
               ))}
             </div>
           </div>

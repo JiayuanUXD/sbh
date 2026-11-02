@@ -1,6 +1,6 @@
 # Task Packet：OPT-126 站内搜索未命中词采集（脱敏）
 
-> 状态：**D1–D4 已由用户接受（2026-11-02）；P0 已在分支 `feat/opt-126-site-search-derived-props-222d` 实现，未提交；P1、P2 未开始**
+> 状态：**D1–D4 已由用户接受（2026-11-02）；P0 已在 PR #243（分支 `feat/opt-126-site-search-derived-props-222d`）；P1 已实现（分支 `feat/opt-126-search-miss-terms-4a47ab`，见 §16），保留期清理（§9）已按「请求顺带清理」实现（用户 2026-11-02 拍板）；P2 的埋点部分见 §17，别名联动未做**
 > 创建日期：2026-11-02
 > 来源：站内搜索能力复盘（OPT-122 遗留）+ Umami 近 30 天 `site_search` 数据
 > 前置：OPT-122（站内搜索）、OPT-010（埋点白名单与脱敏）
@@ -68,7 +68,7 @@
 | 规则 | 处理 | 理由 |
 |---|---|---|
 | 原文含 `@`、`http`、`www.`、常见域名后缀 | 丢弃，计入 `dropped:contact` | 邮箱、网址 |
-| 连续数字 ≥ 6 位（NFKC 后判，含全角） | 丢弃，计入 `dropped:digits` | 手机号、证件号、订单号；面积 / 价格数字（如 500、3万）不受影响 |
+| 连续数字 ≥ 6 位（NFKC 后判，含全角）；或空格 / 连字符分段的数字合计 ≥ 8 位（`138 1234 5678`、`021-12345678`） | 丢弃，计入 `dropped:digits` | 手机号、证件号、订单号；面积 / 价格数字（如 500、3万、`100-200平`）不受影响。分段规则是实施时补的：归一化会把连字符变成空格，只判「连续」会让带分隔符的电话原样落库 |
 | 归一化后长度 > 20 码点 | 丢弃，计入 `dropped:too_long` | 整句 / 粘贴内容，自由文本风险高 |
 | 归一化后长度 < 2 码点 | 不采 | 单字是噪音，另行处理 |
 | 空串 | 不采 | |
@@ -114,7 +114,7 @@
 
 - **为什么不在 RSC 渲染里写库**：`/[city]/search` 是 `force-dynamic` 且走 `unstable_cache`，渲染里带副作用会被爬虫、预取放大，且缓存命中时根本不执行。
 - **为什么服务端复核**：客户端传的计数可伪造，会污染待办列表；复核后端点只接受「q + city」。
-- 端点照 `api/corrections/route.ts` 的模式：`isSameOrigin`、`isJsonContentType`、`MAX_BODY_BYTES`、`runDistributedRateLimit` + `createPgRateLimitDeps`。限流键加 `search-miss:` 前缀，与询盘配额隔离；`failOpen: true`（统计类，PG 异常时宁可少记也不拦用户，但不落库）。每 IP 每分钟建议 20 次，实施时按 `rate-limit-config.ts` 风格定。
+- 端点照 `api/corrections/route.ts` 的模式：同源 / JSON / 体积校验、`runDistributedRateLimit` + `createPgRateLimitDeps`。**实施时同源与类型校验改用 `lib/api/request-guards.ts` 的 `isSameOriginHost` / `isStrictJsonContentType`**：corrections 自带的 `isSameOrigin` 缺 `Origin` 即放行，beacon 必带 `Origin`，没有理由沿用这个宽松口径。限流键加 `search-miss:` 前缀，与询盘配额隔离；`failOpen: true`（统计类，PG 异常时宁可少记也不拦用户，但不落库）。每 IP 每分钟建议 20 次，实施时按 `rate-limit-config.ts` 风格定。
 - 失败一律静默：埋点不能影响搜索页。
 
 ## 7. Umami 侧补充（不含文本，无需迁移）
@@ -144,8 +144,29 @@
 
 - 只出现 1 次且 `lastSeenAt` 超 30 天：删除。
 - `count≥2` 且 `lastSeenAt` 超 180 天：删除。
-- `ignored` 且 `resolution=noise`：运营点「忽略并删除」时直接物理删除。
-- 清理放在写入路径之外，用仓库现有定时任务机制；实施时核对该机制，不在本包新造调度。
+- `ignored` 且 `resolution=noise`：运营点「忽略并删除」时直接物理删除（已实现：admin 里 `search_miss:manage` 可删除）。
+- 清理方式（用户 2026-11-02 拍板）：**请求顺带清理**，仿限流表——`/api/search-misses` 处理完一个请求后，每个实例每小时最多触发一次 `DELETE`（`src/lib/search-miss/prune-search-miss.ts`，状态在 `api/search-misses/prune-state.ts`）。
+
+**为什么不是定时任务：** 仓库现有的 Payload jobs `autoRun` 全是「事件触发的队列轮询」，没有任何周期性任务（`schedule`）的先例；新造调度还要解决多实例防重。请求顺带清理改动最小，DELETE 幂等，多实例同时执行也安全（后到者删 0 行）。
+
+实现要点：
+
+- 保留期常量只有 `SEARCH_MISS_RETENTION_DAYS`（单次 30 天 / 重复 180 天）一处，SQL 里天数走参数；按 `last_seen_at` 计，不看 `status`（`ignored` 的词同样到期删除）。
+- 节流是模块级时间戳，**先占位再删**：并发请求只有一个会执行；DELETE 失败也占用本小时窗口，不会在数据库故障期被每个请求重试。
+- 被拒绝的请求（非同源 / 非法 body / 429）不触发；有结果而不入库的请求也算「处理过」，会触发。
+- 清理失败只记 `search_miss_prune_failed` warn，响应仍是 204；成功执行时记 `search_miss_pruned`（含删除行数，无文本）。
+
+已知局限：
+
+- **没有流量就没有清理**。站内搜索页的未命中请求是常规流量，过期数据最多滞后到下一次未命中请求之后一小时；极低流量时词会略晚于 30 / 180 天消失。隐私页因此写「满 30 天后删除 / 最长保留 180 天」，没有承诺精确到天。
+- 清理耦合在公开写入端点上（失败被隔离，但每小时有一次额外 DELETE 的延迟落在某个用户请求里；当前表很小，可忽略）。若以后表变大或要精确到时，再换 CloudRun 定时触发的受保护端点。
+- 需要立刻清理时仍可手工跑：
+
+```sql
+DELETE FROM search_miss_terms
+WHERE (count <= 1 AND last_seen_at < now() - interval '30 days')
+   OR (count >= 2 AND last_seen_at < now() - interval '180 days');
+```
 
 ## 10. 验收
 
@@ -189,7 +210,7 @@ P0 与 P1 互相独立，可并行。P1 合并即上线（见仓库 `CLAUDE.md`�
 - 站内搜索量占访客不到 1%，入口曝光与用户习惯（靠筛选而非搜索）需要结合页面点击数据判断。
 - 资讯搜索 30 天几乎无命中，需单独核对 `listPublishedArticles({ q })` 的匹配字段。
 
-## 15. 文件地图（预期）
+## 15. 文件地图（预期，P1 实际见 §16）
 
 - `src/domain/search/miss-term.ts`（+ 测试）：`sanitizeMissTerm`、`classifyMissKind`
 - `src/collections/SearchMissTerms.ts`、`src/migrations/<ts>_opt_126_search_miss_terms.ts`
@@ -199,3 +220,57 @@ P0 与 P1 互相独立，可并行。P1 合并即上线（见仓库 `CLAUDE.md`�
 - `src/lib/frontend/analytics/events.ts`：`site_search` 白名单加 4 个键
 - `src/payload.config.ts`：注册 collection（改后须 `pnpm generate:types`、`pnpm payload generate:importmap`）
 - 隐私政策页：文案更新（位置实施时核对）
+
+## 16. P1 实施记录（2026-11-02）
+
+分支 `feat/opt-126-search-miss-terms-4a47ab`，只含 P1。与 §15 预期相比的差异：
+
+| 项 | 实际 |
+|---|---|
+| 纯函数 | `src/domain/search/miss-term.ts`：`sanitizeMissTerm`（返回 `keep` / `drop(原因)` / `skip(原因)`，丢弃与不采都不带文本）、`classifyMissKind`。测试 `tests/search-miss-term.test.ts` |
+| 编排 | `src/lib/search-miss/record-search-miss.ts`（依赖注入，复核 → 脱敏 → upsert）、`upsert-search-miss.ts`（原生 `INSERT … ON CONFLICT`，冲突时不碰 status / resolution / note） |
+| 端点 | `src/app/(frontend)/api/search-misses/route.ts`。成功与「已处理但不入库」→ 204；协议错误 403 / 413 / 415 / 400；限流 429；内部异常 500（客户端静默）。日志只有 `outcome` 枚举（`recorded` / `not_a_miss` / `unknown_city` / `dropped:*` / `skipped:*`），**`dropped:*` 的计数就是这条日志，没有单独的计数表** |
+| 限流 | `SEARCH_MISS_RATE_LIMIT_CONFIG`：每 IP 每分钟 20 次，`failOpen: true`，键前缀 `search-miss:` |
+| collection | `src/collections/SearchMissTerms.ts`：事实字段 `access.update = false`；`create` 对所有人关闭（只走原生 upsert）；`defaultSort: -count`；唯一索引 `(city, term, missKind)` |
+| 迁移 | `20261102_090440_opt_126_search_miss_terms`（`payload migrate:create` 生成，含 `payload_locked_documents_rels.search_miss_terms_id`）+ `20261102_090441_opt_126_grant_ops_search_miss_codes`（手写数据迁移，只给 OPS 追加菜单码 / 操作码，写法同 OPT-088） |
+| 权限 | 新增菜单码 `search-miss-terms`、操作码 `search_miss:manage`；ADM 通配、OPS 授予（迁移 + `src/test/factory/roles.ts` 夹具同步）；MGR / BRK / CSR 无。OPS 数据范围是全局，故不再按城市收窄 |
+| 导航 | 「站点与内容」组末尾新增「未命中搜索词」叶子；同步改了 5 处既有导航快照 / 清单测试（含 e2e 的 `ALL_LEAF_LABELS`） |
+| 客户端 | `SearchMissBeacon.tsx`（独立组件，`SiteSearchView` 挂一行）+ `lib/search-miss/beacon-plan.ts`（纯函数）。**客户端先用同一个 `sanitizeMissTerm` 预判**，手机号 / 邮箱这类输入根本不离开浏览器；请求体只有 `{ city, q }`。去重键存 `sessionStorage`，不可用时宁可不采。没有改 `SearchAnalytics.tsx` / `events.ts` |
+| 隐私政策 | `/pages/privacy`（`src/app/(frontend)/pages/privacy/page.tsx`）。**没有升 `PRIVACY_POLICY_VERSION`**：它同时是询盘 / 委托 / 投放 / 会员 / 城市合伙人 / 小程序的同意版本校验口径，升版会让这些入口的版本比对一起变；本次改动只涉及匿名搜索统计，是否升版属法务 / 产品决定，见 PR 说明 |
+| 契约测试 | `tests/search-miss-contract.test.ts`：beacon 不引用埋点管道、不并入 SearchAnalytics；隐私页文案不自相矛盾 |
+
+验收证据在 `artifacts/verification/OPT-126/`，逐条对应 §10：
+
+| §10 | 结果 | 证据 |
+|---|---|---|
+| 1 | 通过：电话 / 邮箱 / 网址 / 21 字 / 分段电话，库里无新增，日志 `dropped:*` | `curl-acceptance.txt`、`db-after-acceptance-1-3.txt` |
+| 2 | 通过：无结果词入库 `zero`，再发 `count` 累加 | 同上、`beacon-requests.json` |
+| 3 | 通过：伪造计数 / 有结果的词 → `not_a_miss`，不入库 | 同上 |
+| 4 | 通过：第 21 次起 429 + `Retry-After`；临时下线 `inquiry_rate_limit` 表时请求 204 照常处理并告警 | `curl-ratelimit-failopen.txt` |
+| 5 | **不在 P1 范围**（P0 / PR #243）。P1 侧只验证了 Umami 管道里没有查询文本：beacon 不碰埋点 | `search-miss-contract.test.ts` |
+| 6 | 通过：OPS 能看列表、改状态（PATCH 抓包 + 强刷回显）、删除；BRK / CSR / MGR 与匿名 REST 403，BRK 后台菜单无入口、直达 URL 为「没有找到任何东西」；事实字段改不动 | `role-check.txt`、`admin-*.png/.txt`、`rest-access.txt` |
+| 7 | 通过：`/shanghai/search` 抓包（beacon 请求体恰为 `{"city":"shanghai","q":"…"}`，同会话同词强刷 / 重进不再发，page=2 不发，有结果不发）+ admin 列表 + 强刷核对 | `beacon-requests.json`、`search-zero-result.png`、`admin-ops-list.png` |
+
+迁移验证：本地独立库 `sbh_dev_opt126` 先在 master 状态跑完全部迁移，再跑本包两个迁移；另在全新空库跑通整条迁移链；`migrate:dry-run` 无新增告警（8 条告警均为既有迁移）；`migrate:drift` 一致；`migrate:verify` 0 fail。证据 `migrate-*.txt`。
+
+保留期清理（§9）：已实现，见 §9，证据 `artifacts/verification/OPT-126/prune-*.txt`。
+
+未做 / 未验证：Umami 侧四个派生字段（P0）；生产后台（需要登录态，未验）；移动端与暗色模式下的 admin 列表未专门看。
+
+## 17. P2 实施记录（2026-11-02）
+
+分支 `feat/opt-126-p2-search-funnel-b21f`，叠在 P0（#243）与 P1（#244）之上。
+
+| 项 | 实际 |
+|---|---|
+| 新事件 | `search_suggestion_click`（`city`、`position`）、`search_fallback_click`（`city`、`block`、`position`）。**没有 `source`**：OPT-122 §9.1 设想的 pinyin / alias / typo 来源，词表解析层没有往外带，加它要动 `resolveVocabularyTerm` 的返回形状，不在本包 |
+| `search_inquiry_open` | **不新增**。零结果页留资用的就是 `InquiryModal pageType="search"`，它打开时已上报 `inquiry_open`（`page_type=search`），重复造一个事件只会让两份数据对不上 |
+| 结果点击来源 | 搜索结果卡沿用 `listing_result_click` / `building_result_click`，`section='search'` 标来源（`LIST_SECTIONS` 加一项，点击守卫同步放行）。`rank` 为区块内 1 基序号，`page_index` 为结果页码。无查询时的「热门」推荐不是搜索结果，不带埋点；资讯卡未覆盖 |
+| 实现 | `src/domain/search/funnel-analytics.ts`（data-* 契约 + fail-closed 解析）、`SearchFunnelAnalytics.tsx`（委托监听器，仅零结果页挂）。`SearchZeroState` 仍是服务端组件；楼盘 / 房源卡用 `display: contents` 的包装层承载属性 |
+| 守卫 | `tests/search-funnel-analytics.test.ts`：白名单键固定且无文本类键、夹带 `q` / `name` 被剥离、解析各种脏值整条不报、零结果页渲染带属性 |
+| 验证 | `artifacts/verification/OPT-126/p2-funnel-events.txt`。兜底块与结果卡点击在浏览器里验过；**建议词点击没能在浏览器里验到**（本地数据没有会出建议的零结果词），由渲染测试覆盖 |
+
+**admin 处置流转**：P1 已具备（`status` / `resolution` / `note` 可编辑，`ignored`+`noise` 可删），P2 不再重复。
+
+**别名联动未做**：v1 别名在代码里（OPT-122 §10 明确不建表），「运营在 admin 标 `alias-added` 后别名自动生效」需要把别名迁成集合——是一次 schema 迁移加词表缓存失效，属于产品 / 架构决定，待用户拍板后另开工作项。目前 `alias-added` 只是运营的处置标记，别名仍须开发者改代码。
+

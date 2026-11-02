@@ -1,0 +1,21 @@
+OPT-126 P2 浏览器验证（本地 dev，库 sbh_dev_opt126，2026-11-02）
+事件由 console.debug 的 [analytics] 行抓取（开发环境走 Console 适配器）。
+
+1) /shanghai/search?q=陆家嘴不存在的词xyz（零结果页）
+   页面上带 data-search-funnel-* 的元素：区域 5 个（A）、楼盘 4 个、房源 4 个（包装 DIV，display: contents）
+   依次点：区域#2、楼盘#1、房源#3，抓到：
+   [analytics] search_fallback_click {"city":"shanghai","block":"district","position":2}
+   [analytics] search_fallback_click {"city":"shanghai","block":"building","position":1}
+   [analytics] search_fallback_click {"city":"shanghai","block":"listing","position":3}
+   同一页 site_search 仍只上报一次（result_total 0，无 q 原文）。
+
+2) /shanghai/search?q=陆家嘴（共 5 条结果）
+   结果卡 data 属性：listing_result_click|search|1..2|page 1；building_result_click|search|1..3|page 1
+   点房源#1、楼盘#1，抓到：
+   [analytics] listing_result_click {"city":"shanghai","listing_id":3,"rank":1,"page_index":1,"section":"search"}
+   [analytics] building_result_click {"city":"shanghai","building_id":3,"rank":1,"page_index":1,"section":"search"}
+
+3) 未能在浏览器里验到：search_suggestion_click。
+   本地种子数据里没有「全局零结果且词表能解析出建议」的查询（试了 14 个词，零结果页均无建议块）。
+   该路径改由 tests/search-funnel-analytics.test.ts 的 SearchZeroState 渲染测试覆盖：
+   断言建议词链接带 search_suggestion_click 与 1 基位置；点击解析由同文件往返测试覆盖。

@@ -1,0 +1,7 @@
+   city   |             term             | miss_kind | count | last_result_total | status 
+----------+------------------------------+-----------+-------+-------------------+--------
+ shanghai | 不存在的写字楼               | zero      |     1 |                 0 | new
+ shanghai | 不存在的写字楼抓包测试专用词 | zero      |     1 |                 0 | new
+ shanghai | 抓包第二个词                 | zero      |     3 |                 0 | new
+(3 行记录)
+

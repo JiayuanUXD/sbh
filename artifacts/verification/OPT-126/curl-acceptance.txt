@@ -1,0 +1,18 @@
+## 验收1：隐私规则（直接打服务端，绕过客户端预判）
+204 <- {"city":"shanghai","q":"13812345678"}
+204 <- {"city":"shanghai","q":"a@b.com"}
+204 <- {"city":"shanghai","q":"https://x.com"}
+204 <- {"city":"shanghai","q":"字字字字字字字字字字字字字字字字字字字字字"}
+204 <- {"city":"shanghai","q":"138 1234 5678"}
+## 验收2：确实无结果的词两次 -> count=2（Playwright 已发过一次 抓包第二个词）
+204 <- {"city":"shanghai","q":"抓包第二个词"}
+## 验收3：伪造计数 / 有结果的词
+204 <- {"city":"shanghai","q":"静安","count":0,"zero_result":true,"missKind":"zero","resultTotal":0}
+204 <- {"city":"shanghai","q":"陆家嘴"}
+## 其它协议：跨源 / 缺 Origin / 错 Content-Type / GET
+403 <- 跨源
+403 <- 缺 Origin
+415 <- text/plain
+405 <- GET
+## 未知城市
+204 <- {"city":"atlantis","q":"未知城市词"}

@@ -1,0 +1,3 @@
+OPS 删除（忽略并删除）-> 200，行已不存在
+BRK 删除 -> 403
+OPS PATCH {count:99999} -> 200，但 count 仍为 20（事实字段 access.update=false 丢弃）
