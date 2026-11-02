@@ -28,6 +28,7 @@ export default function SearchAnalytics({
   counts,
   relaxed,
   suggested,
+  tooShort,
 }: Readonly<{
   city: string
   q: string
@@ -37,6 +38,8 @@ export default function SearchAnalytics({
   relaxed: boolean
   /** 本次渲染是否展示了「你是不是想找」；由编排层按实际渲染条件算好传入。 */
   suggested: boolean
+  /** 单字查询：没有查库，零结果口径里要排除。 */
+  tooShort: boolean
 }>) {
   const lastKeyRef = useRef<string | null>(null)
   const total = counts.listings + counts.buildings + counts.news
@@ -57,14 +60,15 @@ export default function SearchAnalytics({
       result_listings: counts.listings,
       result_buildings: counts.buildings,
       result_news: counts.news,
-      zero_result: total === 0,
+      zero_result: total === 0 && !tooShort,
       relaxed,
       term_count: shape.termCount,
       script: shape.script,
       entity_hit: hasEntityWithoutSupply({ listings: counts.listings, buildings: counts.buildings }),
       suggested,
+      too_short: tooShort,
     })
-  }, [city, q, tab, page, counts.listings, counts.buildings, counts.news, total, relaxed, suggested])
+  }, [city, q, tab, page, counts.listings, counts.buildings, counts.news, total, relaxed, suggested, tooShort])
 
   return null
 }
