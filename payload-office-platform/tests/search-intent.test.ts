@@ -121,4 +121,36 @@ describe('extractSearchIntent', () => {
     expect(result.rest).toBe('陆家嘴 3万以内')
     expect(result.labels).toEqual([])
   })
+
+  it('「整层办公室」「共享办公室」整体消费，不留下「室」当关键词', () => {
+    expect(extractSearchIntent('整层办公室')).toMatchObject({ listingType: ['full-floor'], rest: '' })
+    expect(extractSearchIntent('陆家嘴整层办公室').rest).toBe('陆家嘴')
+    expect(extractSearchIntent('共享办公室')).toMatchObject({ listingType: ['coworking'], rest: '' })
+    expect(extractSearchIntent('联合办公室').listingType).toEqual(['coworking'])
+    expect(extractSearchIntent('静安寺共享办公室').rest).toBe('静安寺')
+  })
+
+  it('否定前缀：不小于 / 不低于 / 不少于 是下限，不大于 是上限，且不残留「不」', () => {
+    for (const raw of ['不小于500平', '不低于500平', '不少于500平']) {
+      const result = extractSearchIntent(raw)
+      expect(result.areaMin, raw).toBe(500)
+      expect(result.areaMax, raw).toBeUndefined()
+      expect(result.rest, raw).toBe('')
+    }
+    for (const raw of ['不大于300平', '不超过300平', '不高于300平']) {
+      const result = extractSearchIntent(raw)
+      expect(result.areaMax, raw).toBe(300)
+      expect(result.areaMin, raw).toBeUndefined()
+      expect(result.rest, raw).toBe('')
+    }
+  })
+
+  it('肯定写法不受影响：小于 / 低于 / 少于 / 大于 / 高于', () => {
+    expect(extractSearchIntent('小于300平').areaMax).toBe(300)
+    expect(extractSearchIntent('低于300平').areaMax).toBe(300)
+    expect(extractSearchIntent('少于300平').areaMax).toBe(300)
+    expect(extractSearchIntent('大于500平').areaMin).toBe(500)
+    expect(extractSearchIntent('高于500平').areaMin).toBe(500)
+  })
 })
+

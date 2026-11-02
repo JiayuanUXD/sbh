@@ -42,8 +42,9 @@ const TYPE_RULES: ReadonlyArray<{
   label: string
   pattern: RegExp
 }> = [
-  { type: 'full-floor', label: '整层办公', pattern: /整层办公|整层/g },
-  { type: 'coworking', label: '共享办公', pattern: /共享办公|联合办公/g },
+  { type: 'full-floor', label: '整层办公', // 「室」一并吃掉：「整层办公室」不能残留「室」当必须命中的关键词（类型不在标题 / 楼盘名里）
+    pattern: /整层办公室|整层办公|整层/g },
+  { type: 'coworking', label: '共享办公', pattern: /共享办公室|共享办公|联合办公室|联合办公/g },
 ]
 
 type AreaMatch = Readonly<{ min?: number; max?: number; label: string }>
@@ -66,12 +67,12 @@ const AREA_RULES: ReadonlyArray<{
     },
   },
   {
-    // 「超过」前面不能是「不」：「不超过300平」是上限，由下一条规则处理
-    pattern: new RegExp(`(?:(?<!不)(?:大于|超过|至少)|不少于|不低于)\\s*${NUM}\\s*${UNIT}`),
+    // 否定要整体匹配：「超过」前不能是「不」（「不超过」是上限）；「不小于 / 不低于 / 不少于」是下限
+    pattern: new RegExp(`(?:(?<!不)(?:大于|超过|至少|高于)|不少于|不低于|不小于)\\s*${NUM}\\s*${UNIT}`),
     build: (m) => (saneArea(Number(m[1])) ? { min: Number(m[1]), label: `面积 ≥${Number(m[1])}㎡` } : null),
   },
   {
-    pattern: new RegExp(`(?:小于|不超过|最多|不超|低于)\\s*${NUM}\\s*${UNIT}`),
+    pattern: new RegExp(`(?:(?<!不)(?:小于|低于|少于|最多)|不超过|不大于|不高于)\\s*${NUM}\\s*${UNIT}`),
     build: (m) => (saneArea(Number(m[1])) ? { max: Number(m[1]), label: `面积 ≤${Number(m[1])}㎡` } : null),
   },
   {
