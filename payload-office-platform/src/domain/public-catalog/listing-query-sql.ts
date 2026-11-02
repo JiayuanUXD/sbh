@@ -68,8 +68,9 @@ function filteredQuery(
     const prefix = bind(`${term}%`)
     const contains = bind(`%${term}%`)
     return {
+      // 地址（b.address）是公开字段，用户会直接搜路名；只补召回，分数垫底（见下方 20）。
       condition: `(l.title ILIKE ${contains} OR b.name ILIKE ${contains} OR dist.name ILIKE ${contains}
-        OR ba.name ILIKE ${contains} OR metro.name ILIKE ${contains})`,
+        OR ba.name ILIKE ${contains} OR metro.name ILIKE ${contains} OR b.address ILIKE ${contains})`,
       score: `(CASE
         WHEN l.title ILIKE ${exact} THEN 100
         WHEN l.title ILIKE ${prefix} THEN 80
@@ -86,6 +87,7 @@ function filteredQuery(
         WHEN metro.name ILIKE ${exact} THEN 35
         WHEN metro.name ILIKE ${prefix} THEN 30
         WHEN metro.name ILIKE ${contains} THEN 25
+        WHEN b.address ILIKE ${contains} THEN 20
         ELSE 0 END)`,
     }
   })
