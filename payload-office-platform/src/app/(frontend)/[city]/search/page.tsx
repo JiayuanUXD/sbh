@@ -5,6 +5,8 @@ import React from 'react'
 import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import SiteSearchView from '@/components/frontend/search/SiteSearchView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
+import { normalizeSearchQuery } from '@/domain/search/normalize'
+import { isTooShortQuery } from '@/domain/search/short-query'
 import { parseSiteSearchParams } from '@/domain/search/tabs'
 import {
   getCachedSearchFallback,
@@ -43,15 +45,18 @@ export default async function CitySearchPage({ params, searchParams }: Props) {
 
   const { q, tab, page } = parseSiteSearchParams(raw)
   const hasQuery = q.length > 0
+  // 单字查询不查库：`ILIKE %字%` 会命中几乎所有实体，页面改给提示 + 热门内容。
+  const tooShort = hasQuery && isTooShortQuery(normalizeSearchQuery(q))
+  const runQuery = hasQuery && !tooShort
 
   const [listings, buildings, articles] = await Promise.all([
-    hasQuery
+    runQuery
       ? getCachedSiteSearchListings(city.slug, q, tab === 'listings' ? page : 1)
       : Promise.resolve(null),
-    hasQuery
+    runQuery
       ? getCachedSiteSearchBuildings(city.slug, q, tab === 'buildings' ? page : 1)
       : Promise.resolve(null),
-    hasQuery
+    runQuery
       ? getCachedSiteSearchArticles(q, tab === 'news' ? page : 1)
       : Promise.resolve(null),
   ])
@@ -61,7 +66,7 @@ export default async function CitySearchPage({ params, searchParams }: Props) {
     + (buildings?.result.totalDocs ?? 0)
     + (articles?.totalDocs ?? 0)
   // 兜底内容只在搜索引导页与全局零结果页取；有结果时不发这三条查询。
-  const fallback = !hasQuery || total === 0 ? await getCachedSearchFallback(city.slug) : null
+  const fallback = !runQuery || total === 0 ? await getCachedSearchFallback(city.slug) : null
 
   return (
     <SiteSearchView
@@ -74,6 +79,7 @@ export default async function CitySearchPage({ params, searchParams }: Props) {
       listings={listings}
       buildings={buildings}
       articles={articles}
+      tooShort={tooShort}
     />
   )
 }

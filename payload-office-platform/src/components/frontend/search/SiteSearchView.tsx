@@ -39,6 +39,7 @@ export default function SiteSearchView({
   listings,
   buildings,
   articles,
+  tooShort = false,
 }: Readonly<{
   city: CityContext
   basePath: string
@@ -49,6 +50,8 @@ export default function SiteSearchView({
   listings: SiteSearchListings | null
   buildings: SiteSearchBuildings | null
   articles: ArticleListResult | null
+  /** 单字查询：路由层没有取数，这里给提示并展示热门内容。 */
+  tooShort?: boolean
 }>) {
   const fallbackData = fallback ?? EMPTY_FALLBACK
   const hasQuery = q.length > 0
@@ -162,9 +165,10 @@ export default function SiteSearchView({
           counts={counts}
           relaxed={listings?.relaxed ?? false}
           suggested={suggested}
+          tooShort={tooShort}
         />
       ) : null}
-      {hasQuery ? (
+      {hasQuery && !tooShort ? (
         <SearchMissBeacon
           city={city.slug}
           q={q}
@@ -173,12 +177,14 @@ export default function SiteSearchView({
           relaxed={listings?.relaxed ?? false}
         />
       ) : null}
-      {hasQuery ? <ListClickAnalytics /> : null}
-      {hasQuery && total === 0 ? <SearchFunnelAnalytics city={city.slug} /> : null}
+      {hasQuery && !tooShort ? <ListClickAnalytics /> : null}
+      {hasQuery && !tooShort && total === 0 ? <SearchFunnelAnalytics city={city.slug} /> : null}
       <header className="ls-container sw-head">
         <h1 className="ls-head__title">搜索</h1>
         <p className="ls-head__sub" aria-live="polite">
-          {hasQuery ? (
+          {tooShort ? (
+            '请至少输入 2 个字'
+          ) : hasQuery ? (
             <>共 <span className="sf-num">{total}</span> 条结果</>
           ) : (
             '输入楼盘、商圈、地铁或关键词开始搜索'
@@ -190,8 +196,13 @@ export default function SiteSearchView({
         <SiteSearchForm citySlug={city.slug} q={q} action={basePath} />
       </div>
 
-      {!hasQuery ? (
+      {!hasQuery || tooShort ? (
         <div className="ls-container">
+          {tooShort ? (
+            <p className="sw-relaxed">
+              「{q}」只有一个字，范围太大了。试试楼盘名、商圈名或地铁站名，比如「陆家嘴」「静安寺」。
+            </p>
+          ) : null}
           {section('热门区域', null, null, (
             <ul className="sw-districts">
               {fallbackData.districts.map((district) => (

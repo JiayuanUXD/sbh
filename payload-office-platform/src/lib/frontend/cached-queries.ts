@@ -11,6 +11,8 @@ import {
 } from '@/domain/search/vocabulary'
 import { escapeLikePattern, normalizeSearchQuery, type NormalizedQuery } from '@/domain/search/normalize'
 import { expandSearchTerms } from '@/domain/search/expand'
+import { segmentSearchTerms } from '@/domain/search/segment'
+import { isTooShortQuery } from '@/domain/search/short-query'
 import { relaxQuery } from '@/domain/search/relax'
 import { buildListingPageQuery } from '@/domain/public-catalog/listing-query-sql'
 import {
@@ -340,6 +342,23 @@ export type SiteSearchBuildings = Readonly<{
   resolved: readonly VocabularyEntry[]
 }>
 
+/** 合并词表条目并按 kind:id 去重，保持先到先得的顺序。 */
+function mergeVocabularyEntries(
+  ...groups: readonly (readonly VocabularyEntry[])[]
+): readonly VocabularyEntry[] {
+  const seen = new Set<string>()
+  const merged: VocabularyEntry[] = []
+  for (const group of groups) {
+    for (const entry of group) {
+      const key = `${entry.kind}:${String(entry.id)}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(entry)
+    }
+  }
+  return merged
+}
+
 /** 站内搜索的楼盘分页：复用楼盘列表的同一套公开谓词与分面，不另写 where。 */
 export async function getCachedSiteSearchBuildings(
   citySlug: string,
@@ -348,12 +367,15 @@ export async function getCachedSiteSearchBuildings(
 ): Promise<SiteSearchBuildings | null> {
   const city = canonicalCitySlug(citySlug)
   const normalized = normalizeSearchQuery(rawQuery)
-  if (normalized.normalized.length === 0) return null
+  if (normalized.normalized.length === 0 || isTooShortQuery(normalized)) return null
   const vocabulary = await getCachedSearchVocabulary(city)
-  const expanded = expandSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
-  // 楼盘 SQL 只接受一个 substring：用扩展后的第一个词（拼音已被换成中文实体名），
-  // 没有扩展时退回原词。多词的 AND/OR 是房源搜索的语义，不硬塞进楼盘。
-  const buildingTerm = expanded.listingTerms[0] ?? normalized.normalized
+  // 先用词表把长句里的实体切出来（「陆家嘴整层办公室」→ 陆家嘴 + 整层），再做拼音 / 别名扩展。
+  const segmented = segmentSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
+  const expanded = expandSearchTerms(segmented.terms, vocabulary)
+  // 楼盘 SQL 只接受一个 substring：优先用分词切出的第一个实体名，其次是扩展后的第一个词
+  // （拼音已被换成中文实体名），没有扩展时退回原词。多词的 AND/OR 是房源搜索的语义，
+  // 不硬塞进楼盘；整条长句也不能直接拿去匹配楼盘名。
+  const buildingTerm = segmented.entityTerms[0] ?? expanded.listingTerms[0] ?? normalized.normalized
   const input: BuildingSearchInput = {
     q: buildingTerm,
     sort: 'stock-desc',
@@ -364,7 +386,10 @@ export async function getCachedSiteSearchBuildings(
   return {
     result,
     query: normalized,
-    resolved: resolveVocabularyTerm(vocabulary, normalized.normalized),
+    resolved: mergeVocabularyEntries(
+      resolveVocabularyTerm(vocabulary, normalized.normalized),
+      segmented.entries,
+    ),
   }
 }
 
@@ -657,10 +682,11 @@ export async function getCachedSiteSearchListings(
 ): Promise<SiteSearchListings | null> {
   const city = canonicalCitySlug(citySlug)
   const normalized = normalizeSearchQuery(rawQuery)
-  if (normalized.terms.length === 0) return null
+  if (normalized.terms.length === 0 || isTooShortQuery(normalized)) return null
 
   const vocabulary = await getCachedSearchVocabulary(city)
-  const expanded = expandSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
+  const segmented = segmentSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
+  const expanded = expandSearchTerms(segmented.terms, vocabulary)
   const terms = expanded.listingTerms.map(escapeLikePattern)
   const input: ListingSearchInput = { sort: 'recommended', page: Math.max(1, page), pageSize: 24 }
   const load = getCachedSiteSearchListingPageByCity(city)
@@ -693,7 +719,7 @@ export async function getCachedSiteSearchListings(
     terms: expanded.listingTerms,
     relaxed,
     relaxedTerms,
-    resolved: expanded.resolved,
+    resolved: mergeVocabularyEntries(expanded.resolved, segmented.entries),
   }
 }
 
@@ -888,7 +914,7 @@ export async function getCachedSiteSearchArticles(
   page = 1,
 ): Promise<Awaited<ReturnType<typeof listPublishedArticles>> | null> {
   const normalized = normalizeSearchQuery(rawQuery)
-  if (normalized.normalized.length === 0) return null
+  if (normalized.normalized.length === 0 || isTooShortQuery(normalized)) return null
   return getCachedSiteSearchArticlesPage(normalized.normalized, Math.max(1, page))
 }
 
