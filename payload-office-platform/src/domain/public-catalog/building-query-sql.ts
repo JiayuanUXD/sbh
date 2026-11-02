@@ -46,7 +46,7 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
   const qContains = q ? bind(`%${q}%`) : null;
   const qCondition = q
     ? `(b.name ILIKE ${qContains} OR dist.name ILIKE ${qContains}
-      OR ba.name ILIKE ${qContains} OR metro.name ILIKE ${qContains})`
+      OR ba.name ILIKE ${qContains} OR metro.name ILIKE ${qContains} OR b.address ILIKE ${qContains})`
     : 'TRUE';
   const legacyGrades = bind(LEGACY_BUILDING_GRADES);
   const conditions: Partial<Record<BuildingSearchDimension, string>> = {};
@@ -106,6 +106,7 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
         WHEN dist.name ILIKE ${qExact} THEN 40 WHEN dist.name ILIKE ${qPrefix} THEN 35 WHEN dist.name ILIKE ${qContains} THEN 30
         WHEN ba.name ILIKE ${qExact} THEN 40 WHEN ba.name ILIKE ${qPrefix} THEN 35 WHEN ba.name ILIKE ${qContains} THEN 30
         WHEN metro.name ILIKE ${qExact} THEN 35 WHEN metro.name ILIKE ${qPrefix} THEN 30 WHEN metro.name ILIKE ${qContains} THEN 25
+        WHEN b.address ILIKE ${qContains} THEN 20
         ELSE 0 END) AS match_score,` : ''}
       EXTRACT(YEAR FROM b.completion_date AT TIME ZONE $6)::int AS completion_year,
       COALESCE(stock.listing_count, 0) AS listing_count,
