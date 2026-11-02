@@ -97,7 +97,7 @@ export const ANALYTICS_EVENTS = {
   //
   // 不上报 q 原文，只报长度与派生结果；去重键是 q 的轻量 hash + tab + page。
   // term_count / script 是查询的「形状」（词项数、文字类型），entity_hit 是「楼盘命中但无在租房源」，
-  // suggested 是「展示了你是不是想找」（OPT-126 P0）；too_short 是单字查询（不查库，页面给提示）。守卫：tests/search-analytics-contract.test.ts。
+  // suggested 是「展示了你是不是想找」（OPT-126 P0）；too_short 是单字查询（不查库，页面给提示）；intent_applied 是识别了类目 / 面积意图并转成筛选。守卫：tests/search-analytics-contract.test.ts。
   /** 站内搜索结果呈现（三类计数 / 零结果 / 是否放宽 / 查询形状） */
   site_search: [
     'city',
@@ -115,6 +115,7 @@ export const ANALYTICS_EVENTS = {
     'entity_hit',
     'suggested',
     'too_short',
+    'intent_applied',
   ],
   // 零结果页漏斗（OPT-126 P2 / OPT-122 §9.1）。只报位置与固定枚举，不报建议词 / 楼盘名。
   // 零结果页打开留资由 inquiry_open（page_type=search）覆盖，不另设事件。
