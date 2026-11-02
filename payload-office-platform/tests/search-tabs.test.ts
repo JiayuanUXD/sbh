@@ -37,11 +37,14 @@ describe('parseSiteSearchParams', () => {
       q: '陆家嘴',
       tab: 'listings',
       page: 2,
+      intent: true,
     })
   })
 
   it('缺省 q 为空串、tab 为 all、page 为 1', () => {
-    expect(parseSiteSearchParams({})).toEqual({ q: '', tab: 'all', page: 1 })
+    expect(parseSiteSearchParams({})).toEqual({ q: '', tab: 'all', page: 1, intent: true })
+    expect(parseSiteSearchParams({ ni: '1' }).intent).toBe(false)
+    expect(parseSiteSearchParams({ ni: '0' }).intent).toBe(true)
   })
 
   it('按码点截断，不切断代理项', () => {

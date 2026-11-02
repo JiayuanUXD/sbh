@@ -14,6 +14,8 @@ export type SiteSearchParams = Readonly<{
   q: string
   tab: SearchTab
   page: number
+  /** 是否识别类目 / 面积意图；URL `ni=1` 关闭（用户点了「取消识别」）。 */
+  intent: boolean
 }>
 
 function firstString(value: string | string[] | undefined): string | undefined {
@@ -43,5 +45,6 @@ export function parseSiteSearchParams(
     q,
     tab: parseSearchTab(raw.tab),
     page: parseSearchPage(raw.page),
+    intent: firstString(raw.ni) !== '1',
   }
 }

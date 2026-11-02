@@ -22,16 +22,20 @@ export default function SearchTabs({
   q,
   tab,
   counts,
+  intentEnabled = true,
 }: Readonly<{
   basePath: string
   q: string
   tab: SearchTab
   counts: Readonly<Record<SearchTab, number>>
+  /** 用户关闭了条件识别（`ni=1`）时，切 tab 要带着，否则一点 tab 就悄悄恢复识别。 */
+  intentEnabled?: boolean
 }>) {
   const hrefOf = (target: SearchTab) => {
     const params = new URLSearchParams()
     if (q) params.set('q', q)
     if (target !== 'all') params.set('tab', target)
+    if (!intentEnabled) params.set('ni', '1')
     const query = params.toString()
     return query ? `${basePath}?${query}` : basePath
   }
