@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 
+import { describeQueryShape, hasEntityWithoutSupply } from '@/domain/search/analytics-shape'
 import { track } from '@/lib/frontend/analytics'
 
 /**
@@ -26,6 +27,7 @@ export default function SearchAnalytics({
   page,
   counts,
   relaxed,
+  suggested,
 }: Readonly<{
   city: string
   q: string
@@ -33,6 +35,8 @@ export default function SearchAnalytics({
   page: number
   counts: Readonly<{ listings: number; buildings: number; news: number }>
   relaxed: boolean
+  /** 本次渲染是否展示了「你是不是想找」；由编排层按实际渲染条件算好传入。 */
+  suggested: boolean
 }>) {
   const lastKeyRef = useRef<string | null>(null)
   const total = counts.listings + counts.buildings + counts.news
@@ -41,6 +45,8 @@ export default function SearchAnalytics({
     const key = [hashQuery(q), tab, page].join('|')
     if (lastKeyRef.current === key) return
     lastKeyRef.current = key
+
+    const shape = describeQueryShape(q)
 
     track('site_search', {
       city,
@@ -53,8 +59,12 @@ export default function SearchAnalytics({
       result_news: counts.news,
       zero_result: total === 0,
       relaxed,
+      term_count: shape.termCount,
+      script: shape.script,
+      entity_hit: hasEntityWithoutSupply({ listings: counts.listings, buildings: counts.buildings }),
+      suggested,
     })
-  }, [city, q, tab, page, counts.listings, counts.buildings, counts.news, total, relaxed])
+  }, [city, q, tab, page, counts.listings, counts.buildings, counts.news, total, relaxed, suggested])
 
   return null
 }

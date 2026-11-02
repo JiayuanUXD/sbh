@@ -96,7 +96,9 @@ export const ANALYTICS_EVENTS = {
   // ── 站内搜索（OPT-122）──────────────────────────────────────────────────
   //
   // 不上报 q 原文，只报长度与派生结果；去重键是 q 的轻量 hash + tab + page。
-  /** 站内搜索结果呈现（三类计数 / 零结果 / 是否放宽） */
+  // term_count / script 是查询的「形状」（词项数、文字类型），entity_hit 是「楼盘命中但无在租房源」，
+  // suggested 是「展示了你是不是想找」（OPT-126 P0）。守卫：tests/search-analytics-contract.test.ts。
+  /** 站内搜索结果呈现（三类计数 / 零结果 / 是否放宽 / 查询形状） */
   site_search: [
     'city',
     'q_length',
@@ -108,6 +110,10 @@ export const ANALYTICS_EVENTS = {
     'result_news',
     'zero_result',
     'relaxed',
+    'term_count',
+    'script',
+    'entity_hit',
+    'suggested',
   ],
 
   // ── 页面停留与浏览深度（OPT-064 新增）───────────────────────────────────
