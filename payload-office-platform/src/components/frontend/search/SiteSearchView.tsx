@@ -12,6 +12,7 @@ import type {
   BuildingSummaryViewModel,
   ListingCardViewModel,
 } from '@/domain/public-catalog/contracts'
+import { extractSearchIntent } from '@/domain/search/intent'
 import type { SearchTab } from '@/domain/search/tabs'
 import type {
   SearchFallback,
@@ -40,6 +41,7 @@ export default function SiteSearchView({
   buildings,
   articles,
   tooShort = false,
+  intentEnabled = true,
 }: Readonly<{
   city: CityContext
   basePath: string
@@ -52,6 +54,8 @@ export default function SiteSearchView({
   articles: ArticleListResult | null
   /** 单字查询：路由层没有取数，这里给提示并展示热门内容。 */
   tooShort?: boolean
+  /** 是否识别类目 / 面积意图；URL `ni=1` 时为 false。 */
+  intentEnabled?: boolean
 }>) {
   const fallbackData = fallback ?? EMPTY_FALLBACK
   const hasQuery = q.length > 0
@@ -67,9 +71,21 @@ export default function SiteSearchView({
     if (q) params.set('q', q)
     if (target !== 'all') params.set('tab', target)
     if (targetPage > 1) params.set('page', String(targetPage))
+    if (!intentEnabled) params.set('ni', '1')
     const query = params.toString()
     return query ? `${basePath}?${query}` : basePath
   }
+
+  // 条件识别提示：识别了就说清楚「按什么筛了房源」并给出取消入口；用户关掉后给恢复入口。
+  const intentLabels = listings?.intent.labels ?? []
+  const intentSwitchHref = (enable: boolean) => {
+    const params = new URLSearchParams()
+    params.set('q', q)
+    if (tab !== 'all') params.set('tab', tab)
+    if (!enable) params.set('ni', '1')
+    return `${basePath}?${params.toString()}`
+  }
+  const canRestoreIntent = hasQuery && !intentEnabled && extractSearchIntent(q).labels.length > 0
 
   // 结果卡点击来源：section='search'，rank 为区块内 1 基序号，pageIndex 为结果页码。
   // 无查询时渲染的「热门」推荐不是搜索结果，不带埋点（传 undefined）。
@@ -169,6 +185,7 @@ export default function SiteSearchView({
           relaxed={listings?.relaxed ?? false}
           suggested={suggested}
           tooShort={tooShort}
+          intentApplied={intentLabels.length > 0}
         />
       ) : null}
       {hasQuery && !tooShort ? (
@@ -197,6 +214,18 @@ export default function SiteSearchView({
 
       <div className="ls-container">
         <SiteSearchForm citySlug={city.slug} q={q} action={basePath} />
+        {intentLabels.length > 0 ? (
+          <p className="sw-relaxed" role="status">
+            已识别筛选条件，房源按「{intentLabels.join('」「')}」筛选。
+            <Link href={intentSwitchHref(false)}>取消识别</Link>
+          </p>
+        ) : null}
+        {canRestoreIntent ? (
+          <p className="sw-relaxed">
+            已关闭条件识别。
+            <Link href={intentSwitchHref(true)}>恢复识别</Link>
+          </p>
+        ) : null}
       </div>
 
       {!hasQuery || tooShort ? (
@@ -244,6 +273,7 @@ export default function SiteSearchView({
               q={q}
               tab={tab}
               counts={{ all: total, ...counts }}
+              intentEnabled={intentEnabled}
             />
           </div>
 

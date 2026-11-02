@@ -5,7 +5,7 @@ import React from 'react'
 import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import SiteSearchView from '@/components/frontend/search/SiteSearchView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
-import { normalizeSearchQuery } from '@/domain/search/normalize'
+import { resolveSiteSearchQuery } from '@/domain/search/resolve-query'
 import { isTooShortQuery } from '@/domain/search/short-query'
 import { parseSiteSearchParams } from '@/domain/search/tabs'
 import {
@@ -43,21 +43,24 @@ export default async function CitySearchPage({ params, searchParams }: Props) {
   if (!city) notFound()
   if (city.serviceStatus === 'coming-soon') return <ComingSoonCityView city={city} />
 
-  const { q, tab, page } = parseSiteSearchParams(raw)
+  const { q, tab, page, intent: useIntent } = parseSiteSearchParams(raw)
   const hasQuery = q.length > 0
   // 单字查询不查库：`ILIKE %字%` 会命中几乎所有实体，页面改给提示 + 热门内容。
-  const tooShort = hasQuery && isTooShortQuery(normalizeSearchQuery(q))
+  // 与取数层同一个解析入口：带类目 / 面积意图的查询（如「整层」「500平」）不算单字。
+  const resolvedQuery = resolveSiteSearchQuery(q, useIntent)
+  const tooShort =
+    hasQuery && !resolvedQuery.hasFilters && isTooShortQuery(resolvedQuery.normalized)
   const runQuery = hasQuery && !tooShort
 
   const [listings, buildings, articles] = await Promise.all([
     runQuery
-      ? getCachedSiteSearchListings(city.slug, q, tab === 'listings' ? page : 1)
+      ? getCachedSiteSearchListings(city.slug, q, tab === 'listings' ? page : 1, useIntent)
       : Promise.resolve(null),
     runQuery
-      ? getCachedSiteSearchBuildings(city.slug, q, tab === 'buildings' ? page : 1)
+      ? getCachedSiteSearchBuildings(city.slug, q, tab === 'buildings' ? page : 1, useIntent)
       : Promise.resolve(null),
     runQuery
-      ? getCachedSiteSearchArticles(q, tab === 'news' ? page : 1)
+      ? getCachedSiteSearchArticles(q, tab === 'news' ? page : 1, useIntent)
       : Promise.resolve(null),
   ])
 
@@ -80,6 +83,7 @@ export default async function CitySearchPage({ params, searchParams }: Props) {
       buildings={buildings}
       articles={articles}
       tooShort={tooShort}
+      intentEnabled={useIntent}
     />
   )
 }
