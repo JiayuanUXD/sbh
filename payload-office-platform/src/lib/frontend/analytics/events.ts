@@ -115,6 +115,13 @@ export const ANALYTICS_EVENTS = {
     'entity_hit',
     'suggested',
   ],
+  // 零结果页漏斗（OPT-126 P2 / OPT-122 §9.1）。只报位置与固定枚举，不报建议词 / 楼盘名。
+  // 零结果页打开留资由 inquiry_open（page_type=search）覆盖，不另设事件。
+  // 搜索结果卡点击沿用 listing_result_click / building_result_click，用 section='search' 标来源。
+  /** 点「你是不是想找」（position 为 1 基序号） */
+  search_suggestion_click: ['city', 'position'],
+  /** 点零结果页兜底块（block: entity / district / building / listing） */
+  search_fallback_click: ['city', 'block', 'position'],
 
   // ── 页面停留与浏览深度（OPT-064 新增）───────────────────────────────────
   //

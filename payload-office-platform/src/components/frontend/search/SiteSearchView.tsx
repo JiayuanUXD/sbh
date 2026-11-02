@@ -4,6 +4,7 @@ import React from 'react'
 import ArticleCard from '@/components/frontend/ArticleCard'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
+import ListClickAnalytics from '@/components/frontend/listing/ListClickAnalytics'
 import ListPager from '@/components/frontend/listing/ListPager'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type {
@@ -21,6 +22,7 @@ import type {
 import SearchTabs from './SearchTabs'
 import SearchZeroState from './SearchZeroState'
 import SearchAnalytics from './SearchAnalytics'
+import SearchFunnelAnalytics from './SearchFunnelAnalytics'
 import SearchMissBeacon from './SearchMissBeacon'
 import SiteSearchForm from './SiteSearchForm'
 
@@ -66,18 +68,52 @@ export default function SiteSearchView({
     return query ? `${basePath}?${query}` : basePath
   }
 
-  const renderListings = (docs: readonly ListingCardViewModel[]) => (
+  // 结果卡点击来源：section='search'，rank 为区块内 1 基序号，pageIndex 为结果页码。
+  // 无查询时渲染的「热门」推荐不是搜索结果，不带埋点（传 undefined）。
+  const renderListings = (docs: readonly ListingCardViewModel[], pageIndex?: number) => (
     <div className="ls-grid">
-      {docs.map((listing) => (
-        <ListingResultCard key={listing.slug} listing={listing} citySlug={city.slug} />
+      {docs.map((listing, index) => (
+        <ListingResultCard
+          key={listing.slug}
+          listing={listing}
+          citySlug={city.slug}
+          analytics={
+            pageIndex === undefined
+              ? undefined
+              : {
+                  event: 'listing_result_click',
+                  city: city.slug,
+                  rank: index + 1,
+                  pageIndex,
+                  section: 'search',
+                  listingId: listing.id,
+                }
+          }
+        />
       ))}
     </div>
   )
 
-  const renderBuildings = (docs: readonly BuildingSummaryViewModel[]) => (
+  const renderBuildings = (docs: readonly BuildingSummaryViewModel[], pageIndex?: number) => (
     <div className="ls-grid">
-      {docs.map((building) => (
-        <BuildingResultCard key={building.slug} building={building} citySlug={city.slug} />
+      {docs.map((building, index) => (
+        <BuildingResultCard
+          key={building.slug}
+          building={building}
+          citySlug={city.slug}
+          analytics={
+            pageIndex === undefined
+              ? undefined
+              : {
+                  event: 'building_result_click',
+                  city: city.slug,
+                  rank: index + 1,
+                  pageIndex,
+                  section: 'search',
+                  buildingId: building.id,
+                }
+          }
+        />
       ))}
     </div>
   )
@@ -137,6 +173,8 @@ export default function SiteSearchView({
           relaxed={listings?.relaxed ?? false}
         />
       ) : null}
+      {hasQuery ? <ListClickAnalytics /> : null}
+      {hasQuery && total === 0 ? <SearchFunnelAnalytics city={city.slug} /> : null}
       <header className="ls-container sw-head">
         <h1 className="ls-head__title">搜索</h1>
         <p className="ls-head__sub" aria-live="polite">
@@ -208,10 +246,10 @@ export default function SiteSearchView({
             {tab === 'all' ? (
               <>
                 {counts.listings > 0
-                  ? section('房源', counts.listings, hrefOf('listings'), renderListings(listings?.result.docs.slice(0, 8) ?? []))
+                  ? section('房源', counts.listings, hrefOf('listings'), renderListings(listings?.result.docs.slice(0, 8) ?? [], 1))
                   : null}
                 {counts.buildings > 0
-                  ? section('楼盘', counts.buildings, hrefOf('buildings'), renderBuildings(buildings?.result.docs.slice(0, 4) ?? []))
+                  ? section('楼盘', counts.buildings, hrefOf('buildings'), renderBuildings(buildings?.result.docs.slice(0, 4) ?? [], 1))
                   : null}
                 {counts.news > 0
                   ? section('资讯', counts.news, hrefOf('news'), renderArticles(articles?.docs.slice(0, 3) ?? []))
@@ -222,7 +260,7 @@ export default function SiteSearchView({
             {tab === 'listings' ? (
               counts.listings > 0 ? (
                 <>
-                  {renderListings(listings?.result.docs ?? [])}
+                  {renderListings(listings?.result.docs ?? [], page)}
                   <ListPager
                     page={page}
                     totalPages={listings?.result.pagination.totalPages ?? 1}
@@ -236,7 +274,7 @@ export default function SiteSearchView({
                   <p className="sw-crossout__note">
                     该关键词暂无在租房源，但命中了 {counts.buildings} 个相关楼盘。
                   </p>
-                  {renderBuildings(buildings?.result.docs.slice(0, 4) ?? [])}
+                  {renderBuildings(buildings?.result.docs.slice(0, 4) ?? [], 1)}
                   <Link className="sw-crossout__link" href={hrefOf('buildings')}>
                     查看全部 {counts.buildings} 个楼盘 →
                   </Link>
@@ -249,7 +287,7 @@ export default function SiteSearchView({
             {tab === 'buildings' ? (
               counts.buildings > 0 ? (
                 <>
-                  {renderBuildings(buildings?.result.docs ?? [])}
+                  {renderBuildings(buildings?.result.docs ?? [], page)}
                   <ListPager
                     page={page}
                     totalPages={buildings?.result.totalPages ?? 1}

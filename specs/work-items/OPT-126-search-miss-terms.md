@@ -1,6 +1,6 @@
 # Task Packet：OPT-126 站内搜索未命中词采集（脱敏）
 
-> 状态：**D1–D4 已由用户接受（2026-11-02）；P0 已在 PR #243（分支 `feat/opt-126-site-search-derived-props-222d`）；P1 已实现（分支 `feat/opt-126-search-miss-terms-4a47ab`，见 §16），保留期清理（§9）已按「请求顺带清理」实现（用户 2026-11-02 拍板）；P2 未开始**
+> 状态：**D1–D4 已由用户接受（2026-11-02）；P0 已在 PR #243（分支 `feat/opt-126-site-search-derived-props-222d`）；P1 已实现（分支 `feat/opt-126-search-miss-terms-4a47ab`，见 §16），保留期清理（§9）已按「请求顺带清理」实现（用户 2026-11-02 拍板）；P2 的埋点部分见 §17，别名联动未做**
 > 创建日期：2026-11-02
 > 来源：站内搜索能力复盘（OPT-122 遗留）+ Umami 近 30 天 `site_search` 数据
 > 前置：OPT-122（站内搜索）、OPT-010（埋点白名单与脱敏）
@@ -256,3 +256,21 @@ P0 与 P1 互相独立，可并行。P1 合并即上线（见仓库 `CLAUDE.md`�
 保留期清理（§9）：已实现，见 §9，证据 `artifacts/verification/OPT-126/prune-*.txt`。
 
 未做 / 未验证：Umami 侧四个派生字段（P0）；生产后台（需要登录态，未验）；移动端与暗色模式下的 admin 列表未专门看。
+
+## 17. P2 实施记录（2026-11-02）
+
+分支 `feat/opt-126-p2-search-funnel-b21f`，叠在 P0（#243）与 P1（#244）之上。
+
+| 项 | 实际 |
+|---|---|
+| 新事件 | `search_suggestion_click`（`city`、`position`）、`search_fallback_click`（`city`、`block`、`position`）。**没有 `source`**：OPT-122 §9.1 设想的 pinyin / alias / typo 来源，词表解析层没有往外带，加它要动 `resolveVocabularyTerm` 的返回形状，不在本包 |
+| `search_inquiry_open` | **不新增**。零结果页留资用的就是 `InquiryModal pageType="search"`，它打开时已上报 `inquiry_open`（`page_type=search`），重复造一个事件只会让两份数据对不上 |
+| 结果点击来源 | 搜索结果卡沿用 `listing_result_click` / `building_result_click`，`section='search'` 标来源（`LIST_SECTIONS` 加一项，点击守卫同步放行）。`rank` 为区块内 1 基序号，`page_index` 为结果页码。无查询时的「热门」推荐不是搜索结果，不带埋点；资讯卡未覆盖 |
+| 实现 | `src/domain/search/funnel-analytics.ts`（data-* 契约 + fail-closed 解析）、`SearchFunnelAnalytics.tsx`（委托监听器，仅零结果页挂）。`SearchZeroState` 仍是服务端组件；楼盘 / 房源卡用 `display: contents` 的包装层承载属性 |
+| 守卫 | `tests/search-funnel-analytics.test.ts`：白名单键固定且无文本类键、夹带 `q` / `name` 被剥离、解析各种脏值整条不报、零结果页渲染带属性 |
+| 验证 | `artifacts/verification/OPT-126/p2-funnel-events.txt`。兜底块与结果卡点击在浏览器里验过；**建议词点击没能在浏览器里验到**（本地数据没有会出建议的零结果词），由渲染测试覆盖 |
+
+**admin 处置流转**：P1 已具备（`status` / `resolution` / `note` 可编辑，`ignored`+`noise` 可删），P2 不再重复。
+
+**别名联动未做**：v1 别名在代码里（OPT-122 §10 明确不建表），「运营在 admin 标 `alias-added` 后别名自动生效」需要把别名迁成集合——是一次 schema 迁移加词表缓存失效，属于产品 / 架构决定，待用户拍板后另开工作项。目前 `alias-added` 只是运营的处置标记，别名仍须开发者改代码。
+
