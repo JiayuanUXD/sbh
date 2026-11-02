@@ -1,0 +1,201 @@
+# Task Packet：OPT-126 站内搜索未命中词采集（脱敏）
+
+> 状态：**D1–D4 已由用户接受（2026-11-02）；P0 已在分支 `feat/opt-126-site-search-derived-props-222d` 实现，未提交；P1、P2 未开始**
+> 创建日期：2026-11-02
+> 来源：站内搜索能力复盘（OPT-122 遗留）+ Umami 近 30 天 `site_search` 数据
+> 前置：OPT-122（站内搜索）、OPT-010（埋点白名单与脱敏）
+
+---
+
+## 0. 决策记录
+
+| # | 决策 | 取向 | 状态 |
+|---|---|---|---|
+| D1 | 是否反转 OPT-122 §9.1「不上报 q 原文」 | **有限反转**：只采「未命中」的查询，且只存脱敏后的归一化词；其余查询仍只报长度与派生结果 | **需用户确认** |
+| D2 | 存到哪里 | 自有 PG 表（Payload collection），**不进 Umami** | 推荐，待确认 |
+| D3 | 存聚合还是明细 | 只存聚合（词 × 次数 × 首末次时间），不存会话 / IP / UA / 时间序列明细 | 推荐 |
+| D4 | 保留期 | 只出现 1 次的词 30 天后删；出现 ≥2 次的保留 180 天 | 推荐，待确认 |
+| D5 | 采集点 | 客户端 beacon + 服务端复核，不在 RSC 渲染里写库 | 推荐 |
+| D6 | 谁能看 | 运营 / 管理员角色，具体按 `.agent/permissions.md` 核对 | 实施时定 |
+
+## 1. 一句话
+
+把「用户搜了什么却没搜到」脱敏后落库，让运营能按词频补别名、补楼盘数据、补词表；同时给 `site_search` 补几个不含文本的派生字段，在 Umami 里就能分析零结果的形态。
+
+## 2. 现状与证据（Umami，2026-11-02 读取）
+
+站点「商办空间」，近 30 天：访客约 3.4k，`site_search` 24 次（不到访客的 1%）。读到 20 条属性，另 4 条（第 2 页）未读。
+
+| 观察 | 数据 | 含义 |
+|---|---|---|
+| 零结果 | 20 条里 4 条（20%） | 比例不低，但样本太小 |
+| 零结果的查询长度 | 4 / 7 / 8 / 8 字符；长度 ≥7 的 3 条全部零结果 | 长中文串无分词，印证 OPT-122 §6.1 的已知边界 |
+| 放宽 | 20 条的 `relaxed` 全为 false | 长中文串只有 1 个词项，`relax.ts` 无从放宽 |
+| 单字查询 | 4289 / 16439 条结果 | 单字查询返回几乎全库，属噪音 |
+| 资讯 | `result_news` 只有单字查询非零 | 资讯匹配需另查 |
+| 看不到的 | 具体搜了什么 | 本方案要补的缺口 |
+
+另有两处缺口，一并记录：
+
+- OPT-122 §9.1 规划的 `search_suggestion_click` / `search_fallback_click` / `search_inquiry_open` **没有出现在 `events.ts` 白名单里**，Umami 30 天事件列表里也没有，即未实现。
+- `listing_result_click` / `building_result_click` 的发送方是列表页视图（`CityListingsView` / `CityBuildingsView`），**不是搜索页**，所以「搜索 → 点击」的漏斗目前量不出来。
+
+## 3. 目标与非目标
+
+目标：
+
+1. 两周内能回答「零结果词 Top 20 是什么、各属于哪类原因」。
+2. 零结果词能被运营标记处置结果（补别名 / 数据缺口 / 超范围 / 噪音）。
+3. 在 Umami 里不依赖文本也能区分零结果的形态（单词 / 多词、中文 / 拉丁、实体存在但无供给）。
+
+非目标：
+
+- 不做热搜榜、搜索历史、个性化（OPT-122 §7.5 的结论不变）。
+- 不存会话、IP、UA、用户 ID，不做任何「谁搜了什么」的关联。
+- 不改 `/search` 的匹配与排序（分词、类目意图、pg_trgm 另立项）。
+- 单字查询返回全库的问题另开小改动（最少 2 字才查、或只给联想），不在本包。
+- 不采「有结果」的查询原文。
+
+## 4. 隐私边界（本方案的核心）
+
+现行规则：`events.ts` 头部写明「不采集用户输入的自由文本」，`PII_PROP_KEY` 会拒绝含 `query` 的属性键；OPT-122 §9.1 明确「不上报 q 原文」。本包要做的是**有限**反转，所以边界必须写死：
+
+1. **不改 Umami 白名单**，不把 `q` 放进任何 Umami 事件属性。文本只走自有端点，进自有表。
+2. 只采 `missKind` 命中的查询（见 §6），有结果的查询不采文本。
+3. 只存**归一化后**的词（`normalizeSearchQuery().normalized`：NFKC、小写、标点转空格），不存原始输入。
+4. 脱敏函数 `sanitizeMissTerm`（纯函数，TDD）：
+
+| 规则 | 处理 | 理由 |
+|---|---|---|
+| 原文含 `@`、`http`、`www.`、常见域名后缀 | 丢弃，计入 `dropped:contact` | 邮箱、网址 |
+| 连续数字 ≥ 6 位（NFKC 后判，含全角） | 丢弃，计入 `dropped:digits` | 手机号、证件号、订单号；面积 / 价格数字（如 500、3万）不受影响 |
+| 归一化后长度 > 20 码点 | 丢弃，计入 `dropped:too_long` | 整句 / 粘贴内容，自由文本风险高 |
+| 归一化后长度 < 2 码点 | 不采 | 单字是噪音，另行处理 |
+| 空串 | 不采 | |
+
+5. 被丢弃的只计数（按原因），不存文本，用于判断规则是否过严。
+6. 2–4 字的中文串可能是人名，**无法自动识别**。缓解靠聚合与保留期：只存词频不存来源；出现 1 次的词 30 天删；后台默认只展示 ≥2 次的词；运营可对单词一键「忽略并删除」。这是剩余风险，需用户在 D1 里接受。
+7. 隐私政策页同步更新，说明「为改进搜索，会统计未检索到结果的关键词，不关联个人身份」。页面位置实施时核对。
+
+## 5. 数据模型
+
+新 Payload collection `search-miss-terms`，admin 列表即运营界面，不做自定义 View。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `city` | text | 公开城市 slug，服务端校验 |
+| `term` | text | 脱敏归一化词，≤20 码点 |
+| `missKind` | select | `zero`（三类结果全 0）/ `entity-no-supply`（楼盘存在、在租房源 0）/ `relaxed`（放宽后才有结果） |
+| `count` | number | 累计次数 |
+| `firstSeenAt` / `lastSeenAt` | date | |
+| `lastResultTotal` | number | 最近一次的三类结果总数（`relaxed` 时有意义） |
+| `status` | select | `new` / `handled` / `ignored` |
+| `resolution` | select | `alias-added` / `data-gap` / `out-of-scope` / `noise` |
+| `note` | text | 运营备注 |
+
+- 唯一键 `(city, term, missKind)`。
+- 写入用一条原生 `INSERT … ON CONFLICT DO UPDATE SET count = count + 1, last_seen_at = now()`，避免 Local API 读改写的并发丢计数；需显式写 `created_at` / `updated_at`。
+- 新 collection 必须走 `payload migrate:create` 并提交 `src/migrations/`，不得手改迁移正文；pre-commit 会拦「改了 collection 没带迁移」。迁移顺序注意事项见 `.agent/migrations.md`（新 collection 的 `payload_locked_documents_rels` 列须由 schema 迁移创建）。本包无数据迁移，不涉及文档锁检查问题。
+
+## 6. 采集链路
+
+```
+/[city]/search 渲染完成
+  → SearchAnalytics（客户端，已有）
+  → 判定 missKind 候选，page=1 且本会话未发过同 city+q → navigator.sendBeacon
+  → POST /api/search-misses { city, q }        ← 只发 q，不发客户端算的计数
+  → 服务端：同源 / JSON / 体积校验 → 分布式限流
+  → 校验 city 为公开城市
+  → 用 normalizeSearchQuery + 页面同一组 cached 查询复核结果数（300s 缓存，重复词近乎零成本）
+  → 复核确实是 zero / entity-no-supply / relaxed 才继续
+  → sanitizeMissTerm → upsert
+  → 返回 204
+```
+
+- **为什么不在 RSC 渲染里写库**：`/[city]/search` 是 `force-dynamic` 且走 `unstable_cache`，渲染里带副作用会被爬虫、预取放大，且缓存命中时根本不执行。
+- **为什么服务端复核**：客户端传的计数可伪造，会污染待办列表；复核后端点只接受「q + city」。
+- 端点照 `api/corrections/route.ts` 的模式：`isSameOrigin`、`isJsonContentType`、`MAX_BODY_BYTES`、`runDistributedRateLimit` + `createPgRateLimitDeps`。限流键加 `search-miss:` 前缀，与询盘配额隔离；`failOpen: true`（统计类，PG 异常时宁可少记也不拦用户，但不落库）。每 IP 每分钟建议 20 次，实施时按 `rate-limit-config.ts` 风格定。
+- 失败一律静默：埋点不能影响搜索页。
+
+## 7. Umami 侧补充（不含文本，无需迁移）
+
+给 `site_search` 加字段（属性键避开 `PII_PROP_KEY` 的关键词）：
+
+| 字段 | 类型 | 用途 |
+|---|---|---|
+| `term_count` | number | 归一化后的词项数；区分「单个长串」与「多词」 |
+| `script` | string | `cjk` / `latin` / `mixed` / `digit` / `other`（假名、西里尔等）/ `none`（归一化后为空，实际不会上报）；看拼音 / 英文输入占比 |
+| `entity_hit` | boolean | 楼盘存在但在租房源为 0 |
+| `suggested` | boolean | 是否展示了「你是不是想找」 |
+
+第二批（Phase 2）：补齐 OPT-122 §9.1 里未实现的 `search_suggestion_click`、`search_fallback_click`、`search_inquiry_open`，并给 `listing_result_click` / `building_result_click` 增加来源标记（如 `section='site-search'`），打通「搜索 → 点击 → 留资」。具体字段实施时与 `list-analytics.ts` 的口径一起评审。
+
+## 8. 运营使用方式
+
+1. admin 打开 `search-miss-terms`，默认筛 `status=new` 且 `count≥2`，按 `count` 降序。
+2. 按 `missKind` 分流：
+   - `zero`：判断是别名缺失 → 补 `src/domain/search/aliases.ts`（v1 仍走 PR）、楼盘没收录 → 数据缺口、超范围 → 忽略；
+   - `entity-no-supply`：供给问题，不是搜索问题，转供给侧；
+   - `relaxed`：放宽有效，看放宽后是否合理。
+3. 处置后改 `status` 与 `resolution`。
+4. 每两周看一次：零结果率、Top 词变化、`resolution` 分布，作为是否值得做分词 / pg_trgm 的依据（取代现在的 24 次样本）。
+
+## 9. 保留与删除
+
+- 只出现 1 次且 `lastSeenAt` 超 30 天：删除。
+- `count≥2` 且 `lastSeenAt` 超 180 天：删除。
+- `ignored` 且 `resolution=noise`：运营点「忽略并删除」时直接物理删除。
+- 清理放在写入路径之外，用仓库现有定时任务机制；实施时核对该机制，不在本包新造调度。
+
+## 10. 验收
+
+1. 本地搜 `13812345678`、`a@b.com`、`https://x.com`、21 字以上长串：库里**无**新增，`dropped:*` 计数 +1。
+2. 本地搜一个确实无结果的 2–8 字词：库里出现 1 行 `zero`，再搜一次 `count=2`。
+3. 伪造请求体带假计数、对有结果的词发请求：库里不新增（服务端复核拦下）。
+4. 超过限流返回 429；PG 限流表不可用时不拦用户。
+5. `site_search` 在 Umami 里出现 `term_count` / `script` / `entity_hit` / `suggested`，且**没有** `q` 或任何文本属性。
+6. admin 里能看到列表、能改 `status`；以运营角色与非运营角色各验一次权限。
+7. 浏览器实际走一遍 `/shanghai/search` 与 admin 列表（见仓库 `CLAUDE.md`「完成前必须在浏览器里走一遍」），证据存 `artifacts/verification/OPT-126/`。
+
+## 11. 测试策略
+
+- 纯逻辑 TDD：`sanitizeMissTerm`（各规则的边界：5 位 vs 6 位数字、全角数字、20 vs 21 码点、emoji 码点计数、邮箱 / 网址变体）、`missKind` 判定。
+- 端点：同源 / 类型 / 体积 / 限流 / 复核 / 脱敏 / upsert 的单测；upsert 的并发计数用真实 PG 集成测一次。
+- 契约测试：断言 Umami 白名单里**不存在**含 `q` 的搜索事件属性（守住 D1 的边界，防以后有人顺手把文本加进 Umami）。
+
+## 12. 分阶段
+
+| 阶段 | 内容 | 迁移 | 价值 |
+|---|---|---|---|
+| P0 | `site_search` 补 4 个派生字段 + 契约测试 | 无 | 立刻能在 Umami 看零结果形态，可先单独上线 |
+| P1 | collection + 迁移 + `/api/search-misses` + 脱敏 + 隐私政策更新 | 1 个 schema 迁移 | 拿到真实未命中词 |
+| P2 | 补齐 OPT-122 §9.1 缺失的 3 个事件、结果点击来源标记；admin 处置流转；别名联动 | 视别名是否迁集合 | 打通漏斗与闭环 |
+
+P0 与 P1 互相独立，可并行。P1 合并即上线（见仓库 `CLAUDE.md`「合并到 master 即上线」），迁移须先在本地对等环境跑通。
+
+## 13. 风险
+
+| 风险 | 处置 |
+|---|---|
+| 反转了既有隐私口径 | D1 由用户拍板；契约测试守边界；隐私政策同步 |
+| 2–4 字人名漏过脱敏 | 只存聚合；单次词 30 天删；默认只展示 ≥2 次；一键删除 |
+| 端点被刷、污染待办列表 | 同源 + 限流 + 服务端复核 |
+| 搜索量太小，词频没统计意义 | 先看 4 周；量始终起不来说明入口曝光不足，是另一个问题（见 §14） |
+| 新增 collection 迁移出错 | 本地先对等环境 `payload migrate`；上线前 `pnpm preflight` |
+
+## 14. 未覆盖、需另查
+
+- `building_search`（30 天 794 次）、`listing_search`（391 次）的属性没看过，口径未知。它们是比 `site_search` 大 30 倍的搜索信号，若其中有关键词类筛选，也应纳入同一套采集，需先读属性确认。
+- 站内搜索量占访客不到 1%，入口曝光与用户习惯（靠筛选而非搜索）需要结合页面点击数据判断。
+- 资讯搜索 30 天几乎无命中，需单独核对 `listPublishedArticles({ q })` 的匹配字段。
+
+## 15. 文件地图（预期）
+
+- `src/domain/search/miss-term.ts`（+ 测试）：`sanitizeMissTerm`、`classifyMissKind`
+- `src/collections/SearchMissTerms.ts`、`src/migrations/<ts>_opt_126_search_miss_terms.ts`
+- `src/app/(frontend)/api/search-misses/route.ts`（模式同 `api/corrections/route.ts`）
+- `src/lib/rate-limit-config.ts`：新增 `SEARCH_MISS_RATE_LIMIT_CONFIG`
+- `src/components/frontend/search/SearchAnalytics.tsx`：新增 beacon
+- `src/lib/frontend/analytics/events.ts`：`site_search` 白名单加 4 个键
+- `src/payload.config.ts`：注册 collection（改后须 `pnpm generate:types`、`pnpm payload generate:importmap`）
+- 隐私政策页：文案更新（位置实施时核对）
