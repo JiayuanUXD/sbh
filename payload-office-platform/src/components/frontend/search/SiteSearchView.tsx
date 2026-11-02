@@ -112,6 +112,8 @@ export default function SiteSearchView({
   const suggestions = Array.from(new Set(resolved.map((entry) => entry.name))).slice(0, 3)
   const entityEntry = resolved.find((entry) => entry.kind === 'building')
   const entity = entityEntry ? { name: entityEntry.name, slug: entityEntry.slug } : null
+  // 与下方 SearchZeroState 展示「你是不是想找」的条件同源：仅全局零结果页，且有建议。
+  const suggested = total === 0 && suggestions.length > 0
 
   return (
     <div className="ls-page sw-page">
@@ -123,6 +125,7 @@ export default function SiteSearchView({
           page={page}
           counts={counts}
           relaxed={listings?.relaxed ?? false}
+          suggested={suggested}
         />
       ) : null}
       {hasQuery ? (
