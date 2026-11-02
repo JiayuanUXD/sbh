@@ -14,6 +14,8 @@ import { expandSearchTerms } from '@/domain/search/expand'
 import { segmentSearchTerms } from '@/domain/search/segment'
 import { suggestTypoCorrections } from '@/domain/search/typo'
 import { isTooShortQuery } from '@/domain/search/short-query'
+import { resolveSiteSearchQuery } from '@/domain/search/resolve-query'
+import type { SearchIntent } from '@/domain/search/intent'
 import { relaxQuery } from '@/domain/search/relax'
 import { buildListingPageQuery } from '@/domain/public-catalog/listing-query-sql'
 import {
@@ -365,9 +367,11 @@ export async function getCachedSiteSearchBuildings(
   citySlug: string,
   rawQuery: string,
   page = 1,
+  useIntent = true,
 ): Promise<SiteSearchBuildings | null> {
   const city = canonicalCitySlug(citySlug)
-  const normalized = normalizeSearchQuery(rawQuery)
+  // 楼盘没有面积 / 类型这类房源维度：只按去掉意图片段后的文字检索。
+  const { normalized } = resolveSiteSearchQuery(rawQuery, useIntent)
   if (normalized.normalized.length === 0 || isTooShortQuery(normalized)) return null
   const vocabulary = await getCachedSearchVocabulary(city)
   // 先用词表把长句里的实体切出来（「陆家嘴整层办公室」→ 陆家嘴 + 整层），再做拼音 / 别名扩展。
@@ -644,6 +648,8 @@ export type SiteSearchListings = Readonly<{
    * 不进 `resolved`——后者会触发「该楼盘暂无在租房源」的实体卡，错字不该被当成就是那栋楼。
    */
   corrections: readonly VocabularyEntry[]
+  /** 从查询里识别出的类目 / 面积意图（已转成房源筛选）；没有意图时 labels 为空。 */
+  intent: SearchIntent
 }>
 
 /**
@@ -685,16 +691,25 @@ export async function getCachedSiteSearchListings(
   citySlug: string,
   rawQuery: string,
   page = 1,
+  useIntent = true,
 ): Promise<SiteSearchListings | null> {
   const city = canonicalCitySlug(citySlug)
-  const normalized = normalizeSearchQuery(rawQuery)
-  if (normalized.terms.length === 0 || isTooShortQuery(normalized)) return null
+  // 先抽类目 / 面积意图（转成筛选），剩余文字再走关键词流程；只有意图没有文字也是合法查询。
+  const { intent, normalized, hasFilters } = resolveSiteSearchQuery(rawQuery, useIntent)
+  if (!hasFilters && (normalized.terms.length === 0 || isTooShortQuery(normalized))) return null
 
   const vocabulary = await getCachedSearchVocabulary(city)
   const segmented = segmentSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
   const expanded = expandSearchTerms(segmented.terms, vocabulary)
   const terms = expanded.listingTerms.map(escapeLikePattern)
-  const input: ListingSearchInput = { sort: 'recommended', page: Math.max(1, page), pageSize: 24 }
+  const input: ListingSearchInput = {
+    sort: 'recommended',
+    page: Math.max(1, page),
+    pageSize: 24,
+    ...(intent.listingType ? { listingType: intent.listingType } : {}),
+    ...(intent.areaMin !== undefined ? { areaMin: intent.areaMin } : {}),
+    ...(intent.areaMax !== undefined ? { areaMax: intent.areaMax } : {}),
+  }
   const load = getCachedSiteSearchListingPageByCity(city)
 
   let selection = await load(input, terms, 'and')
@@ -728,6 +743,7 @@ export async function getCachedSiteSearchListings(
     resolved: mergeVocabularyEntries(expanded.resolved, segmented.entries),
     corrections:
       selection.pagination.totalDocs === 0 ? suggestTypoCorrections(segmented.terms, vocabulary) : [],
+    intent,
   }
 }
 
@@ -929,8 +945,9 @@ const getCachedSiteSearchArticlesPage = unstable_cache(
 export async function getCachedSiteSearchArticles(
   rawQuery: string,
   page = 1,
+  useIntent = true,
 ): Promise<Awaited<ReturnType<typeof listPublishedArticles>> | null> {
-  const normalized = normalizeSearchQuery(rawQuery)
+  const { normalized } = resolveSiteSearchQuery(rawQuery, useIntent)
   if (normalized.normalized.length === 0 || isTooShortQuery(normalized)) return null
   return getCachedSiteSearchArticlesPage(normalized.normalized, Math.max(1, page))
 }

@@ -29,6 +29,7 @@ export default function SearchAnalytics({
   relaxed,
   suggested,
   tooShort,
+  intentApplied,
 }: Readonly<{
   city: string
   q: string
@@ -40,6 +41,8 @@ export default function SearchAnalytics({
   suggested: boolean
   /** 单字查询：没有查库，零结果口径里要排除。 */
   tooShort: boolean
+  /** 查询里识别出了类目 / 面积意图，并已转成房源筛选。 */
+  intentApplied: boolean
 }>) {
   const lastKeyRef = useRef<string | null>(null)
   const total = counts.listings + counts.buildings + counts.news
@@ -67,8 +70,9 @@ export default function SearchAnalytics({
       entity_hit: hasEntityWithoutSupply({ listings: counts.listings, buildings: counts.buildings }),
       suggested,
       too_short: tooShort,
+      intent_applied: intentApplied,
     })
-  }, [city, q, tab, page, counts.listings, counts.buildings, counts.news, total, relaxed, suggested, tooShort])
+  }, [city, q, tab, page, counts.listings, counts.buildings, counts.news, total, relaxed, suggested, tooShort, intentApplied])
 
   return null
 }
