@@ -148,7 +148,10 @@ export default function SiteSearchView({
   )
 
   const resolved = [...(listings?.resolved ?? []), ...(buildings?.resolved ?? [])]
-  const suggestions = Array.from(new Set(resolved.map((entry) => entry.name))).slice(0, 3)
+  // 词表解析出的候选在前，错字纠错候选在后；纠错只进建议，不进实体卡（见 SiteSearchListings.corrections）。
+  const suggestions = Array.from(
+    new Set([...resolved, ...(listings?.corrections ?? [])].map((entry) => entry.name)),
+  ).slice(0, 3)
   const entityEntry = resolved.find((entry) => entry.kind === 'building')
   const entity = entityEntry ? { name: entityEntry.name, slug: entityEntry.slug } : null
   // 与下方 SearchZeroState 展示「你是不是想找」的条件同源：仅全局零结果页，且有建议。

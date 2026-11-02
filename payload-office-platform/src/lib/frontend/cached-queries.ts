@@ -12,6 +12,7 @@ import {
 import { escapeLikePattern, normalizeSearchQuery, type NormalizedQuery } from '@/domain/search/normalize'
 import { expandSearchTerms } from '@/domain/search/expand'
 import { segmentSearchTerms } from '@/domain/search/segment'
+import { suggestTypoCorrections } from '@/domain/search/typo'
 import { isTooShortQuery } from '@/domain/search/short-query'
 import { relaxQuery } from '@/domain/search/relax'
 import { buildListingPageQuery } from '@/domain/public-catalog/listing-query-sql'
@@ -638,6 +639,11 @@ export type SiteSearchListings = Readonly<{
   /** 放宽时被忽略的词，用于「已忽略『整层』」标注；未放宽为空数组。 */
   relaxedTerms: readonly string[]
   resolved: readonly VocabularyEntry[]
+  /**
+   * 错字纠错候选（编辑距离，见 typo.ts）。只在房源搜索完全零结果时才算，且只进「你是不是想找」，
+   * 不进 `resolved`——后者会触发「该楼盘暂无在租房源」的实体卡，错字不该被当成就是那栋楼。
+   */
+  corrections: readonly VocabularyEntry[]
 }>
 
 /**
@@ -720,6 +726,8 @@ export async function getCachedSiteSearchListings(
     relaxed,
     relaxedTerms,
     resolved: mergeVocabularyEntries(expanded.resolved, segmented.entries),
+    corrections:
+      selection.pagination.totalDocs === 0 ? suggestTypoCorrections(segmented.terms, vocabulary) : [],
   }
 }
 
