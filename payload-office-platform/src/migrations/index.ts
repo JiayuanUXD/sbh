@@ -98,6 +98,8 @@ import * as migration_20261023_065241_featured_order_on_extension from './202610
 import * as migration_20261023_065300_backfill_featured_areas from './20261023_065300_backfill_featured_areas';
 import * as migration_20261102_090440_opt_126_search_miss_terms from './20261102_090440_opt_126_search_miss_terms';
 import * as migration_20261102_090441_opt_126_grant_ops_search_miss_codes from './20261102_090441_opt_126_grant_ops_search_miss_codes';
+import * as migration_20261102_125315_search_aliases from './20261102_125315_search_aliases';
+import * as migration_20261102_125316_search_aliases_grant_ops_codes from './20261102_125316_search_aliases_grant_ops_codes';
 
 export const migrations = [
   {
@@ -598,6 +600,16 @@ export const migrations = [
   {
     up: migration_20261102_090441_opt_126_grant_ops_search_miss_codes.up,
     down: migration_20261102_090441_opt_126_grant_ops_search_miss_codes.down,
-    name: '20261102_090441_opt_126_grant_ops_search_miss_codes'
+    name: '20261102_090441_opt_126_grant_ops_search_miss_codes',
+  },
+  {
+    up: migration_20261102_125315_search_aliases.up,
+    down: migration_20261102_125315_search_aliases.down,
+    name: '20261102_125315_search_aliases',
+  },
+  {
+    up: migration_20261102_125316_search_aliases_grant_ops_codes.up,
+    down: migration_20261102_125316_search_aliases_grant_ops_codes.down,
+    name: '20261102_125316_search_aliases_grant_ops_codes'
   },
 ];

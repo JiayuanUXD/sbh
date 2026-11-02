@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { expandSearchTerms } from '@/domain/search/expand'
+import type { SearchVocabulary } from '@/domain/search/vocabulary'
 import { testVocabulary } from './search-fixtures'
 
 describe('expandSearchTerms', () => {
@@ -49,3 +50,33 @@ describe('expandSearchTerms', () => {
     expect(terms).toEqual(['shzx'])
   })
 })
+
+describe('expandSearchTerms：2–3 字中文别名（运营在后台加的「小陆」之类）', () => {
+  // 别名不含在规范名里，原样 ILIKE 搜不到；必须在扩展阶段换成规范名
+  const withAlias: SearchVocabulary = {
+    city: 'shanghai',
+    entries: testVocabulary.entries.map((entry) =>
+      entry.name === '陆家嘴' ? { ...entry, aliases: [...entry.aliases, '小陆', '陆嘴区'] } : entry,
+    ),
+  }
+
+  it('整词等于中文别名时换成规范名，并带出候选', () => {
+    const expanded = expandSearchTerms(['小陆'], withAlias)
+    expect(expanded.listingTerms).toEqual(['陆家嘴'])
+    expect(expanded.resolved.map((entry) => entry.name)).toEqual(['陆家嘴'])
+  })
+
+  it('3 字别名同理，多词里逐词处理', () => {
+    expect(expandSearchTerms(['陆嘴区', '整层'], withAlias).listingTerms).toEqual(['陆家嘴', '整层'])
+  })
+
+  it('名称本身、名称前缀不被当成别名替换（「上海」不能变成某个具体楼盘）', () => {
+    expect(expandSearchTerms(['陆家嘴'], withAlias).listingTerms).toEqual(['陆家嘴'])
+    expect(expandSearchTerms(['上海'], withAlias).listingTerms).toEqual(['上海'])
+  })
+
+  it('不是任何别名的中文词保持原样', () => {
+    expect(expandSearchTerms(['小张'], withAlias).listingTerms).toEqual(['小张'])
+  })
+})
+
