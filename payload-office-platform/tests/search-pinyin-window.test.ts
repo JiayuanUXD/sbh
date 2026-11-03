@@ -116,3 +116,35 @@ describe('expandSearchTerms：精确档（拼音前缀）有候选时，中文�
   })
 })
 
+describe('expandSearchTerms：上下文命中名称，比命中所属商圈 / 行政区更重要', () => {
+  // 线上真实形态（上一轮上线后验证才发现）：「中星城」（拼音 zhongxingcheng，前缀档命中）属于「上海南站」商圈，
+  // 所属区域名里带「上海」，与「上海中心」（名字带上海）各得 1 分打成平手，平手取前缀档的中星城。
+  // 名称与所属商圈取自线上联想接口的真实返回（2026-11-03）：拼音以 zhongxin 开头的楼盘一大批
+  const prod = buildSearchVocabulary(
+    [
+      { kind: 'city', id: 1, slug: 'shanghai', name: '上海', parent_name: null },
+      { kind: 'building', id: 14, slug: 'zxc', name: '中星城', parent_name: '上海南站' },
+      { kind: 'building', id: 15, slug: 'zxdasha', name: '中欣大厦', parent_name: '南京西路' },
+      { kind: 'building', id: 16, slug: 'zxdasha2', name: '中信大厦', parent_name: '世博滨江' },
+      { kind: 'building', id: 17, slug: 'zxgc', name: '中信广场', parent_name: '四川北路' },
+      { kind: 'building', id: 18, slug: 'zxdasha3', name: '众鑫大厦', parent_name: '塘桥' },
+      { kind: 'building', id: 19, slug: 'zxwnc', name: '中信五牛城', parent_name: '联洋' },
+      { kind: 'building', id: 20, slug: 'shgc', name: '上海广场', parent_name: '淮海中路' },
+      { kind: 'building', id: 21, slug: 'shsc', name: '上海商城', parent_name: '南京西路' },
+      { kind: 'building', id: 10, slug: 'shanghai-tower', name: '上海中心', parent_name: '陆家嘴' },
+      { kind: 'building', id: 11, slug: 'zsj', name: '招商局上海中心', parent_name: '浦东新区' },
+      { kind: 'building', id: 12, slug: 'xmz', name: '西门子上海中心', parent_name: '浦东新区' },
+      { kind: 'building', id: 13, slug: 'tecc', name: '创源新城TEEC上海中心大厦', parent_name: '浦东新区' },
+    ],
+    'shanghai',
+  )
+
+  it('「上海 zhongxin」选名字带「上海」的上海中心，而不是所属商圈叫「上海南站」的中星城', () => {
+    expect(expandSearchTerms(['上海', 'zhongxin'], prod).listingTerms).toEqual(['上海', '上海中心'])
+  })
+
+  it('上下文只命中所属商圈时仍然有效（没有名称命中的候选时）', () => {
+    expect(expandSearchTerms(['南站', 'zhongxin'], prod).listingTerms).toEqual(['南站', '中星城'])
+  })
+})
+

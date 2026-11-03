@@ -60,6 +60,17 @@ function compareEntries(a: VocabularyEntry, b: VocabularyEntry): number {
   return a.name.localeCompare(b.name, 'zh-CN')
 }
 
+/** 精确档里的「精确命中」：整词全拼 / 首字母 / 名称 / 别名相等（不含前缀这类弱命中）。 */
+export function isPreciseMatch(entry: VocabularyEntry, term: string): boolean {
+  const latin = latinKey(term)
+  const key = nameKey(term)
+  return (
+    (latin.length > 0 && (latinKey(entry.pinyin) === latin || latinKey(entry.initials) === latin))
+    || nameKey(entry.name) === key
+    || entry.aliases.some((alias) => nameKey(alias) === key)
+  )
+}
+
 export function resolveVocabularyTerm(
   vocab: SearchVocabulary,
   term: string,
