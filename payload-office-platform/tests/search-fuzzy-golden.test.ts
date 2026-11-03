@@ -61,3 +61,20 @@ describe('与精确档自洽：精确档（名称 / 别名 / 整词全拼 / 首�
   })
 })
 
+describe('编辑预算内求最高分（不是先取最高分再检查预算）', () => {
+  // 三个同音字（新 信 鑫 都读 xin）：逐字替换要 3 处编辑，超出 7 字名称允许的 2 处；
+  // 但「删掉开头的新、在鑫后面补上新」只要 2 处，是合法路径，得分更低也必须保留。
+  const vocabulary = buildSearchVocabulary(
+    [{ kind: 'building', id: 1, slug: 'xin-center', name: '新信鑫国际中心', parent_name: null }],
+    'shanghai',
+  )
+
+  it('「信鑫新国际中心」给出「新信鑫国际中心」', () => {
+    expect(suggestFuzzyCorrections(vocabulary, ['信鑫新国际中心']).map((entry) => entry.name)).toEqual(['新信鑫国际中心'])
+  })
+
+  it('真的需要 3 处编辑的不给建议（预算是硬的）', () => {
+    expect(suggestFuzzyCorrections(vocabulary, ['信鑫新国际中心'.replace('国际', '国祭').replace('中心', '中新')])).toEqual([])
+  })
+})
+

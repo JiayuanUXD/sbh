@@ -165,125 +165,105 @@ function closeGain(offset: number, length: number): number {
 type Alignment = Readonly<{ score: number; edits: number; gain: number }>
 
 /**
- * 在一个名字（单元序列）上对齐查询。允许编辑（建议模式）时：替换 / 同音 / 漏字 / 多字各算 1 处。
- * 返回得分最高（同分取编辑少）的对齐，没有对上返回 null。
+ * 在一个名字（单元序列）上对齐查询。建议模式允许编辑：替换 / 同音 / 漏字 / 多字各算 1 处。
+ *
+ * 编辑数是 DP 的一个维度（0..maxEdits）：必须在预算内求最高分，而不是先取全局最高分再检查预算——
+ * 否则「逐字同音替换要 3 处、但删一个再补一个只要 2 处」这类得分更低却合法的路径会被提前丢掉。
+ * 返回预算内得分最高（同分取编辑少）的对齐，没有对上返回 null。
  */
 function align(
   tokens: readonly Token[],
   units: readonly Unit[],
   mode: 'auto' | 'suggest',
   charSyllable: ReadonlyMap<string, string>,
+  maxEdits: number,
 ): Alignment | null {
   const m = tokens.length
   const n = units.length
   let maxOffset = 0
   for (const unit of units) maxOffset = Math.max(maxOffset, unit.syl.length)
   const stride = maxOffset + 1
-  const size = (m + 1) * (n + 1) * stride
+  const levels = mode === 'suggest' ? maxEdits + 1 : 1
+  const size = (m + 1) * (n + 1) * stride * levels
   const score = new Float64Array(size).fill(Number.NEGATIVE_INFINITY)
-  const edits = new Int16Array(size)
   const gain = new Float64Array(size)
-  const at = (i: number, j: number, offset: number) => (i * (n + 1) + j) * stride + offset
+  const at = (i: number, j: number, offset: number, edit: number) => ((i * (n + 1) + j) * stride + offset) * levels + edit
 
-  const relax = (index: number, s: number, e: number, g: number) => {
-    if (s > score[index]! || (s === score[index]! && e < edits[index]!)) {
+  const relax = (index: number, s: number, g: number) => {
+    if (s > score[index]!) {
       score[index] = s
-      edits[index] = e
       gain[index] = g
     }
   }
 
   if (mode === 'auto') {
-    for (let start = 0; start <= n; start += 1) relax(at(0, start, 0), -PENALTY_OUTSIDE_PER_UNIT * start, 0, 0)
+    for (let start = 0; start <= n; start += 1) relax(at(0, start, 0, 0), -PENALTY_OUTSIDE_PER_UNIT * start, 0)
   } else {
-    relax(at(0, 0, 0), 0, 0, 0)
+    relax(at(0, 0, 0, 0), 0, 0)
   }
 
   for (let i = 0; i <= m; i += 1) {
     for (let j = 0; j <= n; j += 1) {
       for (let offset = 0; offset < stride; offset += 1) {
-        const here = at(i, j, offset)
-        const s = score[here]!
-        if (s === Number.NEGATIVE_INFINITY) continue
-        const e = edits[here]!
-        const g = gain[here]!
-        const unit = j < n ? units[j]! : null
-        const token = i < m ? tokens[i]! : null
+        for (let e = 0; e < levels; e += 1) {
+          const here = at(i, j, offset, e)
+          const s = score[here]!
+          if (s === Number.NEGATIVE_INFINITY) continue
+          const g = gain[here]!
+          const unit = j < n ? units[j]! : null
+          const token = i < m ? tokens[i]! : null
+          const canEdit = e + 1 < levels
 
-        // 合上已经打了一部分的单元
-        if (unit && offset > 0) {
-          const closed = closeGain(offset, unit.syl.length)
-          relax(at(i, j + 1, 0), s + closed, e, g + closed)
-        }
-        // 继续吃字母：当前单元的音节从 offset 起要与下一个查询字母相同
-        if (unit && token && 'latin' in token && offset < unit.syl.length && unit.syl[offset] === token.latin) {
-          relax(at(i + 1, j, offset + 1), s, e, g)
-        }
-        if (offset > 0) continue // 打了一半的单元只能继续吃字母或合上
+          // 合上已经打了一部分的单元
+          if (unit && offset > 0) {
+            const closed = closeGain(offset, unit.syl.length)
+            relax(at(i, j + 1, 0, e), s + closed, g + closed)
+          }
+          // 继续吃字母：当前单元的音节从 offset 起要与下一个查询字母相同
+          if (unit && token && 'latin' in token && offset < unit.syl.length && unit.syl[offset] === token.latin) {
+            relax(at(i + 1, j, offset + 1, e), s, g)
+          }
+          if (offset > 0) continue // 打了一半的单元只能继续吃字母或合上
 
-        if (unit && mode === 'suggest') {
           // 漏字：名字里多出的单元
-          relax(at(i, j + 1, 0), s - PENALTY_INDEL, e + 1, g)
-        }
+          if (unit && canEdit) relax(at(i, j + 1, 0, e + 1), s - PENALTY_INDEL, g)
 
-        if (!token) continue
-        if ('han' in token) {
+          if (!token || !('han' in token)) continue
           if (unit) {
             if (unit.han === token.han) {
-              relax(at(i + 1, j + 1, 0), s + SCORE_HAN_EXACT, e, g + SCORE_HAN_EXACT)
-            } else if (mode === 'suggest') {
+              relax(at(i + 1, j + 1, 0, e), s + SCORE_HAN_EXACT, g + SCORE_HAN_EXACT)
+            } else if (canEdit) {
               const sameSound = unit.syl !== '' && charSyllable.get(token.han) === unit.syl
-              relax(
-                at(i + 1, j + 1, 0),
-                s + (sameSound ? SCORE_HOMOPHONE : -PENALTY_SUBSTITUTION),
-                e + 1,
-                g,
-              )
+              relax(at(i + 1, j + 1, 0, e + 1), s + (sameSound ? SCORE_HOMOPHONE : -PENALTY_SUBSTITUTION), g)
             }
           }
           // 多字：查询里多出的字
-          if (mode === 'suggest') relax(at(i + 1, j, 0), s - PENALTY_INDEL, e + 1, g)
+          if (canEdit) relax(at(i + 1, j, 0, e + 1), s - PENALTY_INDEL, g)
         }
       }
     }
   }
 
-  return finish(tokens, units, mode, score, edits, gain, at, stride)
-}
-
-function finish(
-  tokens: readonly Token[],
-  units: readonly Unit[],
-  mode: 'auto' | 'suggest',
-  score: Float64Array,
-  edits: Int16Array,
-  gain: Float64Array,
-  at: (i: number, j: number, offset: number) => number,
-  stride: number,
-): Alignment | null {
-  const m = tokens.length
-  const n = units.length
   let best: Alignment | null = null
   for (let j = 0; j <= n; j += 1) {
     for (let offset = 0; offset < stride; offset += 1) {
-      const index = at(m, j, offset)
-      let s = score[index]!
-      if (s === Number.NEGATIVE_INFINITY) continue
-      let g = gain[index]!
-      let end = j
-      if (offset > 0) {
-        const unit = units[j]
-        if (!unit) continue
-        const closed = closeGain(offset, unit.syl.length)
-        s += closed
-        g += closed
-        end = j + 1
-      }
-      if (mode === 'suggest' && end !== n) continue
-      if (mode === 'auto') s -= PENALTY_OUTSIDE_PER_UNIT * (n - end)
-      const candidate = { score: s, edits: edits[index]!, gain: g }
-      if (!best || candidate.score > best.score || (candidate.score === best.score && candidate.edits < best.edits)) {
-        best = candidate
+      for (let e = 0; e < levels; e += 1) {
+        const index = at(m, j, offset, e)
+        let s = score[index]!
+        if (s === Number.NEGATIVE_INFINITY) continue
+        let g = gain[index]!
+        let end = j
+        if (offset > 0) {
+          const unit = units[j]
+          if (!unit) continue
+          const closed = closeGain(offset, unit.syl.length)
+          s += closed
+          g += closed
+          end = j + 1
+        }
+        if (mode === 'suggest' && end !== n) continue
+        if (mode === 'auto') s -= PENALTY_OUTSIDE_PER_UNIT * (n - end)
+        if (!best || s > best.score || (s === best.score && e < best.edits)) best = { score: s, edits: e, gain: g }
       }
     }
   }
@@ -320,7 +300,7 @@ export function resolveFuzzyAuto(vocab: SearchVocabulary, term: string): readonl
     let best: Alignment | null = null
     for (const surface of surfaces) {
       if (!passesPrefilter(surface.units, letters, hans)) continue
-      const alignment = align(tokens, surface.units, 'auto', charSyllable)
+      const alignment = align(tokens, surface.units, 'auto', charSyllable, 0)
       if (alignment && (!best || alignment.score > best.score)) best = alignment
     }
     if (best && best.edits === 0 && best.gain >= MIN_AUTO_GAIN) {
@@ -382,7 +362,7 @@ export function suggestFuzzyCorrections(
     for (const { entry, surfaces } of entries) {
       for (const surface of surfaces) {
         if (Math.abs(surface.units.length - tokens.length) > tolerance) continue
-        const alignment = align(tokens, surface.units, 'suggest', charSyllable)
+        const alignment = align(tokens, surface.units, 'suggest', charSyllable, tolerance)
         if (!alignment || alignment.edits < 1 || alignment.edits > tolerance || alignment.gain < MIN_SUGGEST_GAIN) continue
         const id = `${entry.kind}:${String(entry.id)}`
         const candidate: FuzzyMatch = { entry, score: alignment.score, edits: alignment.edits }
