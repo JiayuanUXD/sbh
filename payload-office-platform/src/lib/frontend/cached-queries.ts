@@ -10,7 +10,7 @@ import {
   type VocabularyEntry,
 } from '@/domain/search/vocabulary'
 import { escapeLikePattern, normalizeSearchQuery, type NormalizedQuery } from '@/domain/search/normalize'
-import { expandSearchTerms } from '@/domain/search/expand'
+import { dropSubsumedTerms, expandSearchTerms } from '@/domain/search/expand'
 import { segmentSearchTerms } from '@/domain/search/segment'
 import { suggestTypoCorrections } from '@/domain/search/typo'
 import { isTooShortQuery } from '@/domain/search/short-query'
@@ -345,6 +345,20 @@ export type SiteSearchBuildings = Readonly<{
   resolved: readonly VocabularyEntry[]
 }>
 
+/**
+ * 查询词项里的「实体词」：分词切出的实体名，加上拼音 / 别名解析出的实体名（出现在 `resolved`
+ * 候选名称里的那些词项）。按出现顺序、去重。
+ */
+function entityTermsOf(
+  segmentedEntityTerms: readonly string[],
+  listingTerms: readonly string[],
+  resolved: readonly VocabularyEntry[],
+): readonly string[] {
+  const resolvedNames = new Set(resolved.map((entry) => entry.name))
+  const fromExpansion = listingTerms.filter((term) => resolvedNames.has(term))
+  return Array.from(new Set([...segmentedEntityTerms, ...fromExpansion]))
+}
+
 /** 合并词表条目并按 kind:id 去重，保持先到先得的顺序。 */
 function mergeVocabularyEntries(
   ...groups: readonly (readonly VocabularyEntry[])[]
@@ -377,10 +391,11 @@ export async function getCachedSiteSearchBuildings(
   // 先用词表把长句里的实体切出来（「陆家嘴整层办公室」→ 陆家嘴 + 整层），再做拼音 / 别名扩展。
   const segmented = segmentSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
   const expanded = expandSearchTerms(segmented.terms, vocabulary)
-  // 楼盘 SQL 只接受一个 substring：优先用分词切出的第一个实体名，其次是扩展后的第一个词
-  // （拼音已被换成中文实体名），没有扩展时退回原词。多词的 AND/OR 是房源搜索的语义，
-  // 不硬塞进楼盘；整条长句也不能直接拿去匹配楼盘名。
-  const buildingTerm = segmented.entityTerms[0] ?? expanded.listingTerms[0] ?? normalized.normalized
+  // 楼盘 SQL 只接受一个 substring：优先用实体名（分词切出的、或拼音 / 别名解析出的），其次是
+  // 扩展后的第一个词，没有扩展时退回原词。多词的 AND/OR 是房源搜索的语义，不硬塞进楼盘；
+  // 整条长句也不能直接拿去匹配楼盘名；「上海 zhongxin」这类实体不在第一位的，也要用实体而不是「上海」。
+  const entityTerms = entityTermsOf(segmented.entityTerms, expanded.listingTerms, expanded.resolved)
+  const buildingTerm = entityTerms[0] ?? expanded.listingTerms[0] ?? normalized.normalized
   const input: BuildingSearchInput = {
     q: buildingTerm,
     sort: 'stock-desc',
@@ -701,7 +716,13 @@ export async function getCachedSiteSearchListings(
   const vocabulary = await getCachedSearchVocabulary(city)
   const segmented = segmentSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
   const expanded = expandSearchTerms(segmented.terms, vocabulary)
-  const terms = expanded.listingTerms.map(escapeLikePattern)
+  // 被实体名包含的限定词是多余的（「上海 zhongxin」→「上海中心」，「上海」可去），
+  // 否则实体没有在租房源时 AND 失败，放宽又先丢掉实体词，退化成泛泛的「上海」。
+  const searchTerms = dropSubsumedTerms(
+    expanded.listingTerms,
+    entityTermsOf(segmented.entityTerms, expanded.listingTerms, expanded.resolved),
+  )
+  const terms = searchTerms.map(escapeLikePattern)
   const input: ListingSearchInput = {
     sort: 'recommended',
     page: Math.max(1, page),
@@ -718,7 +739,7 @@ export async function getCachedSiteSearchListings(
   if (selection.pagination.totalDocs === 0) {
     // 按 relaxQuery 的候选顺序试：先「去掉最后一个词」，再「全部改 OR」。
     // 第一个有结果的候选胜出，其 dropped 即页面上标注的已忽略词。
-    for (const candidate of relaxQuery(expanded.listingTerms)) {
+    for (const candidate of relaxQuery(searchTerms)) {
       const attempt = await load(
         input,
         candidate.terms.map(escapeLikePattern),
@@ -737,7 +758,7 @@ export async function getCachedSiteSearchListings(
   return {
     result: assembleListingSearchResult(selection, cards, input),
     query: normalized,
-    terms: expanded.listingTerms,
+    terms: searchTerms,
     relaxed,
     relaxedTerms,
     resolved: mergeVocabularyEntries(expanded.resolved, segmented.entries),
@@ -800,7 +821,7 @@ const getCachedSearchVocabularyByCity = memoizeByCity((citySlug) =>
         })
       return buildSearchVocabulary(result.rows, citySlug, groupAliasRows(aliasRows))
     },
-    ['search-vocabulary', citySlug, 'v2'],
+    ['search-vocabulary', citySlug, 'v3'],
     {
       tags: [listingsCityTag(citySlug), buildingsCityTag(citySlug), facetsTag(citySlug)],
       revalidate: 300,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { expandSearchTerms } from '@/domain/search/expand'
+import { dropSubsumedTerms, expandSearchTerms } from '@/domain/search/expand'
 import type { SearchVocabulary } from '@/domain/search/vocabulary'
 import { testVocabulary } from './search-fixtures'
 
@@ -77,6 +77,31 @@ describe('expandSearchTerms：2–3 字中文别名（运营在后台加的「�
 
   it('不是任何别名的中文词保持原样', () => {
     expect(expandSearchTerms(['小张'], withAlias).listingTerms).toEqual(['小张'])
+  })
+})
+
+describe('dropSubsumedTerms：被实体名包含的限定词是多余的', () => {
+  it('「上海」被「上海中心」包含，去掉；其它词保留，顺序不变', () => {
+    expect(dropSubsumedTerms(['上海', '上海中心'], ['上海中心'])).toEqual(['上海中心'])
+    expect(dropSubsumedTerms(['上海', '整层', '上海中心'], ['上海中心'])).toEqual(['整层', '上海中心'])
+  })
+
+  it('实体词本身永远保留，哪怕互相包含', () => {
+    expect(dropSubsumedTerms(['上海中心', '上海国金中心'], ['上海中心', '上海国金中心'])).toEqual([
+      '上海中心',
+      '上海国金中心',
+    ])
+  })
+
+  it('没有实体词、或词项不是实体名的子串时原样返回', () => {
+    expect(dropSubsumedTerms(['上海', 'xin'], [])).toEqual(['上海', 'xin'])
+    expect(dropSubsumedTerms(['浦东', '上海中心'], ['上海中心'])).toEqual(['浦东', '上海中心'])
+  })
+
+  it('不修改输入数组', () => {
+    const terms = ['上海', '上海中心']
+    dropSubsumedTerms(terms, ['上海中心'])
+    expect(terms).toEqual(['上海', '上海中心'])
   })
 })
 
