@@ -15,7 +15,7 @@
 
 import { resolveFuzzyAuto } from './fuzzy'
 import {
-  latinKey,
+  isPreciseMatch,
   nameKey,
   resolveVocabularyTerm,
   type SearchVocabulary,
@@ -44,27 +44,16 @@ function resolveChineseAlias(vocab: SearchVocabulary, term: string): readonly Vo
   return isAliasOnly ? matches : []
 }
 
-/**
- * 一个拼音词项有多个候选时，结合同句里的中文词挑最贴的：「上海 zhongxin」里「上海」出现在
- * 候选名称或所属商圈 / 行政区里的优先。没有中文上下文、或上下文没有任何候选命中时，保持
- * 解析层的排序（取第一个）。分数相同也保持原顺序，所以不会比以前更差。
- */
 /** 同句里是否还有别的中文词项（拼音词项的上下文）。 */
 function hasChineseContext(terms: readonly string[], self: string): boolean {
   return terms.some((term) => term !== self && !ASCII_TERM.test(term))
 }
 
-/** 精确档里的「精确命中」：整词全拼 / 首字母 / 名称 / 别名相等（不含前缀这类弱命中）。 */
-function isPreciseMatch(entry: VocabularyEntry, term: string): boolean {
-  const latin = latinKey(term)
-  const key = nameKey(term)
-  return (
-    (latin.length > 0 && (latinKey(entry.pinyin) === latin || latinKey(entry.initials) === latin))
-    || nameKey(entry.name) === key
-    || entry.aliases.some((alias) => nameKey(alias) === key)
-  )
-}
-
+/**
+ * 一个拼音词项有多个候选时，结合同句里的中文词挑最贴的：「上海 zhongxin」里「上海」出现在
+ * 候选名称或所属商圈 / 行政区里的优先。没有中文上下文、或上下文没有任何候选命中时，保持
+ * 解析层的排序（取第一个）。分数相同也保持原顺序，所以不会比以前更差。
+ */
 function pickByContext(
   matches: readonly VocabularyEntry[],
   terms: readonly string[],

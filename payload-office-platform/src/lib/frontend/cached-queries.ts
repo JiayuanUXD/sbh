@@ -11,6 +11,7 @@ import {
 } from '@/domain/search/vocabulary'
 import { escapeLikePattern, normalizeSearchQuery, type NormalizedQuery } from '@/domain/search/normalize'
 import { dropSubsumedTerms, expandSearchTerms } from '@/domain/search/expand'
+import { mergeAdjacentTerms } from '@/domain/search/merge-terms'
 import { segmentSearchTerms } from '@/domain/search/segment'
 import { suggestTypoCorrections } from '@/domain/search/typo'
 import { isTooShortQuery } from '@/domain/search/short-query'
@@ -389,12 +390,18 @@ export async function getCachedSiteSearchBuildings(
   if (normalized.normalized.length === 0 || isTooShortQuery(normalized)) return null
   const vocabulary = await getCachedSearchVocabulary(city)
   // 先用词表把长句里的实体切出来（「陆家嘴整层办公室」→ 陆家嘴 + 整层），再做拼音 / 别名扩展。
-  const segmented = segmentSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
+  // 先把被空格拆开的名字合回去（「shanghai 中心」→「上海中心」），再分词 / 扩展。
+  const merged = mergeAdjacentTerms(normalized.terms.map((term) => term.value), vocabulary)
+  const segmented = segmentSearchTerms(merged.terms, vocabulary)
   const expanded = expandSearchTerms(segmented.terms, vocabulary)
   // 楼盘 SQL 只接受一个 substring：优先用实体名（分词切出的、或拼音 / 别名解析出的），其次是
   // 扩展后的第一个词，没有扩展时退回原词。多词的 AND/OR 是房源搜索的语义，不硬塞进楼盘；
   // 整条长句也不能直接拿去匹配楼盘名；「上海 zhongxin」这类实体不在第一位的，也要用实体而不是「上海」。
-  const entityTerms = entityTermsOf(segmented.entityTerms, expanded.listingTerms, expanded.resolved)
+  const entityTerms = entityTermsOf(
+    [...merged.entityTerms, ...segmented.entityTerms],
+    expanded.listingTerms,
+    expanded.resolved,
+  )
   const buildingTerm = entityTerms[0] ?? expanded.listingTerms[0] ?? normalized.normalized
   const input: BuildingSearchInput = {
     q: buildingTerm,
@@ -408,6 +415,7 @@ export async function getCachedSiteSearchBuildings(
     query: normalized,
     resolved: mergeVocabularyEntries(
       resolveVocabularyTerm(vocabulary, normalized.normalized),
+      merged.entries,
       segmented.entries,
     ),
   }
@@ -714,13 +722,15 @@ export async function getCachedSiteSearchListings(
   if (!hasFilters && (normalized.terms.length === 0 || isTooShortQuery(normalized))) return null
 
   const vocabulary = await getCachedSearchVocabulary(city)
-  const segmented = segmentSearchTerms(normalized.terms.map((term) => term.value), vocabulary)
+  // 先把被空格拆开的名字合回去（「shanghai 中心」→「上海中心」），再分词 / 扩展。
+  const merged = mergeAdjacentTerms(normalized.terms.map((term) => term.value), vocabulary)
+  const segmented = segmentSearchTerms(merged.terms, vocabulary)
   const expanded = expandSearchTerms(segmented.terms, vocabulary)
   // 被实体名包含的限定词是多余的（「上海 zhongxin」→「上海中心」，「上海」可去），
   // 否则实体没有在租房源时 AND 失败，放宽又先丢掉实体词，退化成泛泛的「上海」。
   const searchTerms = dropSubsumedTerms(
     expanded.listingTerms,
-    entityTermsOf(segmented.entityTerms, expanded.listingTerms, expanded.resolved),
+    entityTermsOf([...merged.entityTerms, ...segmented.entityTerms], expanded.listingTerms, expanded.resolved),
   )
   const terms = searchTerms.map(escapeLikePattern)
   const input: ListingSearchInput = {
@@ -761,7 +771,7 @@ export async function getCachedSiteSearchListings(
     terms: searchTerms,
     relaxed,
     relaxedTerms,
-    resolved: mergeVocabularyEntries(expanded.resolved, segmented.entries),
+    resolved: mergeVocabularyEntries(expanded.resolved, merged.entries, segmented.entries),
     corrections:
       selection.pagination.totalDocs === 0 ? suggestTypoCorrections(segmented.terms, vocabulary) : [],
     intent,

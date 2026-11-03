@@ -310,6 +310,31 @@ export function resolveFuzzyAuto(vocab: SearchVocabulary, term: string): readonl
   return matches.sort(compareMatches).map((match) => match.entry)
 }
 
+/**
+ * 整名对齐的自动匹配：与 `resolveFuzzyAuto` 相同的门槛，但必须从名字第一个字对齐到最后一个字
+ * （没有两端未覆盖的单元）。用来判断「这几个词项拼起来是不是恰好就是某个实体的完整名字」。
+ */
+export function resolveFuzzyWhole(vocab: SearchVocabulary, term: string): readonly VocabularyEntry[] {
+  const tokens = tokenize(term)
+  if (!tokens || !tokens.some((token) => 'latin' in token)) return []
+  const { entries, charSyllable } = indexOf(vocab)
+  const letters = tokens.flatMap((token) => ('latin' in token ? [token.latin] : []))
+  const hans = tokens.flatMap((token) => ('han' in token ? [token.han] : []))
+
+  const matches: FuzzyMatch[] = []
+  for (const { entry, surfaces } of entries) {
+    let best: Alignment | null = null
+    for (const surface of surfaces) {
+      if (!passesPrefilter(surface.units, letters, hans)) continue
+      // 建议模式 + 0 处编辑预算 = 从第一个单元对齐到最后一个单元、不允许任何编辑
+      const alignment = align(tokens, surface.units, 'suggest', charSyllable, 0)
+      if (alignment && (!best || alignment.score > best.score)) best = alignment
+    }
+    if (best && best.gain >= MIN_AUTO_GAIN) matches.push({ entry, score: best.score, edits: 0 })
+  }
+  return matches.sort(compareMatches).map((match) => match.entry)
+}
+
 function passesPrefilter(units: readonly Unit[], letters: readonly string[], hans: readonly string[]): boolean {
   if (letters.length > 0) {
     const joined = units.map((unit) => unit.syl).join('')
