@@ -86,3 +86,33 @@ describe('expandSearchTerms：拼音窗口 + 同句里的中文上下文', () =>
     expect(expandSearchTerms(['浦东', 'zhongxin'], vocab).listingTerms).toEqual(['浦东', '东中心'])
   })
 })
+
+describe('expandSearchTerms：精确档（拼音前缀）有候选时，中文上下文仍要能选中模糊匹配的候选', () => {
+  // 线上形态：有楼盘的拼音以 zhongxin 开头（中心大厦），走更高优先级的「拼音前缀」档，
+  // 档内没有一个名字带「上海」，上下文选不出东西，于是「上海 zhongxin」选了无关的「中心大厦」。
+  const withPrefixEntry = buildSearchVocabulary(
+    [
+      { kind: 'building', id: 20, slug: 'zx-dasha', name: '中心大厦', parent_name: '浦东新区' },
+      { kind: 'building', id: 2, slug: 'shanghai-tower', name: '上海中心', parent_name: '陆家嘴' },
+      { kind: 'building', id: 3, slug: 'ifc', name: '上海国金中心', parent_name: '陆家嘴' },
+    ],
+    'shanghai',
+  )
+
+  it('没有上下文：拼音前缀档优先，行为不变', () => {
+    expect(expandSearchTerms(['zhongxin'], withPrefixEntry).listingTerms).toEqual(['中心大厦'])
+  })
+
+  it('有上下文「上海」：选名字带上海的上海中心，而不是前缀档里的中心大厦', () => {
+    expect(expandSearchTerms(['上海', 'zhongxin'], withPrefixEntry).listingTerms).toEqual(['上海', '上海中心'])
+  })
+
+  it('上下文在前缀档里就有命中时，仍选前缀档的（不被模糊候选抢走）', () => {
+    expect(expandSearchTerms(['浦东', 'zhongxin'], withPrefixEntry).listingTerms).toEqual(['浦东', '中心大厦'])
+  })
+
+  it('整词全拼 / 首字母命中时不引入模糊候选：「上海」上下文不会把 shzx 改选成别的', () => {
+    expect(expandSearchTerms(['陆家嘴', 'shzx'], withPrefixEntry).listingTerms).toEqual(['陆家嘴', '上海中心'])
+  })
+})
+
