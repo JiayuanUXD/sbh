@@ -8,25 +8,11 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { editDistance, suggestTypoCorrections } from '@/domain/search/typo'
+import { suggestTypoCorrections } from '@/domain/search/typo'
 
 import { testVocabulary } from './search-fixtures'
 
 const names = (terms: string[]) => suggestTypoCorrections(terms, testVocabulary).map((entry) => entry.name)
-
-describe('editDistance', () => {
-  it('按码点计算，支持替换 / 插入 / 删除', () => {
-    expect(editDistance('陆家嘴', '陆家嘴', 3)).toBe(0)
-    expect(editDistance('陆加嘴', '陆家嘴', 3)).toBe(1)
-    expect(editDistance('陆嘴', '陆家嘴', 3)).toBe(1)
-    expect(editDistance('陆家家嘴', '陆家嘴', 3)).toBe(1)
-    expect(editDistance('😀家', '😁家', 3)).toBe(1)
-  })
-
-  it('超过上限就返回 上限+1，不再继续算', () => {
-    expect(editDistance('abcdef', 'uvwxyz', 1)).toBe(2)
-  })
-})
 
 describe('suggestTypoCorrections', () => {
   it('单字错字：陆加嘴 → 陆家嘴', () => {

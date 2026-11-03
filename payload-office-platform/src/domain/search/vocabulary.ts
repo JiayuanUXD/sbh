@@ -24,7 +24,7 @@ export type VocabularyEntry = Readonly<{
   initials: string
   /**
    * 无声调拼音的音节序列，例：`['shang', 'hai', 'zhong', 'xin']`。构建词表时算一次，
-   * 供「窗口」匹配（用户只打名字中间 / 后半段的拼音）用；缺省（旧缓存 / 夹具）则不参与窗口匹配。
+   * 供统一模糊匹配（fuzzy.ts：拼音后半截 / 混输 / 错字）用；缺省（旧缓存 / 夹具）则只能做汉字匹配。
    */
   syllables?: readonly string[]
 }>
@@ -60,27 +60,6 @@ function compareEntries(a: VocabularyEntry, b: VocabularyEntry): number {
   return a.name.localeCompare(b.name, 'zh-CN')
 }
 
-/** 窗口匹配的最少字母数：再短（xin / zh）会命中一大片，只是噪音。 */
-const MIN_WINDOW_LENGTH = 4
-
-/**
- * 拼音窗口：`latin` 是否能从某个音节的开头起，连续覆盖若干个音节（最后一个音节允许只打一部分）。
- * `zhongxin` 命中 [shang, hai, zhong, xin]（从 zhong 起），`zhongx` 也行；`hongxin` 不行——
- * 不能从音节中间开始，否则任何子串都能命中。
- */
-function hasSyllableWindow(syllables: readonly string[] | undefined, latin: string): boolean {
-  if (!syllables || latin.length < MIN_WINDOW_LENGTH) return false
-  for (let start = 0; start < syllables.length; start += 1) {
-    let joined = ''
-    for (let index = start; index < syllables.length; index += 1) {
-      joined += syllables[index]
-      if (joined.startsWith(latin)) return true
-      if (!latin.startsWith(joined)) break
-    }
-  }
-  return false
-}
-
 export function resolveVocabularyTerm(
   vocab: SearchVocabulary,
   term: string,
@@ -96,8 +75,6 @@ export function resolveVocabularyTerm(
     (entry) => latin.length >= 2 && latinKey(entry.initials) === latin,
     (entry) => name.length >= 2 && nameKey(entry.name).startsWith(name),
     (entry) => latin.length >= 2 && latinKey(entry.pinyin).startsWith(latin),
-    // 最低优先级：只打名字中间 / 后半段的拼音（「上海 zhongxin」里的 zhongxin）
-    (entry) => hasSyllableWindow(entry.syllables, latin),
   ]
 
   for (const matches of tiers) {
