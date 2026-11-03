@@ -11,6 +11,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { expandSearchTerms } from '@/domain/search/expand'
+import { resolveFuzzyAuto } from '@/domain/search/fuzzy'
 import { resolveVocabularyTerm } from '@/domain/search/vocabulary'
 import { buildSearchVocabulary } from '@/domain/search/vocabulary-build'
 
@@ -26,25 +27,26 @@ const vocab = buildSearchVocabulary(
 )
 
 const names = (term: string) => resolveVocabularyTerm(vocab, term).map((entry) => entry.name)
+const fuzzy = (term: string) => resolveFuzzyAuto(vocab, term).map((entry) => entry.name)
 
-describe('resolveVocabularyTerm：拼音窗口', () => {
+describe('拼音窗口（统一模糊匹配器的自动模式）', () => {
   it('后半截拼音能命中，同为楼盘按名称长度排序（不依赖 localeCompare，它随运行环境的排序规则变）', () => {
-    expect(names('zhongxin')).toEqual(['东中心', '上海中心', '上海国金中心'])
+    expect(fuzzy('zhongxin')).toEqual(['东中心', '上海中心', '上海国金中心'])
   })
 
   it('中间一段、带不完整的最后一个音节也行', () => {
-    expect(names('guojin')).toEqual(['上海国金中心'])
-    expect(names('guojinzhongx')).toEqual(['上海国金中心'])
+    expect(fuzzy('guojin')).toEqual(['上海国金中心'])
+    expect(fuzzy('guojinzhongx')).toEqual(['上海国金中心'])
   })
 
   it('必须按音节对齐：不能从音节中间开始', () => {
-    expect(names('hongxin')).toEqual([]) // zhong 的中间
-    expect(names('ongxi')).toEqual([])
+    expect(fuzzy('hongxin')).toEqual([]) // zhong 的中间
+    expect(fuzzy('ongxi')).toEqual([])
   })
 
-  it('少于 4 个字母不做窗口匹配（噪音）', () => {
-    expect(names('xin')).toEqual([])
-    expect(names('zhon')).toEqual(['东中心', '上海中心', '上海国金中心'])
+  it('证据不够不做窗口匹配（噪音）：一个完整音节 / 半个音节都不够', () => {
+    expect(fuzzy('xin')).toEqual([])
+    expect(fuzzy('zhon')).toEqual([])
   })
 
   it('优先级最低：整词全拼 / 前缀命中时不走窗口', () => {
@@ -57,7 +59,7 @@ describe('resolveVocabularyTerm：拼音窗口', () => {
       city: 'shanghai',
       entries: vocab.entries.map(({ syllables: _syllables, ...rest }) => rest),
     }
-    expect(resolveVocabularyTerm(legacy, 'zhongxin')).toEqual([])
+    expect(resolveFuzzyAuto(legacy, 'zhongxin')).toEqual([])
   })
 })
 

@@ -13,6 +13,7 @@
  * 供「你是不是想找」展示消歧；不静默跨城由词表本身（按城市构建）保证。
  */
 
+import { resolveFuzzyAuto } from './fuzzy'
 import {
   nameKey,
   resolveVocabularyTerm,
@@ -115,9 +116,12 @@ export function expandSearchTerms(
   }
 
   for (const term of terms) {
-    const matches = ASCII_TERM.test(term)
+    // 先走精确档（名称 / 别名 / 整词全拼 / 首字母 / 前缀），没命中再交给统一模糊匹配：
+    // 拼音后半截（zhongxin）、汉字与拼音混输（luj嘴）。编辑数必须为 0，错字只做建议不改写。
+    const exact = ASCII_TERM.test(term)
       ? resolveVocabularyTerm(vocab, term.toLowerCase())
       : resolveChineseAlias(vocab, term)
+    const matches = exact.length > 0 ? exact : resolveFuzzyAuto(vocab, term)
 
     if (matches.length === 0) {
       pushTerm(term)
