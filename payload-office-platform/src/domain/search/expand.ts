@@ -42,6 +42,54 @@ function resolveChineseAlias(vocab: SearchVocabulary, term: string): readonly Vo
   return isAliasOnly ? matches : []
 }
 
+/**
+ * 一个拼音词项有多个候选时，结合同句里的中文词挑最贴的：「上海 zhongxin」里「上海」出现在
+ * 候选名称或所属商圈 / 行政区里的优先。没有中文上下文、或上下文没有任何候选命中时，保持
+ * 解析层的排序（取第一个）。分数相同也保持原顺序，所以不会比以前更差。
+ */
+function pickByContext(
+  matches: readonly VocabularyEntry[],
+  terms: readonly string[],
+  self: string,
+): VocabularyEntry {
+  const context = terms.filter((term) => term !== self && !ASCII_TERM.test(term)).map(nameKey)
+  let best = matches[0]!
+  if (context.length === 0 || matches.length === 1) return best
+  const score = (entry: VocabularyEntry) => {
+    const haystack = nameKey(`${entry.name}${entry.parentName ?? ''}`)
+    return context.filter((term) => term.length > 0 && haystack.includes(term)).length
+  }
+  let bestScore = score(best)
+  for (const entry of matches.slice(1)) {
+    const entryScore = score(entry)
+    if (entryScore > bestScore) {
+      best = entry
+      bestScore = entryScore
+    }
+  }
+  return best
+}
+
+/**
+ * 去掉被实体名包含的限定词。
+ *
+ * 「上海 zhongxin」里 `zhongxin` 解析成「上海中心」后，「上海」已经被它包含：任何命中「上海中心」的
+ * 字段必然也命中「上海」，AND 里再留着只会在实体没有在租房源时让 AND 失败，放宽又先丢掉实体词，
+ * 结果退化成泛泛的「上海」。实体词本身永远保留；其它词保持原顺序。
+ */
+export function dropSubsumedTerms(
+  terms: readonly string[],
+  entityTerms: readonly string[],
+): readonly string[] {
+  if (entityTerms.length === 0) return terms
+  const entities = new Set(entityTerms)
+  return terms.filter((term) => {
+    if (entities.has(term)) return true
+    const key = nameKey(term)
+    return key.length === 0 || !entityTerms.some((entity) => entity !== term && nameKey(entity).includes(key))
+  })
+}
+
 export function expandSearchTerms(
   terms: readonly string[],
   vocab: SearchVocabulary,
@@ -78,7 +126,7 @@ export function expandSearchTerms(
 
     for (const entry of matches) pushResolved(entry)
 
-    const best = matches[0]!
+    const best = pickByContext(matches, terms, term)
     pushTerm(best.name)
 
     if (best.kind === 'building' && typeof best.id === 'number' && !seenBuildings.has(best.id)) {

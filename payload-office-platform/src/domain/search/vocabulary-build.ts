@@ -29,6 +29,15 @@ export function pinyinOf(name: string): string {
   }).join('').toLowerCase()
 }
 
+/** 无声调拼音的音节序列，小写；非汉字连续片段保持为一个整体。 */
+export function syllablesOf(name: string): readonly string[] {
+  return pinyin(name, {
+    toneType: 'none',
+    type: 'array',
+    nonZh: 'consecutive',
+  }).map((syllable) => syllable.toLowerCase())
+}
+
 /** 首字母，小写，去掉分隔符。 */
 export function initialsOf(name: string): string {
   return pinyin(name, {
@@ -92,6 +101,7 @@ export function buildSearchVocabulary(
       aliases: mergeAliases(row.name, extraAliases[row.name] ?? []),
       pinyin: pinyinOf(row.name),
       initials: initialsOf(row.name),
+      syllables: syllablesOf(row.name),
     })
   }
 
