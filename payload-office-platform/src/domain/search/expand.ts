@@ -51,7 +51,7 @@ function hasChineseContext(terms: readonly string[], self: string): boolean {
 
 /**
  * 一个拼音词项有多个候选时，结合同句里的中文词挑最贴的：「上海 zhongxin」里「上海」出现在
- * 候选名称或所属商圈 / 行政区里的优先。没有中文上下文、或上下文没有任何候选命中时，保持
+ * 候选名称（2 分）或所属商圈 / 行政区（1 分）里的优先。没有中文上下文、或上下文没有任何候选命中时，保持
  * 解析层的排序（取第一个）。分数相同也保持原顺序，所以不会比以前更差。
  */
 function pickByContext(
@@ -62,9 +62,16 @@ function pickByContext(
   const context = terms.filter((term) => term !== self && !ASCII_TERM.test(term)).map(nameKey)
   let best = matches[0]!
   if (context.length === 0 || matches.length === 1) return best
+  // 名称命中（2 分）比所属商圈 / 行政区命中（1 分）重要得多：线上「中星城」属于「上海南站」商圈，
+  // 所属区域名里带「上海」，若两种命中同分，「上海 zhongxin」会在平局里取前缀档的中星城，而不是上海中心。
   const score = (entry: VocabularyEntry) => {
-    const haystack = nameKey(`${entry.name}${entry.parentName ?? ''}`)
-    return context.filter((term) => term.length > 0 && haystack.includes(term)).length
+    const name = nameKey(entry.name)
+    const parent = nameKey(entry.parentName ?? '')
+    return context.reduce((sum, term) => {
+      if (term.length === 0) return sum
+      if (name.includes(term)) return sum + 2
+      return parent.includes(term) ? sum + 1 : sum
+    }, 0)
   }
   let bestScore = score(best)
   for (const entry of matches.slice(1)) {
