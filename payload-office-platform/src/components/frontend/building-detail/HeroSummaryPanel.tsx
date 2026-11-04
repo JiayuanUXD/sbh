@@ -45,6 +45,7 @@ type HeroSummaryPanelProps = Readonly<{
   building: BuildingDetailViewModel
   supply: BuildingSupplySnapshot
   serviceSchedule?: ServiceSchedule
+  citySlug?: string
 }>
 
 function pickHeroFacts(building: BuildingDetailViewModel): { label: string; value: string }[] {
@@ -74,6 +75,7 @@ export default function HeroSummaryPanel({
   building,
   supply,
   serviceSchedule,
+  citySlug,
   priceDisclaimer = DEFAULT_PRICE_DISCLAIMER,
 }: HeroSummaryPanelProps & Readonly<{ priceDisclaimer?: string }>) {
   const lowest = findLowestPrice(supply.availableGroups)
@@ -118,18 +120,17 @@ export default function HeroSummaryPanel({
 
         {infoRows.length > 0 && <SpecTable rows={infoRows} />}
 
-        <AdvisorCard
-          cta={
-            <InquiryModal
-              pageType="building"
-              targetBuildingSlug={building.slug}
-              targetSummary={building.name}
-              triggerLabel={hasSupply ? '询价 / 预约看房' : '登记找房需求'}
-              sourceSection="hero"
-              serviceSchedule={serviceSchedule}
-            />
-          }
+        <InquiryModal
+          pageType="building"
+          targetBuildingSlug={building.slug}
+          targetSummary={building.name}
+          triggerLabel={hasSupply ? '询价 / 预约看房' : '登记找房需求'}
+          triggerClassName="btn--lg btn--block hero-summary__cta"
+          sourceSection="hero"
+          serviceSchedule={serviceSchedule}
         />
+
+        <AdvisorCard citySlug={citySlug} />
       </DetailPanel>
     </aside>
   )

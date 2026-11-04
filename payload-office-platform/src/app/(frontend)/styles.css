@@ -4443,7 +4443,7 @@ ol {
 .advisor-card {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-3);
   background: var(--color-paper);
@@ -4543,6 +4543,53 @@ ol {
   color: var(--color-ink-2);
   font-size: var(--fs-12);
   line-height: var(--lh-relaxed);
+}
+
+.advisor-card__phone {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-top: 2px;
+  font-size: var(--fs-13);
+  line-height: var(--lh-tight);
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: color 120ms var(--ease);
+}
+
+.advisor-card__phone:hover {
+  color: var(--accent);
+}
+
+.advisor-card__phone-icon {
+  flex-shrink: 0;
+  color: var(--ink-3);
+  transition: color 120ms var(--ease);
+}
+
+.advisor-card__phone:hover .advisor-card__phone-icon {
+  color: var(--accent);
+}
+
+.advisor-card__phone-prefix {
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  transition: color 120ms var(--ease);
+}
+
+.advisor-card__phone:hover .advisor-card__phone-prefix {
+  color: var(--accent);
+}
+
+.advisor-card__phone-number {
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--ink);
+  transition: color 120ms var(--ease);
+}
+
+.advisor-card__phone:hover .advisor-card__phone-number {
+  color: var(--accent);
 }
 
 .advisor-card__hint {

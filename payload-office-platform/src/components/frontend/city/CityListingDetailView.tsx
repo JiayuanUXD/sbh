@@ -221,7 +221,7 @@ export default function CityListingDetailView({
             verification={listing.verification}
             cta={<InquiryModal {...inquiryTarget} sourceSection="hero"
               triggerClassName="btn--lg btn--block dt-decision__cta" />}
-            advisor={<AdvisorCard />}
+            advisor={<AdvisorCard citySlug={city.slug} />}
           />
 
           {/* 概况面板通栏跨两列、落在核心区第 2 行（specRows「tab 区」，租金账

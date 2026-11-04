@@ -1066,6 +1066,14 @@
   color: var(--ink-3);
 }
 
+.hero-summary__cta {
+  margin-top: 8px;
+}
+
+.hero-summary .advisor-card {
+  margin-top: 8px;
+}
+
 /* 375 断口实测发现的既有缺陷：avatar(44 固定) + cta(按钮内容定宽，不收缩)
  * 挤压中间 body 到 0 宽，文字逐字换行。修法是让 CTA 独占一行
  * （`flex-basis: 100%`）。换行本身由 `.advisor-card { flex-wrap: wrap }`
