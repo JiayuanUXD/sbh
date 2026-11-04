@@ -220,6 +220,7 @@ export default function BuildingDetailLayout({
             building={building}
             supply={supply}
             serviceSchedule={serviceSchedule}
+            citySlug={citySlug}
           />
         </div>
       </div>
