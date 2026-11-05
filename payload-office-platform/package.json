@@ -80,6 +80,7 @@
     "payload-lexical-typography": "^0.5.2",
     "payload-media-gallery": "^0.1.1",
     "pinyin-pro": "^3.28.2",
+    "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sharp": "^0.34.4",
@@ -90,6 +91,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@types/node": "^24.9.1",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "eslint": "^9.38.0",
