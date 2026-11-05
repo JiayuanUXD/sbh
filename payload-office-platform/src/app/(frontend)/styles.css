@@ -4592,6 +4592,151 @@ ol {
   color: var(--accent);
 }
 
+/* OPT-127：电话高亮与右侧扫码拨打 */
+.advisor-card__phone--highlight {
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.advisor-card__phone--highlight .advisor-card__phone-icon {
+  color: var(--accent);
+}
+
+.advisor-card__phone--highlight .advisor-card__phone-number {
+  font-size: var(--fs-16);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.advisor-card__phone--highlight:hover .advisor-card__phone-number {
+  color: var(--accent);
+}
+
+.advisor-card__qr {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+}
+
+.advisor-card__qr-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 5px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
+}
+
+.advisor-card__qr:hover .advisor-card__qr-thumb,
+.advisor-card__qr:focus-within .advisor-card__qr-thumb {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.12);
+}
+
+.advisor-card__qr-img {
+  display: block;
+  width: 44px;
+  height: 44px;
+}
+
+.advisor-card__qr-label {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.advisor-card__qr-popover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  width: 172px;
+  padding: 14px 12px 12px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(6px) scale(0.97);
+  transform-origin: bottom right;
+  transition: opacity 160ms var(--ease), transform 160ms var(--ease), visibility 160ms;
+}
+
+.advisor-card__qr:hover .advisor-card__qr-popover,
+.advisor-card__qr:focus-within .advisor-card__qr-popover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.advisor-card__qr-popover::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  right: 22px;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+
+.advisor-card__qr-popover-title {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.advisor-card__qr-popover-box {
+  padding: 4px;
+  background: #ffffff;
+  border: 1px solid var(--line-soft, #f0f0f2);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+.advisor-card__qr-popover-img {
+  display: block;
+  width: 120px;
+  height: 120px;
+}
+
+.advisor-card__qr-popover-phone {
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.advisor-card__qr-popover-hint {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  .advisor-card__qr {
+    display: none;
+  }
+}
+
 .advisor-card__hint {
   margin: 0;
   color: var(--color-muted);
