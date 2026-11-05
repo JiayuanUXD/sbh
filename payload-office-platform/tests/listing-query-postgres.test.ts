@@ -30,7 +30,7 @@ describe.skipIf(!databaseAvailable)('数据库目录与扫描语义逐项一致'
     await client.query('BEGIN')
     await client.query(`CREATE TEMP TABLE locations (id int, slug text, name text, status text) ON COMMIT DROP;
       CREATE TEMP TABLE buildings (id int, city_id int, district_id int, business_district_id int,
-        nearest_metro_id int, name text, status text, operational_status text, deleted_at timestamptz) ON COMMIT DROP;
+        nearest_metro_id int, name text, status text, operational_status text, deleted_at timestamptz, address text) ON COMMIT DROP;
       CREATE TEMP TABLE merchants (id int, status text, qualification_status text, qualification_expires_at timestamptz) ON COMMIT DROP;
       CREATE TEMP TABLE merchants_rels (parent_id int, path text, locations_id int) ON COMMIT DROP;
       CREATE TEMP TABLE listing_reports (target_listing_id int, supply_paused boolean) ON COMMIT DROP;
@@ -41,8 +41,8 @@ describe.skipIf(!databaseAvailable)('数据库目录与扫描语义逐项一致'
         price_amount numeric, price_currency text, price_period text, price_unit text, rent numeric, rent_unit text) ON COMMIT DROP;
       INSERT INTO locations VALUES (1,'shanghai','上海','active'),(2,'district','测试区','active'),
         (3,'area','测试商圈','active'),(4,'metro','测试地铁','active'),(5,'hangzhou','杭州','active');
-      INSERT INTO buildings VALUES (1,1,2,3,4,'虹桥测试楼盘','published','active',NULL),
-        (2,5,2,3,4,'杭州楼盘','published','active',NULL), (3,1,2,3,4,'停用楼盘','published','disabled',NULL);
+      INSERT INTO buildings VALUES (1,1,2,3,4,'虹桥测试楼盘','published','active',NULL,'测试路1号'),
+        (2,5,2,3,4,'杭州楼盘','published','active',NULL,NULL), (3,1,2,3,4,'停用楼盘','published','disabled',NULL,NULL);
       INSERT INTO merchants VALUES (1,'active','valid',NULL), (2,'disabled','valid',NULL),
         (3,'active','valid','2026-10-11'),(4,'active','valid',NULL),(5,'active','invalid',NULL),
         (6,'active','valid','2026-10-12T00:00:00Z');
@@ -125,6 +125,44 @@ describe.skipIf(!databaseAvailable)('数据库目录与扫描语义逐项一致'
         .toEqual(computeFacets(applyMemoryFilters(rows, input)))
     })
   }
+
+  // 楼盘侧匹配先在楼盘表里算成命中集再左连房源（见 listing-query-sql.ts 的 buildingHit）：
+  // 这里钉死命中集合与「标题 > 楼盘名 > 行政区 / 商圈 / 地铁 > 地址」的次序没有变。
+  describe('站内搜索 ranking 词项', () => {
+    const ctx = () => createSearchContext('shanghai', asOf, 'lease')
+    const run = async (terms: string[], mode: 'and' | 'or' = 'and') => {
+      const query = buildListingPageQuery({ sort: 'recommended', page: 1, pageSize: 1000 } as never, ctx(), { terms, mode })
+      const row = (await client.query(query.text, query.values)).rows[0]
+      return { ids: row.ids as number[], total: Number(row.total) }
+    }
+
+    it('标题命中排在仅楼盘名命中之前，两组合起来正好是全部可见房源', async () => {
+      const all = await run([])
+      const hit = await run(['虹桥'])
+      expect(new Set(hit.ids)).toEqual(new Set(all.ids))
+      const titleHit = hit.ids.filter(id => docs.find(doc => doc.id === id)?.title === '虹桥房源')
+      expect(titleHit.length).toBeGreaterThan(0)
+      expect(titleHit.length).toBeLessThan(hit.ids.length)
+      // 标题命中（60）全部在前，楼盘名命中（50）在后
+      expect(hit.ids.slice(0, titleHit.length)).toEqual(expect.arrayContaining(titleHit))
+    })
+
+    it.each([['行政区', '测试区'], ['商圈', '测试商圈'], ['地铁', '测试地铁'], ['地址', '测试路']])(
+      '只在%s命中也能召回全部可见房源', async (_label, term) => {
+        const all = await run([])
+        const hit = await run([term])
+        expect(new Set(hit.ids)).toEqual(new Set(all.ids))
+        expect(hit.total).toBe(all.total)
+      })
+
+    it('没有命中、通配符被转义、AND/OR 组合', async () => {
+      const all = await run([])
+      expect((await run(['不存在'])).total).toBe(0)
+      expect((await run(['\\%'])).total).toBe(0)
+      expect((await run(['虹桥', '不存在'], 'and')).total).toBe(0)
+      expect(new Set((await run(['虹桥', '不存在'], 'or')).ids)).toEqual(new Set(all.ids))
+    })
+  })
 
   it('推荐候选 SQL 在商圈、行政区、楼盘三档范围下与扫描行字段严格一致且排除全部失效供给', async () => {
     const ctx = createSearchContext('shanghai', asOf, 'lease')
