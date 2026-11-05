@@ -246,6 +246,17 @@ describe('required city in public catalog context', () => {
         const ids = listings.filter(candidate => (candidate.building as { city: { slug: string } }).city.slug === values[2]).map(candidate => Number(candidate.id));
         return { rows: [{ ids, total: ids.length, filtered: false }] }
       }
+      if (text.includes('AS group_key')) {
+        const rows = listings
+          .filter(candidate => (candidate.building as { city: { slug: string } }).city.slug === values[2])
+          .map(candidate => ({
+            id: Number(candidate.id),
+            slug: String(candidate.slug),
+            is_featured: Boolean(candidate.isFeatured),
+            group_key: `listing:${candidate.id}`,
+          }))
+        return { rows }
+      }
       if (text.includes('AS facets')) {
         return { rows: [{ facets: { districts: [{ id: 2021, slug: 'hangzhou-district', name: 'hangzhou district', count: 1 }],
           businessAreas: [], listingTypes: [{ value: 'traditional-office', count: 1 }], buildingForms: [],
