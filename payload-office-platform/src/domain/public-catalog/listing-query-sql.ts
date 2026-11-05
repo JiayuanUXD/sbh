@@ -55,40 +55,65 @@ function filteredQuery(
   if (input.areaMin != null) conditions.push(`l.area >= ${bind(input.areaMin)}`)
   if (input.areaMax != null) conditions.push(`l.area <= ${bind(input.areaMax)}`)
   if (input.availableBefore) conditions.push(`(l.available_from IS NULL OR l.available_from <= ${bind(input.availableBefore)}::timestamptz)`)
+  // 楼盘侧的关键词匹配（楼盘名 / 行政区 / 商圈 / 地铁 / 地址）只依赖楼盘，不依赖房源。
+  // 若像以前那样写在联表之后的 OR 里，每条房源（约 5.7 万）都要在联表结果上算 5~6 次 ILIKE；
+  // 先在楼盘表（约 4 千行）里算出「是否命中 + 楼盘侧得分」，房源再按 building_id 左连，
+  // 命中集合与得分与原先逐行计算完全一致（见 tests/listing-query-postgres.test.ts 的搜索用例）。
+  //
+  // 这里**不能**在 CTE 里 WHERE 过滤成「只剩命中的楼盘」：ILIKE 的选择率规划器只能瞎猜，
+  // 命中集被估成几行，于是选嵌套循环，对每条房源重扫一遍命中集（实测徐家汇：800 行 × 5.5 万次，
+  // 0.4s → 9s）。保留全部楼盘、用 is_hit 标记，行数估计准确，规划器才会走哈希连接。
+  const hitCtes: string[] = []
+  const hitJoins: string[] = []
+  const buildingHit = (alias: string, contains: string, score?: { exact: string; prefix: string }) => {
+    hitCtes.push(`${alias} AS MATERIALIZED (
+    SELECT b.id, (b.name ILIKE ${contains} OR dist.name ILIKE ${contains} OR ba.name ILIKE ${contains}
+      OR metro.name ILIKE ${contains}${score ? ` OR b.address ILIKE ${contains}` : ''}) AS is_hit${score ? `, (CASE
+        WHEN b.name ILIKE ${score.exact} THEN 90
+        WHEN b.name ILIKE ${score.prefix} THEN 70
+        WHEN b.name ILIKE ${contains} THEN 50
+        WHEN dist.name ILIKE ${score.exact} THEN 40
+        WHEN dist.name ILIKE ${score.prefix} THEN 35
+        WHEN dist.name ILIKE ${contains} THEN 30
+        WHEN ba.name ILIKE ${score.exact} THEN 40
+        WHEN ba.name ILIKE ${score.prefix} THEN 35
+        WHEN ba.name ILIKE ${contains} THEN 30
+        WHEN metro.name ILIKE ${score.exact} THEN 35
+        WHEN metro.name ILIKE ${score.prefix} THEN 30
+        WHEN metro.name ILIKE ${contains} THEN 25
+        WHEN b.address ILIKE ${contains} THEN 20
+        ELSE 0 END) AS building_score` : ''}
+    FROM buildings b
+    JOIN locations dist ON dist.id = b.district_id
+    LEFT JOIN locations ba ON ba.id = b.business_district_id
+    LEFT JOIN locations metro ON metro.id = b.nearest_metro_id
+  )`)
+    hitJoins.push(`LEFT JOIN ${alias} ON ${alias}.id = l.building_id`)
+  }
+
   if (input.q) {
     const pattern = bind(`%${input.q}%`)
-    conditions.push(`(l.title ILIKE ${pattern} OR b.name ILIKE ${pattern}
-      OR dist.name ILIKE ${pattern} OR ba.name ILIKE ${pattern} OR metro.name ILIKE ${pattern})`)
+    buildingHit('q_hit', pattern)
+    conditions.push(`(l.title ILIKE ${pattern} OR q_hit.is_hit)`)
   }
 
   // 站内搜索：每个词项都算「命中条件 + 命中分」，词项之间按 mode 连接。
   // 分数只用于排序；命中集合仍由 ILIKE 决定。
-  const termClauses = (ranking?.terms ?? []).map((term) => {
+  const termClauses = (ranking?.terms ?? []).map((term, index) => {
     const exact = bind(term)
     const prefix = bind(`${term}%`)
     const contains = bind(`%${term}%`)
+    const alias = `term_hit_${index}`
+    // 地址（b.address）是公开字段，用户会直接搜路名；只补召回，分数垫底（见 buildingHit 里的 20）。
+    buildingHit(alias, contains, { exact, prefix })
     return {
-      // 地址（b.address）是公开字段，用户会直接搜路名；只补召回，分数垫底（见下方 20）。
-      condition: `(l.title ILIKE ${contains} OR b.name ILIKE ${contains} OR dist.name ILIKE ${contains}
-        OR ba.name ILIKE ${contains} OR metro.name ILIKE ${contains} OR b.address ILIKE ${contains})`,
+      condition: `(l.title ILIKE ${contains} OR ${alias}.is_hit)`,
+      // CASE 次序与原先一致：标题三档先于楼盘侧，楼盘侧内部的次序由命中集里的 CASE 保持。
       score: `(CASE
         WHEN l.title ILIKE ${exact} THEN 100
         WHEN l.title ILIKE ${prefix} THEN 80
         WHEN l.title ILIKE ${contains} THEN 60
-        WHEN b.name ILIKE ${exact} THEN 90
-        WHEN b.name ILIKE ${prefix} THEN 70
-        WHEN b.name ILIKE ${contains} THEN 50
-        WHEN dist.name ILIKE ${exact} THEN 40
-        WHEN dist.name ILIKE ${prefix} THEN 35
-        WHEN dist.name ILIKE ${contains} THEN 30
-        WHEN ba.name ILIKE ${exact} THEN 40
-        WHEN ba.name ILIKE ${prefix} THEN 35
-        WHEN ba.name ILIKE ${contains} THEN 30
-        WHEN metro.name ILIKE ${exact} THEN 35
-        WHEN metro.name ILIKE ${prefix} THEN 30
-        WHEN metro.name ILIKE ${contains} THEN 25
-        WHEN b.address ILIKE ${contains} THEN 20
-        ELSE 0 END)`,
+        ELSE COALESCE(${alias}.building_score, 0) END)`,
     }
   })
 
@@ -106,11 +131,12 @@ function filteredQuery(
     if (input.priceMax != null) priceConditions.push(`price_amount <= ${bind(input.priceMax)}`)
   }
   const from = effectiveSupplySqlFrom(`LEFT JOIN locations ba ON ba.id = b.business_district_id
-    LEFT JOIN locations metro ON metro.id = b.nearest_metro_id`)
+    LEFT JOIN locations metro ON metro.id = b.nearest_metro_id
+    ${hitJoins.join('\n    ')}`)
   const matchScore = termClauses.length > 0
     ? termClauses.map((clause) => clause.score).join(' + ')
     : undefined
-  const text = `WITH normalized AS (
+  const text = `WITH ${hitCtes.map((cte) => `${cte},\n  `).join('')}normalized AS (
     SELECT l.id, l.is_featured, date_trunc('milliseconds', l.updated_at) AS updated_at,
       l.listing_type::text AS listing_type, CASE WHEN l.business_type::text = 'sale' THEN 'sale' ELSE 'lease' END AS business_type,
       dist.id AS district_id, dist.slug AS district_slug, dist.name AS district_name,

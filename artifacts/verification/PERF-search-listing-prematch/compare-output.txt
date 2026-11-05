@@ -1,0 +1,46 @@
+OK  | rank and [上海中心]                    | total   4621 | 改前   279 ms | 改后   140 ms
+OK  | rank or [上海中心]                     | total   4621 | 改前   244 ms | 改后   108 ms
+OK  | q=上海中心                             | total   4621 | 改前   227 ms | 改后   102 ms
+OK  | rank and [陆家嘴]                     | total  18359 | 改前   295 ms | 改后   165 ms
+OK  | rank or [陆家嘴]                      | total  18359 | 改前   300 ms | 改后   233 ms
+OK  | q=陆家嘴                              | total   9960 | 改前   235 ms | 改后   109 ms
+OK  | rank and [办公室]                     | total  13859 | 改前   259 ms | 改后   160 ms
+OK  | rank or [办公室]                      | total  13859 | 改前   269 ms | 改后   146 ms
+OK  | q=办公室                              | total  13859 | 改前   232 ms | 改后   136 ms
+OK  | rank and [中星]                      | total   4620 | 改前   228 ms | 改后   114 ms
+OK  | rank or [中星]                       | total   4620 | 改前   222 ms | 改后    98 ms
+OK  | q=中星                               | total   4620 | 改前   194 ms | 改后    88 ms
+OK  | rank and [南京西路]                    | total  12001 | 改前   294 ms | 改后   137 ms
+OK  | rank or [南京西路]                     | total  12001 | 改前   332 ms | 改后   157 ms
+OK  | q=南京西路                             | total   5140 | 改前   259 ms | 改后   136 ms
+OK  | rank and [徐家汇]                     | total   9986 | 改前   253 ms | 改后   124 ms
+OK  | rank or [徐家汇]                      | total   9986 | 改前   249 ms | 改后   116 ms
+OK  | q=徐家汇                              | total   9986 | 改前   208 ms | 改后   100 ms
+OK  | rank and [不存在xyz]                  | total      0 | 改前   188 ms | 改后    78 ms
+OK  | rank or [不存在xyz]                   | total      0 | 改前   188 ms | 改后    80 ms
+OK  | q=不存在xyz                           | total      0 | 改前   178 ms | 改后    72 ms
+OK  | rank and [国金中心]                    | total      0 | 改前   221 ms | 改后   156 ms
+OK  | rank or [国金中心]                     | total      0 | 改前   195 ms | 改后    79 ms
+OK  | q=国金中心                             | total      0 | 改前   185 ms | 改后    71 ms
+OK  | rank and [大厦]                      | total  18487 | 改前   252 ms | 改后   149 ms
+OK  | rank or [大厦]                       | total  18487 | 改前   275 ms | 改后   155 ms
+OK  | q=大厦                               | total  18487 | 改前   246 ms | 改后   135 ms
+OK  | rank and [10]                      | total   5373 | 改前   226 ms | 改后   126 ms
+OK  | rank or [10]                       | total   5373 | 改前   211 ms | 改后    99 ms
+OK  | q=10                               | total   4712 | 改前   188 ms | 改后    86 ms
+OK  | rank and [号]                       | total  50399 | 改前   514 ms | 改后   317 ms
+OK  | rank or [号]                        | total  50399 | 改前   486 ms | 改后   280 ms
+OK  | q=号                                | total      0 | 改前   170 ms | 改后    68 ms
+OK  | rank and [2号线]                     | total      0 | 改前   180 ms | 改后    81 ms
+OK  | rank or [2号线]                      | total      0 | 改前   184 ms | 改后    77 ms
+OK  | q=2号线                              | total      0 | 改前   171 ms | 改后    68 ms
+OK  | rank and [上海, 中心]                  | total   8816 | 改前   263 ms | 改后   205 ms
+OK  | rank or [上海, 陆家嘴]                  | total  51707 | 改前   589 ms | 改后   354 ms
+OK  | rank and [整层, 大厦]                  | total   3482 | 改前   199 ms | 改后   114 ms
+OK  | rank and [陆家嘴] + 面积                | total  13945 | 改前   219 ms | 改后   118 ms
+OK  | rank and [大厦] + 类型                 | total   4620 | 改前   102 ms | 改后    66 ms
+OK  | rank and [办公室] + 价格升序              | total      0 | 改前  2501 ms | 改后    50 ms
+OK  | rank and [%] 通配符已转义                | total      0 | 改前   178 ms | 改后    77 ms
+OK  | 无关键词                               | total  55437 | 改前   269 ms | 改后   265 ms
+
+查询数 44，不一致 0；中位数耗时合计 改前 13158 ms → 改后 5793 ms
