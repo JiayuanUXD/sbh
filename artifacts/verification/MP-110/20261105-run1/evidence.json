@@ -1,0 +1,420 @@
+{
+  "spec": "MP-110",
+  "runId": "20261105-run1",
+  "timestamp": "2026-11-05T11:20:55.689Z",
+  "environment": {
+    "node": "v22.23.2",
+    "commit": "a9f6e7da59f0b3230359cd1ed060cbe846f7eb92",
+    "branch": "feat/mp-110-miniprogram-opt-8f3b",
+    "worktreeRoot": "/Users/liujiayuan/App/sbh/.claude/worktrees/mp-110-8f3b",
+    "miniprogramRoot": "/Users/liujiayuan/App/sbh/.claude/worktrees/mp-110-8f3b/sbh-miniprogram"
+  },
+  "checks": {
+    "projectCheck": true,
+    "typecheck": true,
+    "vitest": {
+      "numTotalTestSuites": 135,
+      "numPassedTestSuites": 135,
+      "numFailedTestSuites": 0,
+      "numTotalTests": 1021,
+      "numPassedTests": 1021,
+      "numFailedTests": 0,
+      "success": true
+    }
+  },
+  "probes": {
+    "buildingDetail": {
+      "sourceRoot": "/Users/liujiayuan/App/sbh/.claude/worktrees/mp-110-8f3b/sbh-miniprogram",
+      "initial": {
+        "state": "error",
+        "requestCount": 2
+      },
+      "retry": {
+        "state": "not-found",
+        "newRequestCount": 1,
+        "expectedState": "not-found",
+        "expectedNewRequestCount": 2,
+        "status": "PASS"
+      },
+      "absent": {
+        "state": "not-found",
+        "newRequestCount": 1,
+        "expectedState": "not-found",
+        "status": "PASS"
+      },
+      "actualError": {
+        "name": "MiniApiError",
+        "code": "building_not_found",
+        "kind": "business",
+        "statusCode": 404,
+        "message": "请求未能完成，请稍后重试"
+      },
+      "totalCalls": 5,
+      "verdict": "PASS"
+    },
+    "stateActions": {
+      "condition": "(resolvedKind === 'error' || resolvedKind === 'empty') && actionLabel",
+      "outputs": [
+        {
+          "kind": "loading",
+          "actionLabel": "重试",
+          "buttonVisible": false,
+          "eventDispatched": false,
+          "expectedVisible": false,
+          "expectedEvent": false,
+          "status": "PASS"
+        },
+        {
+          "kind": "loading",
+          "actionLabel": "",
+          "buttonVisible": false,
+          "eventDispatched": false,
+          "expectedVisible": false,
+          "expectedEvent": false,
+          "status": "PASS"
+        },
+        {
+          "kind": "empty",
+          "actionLabel": "",
+          "buttonVisible": false,
+          "eventDispatched": false,
+          "expectedVisible": false,
+          "expectedEvent": false,
+          "status": "PASS"
+        },
+        {
+          "kind": "empty",
+          "actionLabel": "重置筛选",
+          "buttonVisible": true,
+          "eventDispatched": true,
+          "expectedVisible": true,
+          "expectedEvent": true,
+          "status": "PASS"
+        },
+        {
+          "kind": "error",
+          "actionLabel": "",
+          "buttonVisible": false,
+          "eventDispatched": false,
+          "expectedVisible": false,
+          "expectedEvent": false,
+          "status": "PASS"
+        },
+        {
+          "kind": "error",
+          "actionLabel": "重新加载",
+          "buttonVisible": true,
+          "eventDispatched": true,
+          "expectedVisible": true,
+          "expectedEvent": true,
+          "status": "PASS"
+        }
+      ],
+      "references": [
+        {
+          "file": "pages/buildings/index.wxml",
+          "emptyActions": [
+            "<sbh-state\n        kind=\"empty\"\n        title=\"未找到匹配的楼盘\"\n        description=\"建议放宽区域或等级筛选条件\"\n        action-label=\"重置筛选\"\n        bindretry=\"handleResetFilters\"\n      />"
+          ]
+        },
+        {
+          "file": "pages/building-detail/index.wxml",
+          "emptyActions": [
+            "<sbh-state\n      kind=\"empty\"\n      title=\"该楼盘不存在或暂未收录\"\n      description=\"请返回楼盘列表查看其他楼盘\"\n      action-label=\"返回楼盘列表\"\n      bindretry=\"handleBackToList\"\n    />"
+          ]
+        }
+      ],
+      "verdict": "PASS"
+    },
+    "uiMetrics": {
+      "touchTargets": [
+        {
+          "name": "1. 首页搜索提交",
+          "file": "pages/home/index.wxss",
+          "selector": ".home-search__submit",
+          "viewports": [
+            {
+              "viewport": 375,
+              "widthPx": 44,
+              "heightPx": 44,
+              "pass": true
+            },
+            {
+              "viewport": 390,
+              "widthPx": 45.76,
+              "heightPx": 45.76,
+              "pass": true
+            },
+            {
+              "viewport": 430,
+              "widthPx": 50.45,
+              "heightPx": 50.45,
+              "pass": true
+            }
+          ],
+          "allPass": true
+        },
+        {
+          "name": "2. 首页全部楼盘",
+          "file": "pages/home/index.wxss",
+          "selector": ".home-buildings__all",
+          "viewports": [
+            {
+              "viewport": 375,
+              "widthPx": 44,
+              "heightPx": 44,
+              "pass": true
+            },
+            {
+              "viewport": 390,
+              "widthPx": 45.76,
+              "heightPx": 45.76,
+              "pass": true
+            },
+            {
+              "viewport": 430,
+              "widthPx": 50.45,
+              "heightPx": 50.45,
+              "pass": true
+            }
+          ],
+          "allPass": true
+        },
+        {
+          "name": "3. 找房搜索输入",
+          "file": "pages/listings/index.wxss",
+          "selector": ".listings-search-bar",
+          "viewports": [
+            {
+              "viewport": 375,
+              "widthPx": 351,
+              "heightPx": 44,
+              "pass": true
+            },
+            {
+              "viewport": 390,
+              "widthPx": 365.04,
+              "heightPx": 45.76,
+              "pass": true
+            },
+            {
+              "viewport": 430,
+              "widthPx": 402.48,
+              "heightPx": 50.45,
+              "pass": true
+            }
+          ],
+          "allPass": true
+        },
+        {
+          "name": "4. 找房排序",
+          "file": "pages/listings/index.wxss",
+          "selector": ".listings-summary__sort",
+          "viewports": [
+            {
+              "viewport": 375,
+              "widthPx": 44,
+              "heightPx": 44,
+              "pass": true
+            },
+            {
+              "viewport": 390,
+              "widthPx": 45.76,
+              "heightPx": 45.76,
+              "pass": true
+            },
+            {
+              "viewport": 430,
+              "widthPx": 50.45,
+              "heightPx": 50.45,
+              "pass": true
+            }
+          ],
+          "allPass": true
+        },
+        {
+          "name": "5. 楼盘区域筛选",
+          "file": "pages/buildings/index.wxss",
+          "selector": ".buildings-filter-item:nth-child(1)",
+          "viewports": [
+            {
+              "viewport": 375,
+              "widthPx": 117,
+              "heightPx": 44,
+              "pass": true
+            },
+            {
+              "viewport": 390,
+              "widthPx": 121.68,
+              "heightPx": 45.76,
+              "pass": true
+            },
+            {
+              "viewport": 430,
+              "widthPx": 134.16,
+              "heightPx": 50.45,
+              "pass": true
+            }
+          ],
+          "allPass": true
+        },
+        {
+          "name": "6. 楼盘等级筛选",
+          "file": "pages/buildings/index.wxss",
+          "selector": ".buildings-filter-item:nth-child(2)",
+          "viewports": [
+            {
+              "viewport": 375,
+              "widthPx": 117,
+              "heightPx": 44,
+              "pass": true
+            },
+            {
+              "viewport": 390,
+              "widthPx": 121.68,
+              "heightPx": 45.76,
+              "pass": true
+            },
+            {
+              "viewport": 430,
+              "widthPx": 134.16,
+              "heightPx": 50.45,
+              "pass": true
+            }
+          ],
+          "allPass": true
+        },
+        {
+          "name": "7. 楼盘排序",
+          "file": "pages/buildings/index.wxss",
+          "selector": ".buildings-filter-item:nth-child(3)",
+          "viewports": [
+            {
+              "viewport": 375,
+              "widthPx": 117,
+              "heightPx": 44,
+              "pass": true
+            },
+            {
+              "viewport": 390,
+              "widthPx": 121.68,
+              "heightPx": 45.76,
+              "pass": true
+            },
+            {
+              "viewport": 430,
+              "widthPx": 134.16,
+              "heightPx": 50.45,
+              "pass": true
+            }
+          ],
+          "allPass": true
+        },
+        {
+          "name": "8. 我的连接失败重新连接",
+          "file": "pages/profile/index.wxss",
+          "selector": ".profile-connect-error__action",
+          "viewports": [
+            {
+              "viewport": 375,
+              "widthPx": 76,
+              "heightPx": 44,
+              "pass": true
+            },
+            {
+              "viewport": 390,
+              "widthPx": 79.04,
+              "heightPx": 45.76,
+              "pass": true
+            },
+            {
+              "viewport": 430,
+              "widthPx": 87.15,
+              "heightPx": 50.45,
+              "pass": true
+            }
+          ],
+          "allPass": true
+        }
+      ],
+      "listingDetailBottomBar": [
+        {
+          "viewport": 375,
+          "favWidthPx": 44,
+          "shareWidthPx": 97,
+          "inquiryWidthPx": 194,
+          "gapPx": 8,
+          "intersectionArea": 0,
+          "pass": true
+        },
+        {
+          "viewport": 390,
+          "favWidthPx": 45.76,
+          "shareWidthPx": 100.88,
+          "inquiryWidthPx": 201.76,
+          "gapPx": 8.32,
+          "intersectionArea": 0,
+          "pass": true
+        },
+        {
+          "viewport": 430,
+          "favWidthPx": 50.45,
+          "shareWidthPx": 111.23,
+          "inquiryWidthPx": 222.45,
+          "gapPx": 9.17,
+          "intersectionArea": 0,
+          "pass": true
+        }
+      ],
+      "textContrast": [
+        {
+          "name": "首页刷新失败说明",
+          "fg": "#6e6e73",
+          "bg": "#ffffff",
+          "token": "--sbh-text-secondary on surface",
+          "ratio": 5.0713,
+          "target": 4.5,
+          "pass": true
+        },
+        {
+          "name": "楼盘暂无在租标题",
+          "fg": "#1d1d1f",
+          "bg": "#f2f2f4",
+          "token": "--sbh-text-primary on page background",
+          "ratio": 15.0529,
+          "target": 4.5,
+          "pass": true
+        },
+        {
+          "name": "楼盘暂无在租说明",
+          "fg": "#6e6e73",
+          "bg": "#f2f2f4",
+          "token": "--sbh-text-secondary on page background",
+          "ratio": 4.5358,
+          "target": 4.5,
+          "pass": true
+        },
+        {
+          "name": "楼盘详情参数标签",
+          "fg": "#6e6e73",
+          "bg": "#ffffff",
+          "token": "--sbh-text-secondary on surface",
+          "ratio": 5.0713,
+          "target": 4.5,
+          "pass": true
+        },
+        {
+          "name": "房源分组标题",
+          "fg": "#6e6e73",
+          "bg": "#ffffff",
+          "token": "--sbh-text-secondary on surface",
+          "ratio": 5.0713,
+          "target": 4.5,
+          "pass": true
+        }
+      ],
+      "verdict": "PASS"
+    }
+  },
+  "overallVerdict": "PASS"
+}

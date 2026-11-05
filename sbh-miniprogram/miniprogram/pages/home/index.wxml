@@ -1,22 +1,8 @@
 <page-meta page-style="{{inquiryOpen ? 'overflow: hidden;' : ''}}" />
 <view id="home-ready" class="home-page" aria-hidden="{{inquiryOpen}}">
   <view class="home-brand">
-    <video
-      wx:if="{{heroVideoUrl && !videoFailed}}"
-      class="home-brand__video"
-      src="{{heroVideoUrl}}"
-      autoplay="{{true}}"
-      loop="{{true}}"
-      muted="{{true}}"
-      show-play-btn="{{false}}"
-      controls="{{false}}"
-      show-center-play-btn="{{false}}"
-      enable-progress-gesture="{{false}}"
-      object-fit="cover"
-      binderror="handleVideoError"
-    />
     <image
-      wx:elif="{{heroPosterUrl && !imageFailed}}"
+      wx:if="{{heroPosterUrl && !imageFailed}}"
       class="home-brand__poster"
       src="{{heroPosterUrl}}"
       mode="aspectFill"

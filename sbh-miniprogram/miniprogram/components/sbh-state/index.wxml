@@ -5,7 +5,7 @@
   <text wx:if="{{title}}" class="sbh-state__title">{{title}}</text>
   <text wx:if="{{description}}" class="sbh-state__description">{{description}}</text>
   <view
-    wx:if="{{resolvedKind === 'error' && actionLabel}}"
+    wx:if="{{(resolvedKind === 'error' || resolvedKind === 'empty') && actionLabel}}"
     class="sbh-state__action"
     aria-role="button"
     aria-label="{{actionLabel}}"

@@ -36,7 +36,7 @@
   background: var(--sbh-surface-pressed, #ececee);
 }
 
-.building-card__media image,
+.building-card__image,
 .building-card__placeholder {
   display: block;
   width: 100%;

@@ -27,10 +27,12 @@
   display: flex;
   align-items: center;
   gap: 12rpx;
-  height: 68rpx;
+  min-height: var(--sbh-size-touch-target);
+  height: 88rpx;
   padding: 0 20rpx;
   background: #f2f2f4;
   border-radius: var(--sbh-shape-control-radius, 12rpx);
+  box-sizing: border-box;
 }
 
 .listings-search-icon {
@@ -126,6 +128,13 @@
 }
 
 .listings-summary__sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: var(--sbh-size-touch-target);
+  min-width: var(--sbh-size-touch-target);
+  padding: 0 var(--sbh-layout-space-xs);
+  box-sizing: border-box;
   color: #1d1d1f;
   font-weight: 500;
 }

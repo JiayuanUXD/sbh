@@ -197,6 +197,12 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
     void this.loadFavoriteState(slug)
   },
 
+  onShow() {
+    if (this.data.slug && (this.data.state === 'ready' || this.data.state === 'stale')) {
+      void this.loadFavoriteState(this.data.slug)
+    }
+  },
+
   onUnload() {
     this.listingDetailController?.dispose()
     this.inquirySheetController?.dispose()
@@ -274,11 +280,13 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
       if (this.data.slug !== slug) return
       this.setData({
         isFavorited: isFavorite(assets, { targetType: 'listing', targetSlug: slug }),
+        favoriteBusy: false,
       })
     } catch {
-      if (this.data.slug === slug) this.setData({ isFavorited: false })
-    } finally {
-      if (this.data.slug === slug) this.setData({ favoriteBusy: false })
+      if (this.data.slug === slug) {
+        this.setData({ favoriteBusy: false })
+        wx.showToast({ title: '收藏状态暂不可用，请重试', icon: 'none' })
+      }
     }
   },
 

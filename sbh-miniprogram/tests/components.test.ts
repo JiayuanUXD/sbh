@@ -290,6 +290,69 @@ describe('sbh-state', () => {
     loadingHost.detach()
   })
 
+  it('empty 状态配置 action-label 时渲染动作并触发 retry 事件', async () => {
+    const host = renderHost(
+      'sbh-state',
+      '<sbh-state id="subject" kind="empty" title="暂无结果" action-label="重置筛选" bindretry="onRetry" />',
+      { retryCount: 0 },
+      {
+        onRetry() {
+          this.setData({ retryCount: Number(this.data.retryCount) + 1 })
+        },
+      },
+    )
+    const subject = host.querySelector('#subject')
+    const action = subject?.querySelector('.sbh-state__action')
+
+    expect(action).toBeDefined()
+    expect(action?.dom?.textContent?.trim()).toBe('重置筛选')
+    action?.dispatchEvent('tap')
+    await simulate.sleep(0)
+    expect(host.data.retryCount).toBe(1)
+    host.detach()
+  })
+
+  it('loading 状态无论是否配置 action-label 均不渲染动作且不触发 retry', async () => {
+    const hostWithAction = renderHost(
+      'sbh-state',
+      '<sbh-state id="subject" kind="loading" title="正在加载" action-label="重试" bindretry="onRetry" />',
+      { retryCount: 0 },
+      {
+        onRetry() {
+          this.setData({ retryCount: Number(this.data.retryCount) + 1 })
+        },
+      },
+    )
+    const hostWithoutAction = renderHost(
+      'sbh-state',
+      '<sbh-state id="subject" kind="loading" title="正在加载" />',
+      {},
+    )
+
+    expect(hostWithAction.querySelector('#subject')?.querySelector('.sbh-state__action')).toBeUndefined()
+    expect(hostWithoutAction.querySelector('#subject')?.querySelector('.sbh-state__action')).toBeUndefined()
+    hostWithAction.detach()
+    hostWithoutAction.detach()
+  })
+
+  it('empty 与 error 无 action-label 时不渲染动作按钮', () => {
+    const emptyHost = renderHost(
+      'sbh-state',
+      '<sbh-state id="subject" kind="empty" title="暂无内容" />',
+      {},
+    )
+    const errorHost = renderHost(
+      'sbh-state',
+      '<sbh-state id="subject" kind="error" title="加载失败" />',
+      {},
+    )
+
+    expect(emptyHost.querySelector('#subject')?.querySelector('.sbh-state__action')).toBeUndefined()
+    expect(errorHost.querySelector('#subject')?.querySelector('.sbh-state__action')).toBeUndefined()
+    emptyHost.detach()
+    errorHost.detach()
+  })
+
   it('非法 kind 规范化为 empty，且不回写 property', () => {
     const host = renderHost(
       'sbh-state',

@@ -295,23 +295,23 @@ export function createInquirySheetController(
 
   const selectManual = (): void => {
     if (current.state === 'closed' || isBusy(current.state) || current.state === 'success') return
+    const isWechatSpecificError = current.errorReason === 'phone-code-consumed'
+    const keepError = current.state === 'recoverable-error' && !isWechatSpecificError && current.errorReason !== null
     publish({
-      state: 'manual',
+      state: keepError ? 'recoverable-error' : 'manual',
       phoneMode: 'manual',
-      errorReason: null,
-      errorMessage: '',
-      requiresNewPhoneAuthorization: false,
+      ...(isWechatSpecificError
+        ? { errorReason: null, errorMessage: '', requiresNewPhoneAuthorization: false }
+        : {}),
     })
   }
 
   const selectPhoneAuthorization = (): void => {
     if (current.state === 'closed' || isBusy(current.state) || current.state === 'success') return
+    const keepError = current.state === 'recoverable-error' && current.errorReason !== null
     publish({
-      state: 'choosing-phone',
+      state: keepError ? 'recoverable-error' : 'choosing-phone',
       phoneMode: 'wechat',
-      errorReason: null,
-      errorMessage: '',
-      requiresNewPhoneAuthorization: false,
     })
   }
 
