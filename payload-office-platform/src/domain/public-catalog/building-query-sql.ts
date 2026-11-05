@@ -7,7 +7,7 @@ import { LEGACY_BUILDING_GRADES } from '@/domain/supply/building-grade';
 
 export type BuildingMetadataRow = {
   id: number; slug: string; name: string; city: unknown;
-  area_slug: string | null; cover_id: number | null;
+  area_slug: string | null; district_slug?: string | null; cover_id: number | null;
   recommended_order?: number | null;
 };
 export type BuildingSqlResult = Omit<BuildingFilteredResult, 'docs' | 'groups' | 'page' | 'totalPages'> & {
@@ -20,7 +20,7 @@ export const PUBLIC_BUILDING_METADATA_SQL = `
 SELECT b.id, b.slug, b.name,
   jsonb_build_object('id', city.id, 'slug', city.slug, 'name', city.name,
     'type', city.type, 'status', city.status) AS city,
-  ba.slug AS area_slug, media.id AS cover_id,
+  ba.slug AS area_slug, dist.slug AS district_slug, media.id AS cover_id,
   COALESCE(b.recommended_order, 0)::int AS recommended_order
 FROM buildings b
 JOIN locations city ON city.id = b.city_id

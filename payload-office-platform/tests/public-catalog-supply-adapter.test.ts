@@ -24,6 +24,7 @@ vi.mock("@/payload.config", () => ({ default: {} }));
 import {
   createPayloadSupplyAdapter,
   createSearchContext,
+  getHomepage,
   parseSearchInput,
   searchBuildingsFiltered,
 } from "@/domain/public-catalog";
@@ -32,6 +33,7 @@ import {
   CITY_SHANGHAI,
   makeBuilding,
   makeHomepageAdapter,
+  makeListing,
   makeArea,
 } from "./helpers/opt035-fixtures";
 
@@ -800,5 +802,95 @@ describe("Payload public catalog supply adapter", () => {
     }));
     await expect(createPayloadSupplyAdapter().findEffectiveBuildings(createSearchContext("shanghai")))
       .rejects.toThrow("公开楼盘目录出现跨页重复");
+  });
+
+  it("首页房源轮换候选通过轻量 SQL 拉取全城有效供给，不水合完整文档", async () => {
+    const adapter = createPayloadSupplyAdapter();
+    expect(adapter.findHomepageListingCandidates).toBeTypeOf("function");
+    payloadState.query.mockResolvedValue({
+      rows: [
+        { id: 101, slug: "listing-101", is_featured: true, group_key: "nanjing-west-road" },
+        { id: 102, slug: "listing-102", is_featured: false, group_key: "jingan" },
+      ],
+    });
+    const ctx = createSearchContext("shanghai", new Date("2026-10-12T00:00:00Z"), "lease");
+    const candidates = await adapter.findHomepageListingCandidates!(ctx);
+    expect(candidates).toEqual([
+      { id: 101, slug: "listing-101", isFeatured: true, groupKey: "nanjing-west-road" },
+      { id: 102, slug: "listing-102", isFeatured: false, groupKey: "jingan" },
+    ]);
+    expect(payloadState.find).not.toHaveBeenCalled();
+    const [sql, values] = payloadState.query.mock.calls[0];
+    expect(values).toEqual([
+      ctx.asOf,
+      null,
+      "shanghai",
+      "lease",
+      ["traditional-office", "serviced-office", "coworking", "full-floor"],
+    ]);
+    expect(sql).toContain("COALESCE(ba.slug, dist.slug, b.slug");
+    expect(sql).toContain("ORDER BY COALESCE(l.is_featured, false) DESC");
+  });
+
+  it("getHomepage 通过全城轻量候选洗牌后仅水合最终选中的 18 个楼盘与 18 套房源", async () => {
+    const buildingCandidates = Array.from({ length: 60 }, (_, idx) => ({
+      id: 200 + idx,
+      groupKey: `area-${300 + Math.floor(idx / 3)}`,
+    }));
+    const listingCandidates = Array.from({ length: 60 }, (_, idx) => ({
+      id: 500 + idx,
+      slug: `listing-${500 + idx}`,
+      isFeatured: idx < 6,
+      groupKey: `area-${400 + Math.floor(idx / 3)}`,
+    }));
+    const hydratedBuildingIds: number[][] = [];
+    const hydratedListingIds: number[][] = [];
+    const adapter = makeHomepageAdapter({
+      findHomepageBuildingOverview: async () => ({
+        count: 60,
+        representatives: [],
+        areas: [],
+        candidates: buildingCandidates,
+      }),
+      findHomepageListingCandidates: async () => listingCandidates,
+      findFeaturedBuildings: async () => {
+        throw new Error("存在轻量楼盘候选时不应调用 findFeaturedBuildings");
+      },
+      findFeaturedListings: async () => {
+        throw new Error("存在轻量房源候选时不应调用 findFeaturedListings");
+      },
+      findEffectiveBuildingsByIds: async (ids) => {
+        hydratedBuildingIds.push([...ids]);
+        return ids.map((id) => makeBuilding({ id }));
+      },
+      findEffectiveListingsByIds: async (ids) => {
+        hydratedListingIds.push([...ids]);
+        return ids.map((id) =>
+          makeListing({
+            id,
+            slug: `listing-${id}`,
+            isFeatured: id < 506,
+          }),
+        );
+      },
+      findHomepageListingAggregate: async () => ({
+        count: 60,
+        types: [],
+        nearbyCandidates: [],
+      }),
+    });
+
+    const hp = await getHomepage(createSearchContext("shanghai"), { bucket: 901 }, adapter);
+    expect(hp.featuredBuildings).toHaveLength(18);
+    expect(hp.featuredListings).toHaveLength(18);
+    expect(hydratedBuildingIds).toHaveLength(1);
+    expect(hydratedBuildingIds[0]).toHaveLength(18);
+    expect(hydratedListingIds).toHaveLength(1);
+    expect(hydratedListingIds[0]).toHaveLength(18);
+    // 前 6 条精选在前，后 12 条补位在后，且均包含超过原 24 上限的尾部候选
+    expect(hp.featuredListings.slice(0, 6).every((l) => l.isFeatured)).toBe(true);
+    expect(hp.featuredListings.slice(6).every((l) => !l.isFeatured)).toBe(true);
+    expect(hp.featuredBuildings.some((b) => b.id >= 224)).toBe(true);
+    expect(hp.featuredListings.some((l) => l.id >= 524)).toBe(true);
   });
 });

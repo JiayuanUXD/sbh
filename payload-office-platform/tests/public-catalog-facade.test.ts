@@ -204,12 +204,12 @@ function createFakeAdapter(options: {
         nextPage: page * limit < all.length ? page + 1 : null,
       }
     },
-    async findFeaturedListings(_ctx, limit = 6) {
+    async findFeaturedListings(_ctx, limit) {
       return options.listings
         .filter((l) => isListingEffective(l) && l.isFeatured)
         .slice(0, limit)
     },
-    async findFeaturedBuildings(_ctx, limit = 30) {
+    async findFeaturedBuildings(_ctx, limit) {
       return options.buildings
         .filter((b) => b.operationalStatus === 'active')
         .slice(0, limit)

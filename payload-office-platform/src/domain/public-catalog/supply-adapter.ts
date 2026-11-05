@@ -61,7 +61,7 @@ import {
 } from "./listing-scan";
 import type { RecommendationCandidate } from "@/domain/recommendation/detail-recommendations";
 import type { BuildingsSelect, ListingsSelect } from "@/payload-types";
-import { EFFECTIVE_SUPPLY_AGGREGATE_FROM } from "./effective-supply-sql";
+import { EFFECTIVE_SUPPLY_AGGREGATE_FROM, effectiveSupplySqlFrom } from "./effective-supply-sql";
 import {
   buildListingPageQuery,
   buildListingFacetsQuery,
@@ -81,6 +81,16 @@ import type { BuildingSearchInput } from "./building-search";
  * 所有方法都接受 SearchContext，确保子查询在同一 asOf / 时区 / 渠道下解析。
  * 返回的文档视为"已过有效供给谓词"；任何失效场景返回空数组或 null，不抛错。
  */
+export type HomepageBuildingCandidate = Readonly<{
+  id: number;
+  groupKey: string;
+}>;
+export type HomepageListingCandidate = Readonly<{
+  id: number;
+  slug: string;
+  isFeatured: boolean;
+  groupKey: string;
+}>;
 export type HomepageListingAggregate = Readonly<{
   count: number;
   types: readonly Readonly<{ type: string | null; count: number; coverId: number }>[];
@@ -90,13 +100,16 @@ export type HomepageBuildingOverview = Readonly<{
   count: number;
   representatives: readonly Building[];
   areas: readonly Readonly<{ slug: string; names: readonly string[] }>[];
+  candidates?: readonly HomepageBuildingCandidate[];
 }>;
 
 export interface SupplyAdapter {
   findBuildingPageSelection?(input: BuildingSearchInput, ctx: SearchContext): Promise<BuildingPageSelection>;
   findEffectiveBuildingsByIds?(ids: readonly number[], ctx: SearchContext): Promise<readonly Building[]>;
-  /** 首页楼盘计数与商圈代表摘要，不水合城市内所有楼盘。 */
+  /** 首页楼盘计数、商圈代表摘要与全城轮换候选，不水合城市内所有楼盘。 */
   findHomepageBuildingOverview?(ctx: SearchContext, visibleAreaSlugs: readonly string[]): Promise<HomepageBuildingOverview>;
+  /** 首页精选房源全站轮换候选：只读取 ID / slug / isFeatured / 分组键，按推荐顺序输出，不水合全城房源。 */
+  findHomepageListingCandidates?(ctx: SearchContext): Promise<readonly HomepageListingCandidate[]>;
   /** 区域落地页（OPT-119）：整城行政区 / 商圈在有效供给口径下的统计行，一次扫描。 */
   findAreaLandingStats?(ctx: SearchContext): Promise<readonly AreaLandingStatsRow[]>;
   /** 区域落地页「相关资讯」：`relatedDistricts` 命中任一地点 ID 的已发布资讯，按发布时间倒序。 */
@@ -1213,7 +1226,51 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
           return area.index < area.candidates.length;
         });
       }
-      return { count, representatives, areas: [...areas.values()].map(({ slug, names }) => ({ slug, names })) };
+      const candidates = sortedRows.map(row => ({
+        id: row.id,
+        groupKey: row.area_slug ?? row.district_slug ?? row.slug,
+      }));
+      return { count, representatives, areas: [...areas.values()].map(({ slug, names }) => ({ slug, names })), candidates };
+    },
+    async findHomepageListingCandidates(ctx) {
+      const payload = await getPayload();
+      const pool = (payload.db as unknown as { pool: {
+        query: (text: string, values: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>
+      } }).pool;
+      const values = [
+        new Date(ctx.asOf).toISOString(),
+        null,
+        ctx.city,
+        ctx.businessType ?? null,
+        ["traditional-office", "serviced-office", "coworking", "full-floor"],
+      ];
+      const result = await pool.query(
+        `SELECT l.id, l.slug,
+          COALESCE(l.is_featured, false) AS is_featured,
+          COALESCE(ba.slug, dist.slug, b.slug, 'listing:' || l.id::text) AS group_key
+          ${effectiveSupplySqlFrom("LEFT JOIN locations ba ON ba.id = b.business_district_id")}
+          AND l.listing_type::text = ANY($5::text[])
+          ORDER BY COALESCE(l.is_featured, false) DESC,
+            date_trunc('milliseconds', l.updated_at) DESC NULLS LAST,
+            l.id ASC`,
+        values,
+      );
+      return result.rows.map((row) => {
+        if (
+          !Number.isSafeInteger(row.id) ||
+          typeof row.slug !== "string" ||
+          typeof row.is_featured !== "boolean" ||
+          typeof row.group_key !== "string"
+        ) {
+          throw new Error("无效的首页房源轮换候选");
+        }
+        return {
+          id: Number(row.id),
+          slug: row.slug,
+          isFeatured: row.is_featured,
+          groupKey: row.group_key,
+        };
+      });
     },
     async findAreaLandingStats(ctx) {
       const payload = await getPayload();
@@ -1744,7 +1801,7 @@ GROUP BY l.building_id
       return findAllPublicBuildings(ctx, true);
     },
 
-    async findFeaturedBuildings(ctx, limit = 8) {
+    async findFeaturedBuildings(ctx, limit = 18) {
       const payload = await getPayload();
       const result = await payload.find({
         collection: "buildings",
@@ -1756,7 +1813,7 @@ GROUP BY l.building_id
         pagination: false,
         select: BUILDING_SUMMARY_SELECT,
         populate: BUILDING_SUMMARY_POPULATE,
-        limit: Math.min(Math.max(limit, 1), 50),
+        limit: Math.min(Math.max(limit, 1), PUBLIC_CATALOG_CANDIDATE_LIMIT),
         sort: ["recommendedOrder", "-updatedAt"],
       });
       return (result.docs as Building[]).filter((building) =>
@@ -1764,7 +1821,7 @@ GROUP BY l.building_id
       );
     },
 
-    async findFeaturedListings(ctx, limit = 6) {
+    async findFeaturedListings(ctx, limit = 18) {
       const payload = await getPayload();
       const asOf = new Date(ctx.asOf);
       const baseWhere = await baseEffectiveWhere(ctx);

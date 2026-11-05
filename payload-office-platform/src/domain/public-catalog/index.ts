@@ -87,6 +87,8 @@ export type { EstimatedNumber } from './detail-values'
 export type {
   EffectiveListingSitemapEntry,
   EffectiveListingSitemapPage,
+  HomepageBuildingCandidate,
+  HomepageListingCandidate,
   SupplyAdapter,
   SupplyAdapterFactory,
   AdapterCallContext,
@@ -109,6 +111,8 @@ export {
   type BuildingSearchResult,
   type BuildingSearchPageResult,
   type BuildingFilteredResult,
+  // 常量
+  DEFAULT_HOMEPAGE_FEATURED_LIMIT,
   // 函数
   parseSearchInput,
   buildCanonical,

@@ -116,7 +116,7 @@ export type ListingSearchResult = Readonly<{
 export type HomepageData = Readonly<{
   featuredListings: readonly ListingCardViewModel[]
   districts: readonly DistrictViewModel[]
-  /** 精选楼盘（默认取 8 张，匹配首页两行布局） */
+  /** 精选楼盘（默认取 18 张，全站候选池按 24h 桶轮换） */
   featuredBuildings: readonly BuildingSummaryViewModel[]
   /** 商圈卡：区域 + 代表楼盘封面（无代表封面的商圈不进入卡片区） */
   districtCards: readonly DistrictCardViewModel[]
@@ -935,6 +935,56 @@ export async function getListingDistrictOptions(
  */
 const EMPTY_LISTING_INPUT = parseSearchInput(new URLSearchParams(''))
 
+/** 首页楼盘与房源横滑栏默认展示张数 */
+export const DEFAULT_HOMEPAGE_FEATURED_LIMIT = 18
+
+function listingCardGroupOf(card: ListingCardViewModel): string {
+  return (
+    card.building?.businessDistrict?.slug
+    ?? card.building?.district?.slug
+    ?? card.building?.slug
+    ?? `listing:${card.id}`
+  )
+}
+
+/**
+ * 首页精选房源桶内洗牌：
+ *   ① 勾了「首页推荐」（`isFeatured`）的先在全站精选池内按 seed 打散，取前 N；
+ *   ② 不足 N 张时，剩余槽位在全站非精选有效房源池内同样按 seed 打散补足——
+ *      保证精选始终排在补位之前，且当精选不足 N 张时补位槽也能跨全站轮换。
+ */
+function rotateHomepageListings<T extends Readonly<{ id: number; isFeatured: boolean }>>(
+  ranked: readonly T[],
+  options: Readonly<{
+    featuredLimit: number
+    pinnedSlots: number
+    seed: number
+    groupOf: (item: T) => string
+  }>,
+): readonly T[] {
+  const { featuredLimit, pinnedSlots, seed, groupOf } = options
+  const featuredRanked = ranked.filter((item) => item.isFeatured)
+  const backfillRanked = ranked.filter((item) => !item.isFeatured)
+  const rotatedFeatured = diversify(featuredRanked, {
+    take: featuredLimit,
+    pinned: pinnedSlots,
+    maxPerGroup: 2,
+    groupOf,
+    seed,
+  })
+  if (rotatedFeatured.length >= featuredLimit) return rotatedFeatured
+  const remaining = featuredLimit - rotatedFeatured.length
+  const remainingPinned = Math.max(0, pinnedSlots - rotatedFeatured.length)
+  const rotatedBackfill = diversify(backfillRanked, {
+    take: remaining,
+    pinned: remainingPinned,
+    maxPerGroup: 2,
+    groupOf,
+    seed,
+  })
+  return [...rotatedFeatured, ...rotatedBackfill]
+}
+
 /**
  * 首页数据：精选房源 + 热门区域 + 精选楼盘 + 商圈卡 + 最新资讯
  *
@@ -956,10 +1006,7 @@ export async function getHomepage(
   }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<HomepageData> {
-  const featuredLimit = options.featuredLimit ?? 8
-  // 候选池 = 展示张数的 3 倍（至少 24）：桶内打散得先有牌可洗，池子等于张数时
-  // 洗了等于没洗。两条 rail 的候选资格（有效供给 / isFeatured）不变，池子只是放大。
-  const poolLimit = Math.max(featuredLimit * 3, 24)
+  const featuredLimit = options.featuredLimit ?? DEFAULT_HOMEPAGE_FEATURED_LIMIT
   // 运营置顶位：前 2 个不参与洗牌。未配置任何排序时它们就是「最近更新」的前两条，
   // 洗牌后仍然稳定，避免运营觉得「我调的顺序第二天就没了」。
   const pinnedSlots = Math.min(2, featuredLimit)
@@ -991,6 +1038,7 @@ export async function getHomepage(
       adapter.findHomepageBuildingOverview!(ctx, areas.map(area => area.slug)))) : Promise.resolve(null)
 
   const [
+    listingCandidates,
     featuredListings,
     districts,
     businessAreas,
@@ -1003,10 +1051,18 @@ export async function getHomepage(
     listingAggregate,
     buildingOverview,
   ] = await Promise.all([
-    measure('featured-listings', () => adapter.findFeaturedListings(ctx, poolLimit)),
+    adapter.findHomepageListingCandidates
+      ? measure('featured-listing-candidates', () => adapter.findHomepageListingCandidates!(ctx))
+      : Promise.resolve(null),
+    adapter.findHomepageListingCandidates
+      ? Promise.resolve([] as readonly Listing[])
+      : measure('featured-listings', () => adapter.findFeaturedListings(ctx)),
     measure('districts', () => adapter.findEffectiveDistricts(ctx)),
     businessAreasQuery,
-    measure('featured-buildings', () => adapter.findFeaturedBuildings(ctx, poolLimit)),
+    buildingOverviewQuery.then(async (overview) => {
+      if (overview?.candidates) return [] as readonly Building[]
+      return measure('featured-buildings', () => adapter.findFeaturedBuildings(ctx))
+    }),
     // 多取一条：首页右侧列表要去掉左侧主推那篇（HomeNewsList），主推落在最新
     // 五条里时靠第六条补位，否则右侧只剩四条。
     measure('latest-articles', () => adapter.findLatestArticles(articlesLimit + 1)),
@@ -1022,29 +1078,28 @@ export async function getHomepage(
     buildingOverviewQuery,
   ])
 
-  const cards = mapListingsToCards(featuredListings)
-  const lastEffAt = buildLastEffAtLookup(featuredListings)
-  const ranked = stableSortCards(cards, 'recommended', lastEffAt)
-  /* 精选房源：桶内洗牌，但**精选必须在补位之前**。
-     ① 勾了「首页推荐」的按 seed 洗牌后取前 N；② 不足 N 张时才用非精选补位，
-     补位保持确定性顺序（更新时间倒序）——补位项不该越过运营勾选的精选项。 */
-  const featuredRanked = ranked.filter((card) => card.isFeatured)
-  const backfillRanked = ranked.filter((card) => !card.isFeatured)
-  const rotatedFeatured = diversify(featuredRanked, {
-    take: featuredLimit,
-    pinned: pinnedSlots,
-    maxPerGroup: 2,
-    // 同楼盘最多 2 套：卡片带 building 投影，零额外查询。
-    groupOf: (card) =>
-      card.building?.businessDistrict?.slug
-      ?? card.building?.district?.slug
-      ?? card.building?.slug
-      ?? `listing:${card.id}`,
-    seed,
-  })
-  const sorted = rotatedFeatured.length < featuredLimit
-    ? [...rotatedFeatured, ...backfillRanked.slice(0, featuredLimit - rotatedFeatured.length)]
-    : rotatedFeatured
+  const pickedListingCandidates = listingCandidates
+    ? rotateHomepageListings(listingCandidates, {
+        featuredLimit,
+        pinnedSlots,
+        seed,
+        groupOf: (candidate) => candidate.groupKey,
+      })
+    : null
+
+  const rotatedCards = pickedListingCandidates
+    ? []
+    : (() => {
+        const cards = mapListingsToCards(featuredListings)
+        const lastEffAt = buildLastEffAtLookup(featuredListings)
+        const ranked = stableSortCards(cards, 'recommended', lastEffAt)
+        return rotateHomepageListings(ranked, {
+          featuredLimit,
+          pinnedSlots,
+          seed,
+          groupOf: listingCardGroupOf,
+        })
+      })()
 
   const districtVMs: DistrictViewModel[] = []
   for (const d of districts) {
@@ -1052,20 +1107,49 @@ export async function getHomepage(
     if (vm) districtVMs.push(vm)
   }
 
-  // 精选楼盘：先全部映射为 VM（带 district + coverImage），再桶内洗牌取前 N 张。
-  // 洗牌保留前 2 个（recommendedOrder 最小的两栋），同商圈最多 2 栋。
-  const buildingVMs: BuildingSummaryViewModel[] = []
-  for (const b of featuredBuildings) {
-    const vm = mapBuildingSummary(b)
-    if (vm) buildingVMs.push(vm)
+  // 精选楼盘：全站公开楼盘池按 24h 桶洗牌取前 N 张。
+  // 生产适配器先在全城紧凑候选行上打散，只水合最终选中的 N 栋；测试 fake 回退全量映射后打散。
+  let rotatedBuildings: readonly BuildingSummaryViewModel[]
+  if (buildingOverview?.candidates) {
+    const pickedBuildings = diversify(buildingOverview.candidates, {
+      take: featuredLimit,
+      pinned: pinnedSlots,
+      maxPerGroup: 2,
+      groupOf: (candidate) => candidate.groupKey,
+      seed,
+    })
+    const pickedBuildingIds = pickedBuildings.map((candidate) => candidate.id)
+    const wantedBuildingIds = new Set(pickedBuildingIds)
+    const hydratedBuildings = pickedBuildingIds.length === 0
+      ? []
+      : adapter.findEffectiveBuildingsByIds
+        ? await measure('featured-buildings', () => adapter.findEffectiveBuildingsByIds!(pickedBuildingIds, ctx))
+        : (await measure('featured-buildings', () => adapter.findEffectiveBuildings(ctx))).filter((b) =>
+            wantedBuildingIds.has(b.id),
+          )
+    const buildingById = new Map<number, BuildingSummaryViewModel>()
+    for (const raw of hydratedBuildings) {
+      const vm = mapBuildingSummary(raw)
+      if (vm) buildingById.set(vm.id, vm)
+    }
+    rotatedBuildings = pickedBuildingIds.flatMap((id) => {
+      const vm = buildingById.get(id)
+      return vm ? [vm] : []
+    })
+  } else {
+    const buildingVMs: BuildingSummaryViewModel[] = []
+    for (const b of featuredBuildings) {
+      const vm = mapBuildingSummary(b)
+      if (vm) buildingVMs.push(vm)
+    }
+    rotatedBuildings = diversify(buildingVMs, {
+      take: featuredLimit,
+      pinned: pinnedSlots,
+      maxPerGroup: 2,
+      groupOf: (building) => building.businessDistrict?.slug ?? building.district?.slug ?? building.slug,
+      seed,
+    })
   }
-  const rotatedBuildings = diversify(buildingVMs, {
-    take: featuredLimit,
-    pinned: pinnedSlots,
-    maxPerGroup: 2,
-    groupOf: (building) => building.businessDistrict?.slug ?? building.district?.slug ?? building.slug,
-    seed,
-  })
   const featuredBuildingSlice = await measure('featured-building-aggregate', () => attachSupplyAggregates(
     [...rotatedBuildings],
     ctx,
@@ -1162,7 +1246,11 @@ export async function getHomepage(
   // 核心商圈附近房源：排除已在精选区展示的房源（避免首页同一张卡片重复出现），
   // 按到城市中心的直线距离升序，tie-break 用 id 保证跨请求稳定（此前用 stableSortKey，
   // 它由 id 派生，同序）。距离在紧凑坐标候选上算，只对最终 5 条回捞卡片。
-  const featuredSlugs = new Set(sorted.map((c) => c.slug))
+  const featuredSlugs = new Set(
+    pickedListingCandidates
+      ? pickedListingCandidates.map((c) => c.slug)
+      : rotatedCards.map((c) => c.slug),
+  )
   const nearbyRows = cityCenter == null
     ? []
     : (listingAggregate?.nearbyCandidates ?? allEffectiveRows)
@@ -1174,14 +1262,25 @@ export async function getHomepage(
         .sort((a, b) => a.distanceKm - b.distanceKm || a.row.id - b.row.id)
         .slice(0, 5)
 
-  // 两处回捞合并成一次（类型封面 ≤4 条 + 附近房源 5 条），并保持各自的顺序。
+  // 三处回捞合并成一次（精选轮换选中项 ≤18 条 + 类型封面 ≤4 条 + 附近房源 5 条），并保持各自的顺序。
+  const pickedListingIds = pickedListingCandidates ? pickedListingCandidates.map((c) => c.id) : []
   const coverIds = [...typeCoverSourceId.values()]
-  const hydrateIds = [...new Set([...coverIds, ...nearbyRows.map((n) => n.row.id)])]
+  const hydrateIds = [...new Set([...pickedListingIds, ...coverIds, ...nearbyRows.map((n) => n.row.id)])]
   const hydrateIdSet = new Set(hydrateIds)
-  const hydrated = adapter.findEffectiveListingsByIds
-    ? await measure('listing-hydration', () => adapter.findEffectiveListingsByIds!(hydrateIds, ctx))
-    : (await adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx)).filter((l) => hydrateIdSet.has(l.id))
+  const hydrated = hydrateIds.length === 0
+    ? []
+    : adapter.findEffectiveListingsByIds
+      ? await measure('listing-hydration', () => adapter.findEffectiveListingsByIds!(hydrateIds, ctx))
+      : (await adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx)).filter((l) => hydrateIdSet.has(l.id))
   const hydratedById = new Map(hydrated.map((doc) => [doc.id, doc] as const))
+
+  const sorted: readonly ListingCardViewModel[] = pickedListingCandidates
+    ? pickedListingIds.flatMap((id) => {
+        const raw = hydratedById.get(id)
+        const card = raw ? mapListingCard(raw) : null
+        return card ? [card] : []
+      })
+    : rotatedCards
 
   const typeSummaries: Record<string, HomepageTypeSummary> = {}
   for (const [key, count] of typeCounts) {
