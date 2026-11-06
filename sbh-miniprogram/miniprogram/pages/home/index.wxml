@@ -1,22 +1,8 @@
 <page-meta page-style="{{inquiryOpen ? 'overflow: hidden;' : ''}}" />
 <view id="home-ready" class="home-page" aria-hidden="{{inquiryOpen}}">
   <view class="home-brand">
-    <video
-      wx:if="{{heroVideoUrl && !videoFailed}}"
-      class="home-brand__video"
-      src="{{heroVideoUrl}}"
-      autoplay="{{true}}"
-      loop="{{true}}"
-      muted="{{true}}"
-      show-play-btn="{{false}}"
-      controls="{{false}}"
-      show-center-play-btn="{{false}}"
-      enable-progress-gesture="{{false}}"
-      object-fit="cover"
-      binderror="handleVideoError"
-    />
     <image
-      wx:elif="{{heroPosterUrl && !imageFailed}}"
+      wx:if="{{heroPosterUrl && !imageFailed}}"
       class="home-brand__poster"
       src="{{heroPosterUrl}}"
       mode="aspectFill"
@@ -80,7 +66,7 @@
     <view class="home-buildings-card">
       <view class="home-buildings__heading">
         <view class="home-card-title">精选好楼</view>
-        <view class="home-buildings__all" bindtap="handleBrowseBuildings">全部楼盘 ›</view>
+        <view class="home-buildings__all" bindtap="handleBrowseBuildings">更多楼盘 ›</view>
       </view>
       <view wx:if="{{content.featuredBuildings.length}}" class="home-buildings__list">
         <block wx:for="{{content.featuredBuildings}}" wx:key="id">
@@ -132,7 +118,10 @@
 
     <!-- Mini 首页 DTO 返回的精选房源 -->
     <view class="home-featured">
-      <view class="home-featured__heading">精选房源</view>
+      <view class="home-featured__heading-row">
+        <view class="home-featured__heading">精选房源</view>
+        <view class="home-featured__all" bindtap="handleBrowseListings">更多房源 ›</view>
+      </view>
       <view wx:if="{{content.featuredListings.length}}" class="home-featured__card">
         <block wx:for="{{content.featuredListings}}" wx:key="id">
           <listing-card

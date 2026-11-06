@@ -74,6 +74,7 @@ type Context = {
     gradeFilter: string
     gradeFilterLabel: string
     sortFilter: string
+    sortLabel: string
     page: number
     hasNextPage: boolean
     loadMoreState: 'idle' | 'loading' | 'error'
@@ -270,5 +271,28 @@ describe('楼盘列表请求世代与分页', () => {
 
     expect(context.data.items.map((item) => item.slug)).toEqual(['current-after-return'])
     expect(context.data.state).toBe('ready')
+  })
+
+  it('重置筛选清除全部筛选条件并重新请求第 1 页', async () => {
+    const context = createContext()
+    context.data.districtFilter = 'pudong'
+    context.data.districtFilterLabel = '浦东新区'
+    context.data.gradeFilter = 'grade-a'
+    context.data.gradeFilterLabel = '甲级'
+    context.data.sortFilter = 'completion-desc'
+    context.data.sortLabel = '最新竣工'
+
+    getBuildings.mockResolvedValueOnce(response(1, ['reset-building-1'], false))
+    await registration.handleResetFilters.call(context)
+
+    expect(context.data.districtFilter).toBe('')
+    expect(context.data.districtFilterLabel).toBe('全上海')
+    expect(context.data.gradeFilter).toBe('')
+    expect(context.data.gradeFilterLabel).toBe('等级')
+    expect(context.data.sortFilter).toBe('')
+    expect(context.data.sortLabel).toBe('在租最多')
+    expect(getBuildings).toHaveBeenLastCalledWith('page=1')
+    expect(context.data.state).toBe('ready')
+    expect(context.data.items.map((item) => item.slug)).toEqual(['reset-building-1'])
   })
 })

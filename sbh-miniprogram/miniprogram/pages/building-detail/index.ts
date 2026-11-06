@@ -21,7 +21,18 @@ import {
 } from '../../services/inquiry.js'
 import { request } from '../../services/request.js'
 import { createSessionService } from '../../services/session.js'
+import { MiniApiError } from '../../services/mini-api-error.js'
 import { markImageFailed, type ImageFailureState } from '../../utils/image-failure-state.js'
+
+const SAFE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+function isValidBuildingSlug(slug: unknown): slug is string {
+  return typeof slug === 'string' && SAFE_SLUG_PATTERN.test(slug)
+}
+
+function isBuildingNotFound(error: unknown): boolean {
+  return error instanceof MiniApiError && (error.code === 'building_not_found' || error.statusCode === 404)
+}
 
 type BuildingDetailState = 'loading' | 'ready' | 'error' | 'not-found'
 
@@ -45,9 +56,10 @@ type ConsentEvent = Readonly<{ detail: Readonly<{ accepted?: unknown }> }>
 type PhoneAuthorizationEvent = Readonly<{ detail: Readonly<{ phoneCode?: unknown }> }>
 
 type BuildingDetailPageMethods = {
+  loadVersion: number
   inquirySheetController: InquirySheetController | null
   ensureInquirySheetController(): InquirySheetController
-  loadBuildingDetail(targetSlug?: string): Promise<void>
+  loadBuildingDetail(targetSlug?: unknown): Promise<void>
   loadFavoriteState(slug: string): Promise<void>
   handleFav(): Promise<void>
   handleGalleryChange(event: WechatMiniprogram.CustomEvent): void
@@ -149,28 +161,49 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
     inquirySheet: closedInquirySheet(),
   },
 
+  loadVersion: 0,
   inquirySheetController: null,
 
   onLoad(options: Record<string, string | undefined>) {
-    const slug = options.slug ?? ''
+    const rawSlug = options.slug
+    const slug = typeof rawSlug === 'string' ? rawSlug.trim() : ''
     this.setData({ slug })
-    if (slug) void this.loadBuildingDetail(slug)
-    else this.setData({ state: 'not-found', favoriteBusy: false })
+    if (isValidBuildingSlug(slug)) {
+      void this.loadBuildingDetail(slug)
+    } else {
+      this.setData({ state: 'not-found', building: null, isFavorited: false, favoriteBusy: false })
+    }
+  },
+
+  onShow() {
+    if (this.data.slug && this.data.state === 'ready') {
+      void this.loadFavoriteState(this.data.slug)
+    }
   },
 
   onUnload() {
+    this.loadVersion = (this.loadVersion || 0) + 1
     this.inquirySheetController?.dispose()
     this.inquirySheetController = null
     sessionService.clear()
     submissionIntentManager.invalidate()
   },
 
-  async loadBuildingDetail(targetSlug) {
-    const slug = targetSlug || this.data.slug
-    if (!slug) return
+  async loadBuildingDetail(targetSlug?: unknown) {
+    const isStringSlug = typeof targetSlug === 'string' && targetSlug.trim().length > 0
+    const slug = isStringSlug ? (targetSlug as string).trim() : this.data.slug
+    if (!isValidBuildingSlug(slug)) {
+      this.setData({ state: 'not-found', building: null, isFavorited: false, favoriteBusy: false })
+      return
+    }
+    if (!isStringSlug && this.data.state === 'loading') {
+      return
+    }
+    const version = (this.loadVersion = (this.loadVersion || 0) + 1)
     this.setData({ state: 'loading', favoriteBusy: true })
     try {
       const building = await getBuildingDetail(slug)
+      if (this.loadVersion !== version) return
       this.setData({
         state: 'ready',
         building,
@@ -183,11 +216,9 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
       wx.setNavigationBarTitle({ title: building.name })
       void this.loadFavoriteState(building.slug)
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error)
+      if (this.loadVersion !== version) return
       this.setData({
-        state: message.includes('404') || message.includes('not_found') || message.includes('无效')
-          ? 'not-found'
-          : 'error',
+        state: isBuildingNotFound(error) ? 'not-found' : 'error',
         building: null,
         isFavorited: false,
         favoriteBusy: false,
@@ -220,17 +251,23 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
   },
 
   async loadFavoriteState(slug) {
+    if (!slug) {
+      this.setData({ isFavorited: false, favoriteBusy: false })
+      return
+    }
     this.setData({ favoriteBusy: true })
     try {
       const assets = await loadUserAssets()
       if (this.data.slug !== slug) return
       this.setData({
         isFavorited: isFavorite(assets, { targetType: 'building', targetSlug: slug }),
+        favoriteBusy: false,
       })
     } catch {
-      if (this.data.slug === slug) this.setData({ isFavorited: false })
-    } finally {
-      if (this.data.slug === slug) this.setData({ favoriteBusy: false })
+      if (this.data.slug === slug) {
+        this.setData({ favoriteBusy: false })
+        wx.showToast({ title: '收藏状态暂不可用，请重试', icon: 'none' })
+      }
     }
   },
 

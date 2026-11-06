@@ -512,6 +512,42 @@ describe('咨询半屏状态机', () => {
     expect(snapshots).toHaveLength(1)
     expect(controller.snapshot().state).toBe('closed')
   })
+
+  it('C3: 通用失败在切换微信/手填时保持错误连续，方式专属错误在切换后清除', async () => {
+    // 1. session_invalid 通用阻塞
+    const { controller } = setup({
+      ensureAnonymousContext: async () => null, // 会话不可用
+    })
+    await controller.open(context)
+    await controller.verifyPrivacy()
+    controller.setConsent(true)
+
+    // 尝试微信提交，因 session 不可用进入 recoverable-error
+    await controller.submitPhoneCode('some-code')
+    expect(controller.snapshot()).toMatchObject({
+      state: 'recoverable-error',
+      errorReason: 'session-invalid',
+      errorMessage: '登录状态已过期，请重新授权或手动填写手机号',
+    })
+
+    // 切换到手动填写，未解决的阻塞原因保持可见
+    controller.selectManual()
+    expect(controller.snapshot()).toMatchObject({
+      state: 'recoverable-error',
+      phoneMode: 'manual',
+      errorReason: 'session-invalid',
+      errorMessage: '登录状态已过期，请重新授权或手动填写手机号',
+    })
+
+    // 切换回微信方式，同样保持可见
+    controller.selectPhoneAuthorization()
+    expect(controller.snapshot()).toMatchObject({
+      state: 'recoverable-error',
+      phoneMode: 'wechat',
+      errorReason: 'session-invalid',
+      errorMessage: '登录状态已过期，请重新授权或手动填写手机号',
+    })
+  })
 })
 
 describe('Task7 真实咨询服务接线', () => {

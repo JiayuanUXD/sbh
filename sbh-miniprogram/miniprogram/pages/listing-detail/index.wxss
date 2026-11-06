@@ -297,6 +297,8 @@
 
 .listing-detail__bar-action {
   box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

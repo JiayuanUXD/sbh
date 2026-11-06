@@ -112,7 +112,7 @@
 
 .building-stat-label {
   font-size: 24rpx;
-  color: #86868b;
+  color: var(--sbh-text-secondary, #6e6e73);
 }
 
 .building-stat-value {
@@ -136,7 +136,7 @@
 .building-group-title {
   font-size: 24rpx;
   font-weight: 600;
-  color: #86868b;
+  color: var(--sbh-text-secondary, #6e6e73);
 }
 
 .building-listing-row {

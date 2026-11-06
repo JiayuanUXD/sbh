@@ -39,7 +39,7 @@
   background: var(--sbh-surface-pressed);
 }
 
-.listing-card__media image,
+.listing-card__image,
 .listing-card__placeholder {
   display: block;
   width: 100%;

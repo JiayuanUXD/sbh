@@ -28,9 +28,7 @@ import {
 
 type HomePageData = HomePageSnapshot & Readonly<{
   keyword: string
-  heroVideoUrl: string
   heroPosterUrl: string
-  videoFailed: boolean
   imageFailed: boolean
   inquiryOpen: boolean
   inquirySheet: InquirySheetSnapshot
@@ -75,8 +73,8 @@ type HomePageMethods = {
   openListings(query: string): void
   handleListingOpen(event: ListingOpenEvent): void
   handleBrowseBuildings(): void
+  handleBrowseListings(): void
   handleBuildingOpenDirect(event: BuildingOpenEvent): void
-  handleVideoError(): void
   handleImageError(): void
   ensureInquirySheetController(): InquirySheetController
   ensureModalTabBarBoundary(): ModalTabBarBoundary
@@ -153,9 +151,7 @@ Page<HomePageData, HomePageMethods>({
     content: null,
     refreshError: false,
     keyword: '',
-    heroVideoUrl: '/api/media/file/hero-bg.mp4?prefix=media',
     heroPosterUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop',
-    videoFailed: false,
     imageFailed: false,
     inquiryOpen: false,
     inquirySheet: closedInquirySheet(),
@@ -269,6 +265,16 @@ Page<HomePageData, HomePageMethods>({
     })
   },
 
+  handleBrowseListings() {
+    void listingNavigation.open('').catch(() => {
+      wx.showToast({
+        title: '暂时无法打开房源页',
+        icon: 'none',
+        duration: 1600,
+      })
+    })
+  },
+
   handleBuildingOpenDirect(event) {
     const slug = event.detail.slug
     if (typeof slug !== 'string' || !slug) return
@@ -279,10 +285,6 @@ Page<HomePageData, HomePageMethods>({
         duration: 1600,
       })
     })
-  },
-
-  handleVideoError() {
-    this.setData({ videoFailed: true })
   },
 
   handleImageError() {

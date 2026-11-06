@@ -24,6 +24,9 @@
 
 .buildings-filter-item {
   flex: 1;
+  height: 100%;
+  min-height: var(--sbh-size-touch-target);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -78,13 +81,13 @@
 .buildings-inactive-title {
   font-size: 26rpx;
   font-weight: 600;
-  color: #86868b;
+  color: var(--sbh-text-primary, #1d1d1f);
 }
 
 .buildings-inactive-desc {
   margin-top: 4rpx;
   font-size: 22rpx;
-  color: #a1a1a6;
+  color: var(--sbh-text-secondary, #6e6e73);
 }
 
 .buildings-loading,

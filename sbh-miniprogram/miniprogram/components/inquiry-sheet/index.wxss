@@ -267,7 +267,12 @@
   font-weight: var(--sbh-type-semibold-weight);
 }
 
-button[disabled] { opacity: var(--sbh-state-disabled-opacity); }
+.inquiry-sheet__submit[disabled],
+.inquiry-sheet__close[disabled],
+.inquiry-sheet__phone-segment-option[disabled],
+.inquiry-sheet__privacy-link[disabled] {
+  opacity: var(--sbh-state-disabled-opacity);
+}
 
 @keyframes inquiry-sheet-fade {
   from { opacity: 0; }
