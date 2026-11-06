@@ -146,8 +146,8 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
       siteSettings: SITE_SETTINGS_FALLBACK,
     }))
     expect(html).toContain('>12</span> 个商圈')
-    expect(html).toContain('>45</span> 个楼盘')
-    expect(html).toContain('>120</span> 套在租')
+    expect(html).toContain('更多楼盘 ›')
+    expect(html).toContain('更多房源 ›')
     // 跨城汇总数字绝不出现在任何 section 链接上
     for (const platformOnly of ['777', '888', '999']) {
       expect(html).not.toContain(`>${platformOnly}</span> 个`)
@@ -169,8 +169,8 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
       siteSettings: SITE_SETTINGS_FALLBACK,
     }))
     expect(html).toContain('>12</span> 个商圈')
-    expect(html).toContain('>45</span> 个楼盘')
-    expect(html).toContain('>120</span> 套在租')
+    expect(html).toContain('更多楼盘 ›')
+    expect(html).toContain('更多房源 ›')
     expect(html).not.toContain('>0</span>')
   })
 

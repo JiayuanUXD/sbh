@@ -73,6 +73,7 @@ type HomePageMethods = {
   openListings(query: string): void
   handleListingOpen(event: ListingOpenEvent): void
   handleBrowseBuildings(): void
+  handleBrowseListings(): void
   handleBuildingOpenDirect(event: BuildingOpenEvent): void
   handleImageError(): void
   ensureInquirySheetController(): InquirySheetController
@@ -258,6 +259,16 @@ Page<HomePageData, HomePageMethods>({
     void listingNavigation.openBuildings().catch(() => {
       wx.showToast({
         title: '暂时无法打开楼盘页',
+        icon: 'none',
+        duration: 1600,
+      })
+    })
+  },
+
+  handleBrowseListings() {
+    void listingNavigation.open('').catch(() => {
+      wx.showToast({
+        title: '暂时无法打开房源页',
         icon: 'none',
         duration: 1600,
       })

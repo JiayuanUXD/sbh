@@ -299,11 +299,29 @@
   margin-top: 24rpx;
 }
 
-.home-featured__heading {
+.home-featured__heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin: 0 24rpx 12rpx;
+}
+
+.home-featured__heading {
   color: #1d1d1f;
   font-size: 34rpx;
   font-weight: 600;
+}
+
+.home-featured__all {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: var(--sbh-size-touch-target);
+  min-width: var(--sbh-size-touch-target);
+  padding: 0 var(--sbh-layout-space-xs);
+  box-sizing: border-box;
+  font-size: 24rpx;
+  color: var(--sbh-interaction-primary, #0071e3);
 }
 
 .home-featured__card {
