@@ -392,6 +392,7 @@ e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一�
 - `/news` 没有任何已发布资讯时 `noindex` 且不进 sitemap（空列表是薄内容）。
 - 资讯内容放 `content/articles/*.md`，用 `scripts/import-articles.ts` 导入，默认草稿；不支持表格 / 图片 / 嵌套列表（渲染器与后台编辑器都没有对应节点）。数据类文章的数字必须能追溯到口径，不得编造（OPT-118）。
 - 日更流水线（OPT-124）：`pnpm news:data` 取数并与前台对账 → 写稿 → `pnpm news:check` 核对规则、数字、关联与站内链接 → `pnpm news:publish` 用专用低权限账号走 REST 新建（只新建不覆盖）。说明见 `scripts/news/README.md`。内容规则只有一份，在 `scripts/lib/article-content.ts`，单测与命令行共用。
+- **已发布的资讯必有发布时间**（2026-11-11）：`Articles.hooks.beforeChange` 的 `ensureArticlePublishedAt`（`src/collections/article-published-at.ts`）在状态变成「已发布」而没填「发布日期」时盖发布那一刻；已发布文章不能清空日期；**只在发布这一刻盖章，历史老文章的无关编辑不盖**（编辑时间不是发布时间）。缘由：规范路径是「导入默认草稿 → 后台改已发布」，草稿没有发布时间、改状态又没人写，线上 8 篇因此缺日期（首页「—」、卡片与详情页不渲染日期，PG 的 `ORDER BY published_at DESC` 还把 NULL 排在最前）。缺失时的展示口径不变：不编造、不用请求时刻顶替。守卫：`tests/article-published-at.test.ts` + `tests/articles-published-at-postgres.test.ts`；证据与历史数据补数方案见 `../artifacts/verification/news-published-at/`。绕过 Payload 的裸 SQL 直写（豆包旧流程干过）不经过这个 hook。
 - 公共供给最长缓存 5 分钟，并由领域事件失效。
 - 分析只记录匿名 ID、枚举、上下文和结果；曝光按可见性去重。
 

@@ -1,0 +1,31 @@
+-- 补历史数据：已发布却没有发布时间的资讯（方案，**尚未在任何库执行，更未碰生产**）
+--
+-- 先决条件：用户确认口径（见 README.md「补数方案」），且由有生产写权限的人在维护窗口执行。
+-- 口径 A（推荐）：published_at = created_at（写稿日；线上 8 篇一天一篇，日期各不相同）。
+-- 口径 B：published_at = updated_at（最后一次修改，大概率是后台点「发布」的时刻；但线上 5 篇的
+--         updated_at 都落在 10-31 05:10:40–05:11:11（UTC，31 秒内的批量操作），会全部显示 10-31，且 updated_at 不保证就是上架动作）。
+-- 口径 C：运营逐篇在后台手填日期（走 hook 与缓存失效，最准，8 篇各点一次）。
+--
+-- 特性：单事务；WHERE 带 published_at IS NULL 守卫所以幂等；不改 updated_at（sitemap lastmod 用它）；
+--       裸 SQL 不触发 Payload 的缓存失效，前台最长 5 分钟后才反映（口径 C 无此问题）。
+-- 本地演练：2026-11-11 在隔离克隆库 sbh_dev_newsdate 上跑过一遍，3 行 → UPDATE 3，再跑 UPDATE 0，
+--           前台首页 / 资讯列表 / 详情页三处出现日期，列表顺序恢复正常。
+
+-- 1) 预检（只读）：确认命中的就是预期的那 8 篇（线上 2026-11-11 为 id 111–116、119、120）
+SELECT id, slug, status, created_at, updated_at
+  FROM articles
+ WHERE status = 'published' AND published_at IS NULL AND deleted_at IS NULL
+ ORDER BY id;
+
+-- 2) 执行（口径 A）。行数与预检不一致就 ROLLBACK，不要 COMMIT。
+BEGIN;
+UPDATE articles
+   SET published_at = created_at
+ WHERE status = 'published' AND published_at IS NULL AND deleted_at IS NULL
+RETURNING id, slug, published_at;
+-- 核对返回行数 = 预检行数后：
+COMMIT;
+
+-- 3) 回滚（执行后发现口径不对时；把 id 换成第 2 步 RETURNING 出来的清单，别用条件批量回滚，
+--    以免误伤之后正常发布的文章）
+-- UPDATE articles SET published_at = NULL WHERE id IN (/* 第 2 步返回的 id */);

@@ -8,6 +8,7 @@ import { createLocationFieldGuard } from '@/domain/geography/location-field-guar
 import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { invalidateArticlePublicCache as revalidateArticlePublicCache } from '@/lib/frontend/public-cache-revalidation'
 import { createMenuAccess } from '@/domain/auth/access'
+import { ensureArticlePublishedAt } from './article-published-at'
 
 export const syncHomeFeaturedExclusivity: CollectionAfterChangeHook = async ({
   doc,
@@ -95,9 +96,12 @@ export const Articles: CollectionConfig = {
     delete: canManageArticle,
   },
   hooks: {
-    // OPT-074：relatedDistricts 原先完全没有 filterOptions，任意类型任意城市的
-    // 节点都能塞进来（含地铁站）。
     beforeChange: [
+      // 已发布必有发布时间：状态变成「已发布」而没填发布日期时，盖发布那一刻
+      // （规则与缘由见 article-published-at.ts；线上 8 篇已发布资讯因此缺日期）。
+      ensureArticlePublishedAt,
+      // OPT-074：relatedDistricts 原先完全没有 filterOptions，任意类型任意城市的
+      // 节点都能塞进来（含地铁站）。
       createLocationFieldGuard([
         {
           field: 'relatedDistricts',
@@ -163,6 +167,7 @@ export const Articles: CollectionConfig = {
                   label: '发布日期',
                   type: 'date',
                   admin: {
+                    description: '前台列表与详情页显示的日期。把状态改为「已发布」时若留空，自动填入发布的那一刻；已发布文章不能清空。',
                     date: {
                       pickerAppearance: 'dayAndTime',
                       displayFormat: 'yyyy-MM-dd HH:mm',
