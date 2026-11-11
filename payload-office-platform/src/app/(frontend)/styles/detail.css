@@ -729,7 +729,9 @@
   min-width: 0;
 }
 
-/* 地图容器：776×460 · 圆角 18 · 去饱和滤镜（覆盖 styles.css 里 P1 的 500px/8px 旧值） */
+/* 地图容器：776×460 · 圆角 18（覆盖 styles.css 里 P1 的 500px/8px 旧值）。
+ * 底图保持高德原生彩色：此前设计稿要求的去饱和滤镜（瓦片图层 saturate(.12)）
+ * 已于 2026-11-11 按产品要求移除，地图发灰就是它造成的——别加回来。 */
 .location-panel__map .amap-map-canvas,
 .location-panel__map .amap-map-canvas__container {
   height: 460px;
@@ -738,18 +740,6 @@
 
 .location-panel__map .amap-map-canvas {
   border: none;
-}
-
-/* 滤镜只加在高德内部的瓦片图层（.amap-layer/.amap-maps 是高德 JS API v2.0
- * 渲染瓦片的容器类名），不能加在 .amap-map-canvas__container 整体上——
- * CSS filter 会整体光栅化再处理，若加在容器上会连同我们自建的图钉 DOM
- * （本房源 accent 圆点、深色字母圆）一起被拉灰，图钉就失去「显眼」的意义。
- * 未在本机环境验证真实瓦片渲染（高德脚本在沙箱网络里大概率加载失败，见
- * task-5-report.md）——选择器按高德公开 DOM 结构的通行约定给出，多写一个
- * 不匹配也无副作用。 */
-.location-panel__map .amap-map-canvas__container .amap-layer,
-.location-panel__map .amap-map-canvas__container .amap-maps {
-  filter: saturate(.12) contrast(1.04);
 }
 
 @media (max-width: 1023px) {

@@ -348,7 +348,7 @@ e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一�
   - 只信运行时会误删：`.city-switcher__status--live` / `--coming-soon` 运行时扫 20 条路由 × 2 断点 **0 命中**，
     但 `CitySwitcher.tsx` 用模板串 `` `city-switcher__status--${city.serviceStatus}` `` 拼类名，
     取值域由 `domain/city-site-profile/schema.ts` 的 `CITY_SERVICE_STATUSES` 封闭。**是活的。**
-  - 只信 grep 也会误删：`detail.css` 的 `.amap-layer` / `.amap-maps` grep **0 命中**，
+  - 只信 grep 也会误删：`detail.css` 曾有的 `.amap-layer` / `.amap-maps` 规则（2026-11-11 随去饱和滤镜移除，教训不变）grep **0 命中**，
     因为它们是高德 JS API v2.0 **运行时注入**的 DOM 类名，只有运行时扫描看得见。**也是活的。**
   - 还要防子串陷阱：`.detail__summary` 的「唯一近似命中」是 `page-detail__summary`，两者无关。
     grep 一律带边界，别用裸子串。
