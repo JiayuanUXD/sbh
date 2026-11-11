@@ -4,7 +4,7 @@ import React from 'react'
 import BuildingDetailLayout from '@/components/frontend/building-detail/BuildingDetailLayout'
 import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
-import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
+import { buildBuildingJsonLd, buildBuildingMetadata, countLeaseListings, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
 import {
@@ -34,14 +34,14 @@ export async function generateMetadata({
     if (!identity) notFound()
     redirect(`/${identity.citySlug}/buildings/${encodeURIComponent(identity.slug)}`)
   }
-  const { building } = await getCachedBuildingDetail(siteConfig.defaultCity, slug)
+  const { building, supply } = await getCachedBuildingDetail(siteConfig.defaultCity, slug)
   if (!building) {
     return {
       title: '楼盘未找到',
       robots: { index: false, follow: false },
     }
   }
-  return buildBuildingMetadata(building, siteConfig.siteOrigin)
+  return buildBuildingMetadata(building, siteConfig.siteOrigin, { leaseListingCount: countLeaseListings(supply) })
 }
 
 export default async function BuildingDetailPage({

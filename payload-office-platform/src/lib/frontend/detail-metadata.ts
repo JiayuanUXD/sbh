@@ -9,6 +9,7 @@ import type {
 } from '@/domain/public-catalog'
 import { formatArea, priceUnitLabel } from '@/lib/frontend/format'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog'
+import { normalizeCityDisplayName } from '@/domain/city-site-profile/schema'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 
 type BreadcrumbJsonLd = Readonly<{
@@ -86,6 +87,65 @@ const LISTING_TYPE_LABEL: Record<ListingDetailViewModel['listingType'], string> 
   coworking: '共享办公',
   'full-floor': '整层办公',
   'serviced-office': '独栋办公',
+}
+
+/**
+ * 房源 <title> 里的「品类词」：用户搜的是「办公室出租」「共享办公」，不是后台的枚举标签。
+ * 与 LISTING_TYPE_LABEL（页面内展示用）分开维护，别互相借用。
+ */
+const LISTING_TYPE_TITLE_NOUN: Record<ListingDetailViewModel['listingType'], string> = {
+  'traditional-office': '办公室',
+  coworking: '共享办公',
+  'full-floor': '整层办公室',
+  'serviced-office': '独栋办公',
+}
+
+const BUSINESS_TYPE_TITLE_VERB: Record<ListingDetailViewModel['businessType'], string> = {
+  lease: '出租',
+  sale: '出售',
+}
+
+/** 「上海静安区」：城市取短名（去「市」），区县缺失时只留城市。 */
+function titlePlace(cityName: string, districtName: string | undefined): string {
+  return `${normalizeCityDisplayName(cityName) ?? cityName}${districtName ?? ''}`
+}
+
+/**
+ * 房源页 <title>（页面自己的那一段，layout 的 template 会再追加品牌后缀）。
+ *
+ * 以运营填写的房源标题为底，保证「每页唯一」不比改动前差：只在它缺少时才补
+ * 楼盘名、业务类型词（出租 / 出售）与「城市区县」，已经写了「出租」就不重复。
+ * 业务类型词按房源真实的 businessType 取，出售房源绝不能标成出租。
+ * OG 标题与 JSON-LD name 仍用运营标题，分享卡片和结构化数据不受影响。
+ */
+export function buildListingSeoTitle(listing: ListingDetailViewModel): string {
+  const base = listing.title.trim()
+  const building = listing.building
+  const lead = building && !base.includes(building.name) ? `${building.name} ${base}` : base
+  const verb = BUSINESS_TYPE_TITLE_VERB[listing.businessType]
+  const body = lead.includes(verb) ? lead : `${lead} ${LISTING_TYPE_TITLE_NOUN[listing.listingType]}${verb}`
+  return `${body} · ${titlePlace(listing.cityName, building?.district?.name)}`
+}
+
+/**
+ * 楼盘当前有效「租赁」房源数。取未受筛选影响的 `availableGroups`，标题不随 query 抖动；
+ * 只数 lease 组——出售、共享办公的房源不能支撑「写字楼出租」这个说法。
+ */
+export function countLeaseListings(supply: Pick<BuildingSupplySnapshot, 'availableGroups'>): number {
+  return supply.availableGroups.find((group) => group.key === 'lease')?.totalEffectiveListings ?? 0
+}
+
+/**
+ * 楼盘页 <title>。「出租」是对在租房源的陈述，所以只有确有有效租赁房源（> 0）才写；
+ * 数量为 0 或调用方没传时退回中性写法，宁可少一个词也不让标题说谎。
+ */
+export function buildBuildingSeoTitle(building: BuildingDetailViewModel, leaseListingCount?: number): string {
+  const place = titlePlace(building.cityName, building.district?.name)
+  // 楼盘名常自带「写字楼」（如「陆家嘴江景甲级写字楼」），再拼一次会变成「写字楼写字楼出租」。
+  const subject = building.name.includes('写字楼') ? building.name : `${building.name}写字楼`
+  return leaseListingCount !== undefined && leaseListingCount > 0
+    ? `${subject}出租 · ${place}租金与房源`
+    : `${subject} · ${place}`
 }
 
 export function validateSiteOrigin(origin: string): string {
@@ -189,7 +249,7 @@ export function buildListingMetadata(listing: ListingDetailViewModel, origin: st
   const image = safePublicMedia(listing.coverImage?.src)
 
   return {
-    title: listing.title,
+    title: buildListingSeoTitle(listing),
     description,
     alternates: { canonical: canonicalPath },
     openGraph: {
@@ -247,14 +307,19 @@ export function buildListingJsonLd(listing: ListingDetailViewModel, origin: stri
   }
 }
 
+type BuildingMetadataOptions = DetailRouteOptions & Readonly<{
+  /** 该楼盘当前有效租赁房源数（用 `countLeaseListings(detail.supply)` 取），决定标题是否写「出租」。 */
+  leaseListingCount?: number
+}>
+
 /** Builds canonical and sharing metadata from the public building DTO only. */
-export function buildBuildingMetadata(building: BuildingDetailViewModel, origin: string, options?: DetailRouteOptions): Metadata {
+export function buildBuildingMetadata(building: BuildingDetailViewModel, origin: string, options?: BuildingMetadataOptions): Metadata {
   const canonicalPath = buildingPath(building, options)
   const description = building.summary || [building.name, building.address, building.district?.name].filter(Boolean).join('，')
   const image = safePublicMedia(building.coverImage?.src)
 
   return {
-    title: building.name,
+    title: buildBuildingSeoTitle(building, options?.leaseListingCount),
     ...(description ? { description } : {}),
     alternates: { canonical: canonicalPath },
     openGraph: {

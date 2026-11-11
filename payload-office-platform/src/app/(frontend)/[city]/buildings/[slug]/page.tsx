@@ -4,7 +4,7 @@ import React from 'react'
 import BuildingDetailLayout from '@/components/frontend/building-detail/BuildingDetailLayout'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedBuildingDetail, getCachedRelatedBuildings } from '@/lib/frontend/cached-queries'
-import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
+import { buildBuildingJsonLd, buildBuildingMetadata, countLeaseListings, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
@@ -30,11 +30,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const detail = await getCachedBuildingDetail(city.slug, resolved.slug)
     if (detail?.building && detail.building.slug === resolved.slug) {
       const routingEnabled = getMultiCityRoutingEnabled()
-      const metadata = buildBuildingMetadata(
-        detail.building,
-        siteConfig.siteOrigin,
-        routingEnabled ? { citySlug: city.slug } : undefined,
-      )
+      const metadata = buildBuildingMetadata(detail.building, siteConfig.siteOrigin, {
+        ...(routingEnabled ? { citySlug: city.slug } : {}),
+        leaseListingCount: countLeaseListings(detail.supply),
+      })
       return routingEnabled ? metadata : { ...metadata, robots: { index: false, follow: true } }
     }
   }

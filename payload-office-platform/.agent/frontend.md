@@ -383,6 +383,11 @@ e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一�
 
 - 每页唯一 title、description、canonical、OG；一个 H1。
 - **例外：首页 Hero 的 H1/副标全站共用一句**，由产品指定（不等于设计稿 `首页.dc.html` 的文案），既不按城市定制、也不读 `CitySiteProfiles.hero.heading/body`；城市差异全部由 title / description / OG 承担。别把它「修回」逐城可配，也别按设计稿改回去——见 `components/frontend/home/HomeHero.tsx` 顶部说明与 OPT-035 工作项 §8。
+- **详情页 `<title>` 要带搜索意图词**（`lib/frontend/detail-metadata.ts` 的 `buildListingSeoTitle` / `buildBuildingSeoTitle`，layout 的 template 再追加「 · 商办租赁」；用户搜的是「xx 写字楼出租」「xx 租金」，只有楼盘名排不上）：
+  - 房源：以运营标题为底（唯一性不比改动前差），缺才补楼盘名、「办公室出租」类品类词与「城市区县」；标题已写「出租」不重复。品类词按 `businessType` 取，出售房源写「出售」，**绝不能标成出租**。
+  - 楼盘：租赁房源数 > 0 才写「写字楼出租 · 城市区县租金与房源」，否则退回中性「xx写字楼 · 城市区县」——**标题不许对没有租赁房源的楼盘说「出租」**。数量用 `countLeaseListings(detail.supply)`（只数 `availableGroups` 的 lease 组：出售、共享办公不算；未筛选口径，不随 query 抖动）；两个楼盘路由都要传，**不传就是中性标题**。楼盘名已含「写字楼」不重复拼。
+  - 只改 `<title>`：OG 标题与 JSON-LD `name` 仍是运营标题 / 楼盘名，分享卡片和结构化数据不动。
+  - **首页标题不在代码里**：来自 `CitySiteProfiles.seoTitle`（后台「城市站点档案 → SEO」，≤60 字且必须含城市名），由迁移 `20260813_011000_seed_city_site_profiles` 播种。改首页标题是改生产数据，走后台编辑，不要改代码或重写那条迁移。
 - JSON-LD 与页面使用同一 DTO，不虚构库存、评级或价格。
   - `image` 必须是**绝对 URL**（公开媒体常是 `/api/media/...` 相对路径，用 `toAbsoluteMediaUrl` 补全）；OG 图走 `metadataBase`，不用补。
   - 价格写进 `Offer.priceSpecification`（带 `unitText`），**不写 Offer 顶层 `price`**：房源价格多是「元/㎡/天」单价，顶层 `price` 会被读成总价。
