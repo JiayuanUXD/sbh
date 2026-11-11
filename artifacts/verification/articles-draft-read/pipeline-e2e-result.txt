@@ -1,0 +1,13 @@
+✔ 前置：ADM 建出一篇同名草稿  [HTTP 201]
+✔ 匿名按 slug 查草稿：查不到（读侧已收口，这就是脚本必须带 token 的原因）
+✔ 专用账号带 token 按 slug 查草稿：查得到  [{"id":49,"status":"draft"}]
+✔ 带 token 的 preparePublish：同 slug 草稿被拦（只新建不覆盖）  [slug「zz-pipe-existing-1794381426433」已被文章 #49（draft）占用：只新建不覆盖，改稿请走后台]
+✔ preparePublish 带 token：slugCheck = all
+✔ 专用账号新建草稿 + 带 token 读回验收通过  [[]]
+✔ 同一篇草稿匿名按 id 读：404  [HTTP 404]
+✔ 专用账号新建已发布文章 + 前台详情页验收通过  [[]]
+✔ 已发布文章匿名按 slug 仍读得到  [HTTP 200 docs=1]
+✔ 不传 token 的 executePublish 自行登录，草稿读回验收通过  [[]]
+清理：残留探针文章 0 篇
+
+全部通过
