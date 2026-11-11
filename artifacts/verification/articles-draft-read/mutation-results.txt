@@ -1,0 +1,95 @@
+## 基线（未变异，期望全绿）
+### 基线 → 实际 green（期望 green） ✔
+    Test Files  2 passed (2)
+    Tests  23 passed (23)
+
+## 变异
+### M1 还原成原 bug：read: () => true → 实际 red（期望 red） ✔
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > GraphQL 同样被收窄（读权限是集合级的，REST / GraphQL 共用）
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > draft=true 不是后门（Articles 没有 versions.drafts，该参数无效，但要钉死）
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > trash=true 读不到回收站里的文章，也读不到草稿
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > where[status]=draft 枚举不到草稿
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > 列表只有已发布的；草稿与回收站里的都不在
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > 按 id 读草稿：404 / 403，响应里没有正文
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > 按 slug 精确查草稿查不到（日更脚本 findArticleBySlug 的匿名形态）
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > brk（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > csr（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > mgr（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > BRK 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > CSR 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > MGR 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 会员（members 集合）等同匿名：只读已发布
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 停用的后台账号等同匿名（buildPermissionContext 对停用账号返回 null）
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 匿名只读已发布且未删除：返回 Where，不是 true
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 每次返回新对象：Payload 会把 access Where 与请求 where 合并，共享引用被改写会污染后续请求
+    Test Files  2 failed (2)
+    Tests  17 failed | 6 passed (23)
+
+### M2 Where 里去掉 deletedAt（?trash=true 能读回收站） → 实际 red（期望 red） ✔
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > trash=true 读不到回收站里的文章，也读不到草稿
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > brk（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > csr（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > mgr（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > BRK 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > CSR 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > MGR 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 会员（members 集合）等同匿名：只读已发布
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 停用的后台账号等同匿名（buildPermissionContext 对停用账号返回 null）
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 匿名只读已发布且未删除：返回 Where，不是 true
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 每次返回新对象：Payload 会把 access Where 与请求 where 合并，共享引用被改写会污染后续请求
+    Test Files  2 failed (2)
+    Tests  11 failed | 12 passed (23)
+
+### M3 Where 里去掉 status（草稿对匿名可见） → 实际 red（期望 red） ✔
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > GraphQL 同样被收窄（读权限是集合级的，REST / GraphQL 共用）
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > draft=true 不是后门（Articles 没有 versions.drafts，该参数无效，但要钉死）
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > trash=true 读不到回收站里的文章，也读不到草稿
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > where[status]=draft 枚举不到草稿
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > 列表只有已发布的；草稿与回收站里的都不在
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > 按 id 读草稿：404 / 403，响应里没有正文
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 匿名 > 按 slug 精确查草稿查不到（日更脚本 findArticleBySlug 的匿名形态）
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > brk（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > csr（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > mgr（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > BRK 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > CSR 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > MGR 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 会员（members 集合）等同匿名：只读已发布
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 停用的后台账号等同匿名（buildPermissionContext 对停用账号返回 null）
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 匿名只读已发布且未删除：返回 Where，不是 true
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 每次返回新对象：Payload 会把 access Where 与请求 where 合并，共享引用被改写会污染后续请求
+    Test Files  2 failed (2)
+    Tests  17 failed | 6 passed (23)
+
+### M4 放宽成「任何登录账号全读」（BRK / MGR / CSR 能读草稿） → 实际 red（期望 red） ✔
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > brk（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > csr（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > mgr（没有资讯菜单码）：只读得到已发布
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > BRK 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > CSR 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > MGR 没有资讯菜单码：只读已发布，与写侧同一道门
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 会员（members 集合）等同匿名：只读已发布
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 停用的后台账号等同匿名（buildPermissionContext 对停用账号返回 null）
+    Test Files  2 failed (2)
+    Tests  8 failed | 15 passed (23)
+
+### M5 收得太死：持菜单码的 ADM / OPS 也被收窄（后台读不到草稿） → 实际 red（期望 red） ✔
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > adm（持资讯菜单码）：草稿、已发布、回收站都读得到
+    FAIL  tests/articles-read-access-postgres.test.ts > 资讯读侧准入（真实 PostgreSQL，穿过 REST / GraphQL 处理器） > 后台账号 > ops（持资讯菜单码）：草稿、已发布、回收站都读得到
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > ADM 持资讯菜单码：全读（后台列表与编辑页要看草稿、回收站）
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > OPS 持资讯菜单码：全读（后台列表与编辑页要看草稿、回收站）
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 资讯日更专用账号（角色只有「资讯中心 + 素材库」两个菜单码）全读：news:publish 要靠它查草稿占用
+    Test Files  2 failed (2)
+    Tests  5 failed | 18 passed (23)
+
+### M6 返回共享对象（被 Payload 合并改写会污染后续请求） → 实际 red（期望 red） ✔
+    FAIL  tests/articles-read-access.test.ts > Articles 读侧准入 > 每次返回新对象：Payload 会把 access Where 与请求 where 合并，共享引用被改写会污染后续请求
+    Test Files  1 failed | 1 passed (2)
+    Tests  1 failed | 22 passed (23)
+
+已还原：两个源文件与变异前逐字节一致
+## 还原后复跑（期望全绿）
+### 还原后 → 实际 green（期望 green） ✔
+    Test Files  2 passed (2)
+    Tests  23 passed (23)
+

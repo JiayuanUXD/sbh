@@ -8,6 +8,7 @@ import { createLocationFieldGuard } from '@/domain/geography/location-field-guar
 import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { invalidateArticlePublicCache as revalidateArticlePublicCache } from '@/lib/frontend/public-cache-revalidation'
 import { createMenuAccess } from '@/domain/auth/access'
+import { createArticleReadAccess } from '@/domain/public-catalog/article-read-access'
 
 export const syncHomeFeaturedExclusivity: CollectionAfterChangeHook = async ({
   doc,
@@ -87,8 +88,11 @@ export const Articles: CollectionConfig = {
   },
   trash: true,
   access: {
-    // 与 Pages 一致：前台读公开；published 过滤由 facade 查询承担。
-    read: () => true,
+    // 匿名 / 会员 / 无资讯菜单码的账号只读「已发布且未进回收站」，持菜单码者全读。
+    // 此前是 `() => true`，理由是「published 过滤由 facade 查询承担」——那只对 C 端（Local API）
+    // 成立，Payload 自带的 REST / GraphQL 不经 facade，匿名能读到草稿正文与回收站。
+    // 完整论证与边界见 article-read-access.ts；守卫：tests/articles-read-access*.test.ts。
+    read: createArticleReadAccess(canManageArticle),
     create: canManageArticle,
     update: canManageArticle,
     // delete 保留，理由同 Pages。

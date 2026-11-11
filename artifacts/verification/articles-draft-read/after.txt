@@ -1,0 +1,63 @@
+探针文章：D(草稿)=#46 P(已发布)=#47 T(回收站)=#48
+== 匿名
+匿名     /api/articles?limit=100&depth=0                                -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+匿名     /api/articles?limit=100&depth=0&where%5Bstatus%5D%5Bequals%5D=draft -> HTTP 200 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+匿名     /api/articles?limit=100&depth=0&where%5Bslug%5D%5Bequals%5D=zz-leakprobe-draft-1794381362 -> HTTP 200 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+匿名     /api/articles/46?depth=0                                       -> HTTP 404 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+匿名     /api/articles/47?depth=0                                       -> HTTP 200 docs=1   草稿正文=no  已发布正文=yes 回收站正文=no
+匿名     /api/articles?limit=100&depth=0&trash=true                     -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+匿名     /api/articles?limit=100&depth=0&draft=true                     -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+匿名     /api/articles/48?depth=0&trash=true                            -> HTTP 404 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+== e2e-brk
+brk        /api/articles?limit=100&depth=0                                -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+brk        /api/articles?limit=100&depth=0&where%5Bstatus%5D%5Bequals%5D=draft -> HTTP 200 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+brk        /api/articles?limit=100&depth=0&where%5Bslug%5D%5Bequals%5D=zz-leakprobe-draft-1794381362 -> HTTP 200 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+brk        /api/articles/46?depth=0                                       -> HTTP 404 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+brk        /api/articles/47?depth=0                                       -> HTTP 200 docs=1   草稿正文=no  已发布正文=yes 回收站正文=no
+brk        /api/articles?limit=100&depth=0&trash=true                     -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+brk        /api/articles?limit=100&depth=0&draft=true                     -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+brk        /api/articles/48?depth=0&trash=true                            -> HTTP 404 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+== e2e-csr
+csr        /api/articles?limit=100&depth=0                                -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+csr        /api/articles?limit=100&depth=0&where%5Bstatus%5D%5Bequals%5D=draft -> HTTP 200 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+csr        /api/articles?limit=100&depth=0&where%5Bslug%5D%5Bequals%5D=zz-leakprobe-draft-1794381362 -> HTTP 200 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+csr        /api/articles/46?depth=0                                       -> HTTP 404 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+csr        /api/articles/47?depth=0                                       -> HTTP 200 docs=1   草稿正文=no  已发布正文=yes 回收站正文=no
+csr        /api/articles?limit=100&depth=0&trash=true                     -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+csr        /api/articles?limit=100&depth=0&draft=true                     -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+csr        /api/articles/48?depth=0&trash=true                            -> HTTP 404 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+== e2e-mgr
+mgr        /api/articles?limit=100&depth=0                                -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+mgr        /api/articles?limit=100&depth=0&where%5Bstatus%5D%5Bequals%5D=draft -> HTTP 200 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+mgr        /api/articles?limit=100&depth=0&where%5Bslug%5D%5Bequals%5D=zz-leakprobe-draft-1794381362 -> HTTP 200 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+mgr        /api/articles/46?depth=0                                       -> HTTP 404 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+mgr        /api/articles/47?depth=0                                       -> HTTP 200 docs=1   草稿正文=no  已发布正文=yes 回收站正文=no
+mgr        /api/articles?limit=100&depth=0&trash=true                     -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+mgr        /api/articles?limit=100&depth=0&draft=true                     -> HTTP 200 docs=6   草稿正文=no  已发布正文=yes 回收站正文=no
+mgr        /api/articles/48?depth=0&trash=true                            -> HTTP 404 docs=0   草稿正文=no  已发布正文=no  回收站正文=no
+== e2e-ops
+ops        /api/articles?limit=100&depth=0                                -> HTTP 200 docs=7   草稿正文=yes 已发布正文=yes 回收站正文=no
+ops        /api/articles?limit=100&depth=0&where%5Bstatus%5D%5Bequals%5D=draft -> HTTP 200 docs=1   草稿正文=yes 已发布正文=no  回收站正文=no
+ops        /api/articles?limit=100&depth=0&where%5Bslug%5D%5Bequals%5D=zz-leakprobe-draft-1794381362 -> HTTP 200 docs=1   草稿正文=yes 已发布正文=no  回收站正文=no
+ops        /api/articles/46?depth=0                                       -> HTTP 200 docs=1   草稿正文=yes 已发布正文=no  回收站正文=no
+ops        /api/articles/47?depth=0                                       -> HTTP 200 docs=1   草稿正文=no  已发布正文=yes 回收站正文=no
+ops        /api/articles?limit=100&depth=0&trash=true                     -> HTTP 200 docs=8   草稿正文=yes 已发布正文=yes 回收站正文=yes
+ops        /api/articles?limit=100&depth=0&draft=true                     -> HTTP 200 docs=7   草稿正文=yes 已发布正文=yes 回收站正文=no
+ops        /api/articles/48?depth=0&trash=true                            -> HTTP 200 docs=1   草稿正文=no  已发布正文=no  回收站正文=yes
+== e2e-adm
+adm        /api/articles?limit=100&depth=0                                -> HTTP 200 docs=7   草稿正文=yes 已发布正文=yes 回收站正文=no
+adm        /api/articles?limit=100&depth=0&where%5Bstatus%5D%5Bequals%5D=draft -> HTTP 200 docs=1   草稿正文=yes 已发布正文=no  回收站正文=no
+adm        /api/articles?limit=100&depth=0&where%5Bslug%5D%5Bequals%5D=zz-leakprobe-draft-1794381362 -> HTTP 200 docs=1   草稿正文=yes 已发布正文=no  回收站正文=no
+adm        /api/articles/46?depth=0                                       -> HTTP 200 docs=1   草稿正文=yes 已发布正文=no  回收站正文=no
+adm        /api/articles/47?depth=0                                       -> HTTP 200 docs=1   草稿正文=no  已发布正文=yes 回收站正文=no
+adm        /api/articles?limit=100&depth=0&trash=true                     -> HTTP 200 docs=8   草稿正文=yes 已发布正文=yes 回收站正文=yes
+adm        /api/articles?limit=100&depth=0&draft=true                     -> HTTP 200 docs=7   草稿正文=yes 已发布正文=yes 回收站正文=no
+adm        /api/articles/48?depth=0&trash=true                            -> HTTP 200 docs=1   草稿正文=no  已发布正文=no  回收站正文=yes
+== GraphQL
+匿名     GraphQL Articles 列表                                      -> HTTP 200 含草稿=no  含已发布=yes
+匿名     GraphQL Articles where status=draft                          -> HTTP 200 含草稿=no  含已发布=no
+匿名     GraphQL Article(id: 草稿)                                  -> HTTP 200 含草稿=no  含已发布=no
+ops        GraphQL Articles 列表                                      -> HTTP 200 含草稿=yes 含已发布=yes
+ops        GraphQL Articles where status=draft                          -> HTTP 200 含草稿=yes 含已发布=no
+ops        GraphQL Article(id: 草稿)                                  -> HTTP 200 含草稿=yes 含已发布=no
+探针已清理：库内文章总数(含回收站)= 5

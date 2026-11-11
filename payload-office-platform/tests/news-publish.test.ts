@@ -28,8 +28,14 @@ function article(extraMeta = '') {
 
 type Call = { method: string; url: string; headers: Record<string, string>; body: unknown }
 
-/** 假后端：按路径返回预设结果，并记录每次请求。 */
-function fakeBackend(options: { existing?: boolean; publishedPageTitle?: string } = {}) {
+/**
+ * 假后端：按路径返回预设结果，并记录每次请求。
+ *
+ * `/api/articles` 的 GET 模拟 `Articles.access.read`：匿名只看得到已发布的文章，
+ * 带 JWT 的（持资讯菜单码的专用账号）全读。这是这个脚本依赖的后端行为——
+ * 它此前靠「匿名也读得到草稿」判断 slug 是否被占用、读回刚建的草稿。
+ */
+function fakeBackend(options: { existing?: boolean; existingStatus?: 'draft' | 'published'; publishedPageTitle?: string } = {}) {
   const calls: Call[] = []
   const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
   const fetchImpl: Fetch = async (url, init) => {
@@ -42,8 +48,12 @@ function fakeBackend(options: { existing?: boolean; publishedPageTitle?: string 
     }
     if (u.pathname === '/api/buildings') return reply({ docs: [{ id: 248 }] })
     if (u.pathname === '/api/articles' && (init?.method ?? 'GET') === 'GET') {
-      const created = calls.some((c) => c.method === 'POST' && c.url.endsWith('/api/articles'))
-      return reply({ docs: options.existing || created ? [{ id: 501, status: 'draft' }] : [] })
+      const createdCall = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/articles'))
+      const rows: Array<{ id: number; status: string }> = []
+      if (options.existing) rows.push({ id: 501, status: options.existingStatus ?? 'draft' })
+      if (createdCall) rows.push({ id: 501, status: (JSON.parse(String(createdCall.body)) as { status: string }).status })
+      const authed = headers.authorization !== undefined
+      return reply({ docs: rows.filter((r) => authed || r.status === 'published') })
     }
     if (u.pathname === '/api/users/login') return reply({ token: 'tkn' })
     if (u.pathname === '/api/media') return reply({ doc: { id: 77 } }, 201)
@@ -80,7 +90,33 @@ describe('preparePublish：只读准备', () => {
 
   it('同 slug 已存在就停下，不覆盖', async () => {
     const { fetchImpl } = fakeBackend({ existing: true })
-    await expect(preparePublish({ article: article(), cover: null, status: 'draft', baseUrl: BASE, fetchImpl, now })).rejects.toThrow('只新建不覆盖')
+    await expect(
+      preparePublish({ article: article(), cover: null, status: 'draft', baseUrl: BASE, fetchImpl, now, token: 'tkn' }),
+    ).rejects.toThrow('只新建不覆盖')
+  })
+
+  it('slug 占用检查带登录凭据：草稿与回收站里的同名文章匿名读不到，不带凭据查不出来', async () => {
+    const { calls, fetchImpl } = fakeBackend({ existing: true, existingStatus: 'draft' })
+    await expect(
+      preparePublish({ article: article(), cover: null, status: 'draft', baseUrl: BASE, fetchImpl, now, token: 'tkn' }),
+    ).rejects.toThrow('占用')
+    const check = calls.find((c) => c.url.includes('/api/articles'))
+    expect(check?.headers.authorization).toBe('JWT tkn')
+    // 回收站里的同名文章也算占用（slug 唯一约束不看 deletedAt）
+    expect(check?.url).toContain('trash=true')
+  })
+
+  it('没有凭据时只能核对已发布的文章：已发布的同名文章照样拦住，并如实标注检查范围', async () => {
+    const published = fakeBackend({ existing: true, existingStatus: 'published' })
+    await expect(
+      preparePublish({ article: article(), cover: null, status: 'draft', baseUrl: BASE, fetchImpl: published.fetchImpl, now }),
+    ).rejects.toThrow('只新建不覆盖')
+
+    const none = fakeBackend()
+    const anonymous = await preparePublish({ article: article(), cover: null, status: 'draft', baseUrl: BASE, fetchImpl: none.fetchImpl, now })
+    expect(anonymous.slugCheck).toBe('published-only')
+    const authed = await preparePublish({ article: article(), cover: null, status: 'draft', baseUrl: BASE, fetchImpl: none.fetchImpl, now, token: 'tkn' })
+    expect(authed.slugCheck).toBe('all')
   })
 
   it('关联查不到就停下', async () => {
@@ -119,11 +155,23 @@ describe('executePublish：登录 → 封面 → 建文章 → 验收', () => {
     expect(result.verifyProblems).toEqual(['详情页 HTML 里找不到文章标题'])
   })
 
-  it('草稿：读回接口确认，不看前台详情页', async () => {
+  it('草稿：读回接口确认（带登录凭据，匿名读不到草稿），不看前台详情页', async () => {
     const { calls, fetchImpl } = fakeBackend()
     const plan = await preparePublish({ article: article(), cover: null, status: 'draft', baseUrl: BASE, fetchImpl, now })
     const result = await executePublish(plan, { baseUrl: BASE, fetchImpl, ...creds })
     expect(result.verifyProblems).toEqual([])
     expect(calls.some((c) => c.url.includes('/news/'))).toBe(false)
+    const readBack = calls.filter((c) => c.method === 'GET' && c.url.includes('/api/articles')).at(-1)
+    expect(readBack?.headers.authorization).toBe('JWT tkn')
+  })
+
+  it('调用方已登录：复用同一个 token，不再登录第二次', async () => {
+    const { calls, fetchImpl } = fakeBackend()
+    const plan = await preparePublish({ article: article(), cover: null, status: 'draft', baseUrl: BASE, fetchImpl, now, token: 'pre-issued' })
+    const result = await executePublish(plan, { baseUrl: BASE, fetchImpl, ...creds, token: 'pre-issued' })
+    expect(result.verifyProblems).toEqual([])
+    expect(calls.filter((c) => c.url.endsWith('/api/users/login'))).toHaveLength(0)
+    const create = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/articles'))
+    expect(create?.headers.authorization).toBe('JWT pre-issued')
   })
 })
