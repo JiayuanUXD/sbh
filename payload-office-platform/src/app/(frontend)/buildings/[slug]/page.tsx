@@ -34,14 +34,14 @@ export async function generateMetadata({
     if (!identity) notFound()
     redirect(`/${identity.citySlug}/buildings/${encodeURIComponent(identity.slug)}`)
   }
-  const { building } = await getCachedBuildingDetail(siteConfig.defaultCity, slug)
+  const { building, supply } = await getCachedBuildingDetail(siteConfig.defaultCity, slug)
   if (!building) {
     return {
       title: '楼盘未找到',
       robots: { index: false, follow: false },
     }
   }
-  return buildBuildingMetadata(building, siteConfig.siteOrigin)
+  return buildBuildingMetadata(building, siteConfig.siteOrigin, { supply })
 }
 
 export default async function BuildingDetailPage({

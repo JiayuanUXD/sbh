@@ -7,8 +7,10 @@ import type {
   ListingDetailViewModel,
   PriceViewModel,
 } from '@/domain/public-catalog'
-import { formatArea, priceUnitLabel } from '@/lib/frontend/format'
+import { priceUnitLabel } from '@/lib/frontend/format'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog'
+import { normalizeCityDisplayName } from '@/domain/city-site-profile/schema'
+import { DECORATION_STATUS_LABELS } from '@/domain/review/listing-fields'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 
 type BreadcrumbJsonLd = Readonly<{
@@ -81,11 +83,188 @@ export type BuildingJsonLd = Readonly<{
   breadcrumb: BreadcrumbJsonLd
 }>
 
-const LISTING_TYPE_LABEL: Record<ListingDetailViewModel['listingType'], string> = {
-  'traditional-office': '传统办公',
+/**
+ * 房源 <title> / description 里的「品类词」：用户搜的是「办公室出租」「共享办公」，
+ * 不是后台的枚举标签。
+ */
+const LISTING_TYPE_TITLE_NOUN: Record<ListingDetailViewModel['listingType'], string> = {
+  'traditional-office': '办公室',
   coworking: '共享办公',
-  'full-floor': '整层办公',
+  'full-floor': '整层办公室',
   'serviced-office': '独栋办公',
+}
+
+const BUSINESS_TYPE_TITLE_VERB: Record<ListingDetailViewModel['businessType'], string> = {
+  lease: '出租',
+  sale: '出售',
+}
+
+/** 「上海静安区」：城市取短名（去「市」），区县缺失时只留城市。 */
+function titlePlace(cityName: string, districtName: string | undefined): string {
+  return `${normalizeCityDisplayName(cityName) ?? cityName}${districtName ?? ''}`
+}
+
+/**
+ * 房源页 <title>（页面自己的那一段，layout 的 template 会再追加品牌后缀）。
+ *
+ * 以运营填写的房源标题为底，保证「每页唯一」不比改动前差：只在它缺少时才补
+ * 楼盘名、业务类型词（出租 / 出售）与「城市区县」，已经写了「出租」就不重复。
+ * 业务类型词按房源真实的 businessType 取，出售房源绝不能标成出租。
+ * OG 标题与 JSON-LD name 仍用运营标题，分享卡片和结构化数据不受影响。
+ */
+export function buildListingSeoTitle(listing: ListingDetailViewModel): string {
+  const base = listing.title.trim()
+  const building = listing.building
+  const lead = building && !base.includes(building.name) ? `${building.name} ${base}` : base
+  const verb = BUSINESS_TYPE_TITLE_VERB[listing.businessType]
+  const body = lead.includes(verb) ? lead : `${lead} ${LISTING_TYPE_TITLE_NOUN[listing.listingType]}${verb}`
+  return `${body} · ${titlePlace(listing.cityName, building?.district?.name)}`
+}
+
+/**
+ * 楼盘当前有效「租赁」房源数。取未受筛选影响的 `availableGroups`，标题不随 query 抖动；
+ * 只数 lease 组——出售、共享办公的房源不能支撑「写字楼出租」这个说法。
+ */
+export function countLeaseListings(supply: BuildingSupplyAvailability | undefined): number {
+  return supply?.availableGroups.find((group) => group.key === 'lease')?.totalEffectiveListings ?? 0
+}
+
+type BuildingSupplyAvailability = Pick<BuildingSupplySnapshot, 'availableGroups'>
+
+/**
+ * 描述总长上限（字符数）。搜索结果里的摘要会被截断，所以按优先级逐段拼：
+ * 第一段必留，后面的放不下就整段丢掉——宁可少一个事实，也不把一句话截成半句。
+ */
+const DESCRIPTION_MAX_LENGTH = 120
+
+function joinDescription(parts: ReadonlyArray<string | null | undefined>): string {
+  let text = ''
+  for (const part of parts) {
+    if (!part) continue
+    if (text === '') {
+      text = part
+      continue
+    }
+    const next = `${text}，${part}`
+    if (next.length > DESCRIPTION_MAX_LENGTH) break
+    text = next
+  }
+  return text
+}
+
+/** 楼层文本如「9」「9-12」补「层」；「高区」这类非数字开头的原样写。 */
+function floorText(floor: string | null): string | null {
+  const text = floor?.trim()
+  if (!text) return null
+  return /^\d/.test(text) ? `${text} 层` : text
+}
+
+/**
+ * 房源页 description：把用户会搜的真实事实按优先级排好——
+ * 「地域 + 楼盘 + 面积 + 品类出租」→ 租金 / 售价 → 装修 → 楼层 → 工位数。
+ * 只写这条房源真有的字段，缺哪项就不写哪项，不堆关键词、不编造。
+ * 页面 description、OG 描述与 JSON-LD description 共用这一句。
+ */
+export function buildListingSeoDescription(listing: ListingDetailViewModel): string {
+  const building = listing.building
+  const area = listing.area != null && listing.area > 0 ? `${listing.area}㎡` : null
+  const subject = [building?.name, area].filter(Boolean).join(' ')
+  const head = [
+    titlePlace(listing.cityName, building?.district?.name),
+    subject,
+    LISTING_TYPE_TITLE_NOUN[listing.listingType],
+    BUSINESS_TYPE_TITLE_VERB[listing.businessType],
+  ].join('')
+  const price = listing.price
+    ? `${listing.businessType === 'sale' ? '售价' : '租金'} ${listing.price.text}`
+    : '价格面议'
+  const decoration = listing.decorationStatus ? DECORATION_STATUS_LABELS[listing.decorationStatus] : null
+  // 前台把它叫「工位估算」（非联合办公房源里是估算值），所以写「约」，不当成确定事实。
+  const seats = listing.seats != null && listing.seats > 0 ? `约 ${listing.seats} 个工位` : null
+  return `${joinDescription([head, price, decoration, floorText(listing.floor), seats])}。`
+}
+
+/** 「4.25–8.50」：两端相同只写一个数。 */
+function formatRange(min: number, max: number, format: (value: number) => string): string {
+  return min === max ? format(min) : `${format(min)}–${format(max)}`
+}
+
+/**
+ * 租赁组里可以跨房源比较的租金区间。只认「元/㎡/天」：
+ * 「元/月（总价）」等其它计价口径不能和单价并成一个区间，宁可不写。
+ */
+function leaseDayRentRange(group: AvailableLeaseGroup): Readonly<{ min: number; max: number }> | null {
+  const ranges = group.priceRanges.filter((range) =>
+    range.businessType === 'lease' &&
+    range.currency === 'CNY' &&
+    range.period === 'day' &&
+    range.basis === 'sqm' &&
+    Number.isFinite(range.min) && range.min > 0 &&
+    Number.isFinite(range.max) && range.max >= range.min)
+  if (ranges.length === 0) return null
+  return {
+    min: Math.min(...ranges.map((range) => range.min)),
+    max: Math.max(...ranges.map((range) => range.max)),
+  }
+}
+
+type AvailableLeaseGroup = BuildingSupplySnapshot['availableGroups'][number]
+
+/** 楼盘当前租赁供给的事实片段；没有有效租赁房源就返回空数组（出售、共享办公不算）。 */
+function buildingSupplyFacts(supply: BuildingSupplyAvailability | undefined): string[] {
+  const lease = supply?.availableGroups.find((group) => group.key === 'lease')
+  if (!lease || lease.totalEffectiveListings <= 0) return []
+
+  const facts = [`现有 ${lease.totalEffectiveListings} 套在租办公室`]
+  const rent = leaseDayRentRange(lease)
+  if (rent) facts.push(`租金 ${formatRange(rent.min, rent.max, (value) => value.toFixed(2))} 元/㎡/天（挂牌价）`)
+  const area = lease.areaRange
+  if (area && Number.isFinite(area.min) && area.min > 0 && Number.isFinite(area.max) && area.max >= area.min) {
+    facts.push(`面积 ${formatRange(area.min, area.max, String)}㎡`)
+  }
+  return facts
+}
+
+/** 地址常只有「远景路436号」；已带城市 / 区县的就原样用，避免「上海上海市…」。 */
+function buildingLocation(building: BuildingDetailViewModel): string {
+  const place = titlePlace(building.cityName, building.district?.name)
+  const address = building.address.trim()
+  if (!address) return place
+  const city = normalizeCityDisplayName(building.cityName) ?? building.cityName
+  const district = building.district?.name
+  return address.startsWith(city) || (district && address.includes(district)) ? address : `${place}${address}`
+}
+
+/**
+ * 楼盘页 description：
+ * - 运营写了简介：简介原样放最前面，有租赁房源时才在后面追加真实供给事实；没有就一字不动。
+ * - 没写简介：「楼盘位于城市区县地址」+ 供给事实（在租套数 / 租金区间 / 面积区间）。
+ * 供给事实只来自未筛选的 `availableGroups`；没传供给或没有租赁房源就不写，不编造。
+ */
+export function buildBuildingSeoDescription(building: BuildingDetailViewModel, supply?: BuildingSupplyAvailability): string {
+  const facts = buildingSupplyFacts(supply)
+  const summary = building.summary.trim()
+  if (summary) {
+    if (facts.length === 0) return summary
+    const lead = summary.replace(/[。.]+$/u, '')
+    const joined = joinDescription([lead, ...facts])
+    // 简介本身已经超长、一条事实都放不下：还给运营原文，不擅自改标点。
+    return joined === lead ? summary : `${joined}。`
+  }
+  return `${joinDescription([`${building.name}位于${buildingLocation(building)}`, ...facts])}。`
+}
+
+/**
+ * 楼盘页 <title>。「出租」是对在租房源的陈述，所以只有确有有效租赁房源（> 0）才写；
+ * 数量为 0 或调用方没传时退回中性写法，宁可少一个词也不让标题说谎。
+ */
+export function buildBuildingSeoTitle(building: BuildingDetailViewModel, leaseListingCount?: number): string {
+  const place = titlePlace(building.cityName, building.district?.name)
+  // 楼盘名常自带「写字楼」（如「陆家嘴江景甲级写字楼」），再拼一次会变成「写字楼写字楼出租」。
+  const subject = building.name.includes('写字楼') ? building.name : `${building.name}写字楼`
+  return leaseListingCount !== undefined && leaseListingCount > 0
+    ? `${subject}出租 · ${place}租金与房源`
+    : `${subject} · ${place}`
 }
 
 export function validateSiteOrigin(origin: string): string {
@@ -173,23 +352,14 @@ function isTrustworthyPrice(price: PriceViewModel | null, businessType: ListingD
     price.amount > 0
 }
 
-function listingDescription(listing: ListingDetailViewModel): string {
-  return [
-    listing.title,
-    listing.price?.text ?? '价格面议',
-    formatArea(listing.area),
-    LISTING_TYPE_LABEL[listing.listingType],
-  ].filter(Boolean).join('，')
-}
-
 /** Builds canonical and sharing metadata from the public listing DTO only. */
 export function buildListingMetadata(listing: ListingDetailViewModel, origin: string, options?: DetailRouteOptions): Metadata {
   const canonicalPath = listingPath(listing, options)
-  const description = listingDescription(listing)
+  const description = buildListingSeoDescription(listing)
   const image = safePublicMedia(listing.coverImage?.src)
 
   return {
-    title: listing.title,
+    title: buildListingSeoTitle(listing),
     description,
     alternates: { canonical: canonicalPath },
     openGraph: {
@@ -217,7 +387,7 @@ export function buildListingJsonLd(listing: ListingDetailViewModel, origin: stri
     '@type': 'Product',
     name: listing.title,
     url: canonical,
-    description: listingDescription(listing),
+    description: buildListingSeoDescription(listing),
     ...(image ? { image } : {}),
     ...(building ? {
       brand: {
@@ -247,19 +417,27 @@ export function buildListingJsonLd(listing: ListingDetailViewModel, origin: stri
   }
 }
 
+type BuildingMetadataOptions = DetailRouteOptions & Readonly<{
+  /**
+   * 楼盘详情的供给快照（传 `detail.supply`）。标题据此决定写不写「出租」，
+   * description 据此追加在租套数 / 租金 / 面积；**不传就是中性标题 + 不带供给事实**。
+   */
+  supply?: BuildingSupplyAvailability
+}>
+
 /** Builds canonical and sharing metadata from the public building DTO only. */
-export function buildBuildingMetadata(building: BuildingDetailViewModel, origin: string, options?: DetailRouteOptions): Metadata {
+export function buildBuildingMetadata(building: BuildingDetailViewModel, origin: string, options?: BuildingMetadataOptions): Metadata {
   const canonicalPath = buildingPath(building, options)
-  const description = building.summary || [building.name, building.address, building.district?.name].filter(Boolean).join('，')
+  const description = buildBuildingSeoDescription(building, options?.supply)
   const image = safePublicMedia(building.coverImage?.src)
 
   return {
-    title: building.name,
-    ...(description ? { description } : {}),
+    title: buildBuildingSeoTitle(building, countLeaseListings(options?.supply)),
+    description,
     alternates: { canonical: canonicalPath },
     openGraph: {
       title: building.name,
-      ...(description ? { description } : {}),
+      description,
       url: canonicalUrl(origin, canonicalPath),
       type: 'website',
       ...(image ? { images: [{ url: image }] } : {}),

@@ -30,11 +30,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const detail = await getCachedBuildingDetail(city.slug, resolved.slug)
     if (detail?.building && detail.building.slug === resolved.slug) {
       const routingEnabled = getMultiCityRoutingEnabled()
-      const metadata = buildBuildingMetadata(
-        detail.building,
-        siteConfig.siteOrigin,
-        routingEnabled ? { citySlug: city.slug } : undefined,
-      )
+      const metadata = buildBuildingMetadata(detail.building, siteConfig.siteOrigin, {
+        ...(routingEnabled ? { citySlug: city.slug } : {}),
+        supply: detail.supply,
+      })
       return routingEnabled ? metadata : { ...metadata, robots: { index: false, follow: true } }
     }
   }
