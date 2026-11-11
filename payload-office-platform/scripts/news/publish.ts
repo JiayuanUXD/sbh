@@ -6,7 +6,10 @@
  * - 账号：后台建一个只有「资讯中心」「素材库」两个菜单权限的角色和账号，凭据只放在执行环境的环境变量里，
  *   不要写进仓库或 .env 文件。本脚本不读任何 .env、不连数据库。
  * - 只新建不覆盖：同 slug 已有文章（含回收站）直接停下。
- * - --dry-run：只做检查与只读准备（解析关联、确认 slug 未占用），打印将要提交的字段，不登录、不写。
+ * - 读也要登录：Articles 的草稿与回收站只对专用账号可读，匿名只看得到已发布文章。所以真发布先登录，
+ *   带 token 查 slug 占用（含草稿与回收站），发布时复用同一个 token。
+ * - --dry-run：只做检查与只读准备（解析关联、确认 slug 未占用），打印将要提交的字段，不登录、不写；
+ *   因此它的 slug 占用检查只覆盖已发布文章，输出里会如实标注，真发布时会再查一遍全量。
  * - 输出最后一行是 JSON 结果（id、链接、后台链接、验收问题），方便调用方解析。
  */
 import path from 'node:path'
@@ -14,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 
 import { coverPathFor, loadArticleFiles, selectArticles } from '../lib/article-content'
 import { runArticleChecks } from '../lib/news-check'
-import { executePublish, preparePublish } from '../lib/news-publish'
+import { executePublish, login, preparePublish } from '../lib/news-publish'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(here, '../../content/articles')
@@ -52,11 +55,12 @@ async function main() {
     throw new Error(`检查不通过（${report.problems.length} 个问题），没有发布`)
   }
 
-  const plan = await preparePublish({ article, cover: coverPathFor(CONTENT_DIR, slug), status, baseUrl, fetchImpl: fetch, now })
+  const cover = coverPathFor(CONTENT_DIR, slug)
   if (flag('dry-run')) {
+    const plan = await preparePublish({ article, cover, status, baseUrl, fetchImpl: fetch, now })
     const fields: Record<string, unknown> = { ...plan.data }
     delete fields.content
-    log('dry-run：检查通过，slug 未占用。将要提交：')
+    log('dry-run：检查通过，已发布的文章里没有同名 slug（草稿与回收站要登录才查得到，真发布时会再查一遍）。将要提交：')
     log(JSON.stringify({ ...fields, content: `（Lexical，${article.length} 字）`, cover: plan.cover }, null, 2))
     return
   }
@@ -64,7 +68,10 @@ async function main() {
   const email = process.env.SBH_BOT_EMAIL
   const password = process.env.SBH_BOT_PASSWORD
   if (!email || !password) throw new Error('缺少环境变量 SBH_BOT_EMAIL / SBH_BOT_PASSWORD（专用发稿账号），没有发布')
-  const result = await executePublish(plan, { baseUrl, fetchImpl: fetch, email, password, title: article.title, coverAlt: article.coverAlt })
+  // 登录一次：slug 占用检查要读草稿与回收站（匿名读不到），下面发布时复用同一个 token
+  const token = await login(baseUrl, fetch, email, password)
+  const plan = await preparePublish({ article, cover, status, baseUrl, fetchImpl: fetch, now, token })
+  const result = await executePublish(plan, { baseUrl, fetchImpl: fetch, email, password, token, title: article.title, coverAlt: article.coverAlt })
   if (result.verifyProblems.length > 0) {
     for (const p of result.verifyProblems) log(`✗ 验收：${p}`)
     process.exitCode = 1

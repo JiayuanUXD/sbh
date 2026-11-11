@@ -49,6 +49,23 @@ access: { read: ({ req }) => Boolean(req.user) }
 
 论证与实测记录见 `artifacts/verification/api-exposure/影响清单.md`。
 
+### 「有草稿 / 未上架状态的公开集合」怎么写（有先例了，照抄）
+
+`read: () => true` + 「状态过滤由前台查询层承担」**不成立**：C 端走 Local API（`overrideAccess`
+默认 true）本来就不经 access，而 Payload 自带的 REST / GraphQL 不经任何查询层——匿名
+`GET /api/<collection>?where[status][equals]=draft` 就能枚举并读完整正文，`?trash=true` 还能读回收站。
+`status` 若只是普通 select 字段（没开 `versions.drafts`），Payload 一点都不会替你拦。
+
+写法：集合级 `read` 返回 `true`（管理者）或 Where（其余人），Where 是**前台同一份可见性判据**：
+
+- `Listings` / `Buildings`（OPT-104）：`isStaffRequest(req) ? true : <有效供给 Where>`。
+- `Articles`：`createArticleReadAccess(canManageArticle)`（`domain/public-catalog/article-read-access.ts`）——
+  与写侧**同一道门**，持资讯菜单码者全读，其余只读「已发布且 `deletedAt` 不存在」。
+  启用 `trash` 的集合，Where 里必须带 `deletedAt: { exists: false }`，否则 `?trash=true` 绕得过去。
+
+依赖这类集合「匿名读得到草稿」的脚本会被一并收紧：`news:publish` 的 slug 占用检查与草稿读回改为带专用账号 token。
+守卫：`tests/articles-read-access.test.ts`（调 access 函数）+ `tests/articles-read-access-postgres.test.ts`（穿过 REST / GraphQL 处理器）。
+
 ## 高风险操作
 
 审核、发布、举报、分配、认领、转派、导出敏感数据和角色权限变化必须二次校验权限，并记录请求 ID、操作者、对象、结果和必要前后事实。
