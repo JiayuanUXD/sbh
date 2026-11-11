@@ -1,7 +1,8 @@
 -- 补历史数据：已发布却没有发布时间的资讯（方案，**尚未在任何库执行，更未碰生产**）
 --
 -- 先决条件：用户确认口径（见 README.md「补数方案」），且由有生产写权限的人在维护窗口执行。
--- 口径 A（推荐）：published_at = created_at（写稿日；线上 8 篇一天一篇，日期各不相同）。
+-- 【已选定口径 A】（用户 2026-11-11 确认；B、C 保留在下面只作备忘）
+-- 口径 A：published_at = created_at（写稿日；线上 8 篇一天一篇，日期各不相同）。
 -- 口径 B：published_at = updated_at（最后一次修改，大概率是后台点「发布」的时刻；但线上 5 篇的
 --         updated_at 都落在 10-31 05:10:40–05:11:11（UTC，31 秒内的批量操作），会全部显示 10-31，且 updated_at 不保证就是上架动作）。
 -- 口径 C：运营逐篇在后台手填日期（走 hook 与缓存失效，最准，8 篇各点一次）。
@@ -17,13 +18,17 @@ SELECT id, slug, status, created_at, updated_at
  WHERE status = 'published' AND published_at IS NULL AND deleted_at IS NULL
  ORDER BY id;
 
--- 2) 执行（口径 A）。行数与预检不一致就 ROLLBACK，不要 COMMIT。
+-- 2) 执行（口径 A，用户 2026-11-11 已选定）。只动用户确认过的这 8 个 id：
+--    若预检里冒出这 8 个以外的「已发布无日期」文章（例如 hook 上线前又有人把草稿改成已发布），
+--    它们的创建日不代表发布日，不要顺手一起补——停下来单独定口径。
+--    返回行数不是 8 就 ROLLBACK，不要 COMMIT。
 BEGIN;
 UPDATE articles
    SET published_at = created_at
- WHERE status = 'published' AND published_at IS NULL AND deleted_at IS NULL
+ WHERE id IN (111, 112, 113, 114, 115, 116, 119, 120)
+   AND status = 'published' AND published_at IS NULL AND deleted_at IS NULL
 RETURNING id, slug, published_at;
--- 核对返回行数 = 预检行数后：
+-- 核对返回恰好 8 行、日期依次为 2026-10-23/24/26/27/28/29/30/31（上海时区）后：
 COMMIT;
 
 -- 3) 回滚（执行后发现口径不对时；把 id 换成第 2 步 RETURNING 出来的清单，别用条件批量回滚，
