@@ -95,6 +95,46 @@ const EMPTY_SUPPLY: BuildingSupplySnapshot = {
   availableGroups: [],
 }
 
+type AvailableGroup = BuildingSupplySnapshot['availableGroups'][number]
+type PriceRange = AvailableGroup['priceRanges'][number]
+
+function availabilityGroup(key: AvailableGroup['key'], total: number, overrides: Partial<AvailableGroup> = {}): AvailableGroup {
+  return {
+    key,
+    totalEffectiveListings: total,
+    areaRange: null,
+    seatRange: null,
+    immediateAvailabilityCount: 0,
+    priceRanges: [],
+    ...overrides,
+  }
+}
+
+function supplyOf(...availableGroups: AvailableGroup[]): BuildingSupplySnapshot {
+  return {
+    ...EMPTY_SUPPLY,
+    totalEffectiveListings: availableGroups.reduce((sum, group) => sum + group.totalEffectiveListings, 0),
+    availableGroups,
+  }
+}
+
+const leaseSupply = (count: number, overrides: Partial<AvailableGroup> = {}) =>
+  supplyOf(availabilityGroup('lease', count, overrides))
+
+/** 元/㎡/天：楼盘里唯一可以跨房源比较的租金口径。 */
+const dayPrice = (min: number, max: number, count = 1): PriceRange => ({
+  key: 'lease:CNY:day:sqm',
+  businessType: 'lease', currency: 'CNY', period: 'day', basis: 'sqm',
+  displayUnit: 'rmb-sqm-day', min, max, count,
+})
+
+/** 元/月（总价）：和单价不能混着写成一个区间。 */
+const monthPrice = (min: number, max: number, count = 1): PriceRange => ({
+  key: 'lease:CNY:month:total',
+  businessType: 'lease', currency: 'CNY', period: 'month', basis: 'total',
+  displayUnit: 'rmb-month', min, max, count,
+})
+
 describe('detail metadata and JSON-LD', () => {
   it('uses DTO cityName as JSON-LD address locality', () => {
     const listing = makeListing({ citySlug: 'hangzhou', cityName: '杭州市' })
@@ -393,12 +433,12 @@ describe('详情页 <title> 模板（带「出租 / 出售」「租金」等搜�
   })
 
   it('楼盘：租赁房源 > 0 才写「写字楼出租」，并带「城市区县 + 租金与房源」', () => {
-    const metadata = buildBuildingMetadata(makeBuilding(), ORIGIN, { leaseListingCount: 3 })
+    const metadata = buildBuildingMetadata(makeBuilding(), ORIGIN, { supply: leaseSupply(3) })
     expect(metadata.title).toBe('静安中心写字楼出租 · 上海静安区租金与房源')
   })
 
   it('楼盘：没有租赁房源（或调用方没传数量）时不声称「出租」', () => {
-    const empty = buildBuildingMetadata(makeBuilding(), ORIGIN, { leaseListingCount: 0 })
+    const empty = buildBuildingMetadata(makeBuilding(), ORIGIN, { supply: leaseSupply(0) })
     expect(empty.title).toBe('静安中心写字楼 · 上海静安区')
     const unknown = buildBuildingMetadata(makeBuilding(), ORIGIN)
     expect(unknown.title).toBe('静安中心写字楼 · 上海静安区')
@@ -406,48 +446,155 @@ describe('详情页 <title> 模板（带「出租 / 出售」「租金」等搜�
 
   it('楼盘：缺区县只带城市；与城市前缀路由选项可同时传入', () => {
     const noDistrict = makeBuilding({ district: undefined })
-    expect(buildBuildingMetadata(noDistrict, ORIGIN, { leaseListingCount: 1 }).title)
+    expect(buildBuildingMetadata(noDistrict, ORIGIN, { supply: leaseSupply(1) }).title)
       .toBe('静安中心写字楼出租 · 上海租金与房源')
 
-    const prefixed = buildBuildingMetadata(makeBuilding(), ORIGIN, { citySlug: 'shanghai', leaseListingCount: 1 })
+    const prefixed = buildBuildingMetadata(makeBuilding(), ORIGIN, { citySlug: 'shanghai', supply: leaseSupply(1) })
     expect(prefixed.title).toBe('静安中心写字楼出租 · 上海静安区租金与房源')
     expect(prefixed.alternates?.canonical).toBe('/shanghai/buildings/jingan-center')
   })
 
   it('楼盘：楼盘名本身已带「写字楼」时不重复（浏览器里核对 seed 数据时发现的）', () => {
     const building = makeBuilding({ name: '陆家嘴江景甲级写字楼' })
-    expect(buildBuildingMetadata(building, ORIGIN, { leaseListingCount: 2 }).title)
+    expect(buildBuildingMetadata(building, ORIGIN, { supply: leaseSupply(2) }).title)
       .toBe('陆家嘴江景甲级写字楼出租 · 上海静安区租金与房源')
-    expect(buildBuildingMetadata(building, ORIGIN, { leaseListingCount: 0 }).title)
+    expect(buildBuildingMetadata(building, ORIGIN, { supply: leaseSupply(0) }).title)
       .toBe('陆家嘴江景甲级写字楼 · 上海静安区')
   })
 
   it('楼盘：只改 <title>，OG 标题与 JSON-LD name 仍是楼盘名', () => {
     const building = makeBuilding()
-    const metadata = buildBuildingMetadata(building, ORIGIN, { leaseListingCount: 3 })
+    const metadata = buildBuildingMetadata(building, ORIGIN, { supply: leaseSupply(3) })
     expect(metadata.openGraph?.title).toBe(building.name)
     expect(buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN).name).toBe(building.name)
   })
 
   it('countLeaseListings 只数 lease 组：出售 / 共享办公不算，也不看带筛选的 groups', () => {
-    const group = (key: 'lease' | 'sale' | 'coworking', total: number): BuildingSupplySnapshot['availableGroups'][number] => ({
-      key,
-      totalEffectiveListings: total,
-      areaRange: null,
-      seatRange: null,
-      immediateAvailabilityCount: 0,
-      priceRanges: [],
-    })
-    const withSupply = (availableGroups: BuildingSupplySnapshot['availableGroups']): BuildingSupplySnapshot => ({
-      ...EMPTY_SUPPLY,
-      totalEffectiveListings: availableGroups.reduce((sum, g) => sum + g.totalEffectiveListings, 0),
-      availableGroups,
-    })
-
-    expect(countLeaseListings(withSupply([group('lease', 5), group('sale', 2), group('coworking', 1)]))).toBe(5)
+    const mixed = supplyOf(availabilityGroup('lease', 5), availabilityGroup('sale', 2), availabilityGroup('coworking', 1))
+    expect(countLeaseListings(mixed)).toBe(5)
     // 只有出售 / 共享办公：总数 > 0，但不能据此写「写字楼出租」
-    expect(countLeaseListings(withSupply([group('sale', 2), group('coworking', 1)]))).toBe(0)
+    expect(countLeaseListings(supplyOf(availabilityGroup('sale', 2), availabilityGroup('coworking', 1)))).toBe(0)
     expect(countLeaseListings(EMPTY_SUPPLY)).toBe(0)
+    expect(countLeaseListings(undefined)).toBe(0)
+  })
+})
+
+describe('详情页 description 模板（把真实事实写进摘要，不堆关键词）', () => {
+  // —— 房源 ——
+  it('房源：地域 + 楼盘 + 面积 + 品类出租，再带租金与装修', () => {
+    expect(buildListingMetadata(makeListing(), ORIGIN).description)
+      .toBe('上海静安区静安中心 101㎡办公室出租，租金 8.5 元/㎡/天，拎包入住。')
+  })
+
+  it('房源：楼层、工位数按有无追加；没填面积就不写面积；工位数是前台「工位估算」，写「约」', () => {
+    const listing = makeListing({ listingType: 'coworking', area: null, floor: '12', seats: 42 })
+    expect(buildListingMetadata(listing, ORIGIN).description)
+      .toBe('上海静安区静安中心共享办公出租，租金 8.5 元/㎡/天，拎包入住，12 层，约 42 个工位。')
+  })
+
+  it('房源：楼层不是数字开头（如「高区」）时原样写，不加「层」', () => {
+    expect(buildListingMetadata(makeListing({ floor: '高区' }), ORIGIN).description)
+      .toBe('上海静安区静安中心 101㎡办公室出租，租金 8.5 元/㎡/天，拎包入住，高区。')
+    expect(buildListingMetadata(makeListing({ floor: '9-12' }), ORIGIN).description)
+      .toContain('，9-12 层。')
+  })
+
+  it('房源：出售房源写「出售」与「售价」；无价格写「价格面议」', () => {
+    const sale = makeListing({
+      businessType: 'sale',
+      price: { ...makeListing().price!, businessType: 'sale', text: '1200 万元' },
+    })
+    expect(buildListingMetadata(sale, ORIGIN).description)
+      .toBe('上海静安区静安中心 101㎡办公室出售，售价 1200 万元，拎包入住。')
+
+    expect(buildListingMetadata(makeListing({ price: null }), ORIGIN).description)
+      .toBe('上海静安区静安中心 101㎡办公室出租，价格面议，拎包入住。')
+  })
+
+  it('房源：没有装修信息、没有楼盘时只写有的事实', () => {
+    const listing = makeListing({ building: null, decorationStatus: null })
+    expect(buildListingMetadata(listing, ORIGIN).description)
+      .toBe('上海101㎡办公室出租，租金 8.5 元/㎡/天。')
+  })
+
+  it('房源：超过长度上限就丢掉后面优先级低的事实，前面的不被截断', () => {
+    // 上限 120：头部「上海静安区 + 90 字楼盘名 + ' 101㎡办公室出租'」共 105 字，
+    // 加租金 13 字 = 118 放得下，再加装修 5 字 = 123 超了，所以装修及其后的事实被丢掉。
+    const longName = '某'.repeat(90)
+    const base = makeListing()
+    const listing = makeListing({ building: { ...base.building!, name: longName }, title: `${longName} 101 室` })
+    const description = buildListingMetadata(listing, ORIGIN).description!
+    expect(description).toContain(`上海静安区${longName} 101㎡办公室出租`)
+    expect(description).toContain('租金 8.5 元/㎡/天')
+    expect(description).not.toContain('拎包入住')
+    expect(description.endsWith('。')).toBe(true)
+  })
+
+  it('房源：OG 描述与 JSON-LD 描述和页面 description 是同一句', () => {
+    const listing = makeListing()
+    const metadata = buildListingMetadata(listing, ORIGIN)
+    expect(metadata.openGraph?.description).toBe(metadata.description)
+    expect(buildListingJsonLd(listing, ORIGIN).description).toBe(metadata.description)
+  })
+
+  // —— 楼盘 ——
+  it('楼盘：没有运营简介时，生成「位置 + 在租套数 + 租金区间 + 面积区间」', () => {
+    const supply = leaseSupply(12, { priceRanges: [dayPrice(4.25, 8.5, 12)], areaRange: { min: 100, max: 800 } })
+    const metadata = buildBuildingMetadata(makeBuilding({ summary: '' }), ORIGIN, { supply })
+    expect(metadata.description)
+      .toBe('静安中心位于上海静安区南京西路 100 号，现有 12 套在租办公室，租金 4.25–8.50 元/㎡/天（挂牌价），面积 100–800㎡。')
+  })
+
+  it('楼盘：区间两端相同就写单个数；多个同口径区间合并取极值', () => {
+    const single = leaseSupply(2, { priceRanges: [dayPrice(4.25, 4.25, 2)], areaRange: { min: 300, max: 300 } })
+    expect(buildBuildingMetadata(makeBuilding({ summary: '' }), ORIGIN, { supply: single }).description)
+      .toBe('静安中心位于上海静安区南京西路 100 号，现有 2 套在租办公室，租金 4.25 元/㎡/天（挂牌价），面积 300㎡。')
+
+    const merged = leaseSupply(5, { priceRanges: [dayPrice(7, 9, 2), dayPrice(5, 6, 3)] })
+    expect(buildBuildingMetadata(makeBuilding({ summary: '' }), ORIGIN, { supply: merged }).description)
+      .toContain('租金 5.00–9.00 元/㎡/天（挂牌价）')
+  })
+
+  it('楼盘：只有「元/月」这类总价口径时不写租金（不同口径不能并成一个区间）', () => {
+    const supply = leaseSupply(3, { priceRanges: [monthPrice(12000, 15000, 3)], areaRange: { min: 100, max: 200 } })
+    const description = buildBuildingMetadata(makeBuilding({ summary: '' }), ORIGIN, { supply }).description
+    expect(description).toBe('静安中心位于上海静安区南京西路 100 号，现有 3 套在租办公室，面积 100–200㎡。')
+    expect(description).not.toContain('租金')
+  })
+
+  it('楼盘：有运营简介就原样放最前面，真实事实追加在后；简介末尾的句号不重复', () => {
+    const supply = leaseSupply(12, { priceRanges: [dayPrice(4.25, 8.5, 12)] })
+    expect(buildBuildingMetadata(makeBuilding({ summary: '静安区甲级办公楼。' }), ORIGIN, { supply }).description)
+      .toBe('静安区甲级办公楼，现有 12 套在租办公室，租金 4.25–8.50 元/㎡/天（挂牌价）。')
+  })
+
+  it('楼盘：没有租赁房源（或没传供给）时不编造——有简介原样，没简介只写位置', () => {
+    expect(buildBuildingMetadata(makeBuilding(), ORIGIN, { supply: leaseSupply(0) }).description).toBe('静安区甲级办公楼')
+    expect(buildBuildingMetadata(makeBuilding(), ORIGIN).description).toBe('静安区甲级办公楼')
+    expect(buildBuildingMetadata(makeBuilding({ summary: '' }), ORIGIN, { supply: leaseSupply(0) }).description)
+      .toBe('静安中心位于上海静安区南京西路 100 号。')
+    // 只有出售房源：同样不能写「在租办公室」
+    const saleOnly = supplyOf(availabilityGroup('sale', 4, { areaRange: { min: 100, max: 200 } }))
+    expect(buildBuildingMetadata(makeBuilding({ summary: '' }), ORIGIN, { supply: saleOnly }).description)
+      .toBe('静安中心位于上海静安区南京西路 100 号。')
+  })
+
+  it('楼盘：地址已带城市 / 区县时不重复加前缀；没有地址只写区域', () => {
+    const noSummary = { summary: '' }
+    expect(buildBuildingMetadata(makeBuilding({ ...noSummary, address: '上海市静安区南京西路 100 号' }), ORIGIN).description)
+      .toBe('静安中心位于上海市静安区南京西路 100 号。')
+    expect(buildBuildingMetadata(makeBuilding({ ...noSummary, address: '静安区南京西路 100 号' }), ORIGIN).description)
+      .toBe('静安中心位于静安区南京西路 100 号。')
+    expect(buildBuildingMetadata(makeBuilding({ ...noSummary, address: '' }), ORIGIN).description)
+      .toBe('静安中心位于上海静安区。')
+  })
+
+  it('楼盘：OG 描述与页面 description 是同一句，JSON-LD 的 description 不动', () => {
+    const supply = leaseSupply(12, { priceRanges: [dayPrice(4.25, 8.5, 12)] })
+    const building = makeBuilding({ summary: '' })
+    const metadata = buildBuildingMetadata(building, ORIGIN, { supply })
+    expect(metadata.openGraph?.description).toBe(metadata.description)
+    expect(buildBuildingJsonLd(building, supply, ORIGIN)).not.toHaveProperty('description')
   })
 })
 

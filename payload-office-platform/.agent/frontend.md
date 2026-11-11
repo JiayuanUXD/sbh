@@ -385,8 +385,12 @@ e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一�
 - **例外：首页 Hero 的 H1/副标全站共用一句**，由产品指定（不等于设计稿 `首页.dc.html` 的文案），既不按城市定制、也不读 `CitySiteProfiles.hero.heading/body`；城市差异全部由 title / description / OG 承担。别把它「修回」逐城可配，也别按设计稿改回去——见 `components/frontend/home/HomeHero.tsx` 顶部说明与 OPT-035 工作项 §8。
 - **详情页 `<title>` 要带搜索意图词**（`lib/frontend/detail-metadata.ts` 的 `buildListingSeoTitle` / `buildBuildingSeoTitle`，layout 的 template 再追加「 · 商办租赁」；用户搜的是「xx 写字楼出租」「xx 租金」，只有楼盘名排不上）：
   - 房源：以运营标题为底（唯一性不比改动前差），缺才补楼盘名、「办公室出租」类品类词与「城市区县」；标题已写「出租」不重复。品类词按 `businessType` 取，出售房源写「出售」，**绝不能标成出租**。
-  - 楼盘：租赁房源数 > 0 才写「写字楼出租 · 城市区县租金与房源」，否则退回中性「xx写字楼 · 城市区县」——**标题不许对没有租赁房源的楼盘说「出租」**。数量用 `countLeaseListings(detail.supply)`（只数 `availableGroups` 的 lease 组：出售、共享办公不算；未筛选口径，不随 query 抖动）；两个楼盘路由都要传，**不传就是中性标题**。楼盘名已含「写字楼」不重复拼。
-  - 只改 `<title>`：OG 标题与 JSON-LD `name` 仍是运营标题 / 楼盘名，分享卡片和结构化数据不动。
+  - 楼盘：租赁房源数 > 0 才写「写字楼出租 · 城市区县租金与房源」，否则退回中性「xx写字楼 · 城市区县」——**标题不许对没有租赁房源的楼盘说「出租」**。数量由 `buildBuildingMetadata` 的 `supply` 选项经 `countLeaseListings` 得出（只数 `availableGroups` 的 lease 组：出售、共享办公不算；未筛选口径，不随 query 抖动）；两个楼盘路由都要传 `supply: detail.supply`，**不传就是中性标题，description 也不带供给事实**。楼盘名已含「写字楼」不重复拼。
+  - `<title>` 改动只动 `<title>`：OG 标题与 JSON-LD `name` 仍是运营标题 / 楼盘名，分享卡片和结构化数据不动。
+- **详情页 `description` 写真实事实，不堆关键词**（同在 `detail-metadata.ts`；一般认为 description 不直接参与排名，影响的是摘要与点击，堆词收益低且像作弊）。页面 description 与 OG 描述是同一句；房源的 JSON-LD `description` 也共用这一句，楼盘的 JSON-LD 不动：
+  - 房源：按优先级拼「地域 + 楼盘 + 面积 + 品类出租（出售）」→ 租金 / 售价 → 装修 → 楼层 → 约 N 个工位，缺哪项不写哪项，无价格写「价格面议」。工位数前台叫「工位估算」，所以写「约」。
+  - 楼盘：运营写了简介就**原样放最前面**，有租赁房源时才在后面追加「现有 N 套在租办公室 / 租金 x–y 元/㎡/天（挂牌价）/ 面积 a–b㎡」；没有租赁房源就一字不动。没写简介则生成「楼盘位于城市区县地址」+ 同样的事实。租金区间**只认「元/㎡/天」**这一个可比较口径，「元/月」等其它计价不并区间；地址已带城市 / 区县就不再加前缀。
+  - 长度上限 120 字：按优先级逐段拼，放不下的整段丢掉，不把一句事实截成半句。
   - **首页标题不在代码里**：来自 `CitySiteProfiles.seoTitle`（后台「城市站点档案 → SEO」，≤60 字且必须含城市名），由迁移 `20260813_011000_seed_city_site_profiles` 播种。改首页标题是改生产数据，走后台编辑，不要改代码或重写那条迁移。
 - JSON-LD 与页面使用同一 DTO，不虚构库存、评级或价格。
   - `image` 必须是**绝对 URL**（公开媒体常是 `/api/media/...` 相对路径，用 `toAbsoluteMediaUrl` 补全）；OG 图走 `metadataBase`，不用补。

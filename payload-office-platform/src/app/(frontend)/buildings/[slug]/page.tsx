@@ -4,7 +4,7 @@ import React from 'react'
 import BuildingDetailLayout from '@/components/frontend/building-detail/BuildingDetailLayout'
 import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
-import { buildBuildingJsonLd, buildBuildingMetadata, countLeaseListings, serializeJsonLd } from '@/lib/frontend/detail-metadata'
+import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
 import {
@@ -41,7 +41,7 @@ export async function generateMetadata({
       robots: { index: false, follow: false },
     }
   }
-  return buildBuildingMetadata(building, siteConfig.siteOrigin, { leaseListingCount: countLeaseListings(supply) })
+  return buildBuildingMetadata(building, siteConfig.siteOrigin, { supply })
 }
 
 export default async function BuildingDetailPage({
