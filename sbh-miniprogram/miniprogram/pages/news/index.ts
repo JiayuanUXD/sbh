@@ -20,6 +20,8 @@ Page({
     loadMoreState: 'idle' as 'idle' | 'loading' | 'error' | 'end',
   },
 
+  articleRequestGeneration: 0,
+
   async onLoad() {
     await this.requestArticles(1, false)
   },
@@ -33,7 +35,11 @@ Page({
   },
 
   async onReachBottom() {
-    if (!this.data.hasNextPage || this.data.loadMoreState === 'loading') {
+    if (
+      this.data.state !== 'ready'
+      || !this.data.hasNextPage
+      || this.data.loadMoreState === 'loading'
+    ) {
       return
     }
     await this.requestArticles(this.data.page + 1, true)
@@ -68,6 +74,9 @@ Page({
   },
 
   async requestArticles(page: number, append: boolean) {
+    const owner = ++this.articleRequestGeneration
+    const requestedCategory = this.data.activeCategory
+
     if (append) {
       this.setData({ loadMoreState: 'loading' })
     }
@@ -76,8 +85,12 @@ Page({
       const res = await getArticles({
         page,
         pageSize: 10,
-        category: this.data.activeCategory,
+        category: requestedCategory,
       })
+
+      if (owner !== this.articleRequestGeneration || this.data.activeCategory !== requestedCategory) {
+        return
+      }
 
       const newItems = append ? [...this.data.items, ...res.items] : res.items
       const hasNextPage = Boolean(res.pagination.hasNextPage)
@@ -89,7 +102,10 @@ Page({
         hasNextPage,
         loadMoreState: hasNextPage ? 'idle' : (newItems.length > 0 ? 'end' : 'idle'),
       })
-    } catch (err) {
+    } catch {
+      if (owner !== this.articleRequestGeneration || this.data.activeCategory !== requestedCategory) {
+        return
+      }
       if (append) {
         this.setData({ loadMoreState: 'error' })
       } else {

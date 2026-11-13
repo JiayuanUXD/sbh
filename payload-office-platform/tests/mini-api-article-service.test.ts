@@ -45,8 +45,10 @@ describe('article-service 测试', () => {
       expect(SAFE_SLUG_PATTERN.test('trailing-dash-')).toBe(false)
     })
 
-    it('formatDateFormatted 格式化 ISO 日期', () => {
+    it('formatDateFormatted 按上海时区格式化 ISO 日期', () => {
       expect(formatDateFormatted('2026-10-25T08:00:00.000Z')).toBe('2026-10-25')
+      // 上海时间 2026-11-02 00:30:00（UTC 为前一日 16:30:00）
+      expect(formatDateFormatted('2026-11-01T16:30:00.000Z')).toBe('2026-11-02')
       expect(formatDateFormatted(null)).toBe('')
       expect(formatDateFormatted('invalid-date')).toBe('')
     })

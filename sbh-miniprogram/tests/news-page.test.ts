@@ -102,8 +102,11 @@ function createContext(): Context {
   } as Context
 
   for (const [key, value] of Object.entries(registration)) {
+    if (key === 'data') continue
     if (typeof value === 'function') {
       (ctx as any)[key] = value.bind(ctx)
+    } else {
+      (ctx as any)[key] = structuredClone(value)
     }
   }
 
@@ -231,6 +234,68 @@ describe('资讯列表页合同与行为测试 (News Page)', () => {
       await page.onLoad()
 
       expect(page.data.state).toBe('error')
+    })
+
+    it('连续切换分类时丢弃晚返回的过期分类请求', async () => {
+      let resolveMarket!: (value: MiniArticlesData) => void
+      const marketPromise = new Promise<MiniArticlesData>((resolve) => {
+        resolveMarket = resolve
+      })
+
+      getArticles.mockReturnValueOnce(marketPromise)
+      const page = createContext()
+
+      // 先切换到 market（慢请求，尚未返回）
+      const pendingMarketTap = page.handleCategoryTap({ currentTarget: { dataset: { value: 'market' } } })
+
+      // 立即再切换到 guide（快请求，先返回）
+      getArticles.mockResolvedValueOnce(mockPage1)
+      await page.handleCategoryTap({ currentTarget: { dataset: { value: 'guide' } } })
+
+      expect(page.data.activeCategory).toBe('guide')
+      expect(page.data.items[0].slug).toBe('beiwaitan-office-guide')
+
+      // 随后慢请求 market 才返回，应被丢弃，不覆盖当前 guide 的列表
+      resolveMarket({
+        items: [mockPage2.items[0]],
+        pagination: { page: 1, pageSize: 10, totalDocs: 1, totalPages: 1, hasNextPage: false },
+      })
+      await pendingMarketTap
+
+      expect(page.data.activeCategory).toBe('guide')
+      expect(page.data.items).toHaveLength(1)
+      expect(page.data.items[0].slug).toBe('beiwaitan-office-guide')
+    })
+
+    it('分页加载进行中切换分类，旧分类的分页结果不会追加到新分类列表', async () => {
+      getArticles.mockResolvedValueOnce(mockPage1)
+      const page = createContext()
+      await page.onLoad()
+
+      let resolvePage2!: (value: MiniArticlesData) => void
+      const page2Promise = new Promise<MiniArticlesData>((resolve) => {
+        resolvePage2 = resolve
+      })
+      getArticles.mockReturnValueOnce(page2Promise)
+
+      // 发起旧分类第 2 页加载（未完成）
+      const pendingReachBottom = page.onReachBottom()
+
+      // 此时切换到 market 分类并完成第 1 页加载
+      getArticles.mockResolvedValueOnce({
+        items: [mockPage2.items[0]],
+        pagination: { page: 1, pageSize: 10, totalDocs: 1, totalPages: 1, hasNextPage: false },
+      })
+      await page.handleCategoryTap({ currentTarget: { dataset: { value: 'market' } } })
+
+      // 旧分类第 2 页晚返回，不应追加或篡改页码
+      resolvePage2(mockPage2)
+      await pendingReachBottom
+
+      expect(page.data.activeCategory).toBe('market')
+      expect(page.data.page).toBe(1)
+      expect(page.data.items).toHaveLength(1)
+      expect(page.data.items[0].slug).toBe('lujiazui-rent-trends')
     })
   })
 })

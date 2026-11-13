@@ -26,6 +26,25 @@ describe('Lexical AST 到标准 HTML 转换引擎', () => {
     expect(serializeLexicalToHtml(ast)).toBe('<p class="mini-rich-p">北外滩地处虹口区南部。</p>')
   })
 
+  it('保留段落内的 linebreak 软换行节点并转换为 <br/>', () => {
+    const ast = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              { type: 'text', text: '第一行' },
+              { type: 'linebreak' },
+              { type: 'text', text: '第二行' },
+            ],
+          },
+        ],
+      },
+    }
+    expect(serializeLexicalToHtml(ast)).toBe('<p class="mini-rich-p">第一行<br/>第二行</p>')
+  })
+
   it('标题节点（h1, h2, h3）转换', () => {
     const ast = {
       root: {
