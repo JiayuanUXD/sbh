@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "资讯详情",
+  "usingComponents": {
+    "sbh-skeleton": "../../components/sbh-skeleton/index",
+    "sbh-state": "../../components/sbh-state/index"
+  }
+}

@@ -148,3 +148,6 @@ export async function getMiniBuildingDetail(
     },
   }
 }
+
+export { getMiniArticles, getMiniArticleDetail } from './article-service'
+

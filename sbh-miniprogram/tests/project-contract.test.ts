@@ -47,16 +47,19 @@ describe('小程序工程入口合同', () => {
       | undefined
 
     expect(pages[0]).toBe('pages/home/index')
-    expect(pages).toContain('pages/listings/index')
     expect(pages).toContain('pages/buildings/index')
+    expect(pages).toContain('pages/listings/index')
+    expect(pages).toContain('pages/news/index')
+    expect(pages).toContain('pages/news-detail/index')
     expect(pages).toContain('pages/building-detail/index')
     expect(pages).toContain('pages/listing-detail/index')
     expect(pages).toContain('pages/foundation/index')
     expect(pages).toContain('pages/profile/index')
     expect(tabBar?.list?.map((item) => item.pagePath)).toEqual([
       'pages/home/index',
-      'pages/listings/index',
       'pages/buildings/index',
+      'pages/listings/index',
+      'pages/news/index',
       'pages/profile/index',
     ])
     expect(app.tabBar).toMatchObject({
@@ -72,16 +75,22 @@ describe('小程序工程入口合同', () => {
           selectedIconPath: 'assets/tabbar/home-selected.png',
         },
         {
-          pagePath: 'pages/listings/index',
-          text: '找房',
-          iconPath: 'assets/tabbar/listings.png',
-          selectedIconPath: 'assets/tabbar/listings-selected.png',
-        },
-        {
           pagePath: 'pages/buildings/index',
           text: '楼盘',
           iconPath: 'assets/tabbar/buildings.png',
           selectedIconPath: 'assets/tabbar/buildings-selected.png',
+        },
+        {
+          pagePath: 'pages/listings/index',
+          text: '搜楼',
+          iconPath: 'assets/tabbar/listings.png',
+          selectedIconPath: 'assets/tabbar/listings-selected.png',
+        },
+        {
+          pagePath: 'pages/news/index',
+          text: '资讯',
+          iconPath: 'assets/tabbar/news.png',
+          selectedIconPath: 'assets/tabbar/news-selected.png',
         },
         {
           pagePath: 'pages/profile/index',
@@ -93,7 +102,7 @@ describe('小程序工程入口合同', () => {
     })
   })
 
-  it('为四个 tab 提供尺寸一致的透明 PNG 双态图标', () => {
+  it('为五个 tab 提供尺寸一致的透明 PNG 双态图标', () => {
     const app = readJson('miniprogram/app.json')
     const tabBar = app.tabBar as
       | {
@@ -104,7 +113,7 @@ describe('小程序工程入口合同', () => {
         }
       | undefined
 
-    expect(tabBar?.list).toHaveLength(4)
+    expect(tabBar?.list).toHaveLength(5)
 
     for (const item of tabBar?.list ?? []) {
       const iconBuffers: Buffer[] = []

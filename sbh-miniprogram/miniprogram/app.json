@@ -1,8 +1,10 @@
 {
   "pages": [
     "pages/home/index",
-    "pages/listings/index",
     "pages/buildings/index",
+    "pages/listings/index",
+    "pages/news/index",
+    "pages/news-detail/index",
     "pages/building-detail/index",
     "pages/listing-detail/index",
     "pages/foundation/index",
@@ -27,16 +29,22 @@
         "selectedIconPath": "assets/tabbar/home-selected.png"
       },
       {
-        "pagePath": "pages/listings/index",
-        "text": "找房",
-        "iconPath": "assets/tabbar/listings.png",
-        "selectedIconPath": "assets/tabbar/listings-selected.png"
-      },
-      {
         "pagePath": "pages/buildings/index",
         "text": "楼盘",
         "iconPath": "assets/tabbar/buildings.png",
         "selectedIconPath": "assets/tabbar/buildings-selected.png"
+      },
+      {
+        "pagePath": "pages/listings/index",
+        "text": "搜楼",
+        "iconPath": "assets/tabbar/listings.png",
+        "selectedIconPath": "assets/tabbar/listings-selected.png"
+      },
+      {
+        "pagePath": "pages/news/index",
+        "text": "资讯",
+        "iconPath": "assets/tabbar/news.png",
+        "selectedIconPath": "assets/tabbar/news-selected.png"
       },
       {
         "pagePath": "pages/profile/index",

@@ -89,8 +89,10 @@ export function checkProject() {
   const appConfig = readJson('miniprogram/app.json')
   const expectedPages = [
     'pages/home/index',
-    'pages/listings/index',
     'pages/buildings/index',
+    'pages/listings/index',
+    'pages/news/index',
+    'pages/news-detail/index',
     'pages/building-detail/index',
     'pages/listing-detail/index',
     'pages/foundation/index',
@@ -101,13 +103,14 @@ export function checkProject() {
     appConfig.pages.length !== expectedPages.length ||
     appConfig.pages.some((page, index) => page !== expectedPages[index])
   ) {
-    fail('miniprogram/app.json 必须按首页、找房、楼盘、楼盘详情、房源详情、foundation、我的的顺序注册页面')
+    fail('miniprogram/app.json 页面注册与约定不匹配')
   }
 
   const expectedTabs = [
     { pagePath: 'pages/home/index', text: '首页' },
-    { pagePath: 'pages/listings/index', text: '找房' },
     { pagePath: 'pages/buildings/index', text: '楼盘' },
+    { pagePath: 'pages/listings/index', text: '搜楼' },
+    { pagePath: 'pages/news/index', text: '资讯' },
     { pagePath: 'pages/profile/index', text: '我的' },
   ]
   const tabList = appConfig.tabBar?.list
@@ -119,7 +122,7 @@ export function checkProject() {
         item?.pagePath !== expectedTabs[index].pagePath || item?.text !== expectedTabs[index].text,
     )
   ) {
-    fail('miniprogram/app.json 的 tabBar 必须包含首页、找房、楼盘和我的')
+    fail('miniprogram/app.json 的 tabBar 必须包含首页、楼盘、搜楼、资讯和我的')
   }
 
   for (const pagePath of expectedPages) {

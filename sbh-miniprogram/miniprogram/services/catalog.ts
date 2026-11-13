@@ -1,10 +1,15 @@
 import {
+  parseMiniArticleDetailData,
+  parseMiniArticlesData,
   parseMiniBuildingCard,
   parseMiniBuildingDetailData,
   parseMiniBuildingsData,
   parseMiniHomeData,
   parseMiniListingDetailData,
   parseMiniListingsData,
+  type MiniArticleDetailData,
+  type MiniArticlesData,
+  type MiniArticlesQuery,
   type MiniBuildingCard,
   type MiniBuildingDetailData,
   type MiniBuildingsData,
@@ -29,6 +34,13 @@ function requireSafeListingSlug(value: string): string {
 function requireSafeBuildingSlug(value: string): string {
   if (!SAFE_SLUG_PATTERN.test(value)) {
     throw new TypeError('楼盘标识无效')
+  }
+  return value
+}
+
+function requireSafeArticleSlug(value: string): string {
+  if (!SAFE_SLUG_PATTERN.test(value)) {
+    throw new TypeError('文章标识无效')
   }
   return value
 }
@@ -70,6 +82,24 @@ export function createCatalogService(requestClient: MiniRequestClient = request)
         parse: (value) => parseMiniBuildingDetailData(value, safeSlug),
       })
     },
+    getArticles(query?: MiniArticlesQuery): Promise<MiniArticlesData> {
+      const parts: string[] = []
+      if (query?.page !== undefined) parts.push(`page=${encodeURIComponent(query.page)}`)
+      if (query?.pageSize !== undefined) parts.push(`pageSize=${encodeURIComponent(query.pageSize)}`)
+      if (query?.category) parts.push(`category=${encodeURIComponent(query.category)}`)
+      const suffix = parts.length > 0 ? `?${parts.join('&')}` : ''
+      return requestClient({
+        path: `/api/mini/v1/articles${suffix}`,
+        parse: parseMiniArticlesData,
+      })
+    },
+    getArticleDetail(slug: string): Promise<MiniArticleDetailData> {
+      const safeSlug = requireSafeArticleSlug(slug)
+      return requestClient({
+        path: `/api/mini/v1/articles/${encodeURIComponent(safeSlug)}`,
+        parse: (value) => parseMiniArticleDetailData(value, safeSlug),
+      })
+    },
   }
 }
 
@@ -79,3 +109,5 @@ export const getListings = catalog.getListings
 export const getListingDetail = catalog.getListingDetail
 export const getBuildings = catalog.getBuildings
 export const getBuildingDetail = catalog.getBuildingDetail
+export const getArticles = catalog.getArticles
+export const getArticleDetail = catalog.getArticleDetail
