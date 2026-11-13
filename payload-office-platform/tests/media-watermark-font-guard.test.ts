@@ -35,7 +35,7 @@ describe('生产容器的中文字体安装（Dockerfile）', () => {
   })
 
   it('只装在 runner 阶段——builder/deps 不连库不渲染水印，没必要装', () => {
-    const runnerStageStart = dockerfile.indexOf('FROM node:22-slim AS runner')
+    const runnerStageStart = dockerfile.search(/^FROM \S+ AS runner$/m)
     const fontLineIndex = dockerfile.indexOf('fonts-wqy-zenhei')
     expect(runnerStageStart).toBeGreaterThan(-1)
     expect(fontLineIndex).toBeGreaterThan(runnerStageStart)

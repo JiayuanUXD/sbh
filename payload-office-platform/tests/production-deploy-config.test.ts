@@ -148,6 +148,18 @@ describe('生产部署配置', () => {
     expect(fn).toContain('UserNetworkTooSlow')
   })
 
+  it('生产构建的三个阶段统一使用 ECR Public 上的 Docker 官方 Node 22 slim', () => {
+    const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
+    const stages = [...dockerfile.matchAll(/^FROM (\S+) AS (deps|builder|runner)$/gm)]
+      .map(([, image, stage]) => [stage, image])
+
+    expect(stages).toEqual([
+      ['deps', 'public.ecr.aws/docker/library/node:22-slim'],
+      ['builder', 'public.ecr.aws/docker/library/node:22-slim'],
+      ['runner', 'public.ecr.aws/docker/library/node:22-slim'],
+    ])
+  })
+
   it('Docker builder 始终提供可复制的 public 目录', () => {
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
     const ensurePublic = dockerfile.indexOf('RUN mkdir -p public')
@@ -189,7 +201,9 @@ describe('生产部署配置', () => {
     // prod-deps 瘦身曾把 devDeps 挡在镜像外，导致 sbh-053 启动即 ERR_MODULE_NOT_FOUND；
     // 其中 `find node_modules -name '*.ts' -delete` 对任何运行时读 .ts 的包都是隐患。
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
-    const runner = dockerfile.slice(dockerfile.indexOf('FROM node:22-slim AS runner'))
+    const runnerStageStart = dockerfile.search(/^FROM \S+ AS runner$/m)
+    expect(runnerStageStart).toBeGreaterThanOrEqual(0)
+    const runner = dockerfile.slice(runnerStageStart)
 
     expect(runner).toContain('COPY --from=deps /app/node_modules ./node_modules')
     expect(dockerfile).not.toContain('AS prod-deps')
