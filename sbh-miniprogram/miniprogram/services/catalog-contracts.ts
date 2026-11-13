@@ -198,6 +198,61 @@ export type MiniListingDetailData = Readonly<{
   inquiryPolicy: Readonly<{ version: string }>
 }>
 
+export type MiniArticleCategory = 'market' | 'guide' | 'building' | 'industry'
+
+export type MiniArticleItem = Readonly<{
+  id: string
+  slug: string
+  title: string
+  category: string
+  categoryLabel: string
+  publishedAt: string
+  publishedDateFormatted: string
+  coverImage: MiniImage | null
+  excerpt: string
+}>
+
+export type MiniArticlesData = Readonly<{
+  items: readonly MiniArticleItem[]
+  pagination: Readonly<{
+    page: number
+    pageSize: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+  }>
+}>
+
+export type MiniRelatedBuilding = Readonly<{
+  id: string
+  name: string
+  slug: string
+  district: string | null
+  priceText: string | null
+  coverImage: MiniImage | null
+}>
+
+export type MiniArticleDetailData = Readonly<{
+  id: string
+  slug: string
+  title: string
+  category: string
+  categoryLabel: string
+  publishedAt: string
+  publishedDateFormatted: string
+  coverImage: MiniImage | null
+  excerpt: string
+  contentHtml: string
+  relatedBuildings: readonly MiniRelatedBuilding[]
+}>
+
+export type MiniArticlesQuery = Readonly<{
+  page?: number
+  pageSize?: number
+  category?: string
+}>
+
+
 const INVALID_CATALOG_RESPONSE = 'Mini API 目录响应无效'
 const SAFE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
@@ -717,3 +772,73 @@ export function parseMiniBuildingDetailData(
     inquiryPolicy,
   }
 }
+
+export function parseMiniArticleItem(value: unknown): MiniArticleItem {
+  const record = requireRecord(value)
+  const coverImage = record.coverImage === null ? null : parseMiniImage(record.coverImage)
+  return {
+    id: requireString(record.id),
+    slug: requireSafeSlug(requireString(record.slug)),
+    title: requireString(record.title),
+    category: requireString(record.category),
+    categoryLabel: requireString(record.categoryLabel),
+    publishedAt: typeof record.publishedAt === 'string' ? record.publishedAt : '',
+    publishedDateFormatted: typeof record.publishedDateFormatted === 'string' ? record.publishedDateFormatted : '',
+    coverImage,
+    excerpt: typeof record.excerpt === 'string' ? record.excerpt : '',
+  }
+}
+
+export function parseMiniArticlesData(value: unknown): MiniArticlesData {
+  const record = requireRecord(value)
+  const paginationRecord = requireRecord(record.pagination)
+  return {
+    items: requireArray(record.items, parseMiniArticleItem),
+    pagination: {
+      page: requireNonNegativeInteger(paginationRecord.page),
+      pageSize: requireNonNegativeInteger(paginationRecord.pageSize),
+      totalDocs: requireNonNegativeInteger(paginationRecord.totalDocs),
+      totalPages: requireNonNegativeInteger(paginationRecord.totalPages),
+      hasNextPage: requireBoolean(paginationRecord.hasNextPage),
+    },
+  }
+}
+
+export function parseMiniRelatedBuilding(value: unknown): MiniRelatedBuilding {
+  const record = requireRecord(value)
+  const coverImage = record.coverImage === null ? null : parseMiniImage(record.coverImage)
+  return {
+    id: requireString(record.id),
+    name: requireString(record.name),
+    slug: requireSafeSlug(requireString(record.slug)),
+    district: typeof record.district === 'string' && record.district.trim() ? record.district.trim() : null,
+    priceText: typeof record.priceText === 'string' && record.priceText.trim() ? record.priceText.trim() : null,
+    coverImage,
+  }
+}
+
+export function parseMiniArticleDetailData(
+  value: unknown,
+  expectedSlug?: string,
+): MiniArticleDetailData {
+  const record = requireRecord(value)
+  const slug = requireSafeSlug(requireString(record.slug))
+  if (expectedSlug !== undefined && slug !== requireSafeSlug(expectedSlug)) {
+    return invalidCatalogResponse()
+  }
+  const coverImage = record.coverImage === null ? null : parseMiniImage(record.coverImage)
+  return {
+    id: requireString(record.id),
+    slug,
+    title: requireString(record.title),
+    category: requireString(record.category),
+    categoryLabel: requireString(record.categoryLabel),
+    publishedAt: typeof record.publishedAt === 'string' ? record.publishedAt : '',
+    publishedDateFormatted: typeof record.publishedDateFormatted === 'string' ? record.publishedDateFormatted : '',
+    coverImage,
+    excerpt: typeof record.excerpt === 'string' ? record.excerpt : '',
+    contentHtml: typeof record.contentHtml === 'string' ? record.contentHtml : '',
+    relatedBuildings: requireArray(record.relatedBuildings, parseMiniRelatedBuilding),
+  }
+}
+

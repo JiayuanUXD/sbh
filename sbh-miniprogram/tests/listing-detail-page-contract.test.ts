@@ -21,8 +21,10 @@ describe('房源详情页面合同', () => {
 
     expect(app.pages).toEqual([
       'pages/home/index',
-      'pages/listings/index',
       'pages/buildings/index',
+      'pages/listings/index',
+      'pages/news/index',
+      'pages/news-detail/index',
       'pages/building-detail/index',
       'pages/listing-detail/index',
       'pages/foundation/index',

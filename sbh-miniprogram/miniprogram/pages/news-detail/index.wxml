@@ -1,0 +1,83 @@
+<view class="news-detail-page">
+  <!-- 骨架屏加载态 -->
+  <block wx:if="{{state === 'loading'}}">
+    <view class="news-detail-skeleton">
+      <sbh-skeleton wx:for="{{[1, 2, 3]}}" wx:key="*this" />
+    </view>
+  </block>
+
+  <!-- 错误状态 -->
+  <block wx:elif="{{state === 'error'}}">
+    <view class="news-detail-state">
+      <sbh-state
+        kind="error"
+        title="文章不存在或加载失败"
+        description="请检查网络或返回重试"
+        action-label="重新加载"
+        bindaction="handleRetry"
+      />
+    </view>
+  </block>
+
+  <!-- 就绪状态 -->
+  <block wx:elif="{{state === 'ready' && article}}">
+    <view class="news-detail-container" id="news-detail-ready">
+      <!-- 头部元信息 -->
+      <view class="news-detail__header">
+        <view class="news-detail__meta">
+          <text wx:if="{{article.categoryLabel}}" class="news-detail__badge">{{article.categoryLabel}}</text>
+          <text class="news-detail__date">{{article.publishedDateFormatted}}</text>
+        </view>
+        <view class="news-detail__title">{{article.title}}</view>
+      </view>
+
+      <!-- 封面大图 -->
+      <view wx:if="{{article.coverImage && article.coverImage.src}}" class="news-detail__cover-box">
+        <image
+          class="news-detail__cover"
+          src="{{article.coverImage.src}}"
+          mode="widthFix"
+        />
+      </view>
+
+      <!-- 文章摘要引用条 -->
+      <view wx:if="{{article.excerpt}}" class="news-detail__excerpt-box">
+        <view class="news-detail__excerpt">{{article.excerpt}}</view>
+      </view>
+
+      <!-- 富文本正文 -->
+      <view class="news-detail__content-box">
+        <rich-text nodes="{{article.contentHtml}}" class="news-detail__content" />
+      </view>
+
+      <!-- 关联楼盘导流 -->
+      <view wx:if="{{article.relatedBuildings && article.relatedBuildings.length > 0}}" class="news-detail__related">
+        <view class="news-detail__related-title">相关楼盘</view>
+        <view class="news-detail__related-list">
+          <view
+            wx:for="{{article.relatedBuildings}}"
+            wx:key="id"
+            class="news-related-card"
+            data-slug="{{item.slug}}"
+            bindtap="handleBuildingTap"
+          >
+            <view wx:if="{{item.coverImage && item.coverImage.src}}" class="news-related-card__media">
+              <image
+                class="news-related-card__img"
+                src="{{item.coverImage.src}}"
+                mode="aspectFill"
+                lazy-load
+              />
+            </view>
+            <view class="news-related-card__info">
+              <view class="news-related-card__name">{{item.name}}</view>
+              <view wx:if="{{item.district}}" class="news-related-card__district">{{item.district}}</view>
+              <view wx:if="{{item.priceText}}" class="news-related-card__price">{{item.priceText}}</view>
+            </view>
+            <view class="news-related-card__arrow">›</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

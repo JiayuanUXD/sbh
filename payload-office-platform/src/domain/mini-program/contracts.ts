@@ -5,6 +5,7 @@ export type MiniErrorCode =
   | 'city_not_found'
   | 'listing_not_found'
   | 'building_not_found'
+  | 'article_not_found'
   | 'login_code_invalid'
   | 'session_invalid'
   | 'phone_code_consumed'
@@ -221,3 +222,57 @@ export type MiniDetailResolution =
   | Readonly<{ status: 'ok'; snapshot: MiniSnapshot<MiniListingDetailData> }>
   | Readonly<{ status: 'city-not-found' }>
   | Readonly<{ status: 'listing-not-found' }>
+
+export type MiniArticleCategory = 'market' | 'guide' | 'building' | 'industry'
+
+export type MiniArticleItem = Readonly<{
+  id: string
+  slug: string
+  title: string
+  category: MiniArticleCategory | string
+  categoryLabel: string
+  publishedAt: string
+  publishedDateFormatted: string
+  coverImage: MiniImage | null
+  excerpt: string
+}>
+
+export type MiniArticlesData = Readonly<{
+  items: readonly MiniArticleItem[]
+  pagination: Readonly<{
+    page: number
+    pageSize: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage?: boolean
+  }>
+}>
+
+export type MiniRelatedBuilding = Readonly<{
+  id: string
+  name: string
+  slug: string
+  district: string | null
+  priceText: string | null
+  coverImage: MiniImage | null
+}>
+
+export type MiniArticleDetailData = Readonly<{
+  id: string
+  slug: string
+  title: string
+  category: MiniArticleCategory | string
+  categoryLabel: string
+  publishedAt: string
+  publishedDateFormatted: string
+  coverImage: MiniImage | null
+  excerpt: string
+  contentHtml: string
+  relatedBuildings: readonly MiniRelatedBuilding[]
+}>
+
+export type MiniArticleDetailResolution =
+  | Readonly<{ status: 'ok'; snapshot: MiniSnapshot<MiniArticleDetailData> }>
+  | Readonly<{ status: 'article_not_found' }>
+

@@ -1,0 +1,83 @@
+<view class="news-page">
+  <!-- 顶部分类导航栏 -->
+  <scroll-view class="news-category-bar" scroll-x enable-flex show-scrollbar="{{false}}">
+    <view class="news-category-scroll">
+      <view
+        wx:for="{{categories}}"
+        wx:key="value"
+        class="news-category-tab {{activeCategory === item.value ? 'news-category-tab--active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="handleCategoryTap"
+      >
+        <text class="news-category-tab__text">{{item.label}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 骨架屏加载态 -->
+  <block wx:if="{{state === 'loading'}}">
+    <view class="news-skeleton-container">
+      <sbh-skeleton wx:for="{{[1, 2, 3, 4]}}" wx:key="*this" />
+    </view>
+  </block>
+
+  <!-- 错误状态 -->
+  <block wx:elif="{{state === 'error'}}">
+    <view class="news-state-container">
+      <sbh-state
+        kind="error"
+        title="加载失败"
+        description="网络连接异常，请重试"
+        action-label="重新加载"
+        bindaction="handleRetry"
+      />
+    </view>
+  </block>
+
+  <!-- 就绪状态 -->
+  <block wx:elif="{{state === 'ready'}}">
+    <!-- 空状态 -->
+    <view wx:if="{{items.length === 0}}" class="news-state-container">
+      <sbh-state
+        kind="empty"
+        title="暂无相关资讯"
+        description="稍后再来看看吧"
+      />
+    </view>
+
+    <!-- 资讯卡片流 -->
+    <view wx:else class="news-list" id="news-ready">
+      <view
+        wx:for="{{items}}"
+        wx:key="id"
+        class="news-card"
+        data-slug="{{item.slug}}"
+        bindtap="handleArticleTap"
+      >
+        <view class="news-card__body">
+          <view class="news-card__meta">
+            <text wx:if="{{item.categoryLabel}}" class="news-card__badge">{{item.categoryLabel}}</text>
+            <text class="news-card__date">{{item.publishedDateFormatted}}</text>
+          </view>
+          <view class="news-card__title">{{item.title}}</view>
+          <view wx:if="{{item.excerpt}}" class="news-card__excerpt">{{item.excerpt}}</view>
+        </view>
+        <view wx:if="{{item.coverImage && item.coverImage.src}}" class="news-card__media">
+          <image
+            class="news-card__img"
+            src="{{item.coverImage.src}}"
+            mode="aspectFill"
+            lazy-load
+          />
+        </view>
+      </view>
+
+      <!-- 触底加载提示 -->
+      <view class="news-load-more">
+        <text wx:if="{{loadMoreState === 'loading'}}" class="news-load-more__text">加载中...</text>
+        <text wx:elif="{{loadMoreState === 'error'}}" class="news-load-more__text news-load-more__text--error" bindtap="onReachBottom">加载失败，点击重试</text>
+        <text wx:elif="{{loadMoreState === 'end'}}" class="news-load-more__text news-load-more__text--end">没有更多资讯了</text>
+      </view>
+    </view>
+  </block>
+</view>

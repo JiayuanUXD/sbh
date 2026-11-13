@@ -1,0 +1,234 @@
+.news-detail-page {
+  min-height: 100vh;
+  background-color: #ffffff;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.news-detail-skeleton {
+  padding: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.news-detail-state {
+  padding: 160rpx 32rpx;
+}
+
+.news-detail-container {
+  padding: 32rpx;
+}
+
+/* 头部元信息 */
+.news-detail__header {
+  margin-bottom: 28rpx;
+}
+
+.news-detail__meta {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.news-detail__badge {
+  font-size: 22rpx;
+  line-height: 32rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 6rpx;
+  background-color: rgba(0, 113, 227, 0.08);
+  color: #0071e3;
+  font-weight: 500;
+}
+
+.news-detail__date {
+  font-size: 24rpx;
+  color: #86868b;
+  line-height: 32rpx;
+}
+
+.news-detail__title {
+  font-size: 40rpx;
+  line-height: 56rpx;
+  font-weight: 700;
+  color: #1d1d1f;
+  word-break: break-all;
+}
+
+/* 封面图 */
+.news-detail__cover-box {
+  margin-bottom: 32rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background-color: #f0f0f2;
+}
+
+.news-detail__cover {
+  width: 100%;
+  display: block;
+}
+
+/* 摘要提示框 */
+.news-detail__excerpt-box {
+  margin-bottom: 36rpx;
+  padding: 20rpx 24rpx;
+  background-color: #f5f5f7;
+  border-left: 6rpx solid #0071e3;
+  border-radius: 8rpx;
+}
+
+.news-detail__excerpt {
+  font-size: 26rpx;
+  line-height: 40rpx;
+  color: #6e6e73;
+  word-break: break-all;
+}
+
+/* 富文本正文 */
+.news-detail__content-box {
+  margin-bottom: 48rpx;
+}
+
+.news-detail__content {
+  font-size: 32rpx;
+  line-height: 54rpx;
+  color: #1d1d1f;
+  word-break: break-word;
+}
+
+/* 富文本内元素样式适配 */
+.mini-rich-p {
+  margin: 20rpx 0;
+  line-height: 54rpx;
+}
+
+.mini-rich-h2 {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 40rpx 0 20rpx;
+  line-height: 48rpx;
+}
+
+.mini-rich-h3 {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 32rpx 0 16rpx;
+  line-height: 44rpx;
+}
+
+.mini-rich-quote {
+  margin: 24rpx 0;
+  padding: 16rpx 24rpx;
+  background-color: #f5f5f7;
+  border-left: 6rpx solid #d2d2d7;
+  color: #6e6e73;
+  font-size: 28rpx;
+  line-height: 44rpx;
+}
+
+.mini-rich-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12rpx;
+  display: block;
+  margin: 24rpx 0;
+}
+
+.mini-rich-ul,
+.mini-rich-ol {
+  margin: 20rpx 0;
+  padding-left: 36rpx;
+  line-height: 50rpx;
+}
+
+.mini-rich-hr {
+  border: none;
+  border-top: 1rpx solid #e5e5ea;
+  margin: 36rpx 0;
+}
+
+/* 相关楼盘推荐模块 */
+.news-detail__related {
+  margin-top: 56rpx;
+  padding-top: 36rpx;
+  border-top: 1rpx solid #f0f0f2;
+}
+
+.news-detail__related-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin-bottom: 24rpx;
+}
+
+.news-detail__related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.news-related-card {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 18rpx 20rpx;
+  background-color: #f7f7f8;
+  border-radius: 14rpx;
+  transition: all 0.2s ease;
+}
+
+.news-related-card:active {
+  background-color: #ededef;
+}
+
+.news-related-card__media {
+  width: 140rpx;
+  height: 100rpx;
+  border-radius: 8rpx;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: #e5e5ea;
+}
+
+.news-related-card__img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.news-related-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.news-related-card__name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1d1d1f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.news-related-card__district {
+  font-size: 22rpx;
+  color: #86868b;
+}
+
+.news-related-card__price {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #c85a17;
+}
+
+.news-related-card__arrow {
+  font-size: 32rpx;
+  color: #c7c7cc;
+  padding-left: 8rpx;
+}
