@@ -52,5 +52,9 @@ export function resolveCanonicalRedirect(input: CanonicalRedirectInput): string 
   if (effective === new URL(canonicalOrigin).hostname.toLowerCase()) return null
   if (!LEGACY_HOSTS.has(effective)) return null
   if (isPassthroughPath(input.pathname)) return null
+  // 百度验证要求 www 域名直接返回该静态文件，其他页面仍归一到主域名。
+  if (effective === 'www.shangban.cc' && input.pathname === '/baidu_verify_codeva-nyvqhoRLTJ.html') {
+    return null
+  }
   return `${canonicalOrigin}${input.pathname}${input.search ?? ''}`
 }
