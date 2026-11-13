@@ -267,10 +267,7 @@
   font-weight: var(--sbh-type-semibold-weight);
 }
 
-.inquiry-sheet__submit[disabled],
-.inquiry-sheet__close[disabled],
-.inquiry-sheet__phone-segment-option[disabled],
-.inquiry-sheet__privacy-link[disabled] {
+.inquiry-sheet__control--disabled {
   opacity: var(--sbh-state-disabled-opacity);
 }
 

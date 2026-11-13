@@ -18,12 +18,8 @@ import {
   createInquiryService,
   createSubmissionIntentManager,
 } from '../../services/inquiry.js'
-import {
-  isFavorite,
-  loadUserAssets,
-  refreshUserAssets,
-  setFavorite,
-} from '../../services/favorites.js'
+import { refreshUserAssets } from '../../services/favorites.js'
+import { createDetailFavoriteController, type DetailFavoriteController } from '../../services/detail-favorite.js'
 import { request } from '../../services/request.js'
 import { createSessionService } from '../../services/session.js'
 import {
@@ -49,6 +45,7 @@ type ListingDetailPageData = {
   inquirySheet: InquirySheetSnapshot
   isFavorited: boolean
   favoriteBusy: boolean
+  favoriteUnavailable: boolean
 }
 
 type ListingOpenEvent = Readonly<{
@@ -62,6 +59,7 @@ type PhoneAuthorizationEvent = Readonly<{ detail: Readonly<{ phoneCode?: unknown
 type ListingDetailPageMethods = {
   listingDetailController: ListingDetailController | null
   inquirySheetController: InquirySheetController | null
+  favoriteController: DetailFavoriteController | null
   ensureListingDetailController(): ListingDetailController
   ensureInquirySheetController(): InquirySheetController
   handleRetry(): void
@@ -186,10 +184,12 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
     inquirySheet: closedInquirySheet(),
     isFavorited: false,
     favoriteBusy: true,
+    favoriteUnavailable: false,
   },
 
   listingDetailController: null,
   inquirySheetController: null,
+  favoriteController: null,
 
   onLoad(options) {
     const slug = typeof options.slug === 'string' ? options.slug : ''
@@ -204,6 +204,7 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
   },
 
   onUnload() {
+    this.favoriteController?.dispose()
     this.listingDetailController?.dispose()
     this.inquirySheetController?.dispose()
     sessionService.clear()
@@ -270,46 +271,16 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
   },
 
   async loadFavoriteState(slug) {
-    if (!slug) {
-      this.setData({ isFavorited: false, favoriteBusy: false })
-      return
-    }
-    this.setData({ favoriteBusy: true })
-    try {
-      const assets = await loadUserAssets()
-      if (this.data.slug !== slug) return
-      this.setData({
-        isFavorited: isFavorite(assets, { targetType: 'listing', targetSlug: slug }),
-        favoriteBusy: false,
-      })
-    } catch {
-      if (this.data.slug === slug) {
-        this.setData({ favoriteBusy: false })
-        wx.showToast({ title: '收藏状态暂不可用，请重试', icon: 'none' })
-      }
-    }
+    if (!slug || slug !== this.data.slug) return
+    this.favoriteController ??= createDetailFavoriteController(
+      { targetType: 'listing', targetSlug: slug },
+      (view) => this.setData(view),
+    )
+    await this.favoriteController.refresh()
   },
 
   async handleToggleFavorite() {
-    const slug = this.data.slug
-    if (this.data.favoriteBusy) return
-    if (!slug) return
-    const target = { targetType: 'listing' as const, targetSlug: slug }
-    const favorite = !this.data.isFavorited
-    this.setData({ favoriteBusy: true })
-    try {
-      const assets = await setFavorite(target, favorite)
-      const isFavorited = isFavorite(assets, target)
-      this.setData({ isFavorited })
-      wx.showToast({
-        title: isFavorited ? '已收藏该房源' : '已取消收藏',
-        icon: 'success',
-      })
-    } catch {
-      wx.showToast({ title: '收藏状态更新失败，请重试', icon: 'none' })
-    } finally {
-      this.setData({ favoriteBusy: false })
-    }
+    await this.favoriteController?.activate()
   },
 
   handleRetry() {

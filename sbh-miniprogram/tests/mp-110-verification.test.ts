@@ -8,19 +8,8 @@ function read(relativePath: string): string {
   return readFileSync(resolve(projectRoot, relativePath), 'utf8')
 }
 
-function lum(hex: string): number {
-  const c = hex.replace('#', '').match(/../g)!.map((x) => parseInt(x, 16) / 255).map((x) => (x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4))
-  return c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722
-}
-
-function contrast(a: string, b: string): number {
-  const x = lum(a)
-  const y = lum(b)
-  return +((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)).toFixed(4)
-}
-
-describe('MP-110 阶段 A & B & C 结构与视觉合同', () => {
-  it('T4 / A1: 房源详情底栏约束原生 button 尺寸，消除在 375、390、430 视口下的重叠风险', () => {
+describe('MP-110 源码约束', () => {
+  it('T4 / A1: 房源详情底栏约束原生 button 的网格尺寸', () => {
     const wxss = read('miniprogram/pages/listing-detail/index.wxss')
     const wxml = read('miniprogram/pages/listing-detail/index.wxml')
 
@@ -31,25 +20,9 @@ describe('MP-110 阶段 A & B & C 结构与视觉合同', () => {
     expect(wxss).toMatch(/\.listing-detail__bar\s*\{[\s\S]*grid-template-columns:\s*auto\s+minmax\(0,\s*1fr\)\s+minmax\(0,\s*2fr\);/)
     expect(wxss).toMatch(/\.listing-detail__bar\s*\{[\s\S]*gap:\s*var\(--sbh-layout-space-sm\);/)
     expect(wxss).toMatch(/\.listing-detail__bar-action\s*\{[\s\S]*box-sizing:\s*border-box;[\s\S]*width:\s*100%;[\s\S]*max-width:\s*100%;[\s\S]*min-height:\s*var\(--sbh-size-touch-target\);/)
-
-    // 理论几何计算（375、390、430 视口）
-    for (const viewportWidth of [375, 390, 430]) {
-      const rpxToPx = viewportWidth / 750
-      const paddingSide = 24 * rpxToPx
-      const gap = 16 * rpxToPx // --sbh-layout-space-sm = 16rpx
-      const favWidth = 88 * rpxToPx // 44px at 375
-      const availableGrid = viewportWidth - (paddingSide * 2) - favWidth - (gap * 2)
-      const shareWidth = availableGrid * (1 / 3)
-      const inquiryWidth = availableGrid * (2 / 3)
-
-      expect(gap).toBeGreaterThanOrEqual(4)
-      expect(favWidth).toBeGreaterThanOrEqual(44)
-      expect(shareWidth).toBeGreaterThanOrEqual(44)
-      expect(inquiryWidth).toBeGreaterThanOrEqual(44)
-    }
   })
 
-  it('T5 / B1: 8 个指定交互入口在 3 档视口下实际命中尺寸均 >= 44px', () => {
+  it('T5 / B1: 8 个指定交互入口使用最小触控尺寸样式', () => {
     const homeWxss = read('miniprogram/pages/home/index.wxss')
     const listingsWxss = read('miniprogram/pages/listings/index.wxss')
     const buildingsWxss = read('miniprogram/pages/buildings/index.wxss')
@@ -72,23 +45,6 @@ describe('MP-110 阶段 A & B & C 结构与视觉合同', () => {
 
     // 8. 我的连接失败重新连接
     expect(profileWxss).toMatch(/\.profile-connect-error__action\s*\{[\s\S]*min-width:\s*152rpx;[\s\S]*min-height:\s*var\(--sbh-size-touch-target\);/)
-  })
-
-  it('T5 / B2: 指定文案在实际背景上的对比度均达到 >= 4.5:1', () => {
-    // 实际背景与色值
-    // 白底: #ffffff, 页面浅灰底: #f2f2f4
-    // --sbh-text-primary: #1d1d1f, --sbh-text-secondary: #6e6e73
-    const contrastHomeRefresh = contrast('#6e6e73', '#ffffff')
-    const contrastBuildingInactiveTitle = contrast('#1d1d1f', '#f2f2f4')
-    const contrastBuildingInactiveDesc = contrast('#6e6e73', '#f2f2f4')
-    const contrastBuildingStatLabel = contrast('#6e6e73', '#ffffff')
-    const contrastBuildingGroupTitle = contrast('#6e6e73', '#ffffff')
-
-    expect(contrastHomeRefresh).toBeGreaterThanOrEqual(4.5)
-    expect(contrastBuildingInactiveTitle).toBeGreaterThanOrEqual(4.5)
-    expect(contrastBuildingInactiveDesc).toBeGreaterThanOrEqual(4.5)
-    expect(contrastBuildingStatLabel).toBeGreaterThanOrEqual(4.5)
-    expect(contrastBuildingGroupTitle).toBeGreaterThanOrEqual(4.5)
   })
 
   it('T6 / C1: 首页背景媒体收口为静态图片与降级，不声明未验证的视频能力', () => {
@@ -117,6 +73,6 @@ describe('MP-110 阶段 A & B & C 结构与视觉合同', () => {
 
     expect(listingCardWxss).not.toMatch(/\.listing-card__media\s+image/)
     expect(buildingCardWxss).not.toMatch(/\.building-card__media\s+image/)
-    expect(inquirySheetWxss).not.toMatch(/button\[disabled\]/)
+    expect(inquirySheetWxss).not.toMatch(/\[\s*disabled\s*\]/)
   })
 })

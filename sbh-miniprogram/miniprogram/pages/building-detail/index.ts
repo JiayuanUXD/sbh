@@ -9,12 +9,8 @@ import {
   buildingGradeLabel,
   type MiniBuildingDetailData,
 } from '../../services/catalog-contracts.js'
-import {
-  isFavorite,
-  loadUserAssets,
-  refreshUserAssets,
-  setFavorite,
-} from '../../services/favorites.js'
+import { refreshUserAssets } from '../../services/favorites.js'
+import { createDetailFavoriteController, type DetailFavoriteController } from '../../services/detail-favorite.js'
 import {
   createInquiryService,
   createSubmissionIntentManager,
@@ -47,6 +43,7 @@ type BuildingDetailPageData = {
   comparableImageFailures: ImageFailureState
   isFavorited: boolean
   favoriteBusy: boolean
+  favoriteUnavailable: boolean
   inquiryOpen: boolean
   inquirySheet: InquirySheetSnapshot
 }
@@ -58,6 +55,7 @@ type PhoneAuthorizationEvent = Readonly<{ detail: Readonly<{ phoneCode?: unknown
 type BuildingDetailPageMethods = {
   loadVersion: number
   inquirySheetController: InquirySheetController | null
+  favoriteController: DetailFavoriteController | null
   ensureInquirySheetController(): InquirySheetController
   loadBuildingDetail(targetSlug?: unknown): Promise<void>
   loadFavoriteState(slug: string): Promise<void>
@@ -157,12 +155,14 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
     comparableImageFailures: {},
     isFavorited: false,
     favoriteBusy: true,
+    favoriteUnavailable: false,
     inquiryOpen: false,
     inquirySheet: closedInquirySheet(),
   },
 
   loadVersion: 0,
   inquirySheetController: null,
+  favoriteController: null,
 
   onLoad(options: Record<string, string | undefined>) {
     const rawSlug = options.slug
@@ -182,6 +182,7 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
   },
 
   onUnload() {
+    this.favoriteController?.dispose()
     this.loadVersion = (this.loadVersion || 0) + 1
     this.inquirySheetController?.dispose()
     this.inquirySheetController = null
@@ -251,46 +252,16 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
   },
 
   async loadFavoriteState(slug) {
-    if (!slug) {
-      this.setData({ isFavorited: false, favoriteBusy: false })
-      return
-    }
-    this.setData({ favoriteBusy: true })
-    try {
-      const assets = await loadUserAssets()
-      if (this.data.slug !== slug) return
-      this.setData({
-        isFavorited: isFavorite(assets, { targetType: 'building', targetSlug: slug }),
-        favoriteBusy: false,
-      })
-    } catch {
-      if (this.data.slug === slug) {
-        this.setData({ favoriteBusy: false })
-        wx.showToast({ title: '收藏状态暂不可用，请重试', icon: 'none' })
-      }
-    }
+    if (!slug || slug !== this.data.slug) return
+    this.favoriteController ??= createDetailFavoriteController(
+      { targetType: 'building', targetSlug: slug },
+      (view) => this.setData(view),
+    )
+    await this.favoriteController.refresh()
   },
 
   async handleFav() {
-    const building = this.data.building
-    if (this.data.favoriteBusy) return
-    if (!building?.slug) return
-    const target = { targetType: 'building' as const, targetSlug: building.slug }
-    const favorite = !this.data.isFavorited
-    this.setData({ favoriteBusy: true })
-    try {
-      const assets = await setFavorite(target, favorite)
-      const isFavorited = isFavorite(assets, target)
-      this.setData({ isFavorited })
-      wx.showToast({
-        title: isFavorited ? '已收藏该楼盘' : '已取消收藏',
-        icon: 'success',
-      })
-    } catch {
-      wx.showToast({ title: '收藏状态更新失败，请重试', icon: 'none' })
-    } finally {
-      this.setData({ favoriteBusy: false })
-    }
+    await this.favoriteController?.activate()
   },
 
   ensureInquirySheetController() {
