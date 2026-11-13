@@ -52,6 +52,10 @@ function renderInline(node: LexicalNode): string {
     return content
   }
 
+  if (node.type === 'linebreak') {
+    return '<br/>'
+  }
+
   if (node.type === 'link') {
     const children = (node.children ?? []).map(renderInline).join('')
     const url = escapeHtml(node.fields?.url ?? '')

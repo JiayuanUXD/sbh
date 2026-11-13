@@ -1,7 +1,7 @@
 import { getPayload, type Where } from 'payload'
 import config from '@/payload.config'
+import type { Building, Location } from '@/payload-types'
 import type {
-  MiniArticleDetailData,
   MiniArticleDetailResolution,
   MiniArticleItem,
   MiniArticlesData,
@@ -10,6 +10,7 @@ import type {
   MiniSnapshot,
 } from '@/domain/mini-program/contracts'
 import { serializeLexicalToHtml } from '@/domain/mini-program/lexical-to-html'
+import { parseUtcIso, shanghaiDate } from '@/domain/shared/time'
 import { getSiteConfig } from '@/lib/frontend/site-config'
 
 export const SAFE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -21,15 +22,29 @@ export const MINI_ARTICLE_CATEGORY_LABELS: Record<string, string> = {
   industry: '行业资讯',
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isPopulatedBuilding(value: number | Building): value is Building {
+  return typeof value === 'object' && value !== null
+}
+
+function isPopulatedLocation(value: number | Location | null | undefined): value is Location {
+  return typeof value === 'object' && value !== null
+}
+
+function extractBuildingPriceText(building: Building): string | null {
+  const raw: unknown = building
+  if (!isObject(raw) || !isObject(raw.priceRange)) return null
+  return typeof raw.priceRange.text === 'string' ? raw.priceRange.text : null
+}
+
 export function formatDateFormatted(iso: string | null | undefined): string {
   if (!iso) return ''
-  try {
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return ''
-    return d.toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
+  const d = parseUtcIso(iso)
+  if (!d) return ''
+  return shanghaiDate(d)
 }
 
 export function toMiniImage(
@@ -37,15 +52,14 @@ export function toMiniImage(
   mediaOrigin: string,
   altFallback: string,
 ): MiniImage | null {
-  if (!raw || typeof raw !== 'object') return null
-  const m = raw as { url?: string; alt?: string; width?: number; height?: number }
-  if (typeof m.url !== 'string' || !m.url) return null
-  const src = m.url.startsWith('/') ? new URL(m.url, mediaOrigin).toString() : m.url
+  if (!isObject(raw)) return null
+  if (typeof raw.url !== 'string' || !raw.url) return null
+  const src = raw.url.startsWith('/') ? new URL(raw.url, mediaOrigin).toString() : raw.url
   return {
     src,
-    alt: typeof m.alt === 'string' && m.alt.trim() ? m.alt.trim() : altFallback,
-    width: typeof m.width === 'number' ? m.width : undefined,
-    height: typeof m.height === 'number' ? m.height : undefined,
+    alt: typeof raw.alt === 'string' && raw.alt.trim() ? raw.alt.trim() : altFallback,
+    width: typeof raw.width === 'number' ? raw.width : undefined,
+    height: typeof raw.height === 'number' ? raw.height : undefined,
   }
 }
 
@@ -79,17 +93,20 @@ export async function getMiniArticles(
     depth: 2,
   })
 
-  const items: MiniArticleItem[] = (result.docs || []).map((doc: any) => ({
-    id: String(doc.id),
-    slug: String(doc.slug || ''),
-    title: String(doc.title || ''),
-    category: doc.category || '',
-    categoryLabel: MINI_ARTICLE_CATEGORY_LABELS[doc.category] || doc.category || '',
-    publishedAt: doc.publishedAt ? new Date(doc.publishedAt).toISOString() : '',
-    publishedDateFormatted: formatDateFormatted(doc.publishedAt),
-    coverImage: toMiniImage(doc.coverImage, siteConfig.siteOrigin, doc.title || ''),
-    excerpt: String(doc.excerpt || ''),
-  }))
+  const items: MiniArticleItem[] = (result.docs || []).map((doc) => {
+    const category = doc.category ?? ''
+    return {
+      id: String(doc.id),
+      slug: String(doc.slug || ''),
+      title: String(doc.title || ''),
+      category,
+      categoryLabel: category ? (MINI_ARTICLE_CATEGORY_LABELS[category] ?? category) : '',
+      publishedAt: doc.publishedAt ? new Date(doc.publishedAt).toISOString() : '',
+      publishedDateFormatted: formatDateFormatted(doc.publishedAt),
+      coverImage: toMiniImage(doc.coverImage, siteConfig.siteOrigin, doc.title || ''),
+      excerpt: String(doc.excerpt || ''),
+    }
+  })
 
   return {
     asOf: new Date().toISOString(),
@@ -127,7 +144,7 @@ export async function getMiniArticleDetail(
     depth: 3,
   })
 
-  const doc = result.docs?.[0] as any
+  const doc = result.docs?.[0]
   if (!doc) {
     return { status: 'article_not_found' }
   }
@@ -137,16 +154,12 @@ export async function getMiniArticleDetail(
   const relatedBuildings: MiniRelatedBuilding[] = []
   if (Array.isArray(doc.relatedBuildings)) {
     for (const b of doc.relatedBuildings) {
-      if (b && typeof b === 'object') {
-        const districtName =
-          typeof b.district === 'object' && b.district !== null
-            ? (b.district.name ?? null)
-            : null
+      if (isPopulatedBuilding(b)) {
+        const districtName = isPopulatedLocation(b.district)
+          ? (b.district.name ?? null)
+          : null
 
-        const priceText =
-          typeof b.priceRange === 'object' && b.priceRange !== null
-            ? (b.priceRange.text ?? null)
-            : null
+        const priceText = extractBuildingPriceText(b)
 
         relatedBuildings.push({
           id: String(b.id),
@@ -160,6 +173,8 @@ export async function getMiniArticleDetail(
     }
   }
 
+  const category = doc.category ?? ''
+
   return {
     status: 'ok',
     snapshot: {
@@ -168,8 +183,8 @@ export async function getMiniArticleDetail(
         id: String(doc.id),
         slug: String(doc.slug || ''),
         title: String(doc.title || ''),
-        category: doc.category || '',
-        categoryLabel: MINI_ARTICLE_CATEGORY_LABELS[doc.category] || doc.category || '',
+        category,
+        categoryLabel: category ? (MINI_ARTICLE_CATEGORY_LABELS[category] ?? category) : '',
         publishedAt: doc.publishedAt ? new Date(doc.publishedAt).toISOString() : '',
         publishedDateFormatted: formatDateFormatted(doc.publishedAt),
         coverImage: toMiniImage(doc.coverImage, siteConfig.siteOrigin, doc.title || ''),
