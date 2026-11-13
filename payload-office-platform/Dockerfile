@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
+# Docker 官方 Node 22 slim 通过 ECR Public 拉取，避免 CloudBase 构建节点触发 Docker Hub 限流。
 # ---------- deps ----------
-FROM node:22-slim AS deps
+FROM public.ecr.aws/docker/library/node:22-slim AS deps
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 COPY package.json pnpm-lock.yaml ./
@@ -10,7 +11,7 @@ COPY patches/ ./patches/
 RUN pnpm install --frozen-lockfile
 
 # ---------- builder ----------
-FROM node:22-slim AS builder
+FROM public.ecr.aws/docker/library/node:22-slim AS builder
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -42,7 +43,7 @@ RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
 # ---------- runner ----------
 # 完整镜像（非 standalone）：standalone 产物不含 src/migrations/tsx/payload CLI，
 # 无法在容器内建表。完整镜像保留迁移能力，容器启动时自跑迁移（幂等）。
-FROM node:22-slim AS runner
+FROM public.ecr.aws/docker/library/node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 # NEXT_PUBLIC_SITE_URL：运行时 config-guard（OPT-015 fail-closed）校验 https + 非 localhost。
