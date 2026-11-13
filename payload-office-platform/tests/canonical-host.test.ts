@@ -49,6 +49,15 @@ describe('resolveCanonicalRedirect', () => {
     ).toBe('https://shangban.cc/shanghai/listings?page=2')
   })
 
+  it('只在 www 上放行该站点的百度验证文件', () => {
+    const pathname = '/baidu_verify_codeva-nyvqhoRLTJ.html'
+    expect(redirect({ host: OLD_DEFAULT, forwardedHost: 'www.shangban.cc', pathname })).toBeNull()
+    expect(redirect({ host: OLD_DEFAULT, pathname })).toBe(`${CANONICAL}${pathname}`)
+    expect(redirect({ host: 'www.shangban.cc', pathname: '/baidu_verify_other.html' })).toBe(
+      `${CANONICAL}/baidu_verify_other.html`,
+    )
+  })
+
   it('旧的 CloudRun 默认域名 → 裸域', () => {
     expect(redirect({ host: OLD_DEFAULT, pathname: '/shanghai' })).toBe(
       'https://shangban.cc/shanghai',
