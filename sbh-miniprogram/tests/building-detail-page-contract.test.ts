@@ -77,18 +77,17 @@ describe('楼盘详情页面合同', () => {
     expect(template).not.toMatch(/待带看|已接单|30\s*分钟内/)
   })
 
-  it('楼盘收藏异步等待服务端确认并用 busy 防重复', () => {
+  it('楼盘详情将收藏操作交给控制器，并提供重试提示', () => {
     const source = readPageFile('index.ts')
     const template = readPageFile('index.wxml')
     const styles = readPageFile('index.wxss')
 
-    expect(source).toContain('setFavorite')
-    expect(source).toContain('loadUserAssets')
-    expect(source).toMatch(/async handleFav\(\)[\s\S]*if \(this\.data\.favoriteBusy\) return[\s\S]*await setFavorite/)
-    expect(source).toMatch(/catch[\s\S]*收藏状态更新失败/)
+    expect(source).toContain('createDetailFavoriteController(')
+    expect(source).toMatch(/async handleFav\(\)\s*\{\s*await this\.favoriteController\?\.activate\(\)/)
+    expect(template).toContain('bindtap="handleFav"')
     expect(source).not.toMatch(/toggleBuildingFavorite|isBuildingFavorite/)
-    expect(template).toContain("{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}")
-    expect(template).toMatch(/building-bottom-fav[\s\S]*aria-role="button"[\s\S]*aria-label="\{\{favoriteBusy \? '收藏处理中' : \(isFavorited \? '取消收藏' : '收藏'\)\}\}"/)
+    expect(template).toContain("favoriteUnavailable ? '重试'")
+    expect(template).toMatch(/building-bottom-fav[^>]*aria-role="button"[^>]*aria-label="[^"]*重试读取收藏状态/)
     expect(styles).toMatch(/\.building-bottom-fav\s*\{[\s\S]*min-width:\s*var\(--sbh-size-touch-target\);[\s\S]*min-height:\s*var\(--sbh-size-touch-target\);/)
   })
 

@@ -14,7 +14,7 @@
         <view class="inquiry-sheet__subtitle">留下需求，顾问会尽快联系您</view>
       </view>
       <button
-        class="inquiry-sheet__close"
+        class="inquiry-sheet__close {{snapshot.state === 'authorizing' || snapshot.state === 'submitting' ? 'inquiry-sheet__control--disabled' : ''}}"
         bindtap="handleClose"
         disabled="{{snapshot.state === 'authorizing' || snapshot.state === 'submitting'}}"
         aria-label="关闭咨询弹层"
@@ -53,13 +53,13 @@
           <text class="inquiry-sheet__label">联系方式</text>
           <view class="inquiry-sheet__phone-segment">
             <button
-              class="inquiry-sheet__phone-segment-option {{snapshot.phoneMode === 'wechat' ? 'inquiry-sheet__phone-segment-option--active' : ''}}"
+              class="inquiry-sheet__phone-segment-option {{snapshot.phoneMode === 'wechat' ? 'inquiry-sheet__phone-segment-option--active' : ''}} {{snapshot.busy ? 'inquiry-sheet__control--disabled' : ''}}"
               bindtap="handleSelectWechat"
               aria-pressed="{{snapshot.phoneMode === 'wechat'}}"
               disabled="{{snapshot.busy}}"
             >微信手机号</button>
             <button
-              class="inquiry-sheet__manual-entry inquiry-sheet__phone-segment-option {{snapshot.phoneMode === 'manual' ? 'inquiry-sheet__phone-segment-option--active' : ''}}"
+              class="inquiry-sheet__manual-entry inquiry-sheet__phone-segment-option {{snapshot.phoneMode === 'manual' ? 'inquiry-sheet__phone-segment-option--active' : ''}} {{snapshot.busy ? 'inquiry-sheet__control--disabled' : ''}}"
               bindtap="handleSelectManual"
               aria-pressed="{{snapshot.phoneMode === 'manual'}}"
               disabled="{{snapshot.busy}}"
@@ -97,7 +97,7 @@
             </label>
           </checkbox-group>
           <button
-            class="inquiry-sheet__privacy-link"
+            class="inquiry-sheet__privacy-link {{snapshot.privacyStatus === 'checking' || snapshot.busy ? 'inquiry-sheet__control--disabled' : ''}}"
             bindtap="handlePrivacy"
             disabled="{{snapshot.privacyStatus === 'checking' || snapshot.busy}}"
           >{{snapshot.privacyStatus === 'unavailable' ? '重试打开隐私保护指引' : '打开隐私保护指引'}}</button>
@@ -127,14 +127,14 @@
       >完成</button>
       <button
         wx:elif="{{snapshot.phoneMode === 'wechat'}}"
-        class="inquiry-sheet__submit inquiry-sheet__wechat inquiry-sheet__wechat-submit"
+        class="inquiry-sheet__submit inquiry-sheet__wechat inquiry-sheet__wechat-submit {{snapshot.phoneSubmitDisabled ? 'inquiry-sheet__control--disabled' : ''}}"
         open-type="getPhoneNumber"
         bindgetphonenumber="handlePhoneAuthorization"
         disabled="{{snapshot.phoneSubmitDisabled}}"
       >{{snapshot.state === 'submitting' ? '正在提交' : '使用微信手机号提交'}}</button>
       <button
         wx:else
-        class="inquiry-sheet__submit"
+        class="inquiry-sheet__submit {{snapshot.manualSubmitDisabled ? 'inquiry-sheet__control--disabled' : ''}}"
         bindtap="handleManualSubmit"
         disabled="{{snapshot.manualSubmitDisabled}}"
       >{{snapshot.state === 'submitting' ? '正在提交' : '提交咨询'}}</button>

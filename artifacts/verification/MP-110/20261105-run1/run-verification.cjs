@@ -1,103 +1,52 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { execSync } = require('node:child_process');
+// 只汇总当前工作树的静态检查和 Node 测试，历史证据文件由原报告保留。
+const path = require('node:path')
+const { execFileSync, spawnSync } = require('node:child_process')
 
-const worktreeRoot = path.resolve(__dirname, '../../../..');
-const mpRoot = path.resolve(worktreeRoot, 'sbh-miniprogram');
-const outDir = __dirname;
+const worktreeRoot = path.resolve(__dirname, '../../../..')
+const cwd = path.join(worktreeRoot, 'sbh-miniprogram')
+const env = { ...process.env, TARGET_ROOT: cwd }
 
-const commit = execSync('git rev-parse HEAD', { cwd: worktreeRoot, encoding: 'utf8' }).trim();
-const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: worktreeRoot, encoding: 'utf8' }).trim();
-const timestamp = new Date().toISOString();
-
-console.log('--- 运行验证探针 ---');
-
-const buildingResult = JSON.parse(execSync(`node ${path.resolve(outDir, 'verify-building-detail.cjs')}`, {
-  env: { ...process.env, TARGET_ROOT: mpRoot },
-  encoding: 'utf8',
-}));
-
-const stateResult = JSON.parse(execSync(`node ${path.resolve(outDir, 'verify-state-actions.cjs')}`, {
-  env: { ...process.env, TARGET_ROOT: mpRoot },
-  encoding: 'utf8',
-}));
-
-const uiResult = JSON.parse(execSync(`node ${path.resolve(outDir, 'verify-ui-metrics.cjs')}`, {
-  env: { ...process.env, TARGET_ROOT: mpRoot },
-  encoding: 'utf8',
-}));
-
-console.log('--- 运行静态检查 ---');
-let checkProjectOutput = '';
-try {
-  checkProjectOutput = execSync('node scripts/check-project.mjs', { cwd: mpRoot, encoding: 'utf8' }).trim();
-} catch (e) {
-  checkProjectOutput = e.stdout || e.message;
+function run(args, json = false) {
+  const result = spawnSync(process.execPath, args, {
+    cwd, env, encoding: 'utf8', timeout: 120000, maxBuffer: 16 * 1024 * 1024,
+  })
+  let verdict = result.status === 0 ? 'PASS' : 'FAIL'
+  if (json) {
+    try {
+      if (JSON.parse(result.stdout).verdict !== 'PASS') verdict = 'FAIL'
+    } catch {
+      verdict = 'FAIL'
+    }
+  }
+  return {
+    verdict,
+    exitCode: result.status,
+    stdout: result.stdout?.trim(),
+    stderr: result.stderr?.trim(),
+    error: result.error?.message,
+  }
 }
 
-console.log('--- 运行 TypeScript 类型检查 ---');
-let typecheckPassed = false;
-try {
-  execSync('pnpm typecheck', {
-    cwd: mpRoot,
-    encoding: 'utf8',
-  });
-  typecheckPassed = true;
-} catch (e) {
-  typecheckPassed = false;
+const tsc = 'node_modules/typescript/bin/tsc'
+const checks = {
+  project: run(['scripts/check-project.mjs']),
+  typecheck: run([tsc, '--project', 'tsconfig.json', '--pretty', 'false']),
+  typecheckNode: run([tsc, '--project', 'tsconfig.node.json', '--pretty', 'false']),
+  vitest: run(['node_modules/vitest/vitest.mjs', 'run', '--reporter=dot']),
+  buildingDetail: run([path.join(__dirname, 'verify-building-detail.cjs')], true),
+  stateActions: run([path.join(__dirname, 'verify-state-actions.cjs')], true),
 }
-
-console.log('--- 运行全量单元测试 ---');
-let vitestSummary = {};
-const vitestTmpPath = path.resolve(outDir, 'vitest-results.json');
-try {
-  execSync(`pnpm vitest run --reporter=json --outputFile=${vitestTmpPath}`, { cwd: mpRoot, encoding: 'utf8' });
-  const parsed = JSON.parse(fs.readFileSync(vitestTmpPath, 'utf8'));
-  vitestSummary = {
-    numTotalTestSuites: parsed.numTotalTestSuites,
-    numPassedTestSuites: parsed.numPassedTestSuites,
-    numFailedTestSuites: parsed.numFailedTestSuites,
-    numTotalTests: parsed.numTotalTests,
-    numPassedTests: parsed.numPassedTests,
-    numFailedTests: parsed.numFailedTests,
-    success: parsed.success,
-  };
-  fs.unlinkSync(vitestTmpPath);
-} catch (e) {
-  vitestSummary = { raw: e.stdout || e.message, success: false };
-}
-
-const evidence = {
+const staticVerdict = Object.values(checks).every(check => check.verdict === 'PASS') ? 'PASS' : 'FAIL'
+const overallVerdict = staticVerdict === 'PASS' ? 'INCOMPLETE' : 'FAIL'
+console.log(JSON.stringify({
   spec: 'MP-110',
-  runId: '20261105-run1',
-  timestamp,
-  environment: {
-    node: process.version,
-    commit,
-    branch,
-    worktreeRoot,
-    miniprogramRoot: mpRoot,
-  },
-  checks: {
-    projectCheck: checkProjectOutput.includes('SBH 小程序工程静态检查通过'),
-    typecheck: typecheckPassed,
-    vitest: vitestSummary,
-  },
-  probes: {
-    buildingDetail: buildingResult,
-    stateActions: stateResult,
-    uiMetrics: uiResult,
-  },
-  overallVerdict: (
-    checkProjectOutput.includes('SBH 小程序工程静态检查通过') &&
-    typecheckPassed &&
-    vitestSummary.numFailedTests === 0 &&
-    buildingResult.verdict === 'PASS' &&
-    stateResult.verdict === 'PASS' &&
-    uiResult.verdict === 'PASS'
-  ) ? 'PASS' : 'FAIL',
-};
-
-fs.writeFileSync(path.resolve(outDir, 'evidence.json'), JSON.stringify(evidence, null, 2), 'utf8');
-console.log('--- 证据写入完成：', path.resolve(outDir, 'evidence.json'), '---');
-console.log('总体结论：', evidence.overallVerdict);
+  timestamp: new Date().toISOString(),
+  node: process.version,
+  baseCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: worktreeRoot, encoding: 'utf8' }).trim(),
+  worktreeRoot,
+  checks,
+  staticVerdict,
+  overallVerdict,
+  pending: '微信模拟器三档采样、边缘点按、真机和联调证据需独立记录',
+}, null, 2))
+process.exitCode = overallVerdict === 'FAIL' ? 1 : 2

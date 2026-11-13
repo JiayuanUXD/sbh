@@ -207,10 +207,10 @@
         bindtap="handleFav"
         aria-disabled="{{favoriteBusy}}"
         aria-role="button"
-        aria-label="{{favoriteBusy ? '收藏处理中' : (isFavorited ? '取消收藏' : '收藏')}}"
+        aria-label="{{favoriteBusy ? '收藏处理中' : (favoriteUnavailable ? '重试读取收藏状态' : (isFavorited ? '取消收藏' : '收藏'))}}"
       >
         <view class="favorite-icon__glyph building-fav-icon {{isFavorited ? 'favorite-icon__glyph--active' : ''}}" aria-hidden="true"></view>
-        <text class="building-fav-text">{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}</text>
+        <text class="building-fav-text">{{favoriteBusy ? '处理中' : (favoriteUnavailable ? '重试' : (isFavorited ? '已收藏' : '收藏'))}}</text>
       </view>
       <view
         wx:if="{{building.activeListingCount > 0}}"

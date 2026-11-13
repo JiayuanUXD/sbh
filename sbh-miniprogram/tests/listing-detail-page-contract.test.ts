@@ -151,7 +151,7 @@ describe('房源详情页面合同', () => {
     expect(styles).toMatch(/\.listing-detail__main\s*\{[\s\S]*padding-bottom:\s*calc\(112rpx \+ env\(safe-area-inset-bottom\)\);/)
     expect(styles).toMatch(/\.listing-detail__bar\s*\{[\s\S]*position:\s*fixed;[\s\S]*padding-bottom:\s*env\(safe-area-inset-bottom\);/)
     expect(styles).toMatch(/\.listing-detail__bar-action\s*\{[\s\S]*min-height:\s*var\(--sbh-size-touch-target\);/)
-    expect(markup).toMatch(/listing-detail__bar-fav[\s\S]*aria-role="button"[\s\S]*aria-label="\{\{favoriteBusy \? '收藏处理中' : \(isFavorited \? '取消收藏' : '收藏'\)\}\}"/)
+    expect(markup).toMatch(/listing-detail__bar-fav[^>]*aria-role="button"[^>]*aria-label="[^"]*重试读取收藏状态/)
     expect(styles).toMatch(/\.listing-detail__bar-fav\s*\{[\s\S]*min-width:\s*var\(--sbh-size-touch-target\);[\s\S]*min-height:\s*var\(--sbh-size-touch-target\);/)
   })
 
@@ -203,16 +203,15 @@ describe('房源详情页面合同', () => {
     expect(source).not.toContain("statusLabel: '待带看'")
   })
 
-  it('收藏只在服务端写入与 /me 复核后更新，busy 防止重复点击', () => {
+  it('房源详情将收藏操作交给控制器，并提供重试提示', () => {
     const source = readPageFile('index.ts')
     const markup = readPageFile('index.wxml')
 
-    expect(source).toContain('setFavorite')
-    expect(source).toContain('loadUserAssets')
-    expect(source).toMatch(/async handleToggleFavorite\(\)[\s\S]*if \(this\.data\.favoriteBusy\) return[\s\S]*await setFavorite/)
-    expect(source).toMatch(/catch[\s\S]*收藏状态更新失败/)
+    expect(source).toContain('createDetailFavoriteController(')
+    expect(source).toMatch(/async handleToggleFavorite\(\)\s*\{\s*await this\.favoriteController\?\.activate\(\)/)
+    expect(markup).toContain('bindtap="handleToggleFavorite"')
     expect(source).not.toMatch(/toggleListingFavorite|isListingFavorite/)
-    expect(markup).toContain("{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}")
+    expect(markup).toContain("favoriteUnavailable ? '重试'")
   })
 
   it('咨询成功后刷新服务端 /me 投影，不在页面内编造记录', () => {
