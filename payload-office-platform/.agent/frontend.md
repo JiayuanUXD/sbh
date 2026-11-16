@@ -339,7 +339,7 @@ e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一�
 - ★ **③ 页码越界绝不能说「没有结果」**——那一刻其实有货，只是页码超范围（链接过期、手改 URL）。文案只讲页码不存在，然后直接给「最后一页」「第 1 页」两个出口；也不给退路行，页码不是筛选条件没有「放宽」可言。
 - ★ **页码封顶（OPT-128 §5.7）**：公开列表（房源 / 楼盘，含小程序同口径）可翻页数封顶 `MAX_PUBLIC_PAGE = 50`（`src/domain/public-catalog/page-cap.ts` 唯一定义）。规则：
   - **`parsePage` 不得直接收紧到 50**：它对超范围值静默回落第 1 页，收紧后第 51 页会悄悄显示第 1 页——重复内容且用户不知情。`parsePage` 保持宽容（上限 10000），封顶**只做在分页元数据层**（`Pagination.capped` / `BuildingFilteredResult.capped`，`totalPages` 已封顶），第 51 页自然落入既有 `page > totalPages` 的③页码越界空态。
-  - **文案如实**：真实页数超限时，`EmptyOutOfRange` 的 `capped` 为真，说「结果较多，仅展示前 N 页，第 M 页不开放」，主按钮「去第 N 页」，**不得说「只有 50 页」，也不得说「没有结果」**；分页器后渲染 `PagerCapNote`，如实说仅显示前 50 页并引导加筛选条件。`capped` 是**必填 prop，不给默认值**；新增分页点（`<ListPager`）必须同样接线。`capped=false` 的文案保持封顶前原样。
+  - **文案如实**：真实页数超限时，`EmptyOutOfRange` 的 `capped` 为真，说「结果较多，仅展示前 N 页，第 M 页不开放」，主按钮「去第 N 页」，**不得说「只有 50 页」，也不得说「没有结果」**；分页器后渲染 `PagerCapNote`，如实说仅显示前 50 页并引导加筛选条件。`capped` 是**必填 prop，不给默认值**；**分页点清单**：`CityListingsView`、`CityBuildingsView`，以及 `SiteSearchView` 的房源 / 楼盘页签（经 `renderPagedResults`，同样判 `page > totalPages && totalDocs > 0` → 越界空态，封顶时分页器后渲染 `PagerCapNote`）；资讯页签 / `/news` 的分页不封顶，不接。新增分页点（`<ListPager`）必须同样接线，且 `rg "ListPager|EmptyOutOfRange"` 不得出现读了封顶数据却没接的消费方（否则 page=51 会得到「空列表 + 无说明分页器」的静默空白）。`capped=false` 的文案保持封顶前原样。
   - **站点地图与扫描路径不受影响**：sitemap 不走列表分页；封顶只作用于列表页与 mini 列表的分页元数据与 SQL 偏移，不改 `lastmod`，也不挂在 `BOT_GUARD_MODE` 开关下（是代码行为）。
 - 空态的出口不得退化成死控件：主按钮指向的目标必须与当前页不同。①「零筛选却零结果」时 `unfilteredTotal === total === 0` 是结构性恒等，「查看全部结果」会指回用户已经在的这一空页——此时整个主按钮不渲染。
 - 接口太窄时**开宽接口，不要降级文案或行为去迁就它**。本批次这条错了三次（在租套数→改显示面积、计数名词→改成通用「条」、次要出口→改成回首页），三次的正解都是加一个必填 prop 或给 SQL 加一列。「可选 prop 带默认值」是通用文案回潮的入口，语境相关的文案一律必填。
