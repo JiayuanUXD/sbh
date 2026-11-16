@@ -3,6 +3,7 @@ import InquiryModal from '@/components/frontend/InquiryModal'
 import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/EmptyFiltered'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
+import PagerCapNote from '@/components/frontend/listing/PagerCapNote'
 import FilterFormC, { rowShowsActivePick } from '@/components/frontend/listing/FilterFormC'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
 import ListingResultRow from '@/components/frontend/listing/ListingResultRow'
@@ -185,7 +186,7 @@ export default async function CityListingsView({
   const lockedDimensions: readonly ListingSearchDimension[] = channel === 'coworking' ? ['listingType'] : []
   const clearableDimensions = LISTING_CLEARABLE_DIMENSIONS.filter((d) => !lockedDimensions.includes(d))
   const { docs, pagination } = result
-  const { page, totalPages, totalDocs } = pagination
+  const { page, totalPages, totalDocs, capped } = pagination
   const activeUnit = input.priceUnit
 
   // ── 维度清单与状态判定（纯输入推导，必须排在取数之前）─────────────────────
@@ -440,6 +441,7 @@ export default async function CityListingsView({
             totalPages={totalPages}
             lastPageHref={buildPageHref(totalPages)}
             firstPageHref={buildPageHref(1)}
+            capped={capped}
           />
         ) : showEmptyFiltered ? (
           <EmptyFiltered
@@ -516,7 +518,10 @@ export default async function CityListingsView({
         )}
 
         {!isOutOfRange && !isEmpty ? (
-          <ListPager page={page} totalPages={totalPages} buildPageHref={buildPageHref} />
+          <>
+            <ListPager page={page} totalPages={totalPages} buildPageHref={buildPageHref} />
+            <PagerCapNote capped={capped} />
+          </>
         ) : null}
       </PendingRegion>
 

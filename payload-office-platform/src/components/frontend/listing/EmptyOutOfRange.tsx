@@ -24,18 +24,33 @@ export default function EmptyOutOfRange(props: Readonly<{
   totalPages: number
   lastPageHref: string
   firstPageHref: string
+  /**
+   * OPT-128：真实总页数超过 MAX_PUBLIC_PAGE，`totalPages` 已是封顶后的页数。
+   * 必填、无默认值（语境相关文案一律必填）。为真时如实说「仅展示前 N 页、第 M 页不开放」，
+   * 不得说成「只有 N 页」——那是对用户撒谎；仍不得出现「没有结果」。
+   */
+  capped: boolean
 }>): React.JSX.Element {
-  const { page, totalPages, lastPageHref, firstPageHref } = props
+  const { page, totalPages, lastPageHref, firstPageHref, capped } = props
 
   return (
     <div className="ls-emptyrange">
       <span className="ls-emptyrange__intro">
-        <span className="ls-emptyrange__title">这套筛选只有 {totalPages} 页，第 {page} 页不存在</span>
-        <span className="ls-emptyrange__desc">链接可能已过期，可以跳到最后一页或回到第 1 页。</span>
+        {capped ? (
+          <>
+            <span className="ls-emptyrange__title">结果较多，仅展示前 {totalPages} 页，第 {page} 页不开放</span>
+            <span className="ls-emptyrange__desc">请增加筛选条件缩小范围。</span>
+          </>
+        ) : (
+          <>
+            <span className="ls-emptyrange__title">这套筛选只有 {totalPages} 页，第 {page} 页不存在</span>
+            <span className="ls-emptyrange__desc">链接可能已过期，可以跳到最后一页或回到第 1 页。</span>
+          </>
+        )}
       </span>
       <span className="ls-emptyrange__actions">
         <Link href={lastPageHref} className="ls-empty__btn ls-empty__btn--primary">
-          去最后一页（第 {totalPages} 页）
+          {capped ? `去第 ${totalPages} 页` : `去最后一页（第 ${totalPages} 页）`}
         </Link>
         <Link href={firstPageHref} className="ls-empty__btn ls-empty__btn--secondary">回第 1 页</Link>
       </span>

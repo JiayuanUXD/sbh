@@ -1117,6 +1117,18 @@ export default function Opt036PreviewPage() {
                 totalPages={7}
                 lastPageHref="/shanghai/listings?page=7"
                 firstPageHref="/shanghai/listings?page=1"
+                capped={false}
+              />
+            </div>
+
+            <div data-fixture="empty-out-of-range-capped" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>③ 页码越界 · 封顶（OPT-128）——真实页数超过上限，如实说仅展示前 50 页，主按钮去第 50 页</span>
+              <EmptyOutOfRange
+                page={51}
+                totalPages={50}
+                lastPageHref="/shanghai/listings?page=50"
+                firstPageHref="/shanghai/listings?page=1"
+                capped
               />
             </div>
           </div>

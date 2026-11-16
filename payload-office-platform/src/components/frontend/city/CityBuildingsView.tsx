@@ -8,6 +8,7 @@ import BuildingResultRow from '@/components/frontend/listing/BuildingResultRow'
 import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/EmptyFiltered'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
+import PagerCapNote from '@/components/frontend/listing/PagerCapNote'
 import FilterFormC, { rowShowsActivePick } from '@/components/frontend/listing/FilterFormC'
 import ListPager from '@/components/frontend/listing/ListPager'
 import { ListingNavigationProvider, PendingRegion } from '@/components/frontend/listing/ListingNavigation'
@@ -169,6 +170,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
     unfilteredTotalDocs,
     page,
     totalPages,
+    capped,
     facets,
     dimensionHits,
   } = result
@@ -303,6 +305,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
             totalPages={totalPages}
             lastPageHref={buildPageHref(totalPages)}
             firstPageHref={buildPageHref(1)}
+            capped={capped}
           />
         ) : showEmptyFiltered ? (
           <EmptyFiltered
@@ -444,7 +447,10 @@ export default function CityBuildingsView({ city, result, input, basePath, route
         )}
 
         {!isOutOfRange && !isEmpty ? (
-          <ListPager page={page} totalPages={totalPages} buildPageHref={buildPageHref} />
+          <>
+            <ListPager page={page} totalPages={totalPages} buildPageHref={buildPageHref} />
+            <PagerCapNote capped={capped} />
+          </>
         ) : null}
       </PendingRegion>
 
