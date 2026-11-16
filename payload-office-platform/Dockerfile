@@ -7,14 +7,24 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 COPY package.json pnpm-lock.yaml ./
 COPY patches/ ./patches/
-# 含 devDeps（tsx）：payload CLI 需要 tsx 加载 ts 配置才能在容器内跑迁移
-RUN pnpm install --frozen-lockfile
+# 含 devDeps（tsx）：payload CLI 需要 tsx 加载 ts 配置才能在容器内跑迁移。
+# 清理 pnpm store 避免 deps 阶段额外快照一份 ~1.1GB 硬链副本；
+# 同时把 .pnpm 按前缀拆成三个 ~300–340MB 的非重叠分片目录，使 runner 阶段分成三层复制——
+# 单层 ~1.1GB 在平台构建推向 TCR（ccr.ccs.tencentyun.com）时会在 PUT commit 阶段
+# 触发 ~90s 响应头超时（sbh-267 / sbh-268：net/http: timeout awaiting response headers）。
+RUN pnpm install --frozen-lockfile \
+  && rm -rf /root/.local/share/pnpm/store \
+  && mkdir -p /app/node_modules-chunks/scoped/.pnpm /app/node_modules-chunks/a-m/.pnpm \
+  && mv /app/node_modules/.pnpm/@* /app/node_modules-chunks/scoped/.pnpm/ \
+  && mv /app/node_modules/.pnpm/[a-mA-M]* /app/node_modules-chunks/a-m/.pnpm/
 
 # ---------- builder ----------
 FROM public.ecr.aws/docker/library/node:22-slim AS builder
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=deps /app/node_modules-chunks/scoped ./node_modules
+COPY --from=deps /app/node_modules-chunks/a-m ./node_modules
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # 先生成 payload-types.ts：该文件被 gitignore，不进仓库也不进镜像上下文，
@@ -38,7 +48,10 @@ ENV NEXT_PUBLIC_UMAMI_SRC=https://umami-286300-10-1253925058.sh.run.tcloudbase.c
 ENV NEXT_PUBLIC_UMAMI_WEBSITE_ID=3a281820-ae20-43f9-b082-dc0224ed874f
 # Git 不跟踪空目录；没有静态资源时也要保留 public，供 runner 阶段稳定复制。
 RUN mkdir -p public
-RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
+# 构建完成后立即清掉 .next/cache（Turbopack 增量构建缓存约 500MB+，运行期 next start 不读），
+# 避免随 COPY /app/.next 打进运行镜像并挤占 TCR 推送带宽。
+RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build \
+  && rm -rf .next/cache
 
 # ---------- runner ----------
 # 完整镜像（非 standalone）：standalone 产物不含 src/migrations/tsx/payload CLI，
@@ -88,7 +101,9 @@ RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 RUN apt-get update && apt-get install -y --no-install-recommends fonts-wqy-zenhei \
   && rm -rf /var/lib/apt/lists/*
 
-# 完整 node_modules（含 tsx，供 payload CLI 加载 ts 配置跑迁移）
+# 完整 node_modules（含 tsx，供 payload CLI 加载 ts 配置跑迁移），分三层复制以控制单层体积在 ~340MB 内
+COPY --from=deps /app/node_modules-chunks/scoped ./node_modules
+COPY --from=deps /app/node_modules-chunks/a-m ./node_modules
 COPY --from=deps /app/node_modules ./node_modules
 # 构建产物
 COPY --from=builder /app/.next ./.next

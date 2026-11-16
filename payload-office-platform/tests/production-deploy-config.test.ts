@@ -197,15 +197,28 @@ describe('生产部署配置', () => {
   })
 
   it('Docker runner 复制完整 node_modules，容器内才跑得动迁移', () => {
-    // 镜像由平台在线构建、不出境，体积不再是瓶颈，因此不做 --prod 瘦身。
     // prod-deps 瘦身曾把 devDeps 挡在镜像外，导致 sbh-053 启动即 ERR_MODULE_NOT_FOUND；
     // 其中 `find node_modules -name '*.ts' -delete` 对任何运行时读 .ts 的包都是隐患。
+    // 同时单层 ~1.1GB 的 node_modules 在平台推向 TCR（ccr.ccs.tencentyun.com）时会在
+    // PUT commit 阶段触发 ~90s 响应头超时（sbh-267 / sbh-268），因此必须按非重叠分片
+    // 分三层复制（每层 ~300–340MB），并在构建阶段清掉 ~500MB 的 .next/cache。
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
+    const builderStageStart = dockerfile.search(/^FROM \S+ AS builder$/m)
     const runnerStageStart = dockerfile.search(/^FROM \S+ AS runner$/m)
-    expect(runnerStageStart).toBeGreaterThanOrEqual(0)
+    expect(builderStageStart).toBeGreaterThanOrEqual(0)
+    expect(runnerStageStart).toBeGreaterThan(builderStageStart)
+    const deps = dockerfile.slice(0, builderStageStart)
+    const builder = dockerfile.slice(builderStageStart, runnerStageStart)
     const runner = dockerfile.slice(runnerStageStart)
 
-    expect(runner).toContain('COPY --from=deps /app/node_modules ./node_modules')
+    expect(deps).toContain('mv /app/node_modules/.pnpm/@* /app/node_modules-chunks/scoped/.pnpm/')
+    expect(deps).toContain('mv /app/node_modules/.pnpm/[a-mA-M]* /app/node_modules-chunks/a-m/.pnpm/')
+    for (const stage of [builder, runner]) {
+      expect(stage).toContain('COPY --from=deps /app/node_modules-chunks/scoped ./node_modules')
+      expect(stage).toContain('COPY --from=deps /app/node_modules-chunks/a-m ./node_modules')
+      expect(stage).toContain('COPY --from=deps /app/node_modules ./node_modules')
+    }
+    expect(builder).toContain('rm -rf .next/cache')
     expect(dockerfile).not.toContain('AS prod-deps')
     expect(dockerfile).not.toContain('pnpm install --prod')
     expect(dockerfile).not.toContain("find node_modules -type f \\( -name '*.map'")
