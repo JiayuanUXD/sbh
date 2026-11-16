@@ -188,6 +188,8 @@ export type BuildingFilteredResult = Readonly<{
   unfilteredTotalDocs: number
   page: number
   totalPages: number
+  /** 真实总页数超过 MAX_PUBLIC_PAGE（totalPages 已封顶）。 */
+  capped: boolean
   /** 各筛选维度的候选值与命中数，供筛选条渲染与空态退路使用 */
   facets: Readonly<{
     districts: ReadonlyArray<{ slug: string; name: string; count: number }>
@@ -658,7 +660,7 @@ export async function searchBuildingsFiltered(
   const sorted = sortBuildings(filtered, input.sort)
   const { withStock, withoutStock } = partitionByStock(sorted)
   const merged = [...withStock, ...withoutStock]
-  const { docs, totalDocs, totalPages } = paginate(merged, input.page, input.pageSize)
+  const { docs, totalDocs, totalPages, capped } = paginate(merged, input.page, input.pageSize)
   return {
     docs,
     groups: partitionByStock(docs),
@@ -668,6 +670,7 @@ export async function searchBuildingsFiltered(
     unfilteredTotalDocs: allDocs.length,
     page: Math.max(1, input.page),
     totalPages,
+    capped,
     facets,
     dimensionHits,
   }

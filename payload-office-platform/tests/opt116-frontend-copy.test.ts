@@ -19,11 +19,42 @@ describe('EmptyOutOfRange（页码越界）', () => {
       totalPages: 3,
       lastPageHref: '/shanghai/listings?page=3',
       firstPageHref: '/shanghai/listings',
+      capped: false,
     }),
   )
 
   it('只讲页码不存在', () => {
     expect(html).toContain('第 5 页不存在')
+  })
+
+  it('capped=false 文案与封顶前逐字一致', () => {
+    expect(html).toContain('这套筛选只有 3 页，第 5 页不存在')
+    expect(html).toContain('链接可能已过期，可以跳到最后一页或回到第 1 页。')
+    expect(html).toContain('去最后一页（第 3 页）')
+  })
+
+  describe('capped=true（OPT-128 页码封顶）', () => {
+    const capped = renderToStaticMarkup(
+      createElement(EmptyOutOfRange, {
+        page: 51,
+        totalPages: 50,
+        lastPageHref: '/shanghai/listings?page=50',
+        firstPageHref: '/shanghai/listings',
+        capped: true,
+      }),
+    )
+    const text = capped.replace(/<[^>]+>/g, ' ')
+
+    it('如实说明仅展示前 50 页，主按钮去第 50 页', () => {
+      expect(text).toContain('结果较多，仅展示前 50 页，第 51 页不开放')
+      expect(text).toContain('请增加筛选条件缩小范围。')
+      expect(text).toContain('去第 50 页')
+    })
+
+    it('不说「只有 50 页」，也不说「没有结果」', () => {
+      expect(text).not.toContain('只有 50 页')
+      expect(text).not.toContain('没有结果')
+    })
   })
 
   // 只看用户可见文字：「去最后一页」按钮的 href 里本来就有 `?page=3`，那是正常链接。

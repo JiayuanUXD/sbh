@@ -121,7 +121,7 @@ describe('接线：proxy.ts 与构建期站点 URL', () => {
 
   it('src/proxy.ts 存在，matcher 排除 /api 与 /_next', () => {
     const src = readFileSync(join(root, 'src/proxy.ts'), 'utf8')
-    expect(src).toMatch(/export function proxy\(/)
+    expect(src).toMatch(/export (async )?function proxy\(/)
     expect(src).toMatch(/resolveCanonicalRedirect/)
     const matcher = src.match(/matcher:\s*\[([^\]]+)\]/)?.[1] ?? ''
     expect(matcher).toContain('api')

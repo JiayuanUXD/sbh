@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
-import { isIP } from 'node:net'
 
 import { hashIpForLog } from '@/domain/inquiry'
+import { resolveTrustedClientIp } from '@/lib/api/trusted-client-ip'
 import {
   MINI_INQUIRY_RATE_LIMIT_CONFIG,
   MINI_FAVORITES_RATE_LIMIT_CONFIG,
@@ -28,16 +28,10 @@ export function resolveMiniTrustedClientIp(
   request: Request,
   trustedProxyHops: number,
 ): Readonly<{ ok: true; clientIp: string }> | Readonly<{ ok: false }> {
-  if (!Number.isInteger(trustedProxyHops) || trustedProxyHops < 1 || trustedProxyHops > 5) {
-    return { ok: false }
-  }
-  const forwarded = request.headers.get('x-forwarded-for')
-  if (!forwarded) return { ok: false }
-  const chain = forwarded.split(',').map((value) => value.trim())
-  if (chain.length < trustedProxyHops || chain.some((value) => isIP(value) === 0)) {
-    return { ok: false }
-  }
-  return { ok: true, clientIp: chain[chain.length - trustedProxyHops]! }
+  const result = resolveTrustedClientIp(request.headers.get('x-forwarded-for'), trustedProxyHops, {
+    allowIpv4Mapped: true,
+  })
+  return result.ok ? { ok: true, clientIp: result.ip } : { ok: false }
 }
 
 export function miniRateLimitKey(

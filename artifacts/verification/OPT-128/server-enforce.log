@@ -1,0 +1,251 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 start /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform
+> next start
+
+▲ Next.js 16.2.10
+- Local:         http://localhost:3721
+- Network:       http://10.193.222.18:3721
+✓ Ready in 102ms
+{"ts":1794817515203,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515250,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515282,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515314,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515346,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515377,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515407,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515438,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515468,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515499,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515532,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817515566,"tag":"bot-guard","kind":"denied","mode":"enforce","cls":"page","rule":"curl","ip":"b18c4428c2be","uaFamily":"curl"}
+{"ts":1794817515740,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"5fc7e36b71e8","uaFamily":"Mozilla"}
+{"ts":1794817515780,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"5fc7e36b71e8","uaFamily":"Mozilla"}
+{"ts":1794817516017,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"da3aeb417891","uaFamily":"Mozilla"}
+{"ts":1794817516058,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"da3aeb417891","uaFamily":"Mozilla"}
+{"ts":1794817516100,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"da3aeb417891","uaFamily":"Mozilla"}
+{"ts":1794817516136,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"da3aeb417891","uaFamily":"Mozilla"}
+{"ts":1794817516170,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"da3aeb417891","uaFamily":"Mozilla"}
+{"ts":1794817516320,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516368,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516418,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516452,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516487,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516521,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516556,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516590,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516626,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516662,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516699,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516754,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817516791,"tag":"bot-guard","kind":"se_spoofed","mode":"enforce","cls":"page","rule":"google","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817517397,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817517424,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817517450,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817517477,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+{"ts":1794817517508,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"7f64b91996dd","uaFamily":"Mozilla"}
+[16:25:17] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+{"ts":1794817521268,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"sitemap","rule":"burst","ip":"8852247aa5c3","uaFamily":"Mozilla"}
+{"ts":1794817521297,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"sitemap","rule":"burst","ip":"8852247aa5c3","uaFamily":"Mozilla"}
+{"ts":1794817521325,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"sitemap","rule":"burst","ip":"8852247aa5c3","uaFamily":"Mozilla"}
+[public-catalog:home-cache] {"city":"shanghai","bucket":20773,"phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"city-center","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"business-areas","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"featured-listing-candidates","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"districts","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"latest-articles","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"featured-article","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"city-center","phase":"end","elapsedMs":24}
+[public-catalog:home] {"city":"shanghai","query":"listing-aggregate","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"districts","phase":"end","elapsedMs":26}
+[public-catalog:home] {"city":"shanghai","query":"featured-article","phase":"end","elapsedMs":27}
+[public-catalog:home] {"city":"shanghai","query":"latest-articles","phase":"end","elapsedMs":34}
+[public-catalog:home] {"city":"shanghai","query":"featured-listing-candidates","phase":"end","elapsedMs":38}
+[public-catalog:home] {"city":"shanghai","query":"listing-aggregate","phase":"end","elapsedMs":27}
+[public-catalog:home] {"city":"shanghai","query":"business-areas","phase":"end","elapsedMs":56}
+[public-catalog:home] {"city":"shanghai","query":"building-overview","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"building-overview","phase":"end","elapsedMs":4}
+[public-catalog:home] {"city":"shanghai","query":"featured-buildings","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"featured-buildings","phase":"end","elapsedMs":4}
+[public-catalog:home] {"city":"shanghai","query":"featured-building-aggregate","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"featured-building-aggregate","phase":"end","elapsedMs":11}
+[public-catalog:home] {"city":"shanghai","query":"listing-hydration","phase":"start"}
+[public-catalog:home] {"city":"shanghai","query":"listing-hydration","phase":"end","elapsedMs":26}
+[public-catalog:home-cache] {"city":"shanghai","bucket":20773,"phase":"end","elapsedMs":103}
+{"ts":1794817565995,"tag":"bot-guard","kind":"denied","mode":"enforce","cls":"page","rule":"headlesschrome","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817566000,"tag":"bot-guard","kind":"denied","mode":"enforce","cls":"page","rule":"headlesschrome","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817566552,"tag":"bot-guard","kind":"denied","mode":"enforce","cls":"page","rule":"headlesschrome","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817567076,"tag":"bot-guard","kind":"denied","mode":"enforce","cls":"page","rule":"headlesschrome","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817567624,"tag":"bot-guard","kind":"denied","mode":"enforce","cls":"page","rule":"headlesschrome","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817568143,"tag":"bot-guard","kind":"denied","mode":"enforce","cls":"page","rule":"headlesschrome","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817568687,"tag":"bot-guard","kind":"denied","mode":"enforce","cls":"page","rule":"headlesschrome","ip":"52818bd62654","uaFamily":"Mozilla"}
+[16:26:22] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "o",
+      "message": "您无权执行此操作。",
+      "stack":
+          o: 您无权执行此操作。
+              at T (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:44433)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async P (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:45053)
+              at async h (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0lgz3ff._.js:1:18431)
+              at async /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0wwnffj._.js:1:8806
+              at async rJ.do (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:25785)
+              at async u (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:18318)
+              at async rJ.handleResponse (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:1:119701)
+              at async l (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:19359)
+              at async Module.w [as handler] (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:20466)
+              at async NextNodeServer.renderToResponseWithComponentsImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1462:9)
+              at async NextNodeServer.renderPageComponent (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1514:24)
+              at async NextNodeServer.renderToResponseImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1564:32)
+              at async NextNodeServer.pipeImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1044:25)
+              at async NextNodeServer.handleCatchallRenderRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/next-server.js:338:17)
+              at async NextNodeServer.handleRequestImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:935:17)
+              at async invokeRender (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:266:21)
+              at async handleRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:465:24)
+              at async requestHandlerImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:514:13)
+              at async Server.requestListener (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/start-server.js:225:13)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "o"
+    }
+{"ts":1794817582836,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817582837,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817582839,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"52818bd62654","uaFamily":"Mozilla"}
+{"ts":1794817582839,"tag":"bot-guard","kind":"limited","mode":"enforce","cls":"page","rule":"burst","ip":"52818bd62654","uaFamily":"Mozilla"}
+[16:27:22] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "o",
+      "message": "您无权执行此操作。",
+      "stack":
+          o: 您无权执行此操作。
+              at T (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:44433)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async P (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:45053)
+              at async h (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0lgz3ff._.js:1:18431)
+              at async /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0wwnffj._.js:1:8806
+              at async rJ.do (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:25785)
+              at async u (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:18318)
+              at async rJ.handleResponse (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:1:119701)
+              at async l (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:19359)
+              at async Module.w [as handler] (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:20466)
+              at async NextNodeServer.renderToResponseWithComponentsImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1462:9)
+              at async NextNodeServer.renderPageComponent (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1514:24)
+              at async NextNodeServer.renderToResponseImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1564:32)
+              at async NextNodeServer.pipeImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1044:25)
+              at async NextNodeServer.handleCatchallRenderRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/next-server.js:338:17)
+              at async NextNodeServer.handleRequestImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:935:17)
+              at async invokeRender (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:266:21)
+              at async handleRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:465:24)
+              at async requestHandlerImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:514:13)
+              at async Server.requestListener (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/start-server.js:225:13)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "o"
+    }
+[16:27:31] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "o",
+      "message": "您无权执行此操作。",
+      "stack":
+          o: 您无权执行此操作。
+              at T (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:44433)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async P (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:45053)
+              at async h (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0lgz3ff._.js:1:18431)
+              at async /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0wwnffj._.js:1:8806
+              at async rJ.do (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:25785)
+              at async u (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:18318)
+              at async rJ.handleResponse (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:1:119701)
+              at async l (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:19359)
+              at async Module.w [as handler] (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:20466)
+              at async NextNodeServer.renderToResponseWithComponentsImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1462:9)
+              at async NextNodeServer.renderPageComponent (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1514:24)
+              at async NextNodeServer.renderToResponseImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1564:32)
+              at async NextNodeServer.pipeImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1044:25)
+              at async NextNodeServer.handleCatchallRenderRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/next-server.js:338:17)
+              at async NextNodeServer.handleRequestImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:935:17)
+              at async invokeRender (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:266:21)
+              at async handleRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:465:24)
+              at async requestHandlerImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:514:13)
+              at async Server.requestListener (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/start-server.js:225:13)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "o"
+    }
+[16:27:51] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "o",
+      "message": "您无权执行此操作。",
+      "stack":
+          o: 您无权执行此操作。
+              at T (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:44433)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async P (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:45053)
+              at async h (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0lgz3ff._.js:1:18431)
+              at async /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0wwnffj._.js:1:8806
+              at async rJ.do (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:25785)
+              at async u (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:18318)
+              at async rJ.handleResponse (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:1:119701)
+              at async l (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:19359)
+              at async Module.w [as handler] (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:20466)
+              at async NextNodeServer.renderToResponseWithComponentsImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1462:9)
+              at async NextNodeServer.renderPageComponent (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1514:24)
+              at async NextNodeServer.renderToResponseImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1564:32)
+              at async NextNodeServer.pipeImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1044:25)
+              at async NextNodeServer.handleCatchallRenderRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/next-server.js:338:17)
+              at async NextNodeServer.handleRequestImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:935:17)
+              at async invokeRender (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:266:21)
+              at async handleRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:465:24)
+              at async requestHandlerImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:514:13)
+              at async Server.requestListener (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/start-server.js:225:13)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "o"
+    }
+[16:28:21] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "o",
+      "message": "您无权执行此操作。",
+      "stack":
+          o: 您无权执行此操作。
+              at T (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:44433)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async P (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_1vhbdbl._.js:155:45053)
+              at async h (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0lgz3ff._.js:1:18431)
+              at async /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/node_modules__pnpm_0wwnffj._.js:1:8806
+              at async rJ.do (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:5:25785)
+              at async u (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:18318)
+              at async rJ.handleResponse (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.prod.js:1:119701)
+              at async l (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:19359)
+              at async Module.w [as handler] (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/.next/server/chunks/[root-of-the-server]__1bsxazn._.js:1:20466)
+              at async NextNodeServer.renderToResponseWithComponentsImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1462:9)
+              at async NextNodeServer.renderPageComponent (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1514:24)
+              at async NextNodeServer.renderToResponseImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1564:32)
+              at async NextNodeServer.pipeImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:1044:25)
+              at async NextNodeServer.handleCatchallRenderRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/next-server.js:338:17)
+              at async NextNodeServer.handleRequestImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/base-server.js:935:17)
+              at async invokeRender (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:266:21)
+              at async handleRequest (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:465:24)
+              at async requestHandlerImpl (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/router-server.js:514:13)
+              at async Server.requestListener (/Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform/node_modules/.pnpm/next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0/node_modules/next/dist/server/lib/start-server.js:225:13)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "o"
+    }
+ ELIFECYCLE  Command failed with exit code 143.

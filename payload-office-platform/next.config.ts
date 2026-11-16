@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
+  // OPT-128：默认归一化会在 proxy 读请求前移除 Next 预取头，
+  // 使自动预取耗尽普通页面的额度。
+  skipProxyUrlNormalize: true,
   // OPT-019：不暴露 X-Powered-By（收敛公开调试面）
   poweredByHeader: false,
   images: {

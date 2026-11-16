@@ -5,6 +5,7 @@ import {
   effectiveSupplySqlFrom,
 } from './effective-supply-sql'
 import { DISPLAY_UNIT_BY_PERIOD_BASIS, LEGACY_PRICE } from './mappers'
+import { MAX_PUBLIC_PAGE } from './page-cap'
 import type { ListingSearchInput, SearchContext } from './types'
 
 type Query = Readonly<{ text: string; values: unknown[] }>
@@ -165,8 +166,10 @@ export function buildListingPageQuery(
     ? `price_amount ${input.sort === 'price-desc' ? 'DESC' : 'ASC'} NULLS LAST, id ASC`
     : `${input.sort === 'newest' ? '' : 'COALESCE(is_featured, false) DESC, '}COALESCE(updated_at, 'epoch'::timestamptz) DESC, id ASC`
   const sort = query.matchScore ? `match_score DESC, ${baseSort}` : baseSort
-  const limit = query.bind(input.pageSize > 0 ? input.pageSize : 1)
-  const offset = query.bind((Math.max(1, input.page) - 1) * (input.pageSize > 0 ? input.pageSize : 1))
+  // 超过封顶页码：limit/offset 都绑 0，不做大偏移扫描；COUNT 子查询保留，视图层靠 total > 0 判定越界
+  const overCap = Math.max(1, input.page) > MAX_PUBLIC_PAGE
+  const limit = query.bind(overCap ? 0 : input.pageSize > 0 ? input.pageSize : 1)
+  const offset = query.bind(overCap ? 0 : (Math.max(1, input.page) - 1) * (input.pageSize > 0 ? input.pageSize : 1))
   return { text: `${query.text}, selected AS MATERIALIZED (${scope})
     SELECT ARRAY(SELECT id FROM selected ORDER BY ${sort} LIMIT ${limit} OFFSET ${offset}) AS ids,
       (SELECT COUNT(*)::int FROM selected) AS total,

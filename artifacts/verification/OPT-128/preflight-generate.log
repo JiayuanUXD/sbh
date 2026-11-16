@@ -1,0 +1,13 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 generate:types /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform
+> payload generate:types
+
+[16:22:32] [32mINFO[39m: [36mCompiling TS types for Collections and Globals...[39m
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 payload /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform
+> payload "generate:importmap"
+
+Generating import map
+No new imports found, skipping writing import map

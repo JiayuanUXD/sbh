@@ -5,7 +5,9 @@ import ArticleCard from '@/components/frontend/ArticleCard'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
 import ListClickAnalytics from '@/components/frontend/listing/ListClickAnalytics'
+import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
 import ListPager from '@/components/frontend/listing/ListPager'
+import PagerCapNote from '@/components/frontend/listing/PagerCapNote'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type {
   ArticleListResult,
@@ -144,6 +146,35 @@ export default function SiteSearchView({
       ))}
     </div>
   )
+
+  // 房源 / 楼盘页签的结果区：页码越界（含 OPT-128 封顶后 page > 50）走越界空态，
+  // 不得渲染「空网格 + 页码 51/50 的分页器」这种无说明的空白；封顶时分页器后如实提示。
+  // 条件与城市列表页一致：page > totalPages && totalDocs > 0。
+  const renderPagedResults = (
+    target: 'listings' | 'buildings',
+    cards: React.ReactNode,
+    pagination: Readonly<{ totalPages: number; totalDocs: number; capped: boolean }>,
+  ) => {
+    const { totalPages, totalDocs, capped } = pagination
+    if (page > totalPages && totalDocs > 0) {
+      return (
+        <EmptyOutOfRange
+          page={page}
+          totalPages={totalPages}
+          lastPageHref={hrefOf(target, totalPages)}
+          firstPageHref={hrefOf(target, 1)}
+          capped={capped}
+        />
+      )
+    }
+    return (
+      <>
+        {cards}
+        <ListPager page={page} totalPages={totalPages} buildPageHref={(t) => hrefOf(target, t)} />
+        <PagerCapNote capped={capped} />
+      </>
+    )
+  }
 
   const section = (
     title: string,
@@ -303,14 +334,15 @@ export default function SiteSearchView({
 
             {tab === 'listings' ? (
               counts.listings > 0 ? (
-                <>
-                  {renderListings(listings?.result.docs ?? [], page)}
-                  <ListPager
-                    page={page}
-                    totalPages={listings?.result.pagination.totalPages ?? 1}
-                    buildPageHref={(target) => hrefOf('listings', target)}
-                  />
-                </>
+                renderPagedResults(
+                  'listings',
+                  renderListings(listings?.result.docs ?? [], page),
+                  {
+                    totalPages: listings?.result.pagination.totalPages ?? 1,
+                    totalDocs: counts.listings,
+                    capped: listings?.result.pagination.capped ?? false,
+                  },
+                )
               ) : counts.buildings > 0 ? (
                 /* 分类型零结果：关键词命中了楼盘但楼盘暂无在租房源。
                    给楼盘出口而不是「没有找到相关房源」的死路。 */
@@ -330,14 +362,15 @@ export default function SiteSearchView({
 
             {tab === 'buildings' ? (
               counts.buildings > 0 ? (
-                <>
-                  {renderBuildings(buildings?.result.docs ?? [], page)}
-                  <ListPager
-                    page={page}
-                    totalPages={buildings?.result.totalPages ?? 1}
-                    buildPageHref={(target) => hrefOf('buildings', target)}
-                  />
-                </>
+                renderPagedResults(
+                  'buildings',
+                  renderBuildings(buildings?.result.docs ?? [], page),
+                  {
+                    totalPages: buildings?.result.totalPages ?? 1,
+                    totalDocs: counts.buildings,
+                    capped: buildings?.result.capped ?? false,
+                  },
+                )
               ) : (
                 <p className="sw-tabempty">没有找到相关楼盘。</p>
               )

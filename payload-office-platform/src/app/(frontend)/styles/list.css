@@ -640,6 +640,9 @@
 .ls-pager__ellipsis { width: 36px; height: 36px; font-size: 13px; color: var(--ink-3);
   display: flex; align-items: center; justify-content: center; }
 
+/* 页码封顶提示（PagerCapNote，OPT-128）：紧跟 ListPager，只在真实页数超上限时出现 */
+.ls-pager__capnote { margin: 12px 0 0; text-align: center; font-size: 13px; color: var(--ink-2); }
+
 @media (prefers-reduced-motion: reduce) {
   .ls-pager__edge, .ls-pager__item { transition: none; }
 }
