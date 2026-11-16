@@ -309,7 +309,7 @@ Wave 1 时 `CITY-SH` 触发多命中告警：别名同时命中 `LEGACY_LOC_1`�
 
 `src/proxy.ts` 在主域名 301 之后接入 `src/lib/bot-guard/`：对公开页面、站点地图、`/api/media/file/**`、`/api/mini/v1/**` 做 UA 规则 + 每实例限速，真实搜索引擎经反向 DNS 验真后放行。`/api/health`、`/admin`、`/_next` 及其它 `/api/*` 不进守卫。
 
-**合并即上线，生产默认 `observe`**（只记日志、不改变响应）。切 `enforce` 的三道门槛见 `specs/work-items/OPT-128-anti-scraping-guard.md` §6。
+**合并即上线，生产默认 `observe`**（只记日志、不改变响应）。切 `enforce` 的四项核对见 `specs/work-items/OPT-128-anti-scraping-guard.md` §6。
 
 | 环境变量 | 默认 | 说明 |
 |---|---|---|
@@ -320,14 +320,17 @@ Wave 1 时 `CITY-SH` 触发多命中告警：别名同时命中 `LEGACY_LOC_1`�
 
 **切换与回滚不需要发版**：这些是服务级环境变量，在控制台 / CloudBase MCP 修改（代码部署不会清空，见 `CLAUDE.md`「CloudBase 部署事实」），改完需让实例重启生效。异常时把 `BOT_GUARD_MODE` 改回 `observe`（或 `off`）即回滚。
 
-**切 `enforce` 前的三道门槛**（观察至少 7 天，用 CloudRun 日志核对）：
+**切 `enforce` 前的四项核对**（观察至少 7 天，用 CloudRun 日志核对）：
 
 1. `ip_unresolved` 占比 < 1%（汇总行的 `counts`，并据 `xffChainLength` 定好 `BOT_GUARD_TRUSTED_PROXY_HOPS`）；
 2. 至少一家真实搜索引擎出现 `se_verified`；
-3. `would_limit` / `would_deny` 的分布里没有明显的真人。
+3. `would_limit` / `would_deny` 的分布里没有明显的真人；
+4. **客户端 IP 来源核对**：Next 在 `x-forwarded-for` 缺失时会用 socket 地址补全该头（`next/dist/server/base-server.js` 约 :577），所以头缺失**不会**表现为 `ip_unresolved`，而是一条指向网关地址的长度 1 的链，门槛 1 因此不能证明 IP 来源正确。日志里实际存在的字段：逐条行有 `ip`（哈希）、`cls`、`rule`、`uaFamily`、`kind`、`mode`；汇总行有 `counts`、`xffChainLength` 分布（`0/1/2/3+`，仅统计 `ip_unresolved` 事件）、`suppressed`。**汇总行没有按 IP 哈希的分布**，需从 `would_limit` 等逐条行的 `ip` 字段统计（每个 `kind:类别` 每 5 分钟最多 20 行）。若**单个 `ip` 哈希占绝大多数**（所有用户落在同一个网关地址后），说明跳数或头部假设错误，**不得启用 `enforce`**。
 
 **注意**：
 
+- 预取请求（`next-router-prefetch` / `Purpose` / `Sec-Purpose`）**不豁免**：预取头可被伪造，故归独立类别 `page-prefetch`（突发 200 / 每分钟 300 / 每小时 3000），因为每次页面访问约触发 12 个预取。
+- **`enforce` 下 `HeadlessChrome` UA（含 Playwright 默认 UA）返回 403**：对 `enforce` 环境跑 Playwright 等自动化浏览器验收，需换其它 UA，或把出口 IP 加进 `BOT_GUARD_ALLOW_IPS`。
 - 限速状态在进程内存里，**阈值是每实例的**；CloudRun 多实例时全站有效额度约为「阈值 × 实例数」。
 - 限速表上限 5 万个键，超过后按最久未用淘汰：若同时涌入超过 5 万个不同 IP，计数会被挤掉（有界内存的取舍，不会 OOM）。
 - 守卫内部任何异常都按放行处理（记 `guard_error`），不会因守卫导致全站 500。
