@@ -305,6 +305,34 @@ Wave 1 时 `CITY-SH` 触发多命中告警：别名同时命中 `LEGACY_LOC_1`�
 
 全程用 CloudBase MCP 只读查询做验收，未用 SQL 直接写库。导入脚本护栏：dry-run 默认、冲突默认跳过、`--update-existing` 才更新，绝不静默覆盖。
 
+## 爬虫守卫（OPT-128）
+
+`src/proxy.ts` 在主域名 301 之后接入 `src/lib/bot-guard/`：对公开页面、站点地图、`/api/media/file/**`、`/api/mini/v1/**` 做 UA 规则 + 每实例限速，真实搜索引擎经反向 DNS 验真后放行。`/api/health`、`/admin`、`/_next` 及其它 `/api/*` 不进守卫。
+
+**合并即上线，生产默认 `observe`**（只记日志、不改变响应）。切 `enforce` 的三道门槛见 `specs/work-items/OPT-128-anti-scraping-guard.md` §6。
+
+| 环境变量 | 默认 | 说明 |
+|---|---|---|
+| `BOT_GUARD_MODE` | 生产 `observe`，其余 `off` | `off` 整体跳过；`observe` 计算并记日志；`enforce` 真正返回 403/429（`mini-read` 一期仍只 observe） |
+| `BOT_GUARD_TRUSTED_PROXY_HOPS` | 未设置 | 取 `x-forwarded-for` 倒数第 N 个作为客户端 IP（1–5）。**未设置时 IP 无法解析，一律放行**，观察期靠日志里的 `xffChainLength` 确定跳数 |
+| `BOT_GUARD_ALLOW_IPS` | 空 | 逗号分隔的 IP 白名单，命中直接放行。**自己跑站点巡检 / 压测 / 爬取的出口 IP 必须加进来**，否则 enforce 后会被限速 |
+| `BOT_GUARD_LOG_KEY` | 回退 `PAYLOAD_SECRET` | 日志里 IP 哈希（HMAC-SHA256 取前 12 位十六进制）的密钥；日志不记原始 IP、完整 UA、路径与 query |
+
+**切换与回滚不需要发版**：这些是服务级环境变量，在控制台 / CloudBase MCP 修改（代码部署不会清空，见 `CLAUDE.md`「CloudBase 部署事实」），改完需让实例重启生效。异常时把 `BOT_GUARD_MODE` 改回 `observe`（或 `off`）即回滚。
+
+**切 `enforce` 前的三道门槛**（观察至少 7 天，用 CloudRun 日志核对）：
+
+1. `ip_unresolved` 占比 < 1%（汇总行的 `counts`，并据 `xffChainLength` 定好 `BOT_GUARD_TRUSTED_PROXY_HOPS`）；
+2. 至少一家真实搜索引擎出现 `se_verified`；
+3. `would_limit` / `would_deny` 的分布里没有明显的真人。
+
+**注意**：
+
+- 限速状态在进程内存里，**阈值是每实例的**；CloudRun 多实例时全站有效额度约为「阈值 × 实例数」。
+- 限速表上限 5 万个键，超过后按最久未用淘汰：若同时涌入超过 5 万个不同 IP，计数会被挤掉（有界内存的取舍，不会 OOM）。
+- 守卫内部任何异常都按放行处理（记 `guard_error`），不会因守卫导致全站 500。
+- 日志按 `kind:类别` 每 5 分钟窗口限量逐条写入，超出只计入汇总行的 `suppressed`。
+
 ## 关键文件
 
 | 文件 | 作用 |
