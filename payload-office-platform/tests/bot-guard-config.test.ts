@@ -52,7 +52,7 @@ describe('常量', () => {
     expect(CLASS_LIMITS.page).toEqual({ burst: 30, perMinute: 30, perHour: 600 })
     expect(CLASS_LIMITS.sitemap).toEqual({ burst: 5, perMinute: 5, perHour: 12 })
     expect(CLASS_LIMITS.media).toEqual({ burst: 100, perMinute: 300, perHour: 3000 })
-    expect(CLASS_LIMITS['page-prefetch']).toEqual({ burst: 60, perMinute: 120, perHour: 1200 })
+    expect(CLASS_LIMITS['page-prefetch']).toEqual({ burst: 200, perMinute: 300, perHour: 3000 })
     expect(CLASS_LIMITS['mini-read']).toEqual(CLASS_LIMITS.page)
     expect(LIMITER_MAX_KEYS).toBe(50_000)
     expect(UNRESOLVED_ENGINE_LIMIT_FACTOR).toBe(10)

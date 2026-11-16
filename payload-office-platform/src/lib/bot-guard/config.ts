@@ -22,8 +22,11 @@ export const CLASS_LIMITS: Readonly<
   Record<'page' | 'page-prefetch' | 'sitemap' | 'media' | 'mini-read', ClassLimits>
 > = {
   page: PAGE_LIMITS,
-  // 预取头可伪造，故不豁免而是单独给一档较宽的额度（一个列表页会预取多个详情链接）
-  'page-prefetch': { burst: 60, perMinute: 120, perHour: 1200 },
+  // 预取头可伪造，故不豁免而是单独给一档较宽的额度。
+  // 额度依据：每次页面访问会触发约 12 个 Next RSC 预取请求（页头/页脚链接），
+  // 真人连续快速翻页也会很快用完；Task 7 验证中旧值 60/120/1200 被真人耗尽。
+  // 已接受的权衡：伪造预取头的爬虫最多拿到这档额度，且只能拿到 RSC payload。
+  'page-prefetch': { burst: 200, perMinute: 300, perHour: 3000 },
   sitemap: { burst: 5, perMinute: 5, perHour: 12 },
   media: { burst: 100, perMinute: 300, perHour: 3000 },
   'mini-read': PAGE_LIMITS,
