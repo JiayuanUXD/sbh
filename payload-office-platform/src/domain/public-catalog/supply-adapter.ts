@@ -69,6 +69,7 @@ import {
   type RecommendationScope,
 } from "./listing-query-sql";
 import { articleSearchClauses } from "@/domain/search/article-where";
+import { capTotalPages, isCapped } from "./page-cap";
 import { buildPagination } from "./stable-sort";
 import type { ListingPageSelection, ScanFacets } from "./listing-scan";
 import { PUBLIC_BUILDING_METADATA_SQL, buildBuildingPageQuery,
@@ -1190,7 +1191,8 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         .every(value => Number.isSafeInteger(value) && value >= 0) || !Array.isArray(row.supply)) {
         throw new Error("无效的楼盘目录分页结果");
       }
-      return { ...row, page: Math.max(1, input.page), totalPages: Math.max(1, Math.ceil(row.totalDocs / input.pageSize)) };
+      const realTotalPages = Math.max(1, Math.ceil(row.totalDocs / input.pageSize));
+      return { ...row, page: Math.max(1, input.page), totalPages: capTotalPages(realTotalPages), capped: isCapped(realTotalPages) };
     },
     findEffectiveBuildingsByIds: hydrateBuildingIds,
     async findHomepageBuildingOverview(ctx, visibleAreaSlugs) {

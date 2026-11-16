@@ -182,16 +182,18 @@ describe("Payload public catalog supply adapter", () => {
     const adapter = createPayloadSupplyAdapter();
     expect(adapter.findListingPage).toBeTypeOf("function");
     payloadState.query.mockResolvedValue({ rows: [{ ids: [57500], total: 57545, filtered: false }] });
-    const input = { ...parseSearchInput(new URLSearchParams()), page: 2398 };
+    const input = { ...parseSearchInput(new URLSearchParams()), page: 50 };
     const page = await adapter.findListingPage!(input, createSearchContext("shanghai", undefined, "lease"));
     expect(page.ids).toEqual([57500]);
     expect(page.pagination.totalDocs).toBe(57545);
-    expect(page.pagination.totalPages).toBe(2398);
+    // 真实 2398 页，对外封顶 50（OPT-128）
+    expect(page.pagination.totalPages).toBe(50);
+    expect(page.pagination.capped).toBe(true);
     expect(payloadState.find).not.toHaveBeenCalled();
     const [sql, values] = payloadState.query.mock.calls[0];
     expect(sql).toContain("LIMIT");
     expect(sql).toContain("OFFSET");
-    expect(values).toContain(2397 * 24);
+    expect(values).toContain(49 * 24);
     expect(sql).toContain("m.qualification_expires_at >= $1");
     expect(sql).toContain("rep.supply_paused = true");
   });
@@ -715,7 +717,7 @@ describe("Payload public catalog supply adapter", () => {
     const production = createPayloadSupplyAdapter();
     const all = await production.findEffectiveBuildings(context);
     const result = await searchBuildingsFiltered(
-      { sort: "stock-desc", page: 53, pageSize: 24 },
+      { sort: "stock-desc", page: 50, pageSize: 24 },
       context,
       makeHomepageAdapter({
         findEffectiveBuildings: async () => all,
@@ -725,9 +727,11 @@ describe("Payload public catalog supply adapter", () => {
 
     expect(all).toHaveLength(1250);
     expect(result.totalDocs).toBe(1250);
-    expect(result.totalPages).toBe(53);
+    // 真实 53 页，对外封顶 50（OPT-128）；第 50 页是最后一个可翻页
+    expect(result.totalPages).toBe(50);
+    expect(result.capped).toBe(true);
     expect(result.docs.map((doc) => doc.slug)).toEqual([
-      ...Array.from({ length: 2 }, (_, index) => `building-${1249 + index}`),
+      ...Array.from({ length: 24 }, (_, index) => `building-${1177 + index}`),
     ]);
     expect(
       new Map(result.facets.districts.map((item) => [item.slug, item.count])),

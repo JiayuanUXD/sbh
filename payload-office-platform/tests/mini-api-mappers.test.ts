@@ -282,6 +282,7 @@ describe('Mini API mappers', () => {
     totalPages: 1,
     hasNextPage: false,
     hasPrevPage: false,
+    capped: false,
     internalCursor: 'pagination-secret',
   }
   const unsafeGalleryImage = {
@@ -367,6 +368,7 @@ describe('Mini API mappers', () => {
         totalPages: 1,
         hasNextPage: false,
         hasPrevPage: false,
+        capped: false,
       },
       canonical: 'district=jing-an',
       filteredByRentUnit: true,
@@ -381,7 +383,8 @@ describe('Mini API mappers', () => {
     })
     expect(mapMiniListings(result, listingFacetBundle, 'rmb-sqm-day', MEDIA_ORIGIN)).toEqual({
       items: [mapMiniListingCard(card, MEDIA_ORIGIN)],
-      pagination: result.pagination,
+      // capped 是领域层内部字段，Mini 契约不外露
+      pagination: { ...result.pagination, capped: undefined },
       canonicalQuery: 'district=jing-an',
       currentPriceUnit: 'rmb-sqm-day',
       filters: expect.any(Array),
@@ -429,6 +432,7 @@ describe('Mini API mappers', () => {
       unfilteredTotalDocs: 25,
       page: 1,
       totalPages: 2,
+      capped: false,
       facets: { districts: [], businessAreas: [], grades: [], metroLines: [], metros: [] },
       dimensionHits: {
         district: 25,
@@ -562,6 +566,7 @@ describe('Mini API mappers', () => {
         totalPages: 0,
         hasNextPage: false,
         hasPrevPage: false,
+        capped: false,
       },
       canonical: 'district=jing-an&listingType=traditional-office&priceUnit=rmb-sqm-day',
       filteredByRentUnit: true,

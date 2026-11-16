@@ -23,6 +23,7 @@
  * 必须用**同一份**比较器，否则两条路径迟早各排各的。
  */
 
+import { capTotalPages, isCapped, MAX_PUBLIC_PAGE } from './page-cap'
 import type { ListingCardViewModel, PriceViewModel } from './contracts'
 import type { ListingSearchInput, ListingSort, Pagination } from './types'
 
@@ -255,25 +256,29 @@ export function paginate<T>(
   sorted: readonly T[],
   page: number,
   pageSize: number,
-): { docs: T[]; totalDocs: number; totalPages: number } {
+): { docs: T[]; totalDocs: number; totalPages: number; capped: boolean } {
   const totalDocs = sorted.length
   const safePageSize = pageSize > 0 ? pageSize : 1
-  const totalPages = Math.max(1, Math.ceil(totalDocs / safePageSize))
+  const realTotalPages = Math.max(1, Math.ceil(totalDocs / safePageSize))
+  const totalPages = capTotalPages(realTotalPages)
   // page < 1 视为非法 → 回退为 1；page > totalPages 不 clamp（返回空文档）
   const safePage = Math.max(1, page)
   const start = (safePage - 1) * safePageSize
   const end = start + safePageSize
   return {
-    docs: sorted.slice(start, end),
+    // 超过封顶页码不再切片（OPT-128：深翻页一律空文档）
+    docs: safePage > MAX_PUBLIC_PAGE ? [] : sorted.slice(start, end),
     totalDocs,
     totalPages,
+    capped: isCapped(realTotalPages),
   }
 }
 
 /** 计算分页元数据（与 `paginate` 同一套 page / totalPages 规则）。 */
 export function buildPagination(totalDocs: number, page: number, pageSize: number): Pagination {
   const safePageSize = pageSize > 0 ? pageSize : 1
-  const totalPages = Math.max(1, Math.ceil(totalDocs / safePageSize))
+  const realTotalPages = Math.max(1, Math.ceil(totalDocs / safePageSize))
+  const totalPages = capTotalPages(realTotalPages)
   // page < 1 视为非法 → 回退为 1；page > totalPages 不 clamp（与 paginate 一致）
   const safePage = Math.max(1, page)
   return {
@@ -283,6 +288,7 @@ export function buildPagination(totalDocs: number, page: number, pageSize: numbe
     totalPages,
     hasNextPage: safePage < totalPages,
     hasPrevPage: safePage > 1,
+    capped: isCapped(realTotalPages),
   }
 }
 

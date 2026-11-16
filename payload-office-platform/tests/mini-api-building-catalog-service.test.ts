@@ -65,6 +65,7 @@ function resultFixture(): BuildingFilteredResult {
     unfilteredTotalDocs: 1,
     page: 2,
     totalPages: 2,
+    capped: false,
     facets: {
       districts: [{ slug: 'jing-an', name: '静安区', count: 1 }],
       businessAreas: [],

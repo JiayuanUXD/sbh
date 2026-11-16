@@ -2,6 +2,7 @@ import { BUILDING_CLEARABLE_DIMENSIONS, BUILDING_GRADE_VALUES,
   type BuildingSearchDimension, type BuildingSearchInput } from './building-search';
 import { EFFECTIVE_SUPPLY_AGGREGATE_FROM } from './effective-supply-sql';
 import type { BuildingFilteredResult } from './facade';
+import { MAX_PUBLIC_PAGE } from './page-cap';
 import type { SearchContext } from './types';
 import { LEGACY_BUILDING_GRADES } from '@/domain/supply/building-grade';
 
@@ -10,10 +11,10 @@ export type BuildingMetadataRow = {
   area_slug: string | null; district_slug?: string | null; cover_id: number | null;
   recommended_order?: number | null;
 };
-export type BuildingSqlResult = Omit<BuildingFilteredResult, 'docs' | 'groups' | 'page' | 'totalPages'> & {
+export type BuildingSqlResult = Omit<BuildingFilteredResult, 'docs' | 'groups' | 'page' | 'totalPages' | 'capped'> & {
   supply: readonly Readonly<{ id: number; count: number; area: number | null }>[];
 };
-export type BuildingPageSelection = BuildingSqlResult & { page: number; totalPages: number };
+export type BuildingPageSelection = BuildingSqlResult & { page: number; totalPages: number; capped: boolean };
 
 /** 与公开楼盘查询相同的资格，只读取计数、排序和分面所需的紧凑字段。 */
 export const PUBLIC_BUILDING_METADATA_SQL = `
@@ -89,8 +90,10 @@ export function buildBuildingPageQuery(input: BuildingSearchInput, ctx: SearchCo
     ? `match_score DESC, has_stock DESC, ${primarySort}, slug_order ASC`
     : `has_stock DESC, ${primarySort}, slug_order ASC`;
   const pageSize = input.pageSize > 0 ? input.pageSize : 1;
-  const limit = bind(pageSize);
-  const offset = bind(Math.trunc((Math.max(1, input.page) - 1) * pageSize));
+  // 超过封顶页码：limit/offset 都绑 0，不做大偏移扫描；totalDocs 计数子查询保留
+  const overCap = Math.max(1, input.page) > MAX_PUBLIC_PAGE;
+  const limit = bind(overCap ? 0 : pageSize);
+  const offset = bind(overCap ? 0 : Math.trunc((Math.max(1, input.page) - 1) * pageSize));
   const normalizedGrade = `CASE WHEN b.grade IS NULL OR b.grade::text = '' OR b.grade::text = ANY(${legacyGrades}::text[]) THEN 'ungraded' ELSE b.grade::text END`;
   return { values, text: `WITH stock AS MATERIALIZED (
     SELECT l.building_id, SUM(l.area)::float8 AS total_area, COUNT(*)::int AS listing_count

@@ -153,4 +153,6 @@ export type Pagination = Readonly<{
   totalPages: number
   hasNextPage: boolean
   hasPrevPage: boolean
+  /** 真实总页数超过 MAX_PUBLIC_PAGE（totalPages 已封顶，有页被隐藏）。 */
+  capped: boolean
 }>

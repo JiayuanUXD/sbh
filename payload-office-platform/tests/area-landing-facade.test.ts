@@ -67,7 +67,7 @@ const DIMENSION_HITS = { district: 0, businessArea: 0, grade: 0, metro: 0, leasa
 function searchResult(docs: readonly BuildingSummaryViewModel[]): BuildingFilteredResult {
   return {
     docs, groups: { withStock: docs, withoutStock: [] }, totalDocs: docs.length, withStockTotal: docs.length,
-    withoutStockTotal: 0, unfilteredTotalDocs: docs.length, page: 1, totalPages: 1,
+    withoutStockTotal: 0, unfilteredTotalDocs: docs.length, page: 1, totalPages: 1, capped: false,
     facets: { districts: [], businessAreas: [], grades: [], metroLines: [], metros: [] },
     dimensionHits: DIMENSION_HITS,
   }
