@@ -22,6 +22,8 @@
  * - 搜狗    https://www.sogou.com/docs/help/webmasters.htm ：官方无 rDNS 验真方法 -> 恒 unresolved。
  * - 360     https://www.so.com/help/spider_ip.html ：官方明确不支持 nslookup，只公布 IP 段 -> 恒 unresolved。
  *
+ * 已接受风险（裁定）：/sogou/i 与 /360spider/i 的 UA 声称没有 DNS 校验，恒 unresolved（10 倍阈值、不做 UA 拦截）。
+ *
  * 缓存（取舍）：verified 24h、spoofed 10min、unresolved 60s（防 DNS 风暴，我的取舍），LRU 上限 5000。
  */
 import dns from 'node:dns/promises'
@@ -88,10 +90,20 @@ export function hostMatchesSuffix(host: string, suffixes: readonly string[]): bo
   return suffixes.some((s) => h.length > s.length && h.endsWith(s))
 }
 
+/** 规范化为稳定形态：IPv4 原样，::ffff:a.b.c.d 解包，IPv6 经 URL 解析器压缩 / 小写 / 去前导零。 */
 function normalizeIp(ip: string): string {
   const lower = ip.trim().toLowerCase()
-  return lower.startsWith('::ffff:') && lower.includes('.') ? lower.slice(7) : lower
+  if (lower.startsWith('::ffff:') && lower.includes('.')) return lower.slice(7)
+  if (!lower.includes(':')) return lower
+  try {
+    return new URL(`http://[${lower}]`).hostname.slice(1, -1)
+  } catch {
+    return lower
+  }
 }
+
+/** 每次验真最多对这么多个后缀合格的 PTR 主机名做正向查询，防止攻击者控制的多名 PTR 拖慢验真 */
+const MAX_FORWARD_CANDIDATES = 3
 
 type Kind = 'verified' | 'spoofed' | 'unresolved'
 
@@ -102,7 +114,10 @@ async function verifyViaDns(deps: DnsDeps, spec: EngineSpec, suffixes: readonly 
   } catch {
     return 'unresolved'
   }
-  const candidates = hosts.filter((h) => hostMatchesSuffix(h, suffixes))
+  // 空 PTR：宽松引擎（百度）判 unresolved——对公网反向区回 NXDOMAIN 的 resolver 不能把真百度标成 spoofed；
+  // 严格引擎（谷歌 / 必应）保持 spoofed。observe 期必须至少看到一次 se_verified，才证明容器内 DNS 可用。
+  if (hosts.length === 0) return spec.forwardLenient ? 'unresolved' : 'spoofed'
+  const candidates = hosts.filter((h) => hostMatchesSuffix(h, suffixes)).slice(0, MAX_FORWARD_CANDIDATES)
   if (candidates.length === 0) return 'spoofed'
 
   const target = normalizeIp(ip)
@@ -143,6 +158,7 @@ export function createSearchEngineVerifier(
     const spec = ENGINES[engine]
     if (spec.hostSuffixes === null) return { kind: 'unresolved', engine }
 
+    ip = normalizeIp(ip)
     const key = `${engine}|${ip}`
     const hit = cache.get(key)
     if (hit !== undefined) {

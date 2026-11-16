@@ -1,4 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+const dnsMock = vi.hoisted(() => ({
+  reverse: vi.fn(),
+  resolve4: vi.fn(),
+  resolve6: vi.fn(),
+}))
+vi.mock('node:dns/promises', () => ({ default: dnsMock }))
 
 import {
   claimedEngine,
@@ -235,5 +242,115 @@ describe('createNodeDnsDeps', () => {
     expect(typeof deps.reverse).toBe('function')
     expect(typeof deps.resolve).toBe('function')
     expect(Math.abs(deps.now() - Date.now())).toBeLessThan(1000)
+  })
+})
+
+describe('修复轮：IPv6 规范化 / 空 PTR / 候选上限 / 其它', () => {
+  const G6 = 'crawl-1.googlebot.com'
+
+  it('IPv6 补零与压缩写法不同 → verified', async () => {
+    const { deps } = makeDeps({ reverse: async () => [G6], resolve: async () => ['2001:4860:4801:10::1'] })
+    expect(await createSearchEngineVerifier(deps)('2001:4860:4801:0010::1', GOOGLE_UA)).toEqual({
+      kind: 'verified',
+      engine: 'google',
+    })
+  })
+
+  it('IPv6 大写写法 → verified 且与小写共用缓存', async () => {
+    const { deps, reverse } = makeDeps({ reverse: async () => [G6], resolve: async () => ['2001:4860:4801:10::1'] })
+    const verify = createSearchEngineVerifier(deps)
+    expect(await verify('2001:4860:4801:10::1', GOOGLE_UA)).toEqual({ kind: 'verified', engine: 'google' })
+    expect(await verify('2001:4860:4801:0010:0:0:0:1'.toUpperCase(), GOOGLE_UA)).toEqual({
+      kind: 'verified',
+      engine: 'google',
+    })
+    expect(reverse).toHaveBeenCalledTimes(1)
+  })
+
+  it('空 PTR：百度宽松 → unresolved，谷歌 / 必应严格 → spoofed', async () => {
+    const baidu = makeDeps({ reverse: async () => [] })
+    expect(await createSearchEngineVerifier(baidu.deps)('1.2.3.4', BAIDU_UA)).toEqual({
+      kind: 'unresolved',
+      engine: 'baidu',
+    })
+    for (const [ua, engine] of [
+      [GOOGLE_UA, 'google'],
+      [BING_UA, 'bing'],
+    ] as const) {
+      const { deps } = makeDeps({ reverse: async () => [] })
+      expect(await createSearchEngineVerifier(deps)('1.2.3.4', ua)).toEqual({ kind: 'spoofed', engine })
+    }
+  })
+
+  it('只对前 3 个后缀合格的候选主机名做正向查询', async () => {
+    const hosts = Array.from({ length: 10 }, (_, i) => `h${i}.googlebot.com`)
+    const { deps, resolve } = makeDeps({ reverse: async () => ['junk.example.com', ...hosts], resolve: async () => ['9.9.9.9'] })
+    expect(await createSearchEngineVerifier(deps)('1.2.3.4', GOOGLE_UA)).toEqual({ kind: 'spoofed', engine: 'google' })
+    expect(resolve).toHaveBeenCalledTimes(3)
+  })
+
+  it('PTR 大写与尾点端到端 → verified', async () => {
+    for (const host of ['CRAWL-1.GOOGLEBOT.COM', 'crawl-1.googlebot.com.']) {
+      const { deps } = makeDeps({ reverse: async () => [host], resolve: async () => ['66.249.66.1'] })
+      expect(await createSearchEngineVerifier(deps)('66.249.66.1', GOOGLE_UA)).toEqual({
+        kind: 'verified',
+        engine: 'google',
+      })
+    }
+  })
+
+  it('失败后在飞表被清理，过了 unresolved 缓存期的下一次调用会重试 DNS', async () => {
+    let n = 0
+    const { deps, clock, reverse } = makeDeps({
+      reverse: async () => {
+        if (n++ === 0) throw new Error('boom')
+        return ['x.example.com']
+      },
+    })
+    const verify = createSearchEngineVerifier(deps)
+    expect((await verify('1.2.3.4', GOOGLE_UA)).kind).toBe('unresolved')
+    clock.t += 61_000
+    expect((await verify('1.2.3.4', GOOGLE_UA)).kind).toBe('spoofed')
+    expect(reverse).toHaveBeenCalledTimes(2)
+  })
+
+  it('缓存命中会刷新新近度：被命中的键在淘汰中存活，更旧的未触碰键被淘汰', async () => {
+    const { deps, reverse } = makeDeps({ reverse: async () => ['x.example.com'] })
+    const verify = createSearchEngineVerifier(deps)
+    const ip = (i: number) => `10.${i >> 16}.${(i >> 8) & 255}.${i & 255}`
+    for (let i = 0; i < 5000; i++) await verify(ip(i), GOOGLE_UA)
+    await verify(ip(0), GOOGLE_UA) // 命中，刷新
+    await verify(ip(5000), GOOGLE_UA) // 触发淘汰，应淘汰 ip(1)
+    expect(reverse).toHaveBeenCalledTimes(5001)
+    await verify(ip(0), GOOGLE_UA)
+    expect(reverse).toHaveBeenCalledTimes(5001)
+    await verify(ip(1), GOOGLE_UA)
+    expect(reverse).toHaveBeenCalledTimes(5002)
+  })
+})
+
+describe('createNodeDnsDeps 超时', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.clearAllMocks()
+  })
+
+  it('reverse 永不返回 → 在 timeoutMs 内 reject 且定时器已清理', async () => {
+    vi.useFakeTimers()
+    dnsMock.reverse.mockReturnValue(new Promise(() => {}))
+    const p = createNodeDnsDeps(1000).reverse('1.2.3.4')
+    const assertion = expect(p).rejects.toThrow('dns timeout')
+    await vi.advanceTimersByTimeAsync(1000)
+    await assertion
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('reverse 正常返回时清理定时器；ENOTFOUND 视为空结果', async () => {
+    vi.useFakeTimers()
+    dnsMock.reverse.mockResolvedValueOnce(['a.googlebot.com'])
+    expect(await createNodeDnsDeps(1000).reverse('1.2.3.4')).toEqual(['a.googlebot.com'])
+    expect(vi.getTimerCount()).toBe(0)
+    dnsMock.reverse.mockRejectedValueOnce(Object.assign(new Error('x'), { code: 'ENOTFOUND' }))
+    expect(await createNodeDnsDeps(1000).reverse('1.2.3.4')).toEqual([])
   })
 })
