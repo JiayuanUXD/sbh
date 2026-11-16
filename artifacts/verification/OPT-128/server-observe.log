@@ -1,0 +1,23 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 start /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform
+> next start
+
+▲ Next.js 16.2.10
+- Local:         http://localhost:3721
+- Network:       http://10.193.222.18:3721
+✓ Ready in 129ms
+{"ts":1794817480444,"tag":"bot-guard","kind":"would_deny","mode":"observe","cls":"page","rule":"curl","ip":"52818bd62654","uaFamily":"curl"}
+[16:24:40] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+{"ts":1794817491540,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491585,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491622,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491658,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491693,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491731,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491790,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491827,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491865,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491902,"tag":"bot-guard","kind":"would_limit","mode":"observe","cls":"page","rule":"burst","ip":"719896506041","uaFamily":"Mozilla"}
+{"ts":1794817491939,"tag":"bot-guard","kind":"would_deny","mode":"observe","cls":"page","rule":"curl","ip":"76b53960a424","uaFamily":"curl"}
+ ELIFECYCLE  Command failed with exit code 143.

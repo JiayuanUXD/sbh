@@ -1,0 +1,14 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 test /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform
+> vitest run
+
+
+ RUN  v4.1.10 /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform
+
+
+ Test Files  543 passed (543)
+      Tests  7360 passed (7360)
+   Start at  16:22:52
+   Duration  23.65s (transform 17.46s, setup 0ms, import 196.95s, tests 35.19s, environment 4.98s)
+
