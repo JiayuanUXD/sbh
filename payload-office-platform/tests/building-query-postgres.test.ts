@@ -113,7 +113,7 @@ describe.skipIf(!databaseAvailable)('楼盘 SQL 与原目录分面排序逐项�
       const sql = buildBuildingPageQuery(input, ctx, ordered)
       const actual = (await client.query(sql.text, sql.values)).rows[0].result as BuildingSqlResult
       const metadata = Object.fromEntries(Object.entries(expected).filter(([key]) =>
-        !['docs', 'groups', 'page', 'totalPages'].includes(key)))
+        !['docs', 'groups', 'page', 'totalPages', 'capped'].includes(key)))
       expect(actual).toEqual({ ...metadata, supply: expected.docs.map(doc => ({ id: doc.id,
         count: doc.listingCount ?? 0, area: doc.leasableArea ?? null })) })
     })
