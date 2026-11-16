@@ -33,6 +33,9 @@ const COUNT_ONLY: ReadonlySet<GuardDecisionKind> = new Set<GuardDecisionKind>([
   'ip_unresolved',
 ])
 
+/** 每个 kind:cls 每个汇总窗口最多逐条写的行数；超出只计数，防洪水日志。 */
+export const MAX_LINES_PER_KEY_PER_WINDOW = 20
+
 type ChainBucket = '0' | '1' | '2' | '3+'
 
 function bucketOf(length: number): ChainBucket {
@@ -48,9 +51,13 @@ export function createGuardLogger(
     now(): number
     hashIp(ip: string): string
     summaryIntervalMs: number
+    maxLinesPerKeyPerWindow?: number
   }>,
 ): Readonly<{ record(event: GuardLogEvent): void }> {
+  const cap = deps.maxLinesPerKeyPerWindow ?? MAX_LINES_PER_KEY_PER_WINDOW
   let counts = new Map<string, number>()
+  let written = new Map<string, number>()
+  let suppressed = new Map<string, number>()
   let chain: Record<ChainBucket, number> = { '0': 0, '1': 0, '2': 0, '3+': 0 }
   let windowStart = deps.now()
 
@@ -72,8 +79,11 @@ export function createGuardLogger(
       windowMs: now - windowStart,
       counts: Object.fromEntries(counts),
       xffChainLength: chain,
+      suppressed: Object.fromEntries(suppressed),
     })
     counts = new Map()
+    written = new Map()
+    suppressed = new Map()
     chain = { '0': 0, '1': 0, '2': 0, '3+': 0 }
     windowStart = now
   }
@@ -86,7 +96,11 @@ export function createGuardLogger(
         if (event.kind === 'ip_unresolved' && event.xffChainLength !== null) {
           chain[bucketOf(event.xffChainLength)] += 1
         }
-        if (!COUNT_ONLY.has(event.kind)) {
+        const lines = written.get(key) ?? 0
+        if (!COUNT_ONLY.has(event.kind) && lines >= cap) {
+          suppressed.set(key, (suppressed.get(key) ?? 0) + 1)
+        } else if (!COUNT_ONLY.has(event.kind)) {
+          written.set(key, lines + 1)
           safeWrite({
             ts: deps.now(),
             tag: 'bot-guard',

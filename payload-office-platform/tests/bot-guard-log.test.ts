@@ -4,7 +4,7 @@ import { createGuardLogger, type GuardLogEvent } from '../src/lib/bot-guard/log'
 
 const RAW_IP = '203.0.113.77'
 
-function setup(opts?: { writeThrows?: boolean }) {
+function setup(opts?: { writeThrows?: boolean; cap?: number }) {
   const lines: string[] = []
   let t = 1_000_000
   const logger = createGuardLogger({
@@ -15,6 +15,7 @@ function setup(opts?: { writeThrows?: boolean }) {
     now: () => t,
     hashIp: (ip) => `h_${ip.length}`,
     summaryIntervalMs: 300_000,
+    ...(opts?.cap !== undefined ? { maxLinesPerKeyPerWindow: opts.cap } : {}),
   })
   return { lines, logger, advance: (ms: number) => (t += ms) }
 }
@@ -89,5 +90,37 @@ describe('createGuardLogger', () => {
     expect(() => logger.record({ ...base, kind: 'denied' })).not.toThrow()
     advance(300_000)
     expect(() => logger.record({ ...base, kind: 'se_verified' })).not.toThrow()
+  })
+
+  it('同一 kind:cls 每窗口最多写 20 行，其余只计数并在汇总报告 suppressed', () => {
+    const { lines, logger, advance } = setup()
+    for (let i = 0; i < 100; i++) logger.record({ ...base, kind: 'limited' })
+    expect(lines).toHaveLength(20)
+    advance(300_000)
+    logger.record({ ...base, kind: 'se_verified' })
+    const summary = JSON.parse(lines[lines.length - 1]!)
+    expect(summary.counts['limited:page']).toBe(100)
+    expect(summary.suppressed).toEqual({ 'limited:page': 80 })
+    expect(lines).toHaveLength(21)
+
+    // 新窗口重新计额，suppressed 清零
+    for (let i = 0; i < 25; i++) logger.record({ ...base, kind: 'limited' })
+    expect(lines).toHaveLength(41)
+    advance(300_000)
+    logger.record({ ...base, kind: 'se_verified' })
+    expect(JSON.parse(lines[lines.length - 1]!).suppressed).toEqual({ 'limited:page': 5 })
+  })
+
+  it('不同 kind:cls 各自独立计额；guard_error 洪水遵守同一上限', () => {
+    const { lines, logger } = setup()
+    for (let i = 0; i < 50; i++) logger.record({ ...base, kind: 'guard_error' })
+    for (let i = 0; i < 50; i++) logger.record({ ...base, kind: 'guard_error', cls: 'media' })
+    expect(lines).toHaveLength(40)
+  })
+
+  it('上限可注入', () => {
+    const { lines, logger } = setup({ cap: 2 })
+    for (let i = 0; i < 5; i++) logger.record({ ...base, kind: 'denied' })
+    expect(lines).toHaveLength(2)
   })
 })

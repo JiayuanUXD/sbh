@@ -5,7 +5,7 @@ import {
   type BotGuardConfig,
 } from './config'
 import type { createLimiter, ClassLimits } from './limiter'
-import type { createGuardLogger, GuardDecisionKind } from './log'
+import type { createGuardLogger, GuardDecisionKind, GuardLogEvent } from './log'
 import { classifyPath, type GuardClass } from './path-class'
 import { claimedEngine, type SearchEngineVerdict } from './search-engine'
 import { classifyUserAgent } from './user-agent'
@@ -63,20 +63,16 @@ function scale(limits: ClassLimits, factor: number): ClassLimits {
  */
 function applyMode(
   candidate: Candidate,
-  ctx: Readonly<{
-    config: BotGuardConfig
-    cls: GuardClass
-    ip: string
-    uaFamily: string
-    logger: GuardDeps['logger']
-  }>,
-): GuardAction {
+  ctx: Readonly<{ config: BotGuardConfig; cls: GuardClass; ip: string; uaFamily: string }>,
+): Readonly<{ action: GuardAction; event: GuardLogEvent }> {
+  // mini-read 一期只 observe：ENFORCED_CLASSES 不含它，故脚本 UA 在 enforce 下
+  // 也只降级为 would_deny 并放行（有意为之，不是漏拦）。
   const enforcing = ctx.config.mode === 'enforce' && ENFORCED_CLASSES.has(ctx.cls)
   const kind: GuardDecisionKind =
     candidate.type === 'deny'
       ? enforcing ? 'denied' : 'would_deny'
       : enforcing ? 'limited' : 'would_limit'
-  ctx.logger.record({
+  const event: GuardLogEvent = {
     kind,
     mode: ctx.config.mode,
     cls: ctx.cls,
@@ -84,15 +80,27 @@ function applyMode(
     ip: ctx.ip,
     uaFamily: ctx.uaFamily,
     xffChainLength: null,
-  })
-  if (!enforcing) return ALLOW
-  return candidate.type === 'deny'
-    ? { action: 'deny', status: 403 }
-    : { action: 'limit', status: 429, retryAfterSeconds: Math.max(1, candidate.retryAfterSeconds) }
+  }
+  if (!enforcing) return { action: ALLOW, event }
+  return {
+    action:
+      candidate.type === 'deny'
+        ? { action: 'deny', status: 403 }
+        : { action: 'limit', status: 429, retryAfterSeconds: Math.max(1, candidate.retryAfterSeconds) },
+    event,
+  }
 }
 
 export async function evaluateGuard(input: GuardInput, deps: GuardDeps): Promise<GuardAction> {
   const { config, limiter, verifyEngine, logger } = deps
+  // 遥测尽力而为：日志写入失败绝不能改变拦截结果
+  const safeRecord = (event: GuardLogEvent): void => {
+    try {
+      logger.record(event)
+    } catch {
+      // 吞掉
+    }
+  }
   if (config.mode === 'off') return ALLOW
 
   let cls: GuardClass = 'exempt'
@@ -111,7 +119,7 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps): Promise
 
     const resolved = resolveTrustedClientIp(input.headers.xForwardedFor, config.trustedProxyHops)
     if (!resolved.ok) {
-      logger.record({
+      safeRecord({
         kind: 'ip_unresolved',
         mode: config.mode,
         cls,
@@ -130,11 +138,11 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps): Promise
     if (claimedEngine(ua) !== null) {
       const verdict = await verifyEngine(ip, ua)
       if (verdict.kind === 'verified') {
-        logger.record({ kind: 'se_verified', mode: config.mode, cls, rule: verdict.engine, ip, uaFamily, xffChainLength: null })
+        safeRecord({ kind: 'se_verified', mode: config.mode, cls, rule: verdict.engine, ip, uaFamily, xffChainLength: null })
         return ALLOW
       }
       if (verdict.kind === 'spoofed') {
-        logger.record({ kind: 'se_spoofed', mode: config.mode, cls, rule: verdict.engine, ip, uaFamily, xffChainLength: null })
+        safeRecord({ kind: 'se_spoofed', mode: config.mode, cls, rule: verdict.engine, ip, uaFamily, xffChainLength: null })
       } else if (verdict.kind === 'unresolved') {
         unresolvedEngine = true
       }
@@ -142,25 +150,27 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps): Promise
 
     // 未决的引擎不做 UA 拦截（DNS 不可用不能伤 SEO）
     if (!unresolvedEngine && uaVerdict.deny && uaVerdict.rule !== null) {
-      return applyMode({ type: 'deny', rule: uaVerdict.rule }, { config, cls, ip, uaFamily, logger })
+      const out = applyMode({ type: 'deny', rule: uaVerdict.rule }, { config, cls, ip, uaFamily })
+      safeRecord(out.event)
+      return out.action
     }
 
     const base = CLASS_LIMITS[cls]
     const limits = unresolvedEngine ? scale(base, UNRESOLVED_ENGINE_LIMIT_FACTOR) : base
     const decision = limiter.check(`${ip}|${cls}`, limits)
     if (!decision.allowed) {
-      return applyMode(
+      const out = applyMode(
         { type: 'limit', rule: decision.window, retryAfterSeconds: decision.retryAfterSeconds },
-        { config, cls, ip, uaFamily, logger },
+        { config, cls, ip, uaFamily },
       )
+      safeRecord(out.event)
+      return out.action
     }
     return ALLOW
   } catch {
-    try {
-      logger.record({ kind: 'guard_error', mode: config.mode, cls, rule: null, ip: null, uaFamily, xffChainLength: null })
-    } catch {
-      // 日志也坏了：仍然放行
-    }
+    // 内部异常按设计放行（fail-open）；cls 取不到时保持 'exempt'，
+    // GuardLogEvent.cls 的导出类型不含 'unknown'，故不改签名
+    safeRecord({ kind: 'guard_error', mode: config.mode, cls, rule: null, ip: null, uaFamily, xffChainLength: null })
     return ALLOW
   }
 }

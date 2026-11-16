@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { evaluateGuard, type GuardDeps, type GuardInput } from '../src/lib/bot-guard/guard'
 import { CLASS_LIMITS, UNRESOLVED_ENGINE_LIMIT_FACTOR, type BotGuardConfig } from '../src/lib/bot-guard/config'
 import { createLimiter } from '../src/lib/bot-guard/limiter'
-import type { GuardLogEvent } from '../src/lib/bot-guard/log'
+import { createGuardLogger, type GuardLogEvent } from '../src/lib/bot-guard/log'
 import type { SearchEngineVerdict } from '../src/lib/bot-guard/search-engine'
 
 const BROWSER_UA = 'Mozilla/5.0 (Macintosh) AppleWebKit/605 Safari/605'
@@ -202,20 +202,18 @@ describe('evaluateGuard 健壮性', () => {
     expect(m.events.at(-1)).toMatchObject({ kind: 'guard_error' })
   })
 
-  it('logger.record 抛错 → allow（enforce 下也不抛）并尝试记 guard_error', async () => {
-    let first = true
-    const m = make({
-      recordImpl: () => {
-        if (first) { first = false; throw new Error('log boom') }
-      },
-    })
-    await expect(evaluateGuard(input({ userAgent: 'curl/8' }), m.deps)).resolves.toEqual({ action: 'allow' })
-    expect(m.events.at(-1)).toMatchObject({ kind: 'guard_error' })
+  it('enforce 下 logger.record 抛错不改变拦截结果（429 / 403）', async () => {
+    const m = make({ recordImpl: () => { throw new Error('log boom') } })
+    expect(await evaluateGuard(input({ userAgent: 'curl/8.0' }), m.deps)).toEqual({ action: 'deny', status: 403 })
+    let last
+    for (let i = 0; i < CLASS_LIMITS.page.burst + 1; i++) last = await evaluateGuard(input(), m.deps)
+    expect(last).toMatchObject({ action: 'limit', status: 429 })
   })
 
-  it('logger 一直抛错也不抛', async () => {
-    const m = make({ recordImpl: () => { throw new Error('always') } })
-    await expect(evaluateGuard(input({ userAgent: 'curl/8' }), m.deps)).resolves.toEqual({ action: 'allow' })
+  it('logger 只抛一次时 allow 路径也不抛', async () => {
+    let first = true
+    const m = make({ recordImpl: () => { if (first) { first = false; throw new Error('x') } } })
+    await expect(evaluateGuard(input({ userAgent: 'curl/8.0' }), m.deps)).resolves.toEqual({ action: 'deny', status: 403 })
   })
 
   it('超长 / 控制字符 UA 不抛错', async () => {
@@ -225,11 +223,70 @@ describe('evaluateGuard 健壮性', () => {
 })
 
 describe('evaluateGuard 真人序列', () => {
+  it('5 秒内 10 个 page 请求全部 allow（突发 30）', async () => {
+    const m = make()
+    for (let i = 0; i < 10; i++) {
+      expect(await evaluateGuard(input({ pathname: `/p/${i}` }), m.deps)).toEqual({ action: 'allow' })
+      m.advance(500)
+    }
+  })
+
   it('同一 IP 40 分钟 40 个 page 请求，enforce 下全部 allow', async () => {
     const m = make()
     for (let i = 0; i < 40; i++) {
       expect(await evaluateGuard(input({ pathname: `/shanghai/listings/${i}` }), m.deps)).toEqual({ action: 'allow' })
       m.advance(60_000)
     }
+  })
+})
+
+describe('evaluateGuard + 真实 logger 集成', () => {
+  it('任何写出的行（含汇总）都不含原始 IP / UA / 路径 / query', async () => {
+    const lines: string[] = []
+    let t = 0
+    const logger = createGuardLogger({
+      write: (l) => lines.push(l),
+      now: () => t,
+      hashIp: (ip) => `hash${ip.length}`,
+      summaryIntervalMs: 1000,
+    })
+    const limiter = createLimiter({ now: () => t, maxKeys: 100 })
+    const deps: GuardDeps = {
+      config: { mode: 'enforce', trustedProxyHops: 1, allowIps: new Set(), logKey: 'k' },
+      limiter,
+      verifyEngine: async () => ({ kind: 'none' }),
+      logger,
+    }
+    const rawIp = '203.0.113.9'
+    const rawUa = '\u0000\u001b[31mpython-requests/2.0 ' + 'A'.repeat(10_000)
+    const path = '/secret-path/abc'
+    for (let i = 0; i < 3; i++) {
+      await evaluateGuard(
+        { method: 'GET', pathname: `${path}${i}`, headers: { userAgent: rawUa, xForwardedFor: rawIp, isPrefetch: false } },
+        deps,
+      )
+    }
+    await evaluateGuard(
+      { method: 'GET', pathname: path, headers: { userAgent: BROWSER_UA, xForwardedFor: 'bad:1', isPrefetch: false } },
+      deps,
+    )
+    t += 2000
+    await evaluateGuard(
+      { method: 'GET', pathname: path, headers: { userAgent: BROWSER_UA, xForwardedFor: 'bad:1', isPrefetch: false } },
+      deps,
+    )
+    expect(lines.length).toBeGreaterThan(1)
+    const all = lines.join('\n')
+    expect(all).not.toContain(rawIp)
+    expect(all).not.toContain('python-requests/2.0 AAAA')
+    expect(all).not.toContain('secret-path')
+    expect(all).not.toContain('?')
+    // eslint-disable-next-line no-control-regex
+    expect(all).not.toMatch(/\\u0000|\\u001b/)
+    for (const l of lines) {
+      const row = JSON.parse(l)
+      if (row.uaFamily !== undefined) expect(row.uaFamily).toMatch(/^[A-Za-z0-9._-]{1,24}$/)
+    }
+    expect(lines.some((l) => JSON.parse(l).kind === 'summary')).toBe(true)
   })
 })
