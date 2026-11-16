@@ -314,18 +314,18 @@ Wave 1 时 `CITY-SH` 触发多命中告警：别名同时命中 `LEGACY_LOC_1`�
 | 环境变量 | 默认 | 说明 |
 |---|---|---|
 | `BOT_GUARD_MODE` | 生产 `observe`，其余 `off` | `off` 整体跳过；`observe` 计算并记日志；`enforce` 真正返回 403/429（`mini-read` 一期仍只 observe） |
-| `BOT_GUARD_TRUSTED_PROXY_HOPS` | 未设置 | 取 `x-forwarded-for` 倒数第 N 个作为客户端 IP（1–5）。**未设置时 IP 无法解析，一律放行**，观察期靠日志里的 `xffChainLength` 确定跳数 |
+| `BOT_GUARD_TRUSTED_PROXY_HOPS` | 未设置 | 取 `x-forwarded-for` 倒数第 N 个作为客户端 IP（1–5）。未设置时只统计未解析请求及链长度。验证网关转发规则后，在 `observe` 模式下配置跳数 |
 | `BOT_GUARD_ALLOW_IPS` | 空 | 逗号分隔的 IP 白名单，命中直接放行。**自己跑站点巡检 / 压测 / 爬取的出口 IP 必须加进来**，否则 enforce 后会被限速 |
 | `BOT_GUARD_LOG_KEY` | 回退 `PAYLOAD_SECRET` | 日志里 IP 哈希（HMAC-SHA256 取前 12 位十六进制）的密钥；日志不记原始 IP、完整 UA、路径与 query |
 
 **切换与回滚不需要发版**：这些是服务级环境变量，在控制台 / CloudBase MCP 修改（代码部署不会清空，见 `CLAUDE.md`「CloudBase 部署事实」），改完需让实例重启生效。异常时把 `BOT_GUARD_MODE` 改回 `observe`（或 `off`）即回滚。
 
-**切 `enforce` 前的四项核对**（观察至少 7 天，用 CloudRun 日志核对）：
+首次发布保持 `observe`。用实际网关的转发规则和受控来源请求核实客户端地址的位置，再设置代理跳数。配置生效后保持 `observe` 至少 7 天，按 CloudRun 日志核对以下四项。
 
-1. `ip_unresolved` 占比 < 1%（汇总行的 `counts`，并据 `xffChainLength` 定好 `BOT_GUARD_TRUSTED_PROXY_HOPS`）；
+1. 从汇总行的 `counts` 加总各类请求的 IP 解析结果，`ip_unresolved / (ip_resolved + ip_unresolved)` < 1%。
 2. 至少一家真实搜索引擎出现 `se_verified`；
 3. `would_limit` / `would_deny` 的分布里没有明显的真人；
-4. **客户端 IP 来源核对**：Next 在 `x-forwarded-for` 缺失时会用 socket 地址补全该头（`next/dist/server/base-server.js` 约 :577），所以头缺失**不会**表现为 `ip_unresolved`，而是一条指向网关地址的长度 1 的链，门槛 1 因此不能证明 IP 来源正确。日志里实际存在的字段：逐条行有 `ip`（哈希）、`cls`、`rule`、`uaFamily`、`kind`、`mode`；汇总行有 `counts`、`xffChainLength` 分布（`0/1/2/3+`，仅统计 `ip_unresolved` 事件）、`suppressed`。**汇总行没有按 IP 哈希的分布**，需从 `would_limit` 等逐条行的 `ip` 字段统计（每个 `kind:类别` 每 5 分钟最多 20 行）。若**单个 `ip` 哈希占绝大多数**（所有用户落在同一个网关地址后），说明跳数或头部假设错误，**不得启用 `enforce`**。
+4. **客户端 IP 来源核对**。Next 在 `x-forwarded-for` 缺失时会用 socket 地址补全该头，解析结果可能是网关地址。将实际代理链与汇总的 `xffChainLength` 分布（`0/1/2/3+`）核对，再用不同已知出口发送少量受控请求，确认 `would_deny` 等逐条日志中的 `ip` 哈希可区分来源。逐条日志每个 `kind:类别` 每 5 分钟最多 20 行。若单个哈希明显主导，先排查共享出口或代理链，保持 `observe`。
 
 **注意**：
 

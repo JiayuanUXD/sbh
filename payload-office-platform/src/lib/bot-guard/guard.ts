@@ -117,20 +117,19 @@ export async function evaluateGuard(input: GuardInput, deps: GuardDeps): Promise
     const uaVerdict = classifyUserAgent(ua)
     uaFamily = uaVerdict.family
 
-    const resolved = resolveTrustedClientIp(input.headers.xForwardedFor, config.trustedProxyHops)
-    if (!resolved.ok) {
-      safeRecord({
-        kind: 'ip_unresolved',
-        mode: config.mode,
-        cls,
-        rule: resolved.reason,
-        ip: null,
-        uaFamily,
-        // 从原始头自行计算：hops 未配置时 chainLength 恒为 0，观察期要靠它选跳数
-        xffChainLength: chainLengthOf(input.headers.xForwardedFor),
-      })
-      return ALLOW
-    }
+    const xff = input.headers.xForwardedFor
+    const resolved = resolveTrustedClientIp(xff, config.trustedProxyHops)
+    safeRecord({
+      kind: resolved.ok ? 'ip_resolved' : 'ip_unresolved',
+      mode: config.mode,
+      cls,
+      rule: resolved.ok ? null : resolved.reason,
+      ip: null,
+      uaFamily,
+      // 未配置跳数时解析器不读取头部，仍记录链长度供观察期核对。
+      xffChainLength: chainLengthOf(xff),
+    })
+    if (!resolved.ok) return ALLOW
     const ip = resolved.ip
     if (config.allowIps.has(ip)) return ALLOW
 

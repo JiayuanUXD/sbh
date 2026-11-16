@@ -37,9 +37,9 @@
     }
 city_static_params_unavailable
   Generating static pages using 13 workers (0/21) ...
-  Generating static pages using 13 workers (5/21) 
-  Generating static pages using 13 workers (10/21) 
-  Generating static pages using 13 workers (15/21) 
+  Generating static pages using 13 workers (5/21)
+  Generating static pages using 13 workers (10/21)
+  Generating static pages using 13 workers (15/21)
 ✓ Generating static pages using 13 workers (21/21) in 199ms
   Finalizing page optimization ...
 
@@ -132,4 +132,3 @@ Route (app)
 ○  (Static)   prerendered as static content
 ●  (SSG)      prerendered as static HTML (uses generateStaticParams)
 ƒ  (Dynamic)  server-rendered on demand
-

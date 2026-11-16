@@ -37,6 +37,11 @@ describe('proxy matcher 契约', () => {
 })
 
 describe('proxy 接线顺序', () => {
+  it('Next 保留预取请求头供 proxy 归类', () => {
+    const nextConfig = readFileSync(join(__dirname, '../next.config.ts'), 'utf8')
+    expect(nextConfig).toMatch(/^\s*skipProxyUrlNormalize:\s*true,/m)
+  })
+
   it('proxy 声明为 async', () => {
     expect(source).toMatch(/export\s+async\s+function\s+proxy\s*\(/)
   })

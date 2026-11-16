@@ -161,11 +161,11 @@ matcher 需要扩展：现在是 `'/((?!api$|api/|_next/).*)'`，要额外覆盖
 
 ### 5.8 日志（不暴露 PII）
 
-对非放行决策与验真结果，每条一行结构化 JSON；另每 5 分钟一行按类别汇总的计数。字段：时间、`mode`、路径类别、决策（`would_limit` / `would_deny` / `limited` / `denied` / `se_verified` / `se_spoofed` / `ip_unresolved`）、命中规则、**IP 的截断 HMAC 哈希**、UA 的第一个产品令牌。**不记原始 IP、完整 UA、路径与 query**（`.agent/frontend.md`「咨询」：不在日志暴露 PII）。实施时对照 `src/lib/observability` 的既有写法。
+对非放行决策与验真结果，每条一行结构化 JSON；另每 5 分钟一行按类别汇总的计数。字段：时间、`mode`、路径类别、决策（`would_limit` / `would_deny` / `limited` / `denied` / `se_verified` / `se_spoofed` / `ip_resolved` / `ip_unresolved`）、命中规则、**IP 的截断 HMAC 哈希**、UA 的第一个产品令牌。**不记原始 IP、完整 UA、路径与 query**（`.agent/frontend.md`「咨询」：不在日志暴露 PII）。实施时对照 `src/lib/observability` 的既有写法。
 
 两条量控规则（`log.ts`）：
 - **逐条行数封顶**：每个 `kind:类别` 键在每个 5 分钟窗口内最多逐条写 20 行（`MAX_LINES_PER_KEY_PER_WINDOW`），超出的只计数，并在汇总行的 `suppressed` 里给出被压掉的条数，防止洪水式日志。
-- **`ip_unresolved` 与 `se_verified` 只计数、不逐条写**，量大且无需逐条定位；汇总行里的 `xffChainLength` 分布（`0 / 1 / 2 / 3+`）只统计 `ip_unresolved` 事件。
+- **IP 解析结果与 `se_verified` 只计入汇总**。每个进入守卫 IP 解析的请求计入一次 `ip_resolved` 或 `ip_unresolved`，汇总行的 `xffChainLength` 分布（`0 / 1 / 2 / 3+`）覆盖这两种结果。
 
 ### 5.9 开关与回滚
 
@@ -175,12 +175,13 @@ matcher 需要扩展：现在是 `'/((?!api$|api/|_next/).*)'`，要额外覆盖
 
 ## 6. 上线步骤
 
-1. 合并，生产以 `observe` 运行。
-2. 跑满至少 7 天，用 CloudRun 日志核对四项：`ip_unresolved` < 1%；至少一家真实引擎 `se_verified`；`would_limit` 的分布里没有明显的真人；**客户端 IP 来源核对**（见下）。同时据此校准 §5.5 的阈值，并确定 `BOT_GUARD_TRUSTED_PROXY_HOPS`。
-   **第 4 项：客户端 IP 来源核对**（Task 7 的发现）。Next 在 `x-forwarded-for` 缺失时会用 socket 地址补全该头（`next/dist/server/base-server.js` 约 :577），所以「头缺失」**不会**表现为 `ip_unresolved`——解析器看到的是一条长度为 1 的链，其内容是网关 / 代理的地址，而不是真实用户。因此 `ip_unresolved` < 1% 并不能证明 IP 来源正确。观察期要用日志里**实际存在**的字段核对：
-   - 逐条行（`would_limit` / `would_deny` / `limited` / `denied` / `se_spoofed`）带 `ip`（截断 HMAC 哈希）、`cls`、`rule`、`uaFamily`；汇总行带 `counts`、`xffChainLength` 分布、`suppressed`。**汇总行没有按 IP 哈希的分布**，需从逐条行的 `ip` 字段统计（每键每窗口最多 20 行，样本有限，够判断「是否被单一地址主导」）。
-   - 若 `would_limit` 等逐条行里**单个 `ip` 哈希占绝大多数**（所有用户落在同一个网关地址后面），说明跳数或头部假设错误；`xffChainLength` 分布（仅统计 `ip_unresolved` 事件）若长期恒为 `1` 且与预期跳数不符，同样可疑。出现这种情况**不得启用 `enforce`**，否则全站用户共用同一个限速桶。
-3. 在控制台设置 `BOT_GUARD_TRUSTED_PROXY_HOPS` 与 `BOT_GUARD_MODE=enforce`，盯 24 小时；异常即改回 `observe`。
+1. 合并后以 `observe` 运行。跳数未设置时先观察链长度，并结合网关转发规则和受控来源请求确认客户端 IP 的位置。确认后，在 `observe` 状态设置 `BOT_GUARD_TRUSTED_PROXY_HOPS`。
+2. 跳数生效后观察至少 7 天，用 CloudRun 日志核对四项。
+   - 按类别合计 `counts` 中的 IP 解析结果，`ip_unresolved / (ip_resolved + ip_unresolved)` 低于 1%。
+   - 至少一家真实搜索引擎出现 `se_verified`。
+   - `would_limit` / `would_deny` 中无明显真人误判，据此校准 §5.5 的阈值。
+   - 核对真实客户端 IP 来源。Next 会用 socket 地址补齐缺失的 `x-forwarded-for`，因此解析成功也可能取到网关地址。比对实际代理链与 `xffChainLength` 分布，用多个已知出口发送少量受控请求，核对 `would_deny` 等逐条日志中的 IP 哈希能区分来源。每个类别和事件组合每 5 分钟最多记录 20 行。若某个哈希占绝大多数，排查代理链和共享出口后再决定是否切换。
+3. 四项通过并经用户确认后，在控制台设置 `BOT_GUARD_MODE=enforce`，持续观察 24 小时。异常时改回 `observe`。
 
 ## 7. 测试
 
@@ -207,7 +208,7 @@ matcher 需要扩展：现在是 `'/((?!api$|api/|_next/).*)'`，要额外覆盖
 |---|---|
 | 企业共享出口 IP 误伤 | 阈值宽松、只回 429 + `Retry-After`（无永久封禁）、`BOT_GUARD_ALLOW_IPS`、先 `observe`；真实访问量很小（§2） |
 | 容器内 DNS 不可用导致真搜索引擎被限速 | 「未决」档放大 10 倍且不做 UA 拦截；切 `enforce` 前必须见到 `se_verified` |
-| 真实 IP 来源错误导致误判或失效 | 解析失败即豁免；门槛是 `ip_unresolved` < 1% 且链长度恒定 |
+| 真实 IP 来源错误导致误判或失效 | 解析失败即豁免；按 §6 核对解析失败率与客户端 IP 来源 |
 | 进程内计数只覆盖单实例，重启即清零 | 阈值按实例数折算；这是路线 A 的固有局限，由路线 B 补 |
 | Next dev 热更新重置模块状态 | 只影响本地，生产是单个 Node 进程；实施时在 `next start` 下验证模块级状态确实跨请求保留 |
 | 页码封顶影响已被索引的深页 | D5 单独确认；详情页仍可经站点地图被收录 |

@@ -4,7 +4,7 @@ import type { GuardClass } from './path-class'
 /**
  * 结构化日志与 5 分钟汇总。
  * 只记哈希后的 IP、UA 族名、类别、规则；绝不记原始 IP、完整 UA、路径、query。
- * `se_verified` 与 `ip_unresolved` 量大且无需逐条定位，只计入汇总。
+ * IP 解析结果和 `se_verified` 只计入汇总。
  * 日志写入失败必须被吞掉：日志不能影响请求。
  */
 export type GuardDecisionKind =
@@ -14,6 +14,7 @@ export type GuardDecisionKind =
   | 'denied'
   | 'se_verified'
   | 'se_spoofed'
+  | 'ip_resolved'
   | 'ip_unresolved'
   | 'guard_error'
 
@@ -30,6 +31,7 @@ export type GuardLogEvent = Readonly<{
 /** 只计数、不逐条写的决策。 */
 const COUNT_ONLY: ReadonlySet<GuardDecisionKind> = new Set<GuardDecisionKind>([
   'se_verified',
+  'ip_resolved',
   'ip_unresolved',
 ])
 
@@ -93,7 +95,7 @@ export function createGuardLogger(
       try {
         const key = `${event.kind}:${event.cls}`
         counts.set(key, (counts.get(key) ?? 0) + 1)
-        if (event.kind === 'ip_unresolved' && event.xffChainLength !== null) {
+        if ((event.kind === 'ip_resolved' || event.kind === 'ip_unresolved') && event.xffChainLength !== null) {
           chain[bucketOf(event.xffChainLength)] += 1
         }
         const lines = written.get(key) ?? 0

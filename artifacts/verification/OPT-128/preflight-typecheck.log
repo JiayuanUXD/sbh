@@ -2,4 +2,3 @@
 
 > payload-office-platform@0.1.0 typecheck /Users/liujiayuan/App/sbh/.claude/worktrees/opt-128-bot-guard-7c3a/payload-office-platform
 > tsc --noEmit --pretty false
-

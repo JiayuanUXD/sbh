@@ -241,7 +241,7 @@ describe('evaluateGuard 真人序列', () => {
 })
 
 describe('evaluateGuard + 真实 logger 集成', () => {
-  it('任何写出的行（含汇总）都不含原始 IP / UA / 路径 / query', async () => {
+  it('汇总提供已解析和未解析的请求数，日志省略 IP、完整 UA、路径和查询串', async () => {
     const lines: string[] = []
     let t = 0
     const logger = createGuardLogger({
@@ -270,6 +270,8 @@ describe('evaluateGuard + 真实 logger 集成', () => {
       { method: 'GET', pathname: path, headers: { userAgent: BROWSER_UA, xForwardedFor: 'bad:1', isPrefetch: false } },
       deps,
     )
+    await evaluateGuard(input({ xForwardedFor: `192.0.2.1, ${rawIp}` }), deps)
+    await evaluateGuard(input({ pathname: '/api/health' }), deps)
     t += 2000
     await evaluateGuard(
       { method: 'GET', pathname: path, headers: { userAgent: BROWSER_UA, xForwardedFor: 'bad:1', isPrefetch: false } },
@@ -281,12 +283,18 @@ describe('evaluateGuard + 真实 logger 集成', () => {
     expect(all).not.toContain('python-requests/2.0 AAAA')
     expect(all).not.toContain('secret-path')
     expect(all).not.toContain('?')
-    // eslint-disable-next-line no-control-regex
     expect(all).not.toMatch(/\\u0000|\\u001b/)
     for (const l of lines) {
       const row = JSON.parse(l)
       if (row.uaFamily !== undefined) expect(row.uaFamily).toMatch(/^[A-Za-z0-9._-]{1,24}$/)
     }
-    expect(lines.some((l) => JSON.parse(l).kind === 'summary')).toBe(true)
+    const summary = lines.map((line) => JSON.parse(line)).find((row) => row.kind === 'summary')
+    expect(summary.counts).toEqual({
+      'ip_resolved:page': 4,
+      'denied:page': 3,
+      'ip_unresolved:page': 2,
+    })
+    expect(summary.xffChainLength).toEqual({ '0': 0, '1': 5, '2': 1, '3+': 0 })
+    expect(lines.some((line) => JSON.parse(line).kind === 'ip_resolved')).toBe(false)
   })
 })

@@ -10,6 +10,12 @@
 
 **Spec:** `specs/work-items/OPT-128-anti-scraping-guard.md`（D5 页码封顶 50、D6 不动 robots.txt 已由用户 2026-11-16 随「定稿」确认）
 
+## 接续记录（2026-11-16）
+
+- 实施代码和首轮本地证据在 `feat/opt-128-bot-guard-7c3a`，原有 14 个本地提交截至 `d9a40c0c`。
+- 本轮补齐观察期所需的 IP 解析成功计数，并修复生产构建下 Next 自动预取被计入普通页面额度的问题。
+- 验证结果见 [本地验证证据](../../artifacts/verification/OPT-128/README.md)。Task 8 等待用户明确批准提交、推送、创建 PR 与合并上线。
+
 ## Global Constraints
 
 - 开关：`BOT_GUARD_MODE` 取 `off` / `observe` / `enforce`；非生产默认 `off`，生产（`NODE_ENV=production`）默认 `observe`；非法值回落默认。`observe` **绝不改变响应**。
@@ -17,7 +23,7 @@
 - 限速 Map 上限 `50_000` 个键，超限淘汰最久未用，内存有界。
 - 搜索引擎验真：通过缓存 24h、不匹配缓存 10min，LRU 上限 5000，DNS 超时 1s。三态：`verified` 豁免；`spoofed` 当普通客户端；`unresolved`（超时 / DNS 不可用 / 官方无 rDNS 方法的引擎）阈值放大 10 倍且**不做 UA 拦截**。永远不得仅凭 UA 放行。最终引擎表见 spec §5.4（搜狗、360 无官方 rDNS 方法，恒 `unresolved`；空 PTR 仅百度判 `unresolved`，谷歌 / 必应判 `spoofed`；IPv6 先规范化；候选 PTR 主机名最多 3 个）。
 - 脚本 UA 在 `enforce` 返回 `403`；超限返回 `429` + `Retry-After` + `Cache-Control: no-store`；响应体不暴露命中的规则。
-- 日志**不记**原始 IP、完整 UA、路径、query；IP 用截断 HMAC 哈希；每 5 分钟一行汇总计数；每个 `kind:类别` 每窗口最多逐条写 20 行，超出计入汇总的 `suppressed`；`ip_unresolved` / `se_verified` 只计数不逐条写。
+- 日志**不记**原始 IP、完整 UA、路径、query；IP 用截断 HMAC 哈希；每 5 分钟一行汇总计数；每个 `kind:类别` 每窗口最多逐条写 20 行，超出计入汇总的 `suppressed`；IP 解析结果和 `se_verified` 只计入汇总。
 - `proxy.ts` matcher 必须保持**不匹配** `/api/health`、`/admin`、`/_next`、`/favicon.ico`、`/robots.txt` 与其它 `/api/*`；仅新增 `/api/mini/v1/:path*` 与 `/api/media/file/:path*`。
 - `MAX_PUBLIC_PAGE = 50`，`pageSize` 固定 24；`parsePage` 保持宽容解析（10000），封顶在分页元数据层判定，**不得**直接改 10000。
 - **无数据库迁移、无新表**；不碰既有写接口的 PG 限流（`inquiry_rate_limit`）。
@@ -132,12 +138,12 @@
 **Interfaces:**
 - Consumes: Task 1 全部导出；Task 2 的 `SearchEngineVerdict`、`claimedEngine`。
 - Produces：
-  - `log.ts`：`type GuardDecisionKind = 'would_limit' | 'would_deny' | 'limited' | 'denied' | 'se_verified' | 'se_spoofed' | 'ip_unresolved' | 'guard_error'`；`type GuardLogEvent = Readonly<{ kind: GuardDecisionKind; mode: BotGuardMode; cls: GuardClass; rule: string | null; ip: string | null; uaFamily: string; xffChainLength: number | null }>`；`createGuardLogger(deps: Readonly<{ write(line: string): void; now(): number; hashIp(ip: string): string; summaryIntervalMs: number }>): Readonly<{ record(event: GuardLogEvent): void }>`
+  - `log.ts`：`type GuardDecisionKind = 'would_limit' | 'would_deny' | 'limited' | 'denied' | 'se_verified' | 'se_spoofed' | 'ip_resolved' | 'ip_unresolved' | 'guard_error'`；`type GuardLogEvent = Readonly<{ kind: GuardDecisionKind; mode: BotGuardMode; cls: GuardClass; rule: string | null; ip: string | null; uaFamily: string; xffChainLength: number | null }>`；`createGuardLogger(deps: Readonly<{ write(line: string): void; now(): number; hashIp(ip: string): string; summaryIntervalMs: number }>): Readonly<{ record(event: GuardLogEvent): void }>`
   - `guard.ts`：`type GuardInput = Readonly<{ method: string; pathname: string; headers: Readonly<{ userAgent: string | null; xForwardedFor: string | null; isPrefetch: boolean }> }>`；`type GuardAction = Readonly<{ action: 'allow' }> | Readonly<{ action: 'deny'; status: 403 }> | Readonly<{ action: 'limit'; status: 429; retryAfterSeconds: number }>`；`type GuardDeps = Readonly<{ config: BotGuardConfig; limiter: ReturnType<typeof createLimiter>; verifyEngine: (ip: string, ua: string | null) => Promise<SearchEngineVerdict>; logger: ReturnType<typeof createGuardLogger> }>`；`evaluateGuard(input: GuardInput, deps: GuardDeps): Promise<GuardAction>`
 
-- [ ] **Step 1: 写失败测试 `bot-guard-log.test.ts`**，断言：`would_limit`、`limited`、`denied`、`would_deny`、`se_spoofed` 各写一行 JSON，字段齐全；`ip` 在行里只以 `hashIp` 的结果出现，**整行不含原始 IP**；`uaFamily` 原样来自事件；**行内不含任何路径或 query 字段**；`se_verified` 与 `ip_unresolved` 只计数不逐条写；`now()` 前进满 `summaryIntervalMs` 后下一次 `record` 追加一行汇总 JSON（含各 `kind`×`cls` 计数，以及 `xffChainLength` 分布 `{ '0': n, '1': n, '2': n, '3+': n }`），汇总后计数清零；`write` 抛错不向外传播。
+- [ ] **Step 1: 写失败测试 `bot-guard-log.test.ts`**，断言：`would_limit`、`limited`、`denied`、`would_deny`、`se_spoofed` 各写一行 JSON，字段齐全；`ip` 在行里只以 `hashIp` 的结果出现，**整行不含原始 IP**；`uaFamily` 原样来自事件；**行内不含任何路径或 query 字段**；`se_verified` 与 IP 解析结果只计入汇总；`now()` 前进满 `summaryIntervalMs` 后下一次 `record` 追加一行汇总 JSON（含各 `kind`×`cls` 计数，以及 `xffChainLength` 分布 `{ '0': n, '1': n, '2': n, '3+': n }`），汇总后计数清零；`write` 抛错不向外传播。
 - [ ] **Step 2: 运行并确认 FAIL，再实现 `createGuardLogger`**；再运行预期 PASS。
-  - **最终实现备注**：每个 `kind:类别` 键每个窗口最多逐条写 20 行（`MAX_LINES_PER_KEY_PER_WINDOW`），超出只计数，汇总行带 `suppressed`；`ip_unresolved` / `se_verified` 只计数不逐条写。
+  - **最终实现备注**：每个 `kind:类别` 键每个窗口最多逐条写 20 行（`MAX_LINES_PER_KEY_PER_WINDOW`），超出只计数，汇总行带 `suppressed`；IP 解析结果和 `se_verified` 只计入汇总。
 - [ ] **Step 3: 写失败测试 `bot-guard-guard.test.ts`**（全注入 fake），断言：
   - 模式：`off` → `allow` 且 `limiter`、`verifyEngine`、`logger` 均未被调用；`observe` 下超限与脚本 UA → `allow` 且 logger 收到 `would_limit` / `would_deny`；`enforce` 下同样输入 → `limit(429, retryAfterSeconds≥1)` / `deny(403)`。
   - 分类：`exempt` 路径直接 `allow`；`mini-read` 在 `enforce` 下超限仍 `allow`（只记 `would_limit`）。
@@ -236,8 +242,8 @@
 **Files:** 无代码改动。
 
 - [ ] **Step 1: 合并前确认**：通知用户「合并 = 生产以 `observe` 上线」，得到明确同意再开 PR 与合并；PR 走 `.github/workflows/quality.yml` 全部通过。
-- [ ] **Step 2: 观察期 ≥ 7 天**：用 `queryLogs` 读 CloudRun 日志，核对三道门槛：`ip_unresolved` 占比 < 1% 且 `xffChainLength` 恒定（据此确定 `BOT_GUARD_TRUSTED_PROXY_HOPS`）；至少一家真实引擎出现 `se_verified`；`would_limit` 里无明显真人；并据此校准 `CLASS_LIMITS`（若调整，走一次小改动 + 测试）。
-- [ ] **Step 3: 切 `enforce`**：在控制台设置 `BOT_GUARD_TRUSTED_PROXY_HOPS` 与 `BOT_GUARD_MODE=enforce`，盯 24 小时；异常即改回 `observe`。
+- [ ] **Step 2: 观察期 ≥ 7 天**。依据实际网关和受控来源验证跳数，在 `observe` 下设置 `BOT_GUARD_TRUSTED_PROXY_HOPS`。生效后观察至少 7 天，按规格 §6 核对 IP 解析失败率、真实搜索引擎验真、真人误判和客户端 IP 来源。需要调整阈值时补测试。
+- [ ] **Step 3: 切 `enforce`**。四项通过并经用户确认后设置 `BOT_GUARD_MODE=enforce`，观察 24 小时，异常时改回 `observe`。
 - [ ] **Step 4: 记录结果**：在 `OPT-128-anti-scraping-guard.md` 末尾追加「上线记录」（日期、跳数取值、阈值是否调整、观察期结论）。
 
 ---
