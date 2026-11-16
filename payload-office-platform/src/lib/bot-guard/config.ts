@@ -19,9 +19,11 @@ export type BotGuardConfig = Readonly<{
 const PAGE_LIMITS: ClassLimits = { burst: 30, perMinute: 30, perHour: 600 }
 
 export const CLASS_LIMITS: Readonly<
-  Record<'page' | 'sitemap' | 'media' | 'mini-read', ClassLimits>
+  Record<'page' | 'page-prefetch' | 'sitemap' | 'media' | 'mini-read', ClassLimits>
 > = {
   page: PAGE_LIMITS,
+  // 预取头可伪造，故不豁免而是单独给一档较宽的额度（一个列表页会预取多个详情链接）
+  'page-prefetch': { burst: 60, perMinute: 120, perHour: 1200 },
   sitemap: { burst: 5, perMinute: 5, perHour: 12 },
   media: { burst: 100, perMinute: 300, perHour: 3000 },
   'mini-read': PAGE_LIMITS,
@@ -30,6 +32,7 @@ export const CLASS_LIMITS: Readonly<
 /** 真正会返回 403/429 的类别；mini-read 一期不在内。 */
 export const ENFORCED_CLASSES: ReadonlySet<GuardClass> = new Set<GuardClass>([
   'page',
+  'page-prefetch',
   'sitemap',
   'media',
 ])
@@ -67,6 +70,6 @@ export function readBotGuardConfig(
     mode: parseMode(env.BOT_GUARD_MODE, defaultMode),
     trustedProxyHops: parseHops(env.BOT_GUARD_TRUSTED_PROXY_HOPS),
     allowIps: parseIps(env.BOT_GUARD_ALLOW_IPS),
-    logKey: env.BOT_GUARD_LOG_KEY ?? env.PAYLOAD_SECRET ?? '',
+    logKey: env.BOT_GUARD_LOG_KEY || env.PAYLOAD_SECRET || '',
   }
 }

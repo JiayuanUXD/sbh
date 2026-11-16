@@ -17,18 +17,21 @@ export type TrustedIpResult =
 
 /**
  * 严格 IP：`isIP` 合法，且不是带点的 IPv6 写法（`::ffff:1.2.3.4` 等 IPv4 映射地址）。
- * 同一个客户端可能以 IPv4 / 映射两种写法出现，会让限速键分裂，故按未解析处理。
+ * 同一个客户端可能以 IPv4 / 映射两种写法出现，会让限速键分裂，故默认按未解析处理；
+ * 小程序侧历史上接受映射写法（失败即 503），传 allowIpv4Mapped 保持原行为。
  */
-function isStrictIp(value: string): boolean {
+function isStrictIp(value: string, allowIpv4Mapped: boolean): boolean {
   const family = isIP(value)
   if (family === 0) return false
-  return !(family === 6 && value.includes('.'))
+  return allowIpv4Mapped || !(family === 6 && value.includes('.'))
 }
 
 export function resolveTrustedClientIp(
   xForwardedFor: string | null,
   trustedProxyHops: number | null,
+  options?: Readonly<{ allowIpv4Mapped?: boolean }>,
 ): TrustedIpResult {
+  const allowIpv4Mapped = options?.allowIpv4Mapped === true
   if (
     trustedProxyHops === null ||
     !Number.isInteger(trustedProxyHops) ||
@@ -39,7 +42,7 @@ export function resolveTrustedClientIp(
   }
   if (!xForwardedFor) return { ok: false, reason: 'no_header', chainLength: 0 }
   const chain = xForwardedFor.split(',').map((value) => value.trim())
-  if (chain.length < trustedProxyHops || chain.some((value) => !isStrictIp(value))) {
+  if (chain.length < trustedProxyHops || chain.some((value) => !isStrictIp(value, allowIpv4Mapped))) {
     return { ok: false, reason: 'bad_chain', chainLength: chain.length }
   }
   return { ok: true, ip: chain[chain.length - trustedProxyHops]! }

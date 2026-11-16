@@ -1,9 +1,14 @@
 /**
  * 请求归类（纯函数）。判定顺序固定：
- * 方法 → 预取 → 站点地图 → 媒体 → mini 读 → 其余 /api、/_next、/admin、
+ * 方法 → 站点地图 → 媒体 → mini 读 → 其余 /api、/_next、/admin、
  * /robots.txt、/favicon.ico、带文件扩展名的末段 → 剩余为 page。
  */
-export type GuardClass = 'page' | 'sitemap' | 'media' | 'mini-read' | 'exempt'
+/**
+ * 预取头（next-router-prefetch / Purpose / Sec-Purpose）可被客户端伪造，
+ * 若直接豁免，任何爬虫加一个头就能绕过 page 限速。因此预取页面请求
+ * 归入独立的 page-prefetch 类别：额度比 page 宽，但同样受限。
+ */
+export type GuardClass = 'page' | 'page-prefetch' | 'sitemap' | 'media' | 'mini-read' | 'exempt'
 
 const MINI_READ_PATTERN = /^\/api\/mini\/v1\/(?:home|listings|buildings)(?:\/|$)/
 
@@ -13,8 +18,6 @@ export function classifyPath(
   const method = input.method.toUpperCase()
   // Server Action 的 POST、OPTIONS 等不计配额
   if (method !== 'GET' && method !== 'HEAD') return 'exempt'
-  // Next 预取是浏览器自发行为，不代表人在翻页
-  if (input.isPrefetch) return 'exempt'
 
   const { pathname } = input
   if (pathname === '/sitemap.xml' || pathname.startsWith('/sitemaps/')) return 'sitemap'
@@ -37,7 +40,7 @@ export function classifyPath(
   const lastSegment = pathname.slice(pathname.lastIndexOf('/') + 1)
   if (lastSegment.includes('.')) return 'exempt'
 
-  return 'page'
+  return input.isPrefetch ? 'page-prefetch' : 'page'
 }
 
 /** 是否预取请求：Next 路由预取、浏览器 purpose / sec-purpose 任一声明即算。 */

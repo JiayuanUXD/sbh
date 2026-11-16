@@ -42,6 +42,7 @@ describe('readBotGuardConfig', () => {
   it('logKey 回落顺序', () => {
     expect(readBotGuardConfig({ BOT_GUARD_LOG_KEY: 'a', PAYLOAD_SECRET: 'b' }).logKey).toBe('a')
     expect(readBotGuardConfig({ PAYLOAD_SECRET: 'b' }).logKey).toBe('b')
+    expect(readBotGuardConfig({ BOT_GUARD_LOG_KEY: '', PAYLOAD_SECRET: 'b' }).logKey).toBe('b')
     expect(readBotGuardConfig({}).logKey).toBe('')
   })
 })
@@ -51,11 +52,12 @@ describe('常量', () => {
     expect(CLASS_LIMITS.page).toEqual({ burst: 30, perMinute: 30, perHour: 600 })
     expect(CLASS_LIMITS.sitemap).toEqual({ burst: 5, perMinute: 5, perHour: 12 })
     expect(CLASS_LIMITS.media).toEqual({ burst: 100, perMinute: 300, perHour: 3000 })
+    expect(CLASS_LIMITS['page-prefetch']).toEqual({ burst: 60, perMinute: 120, perHour: 1200 })
     expect(CLASS_LIMITS['mini-read']).toEqual(CLASS_LIMITS.page)
     expect(LIMITER_MAX_KEYS).toBe(50_000)
     expect(UNRESOLVED_ENGINE_LIMIT_FACTOR).toBe(10)
   })
-  it('ENFORCED_CLASSES 不含 mini-read', () => {
-    expect([...ENFORCED_CLASSES].sort()).toEqual(['media', 'page', 'sitemap'])
+  it('ENFORCED_CLASSES 含 page-prefetch，不含 mini-read', () => {
+    expect([...ENFORCED_CLASSES].sort()).toEqual(['media', 'page', 'page-prefetch', 'sitemap'])
   })
 })

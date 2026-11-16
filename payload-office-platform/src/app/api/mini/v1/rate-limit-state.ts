@@ -28,7 +28,9 @@ export function resolveMiniTrustedClientIp(
   request: Request,
   trustedProxyHops: number,
 ): Readonly<{ ok: true; clientIp: string }> | Readonly<{ ok: false }> {
-  const result = resolveTrustedClientIp(request.headers.get('x-forwarded-for'), trustedProxyHops)
+  const result = resolveTrustedClientIp(request.headers.get('x-forwarded-for'), trustedProxyHops, {
+    allowIpv4Mapped: true,
+  })
   return result.ok ? { ok: true, clientIp: result.ip } : { ok: false }
 }
 

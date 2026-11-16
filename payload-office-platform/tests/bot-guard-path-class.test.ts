@@ -27,7 +27,13 @@ const cases: ReadonlyArray<[string, string, GuardClass, boolean?]> = [
   ['POST', '/listings', 'exempt'],
   ['HEAD', '/listings', 'page'],
   ['OPTIONS', '/listings', 'exempt'],
-  ['GET', '/listings', 'exempt', true],
+  ['GET', '/listings', 'page-prefetch', true],
+  ['HEAD', '/listings', 'page-prefetch', true],
+  ['POST', '/listings', 'exempt', true],
+  ['GET', '/api/health', 'exempt', true],
+  ['GET', '/_next/static/a.js', 'exempt', true],
+  ['GET', '/sitemap.xml', 'sitemap', true],
+  ['GET', '/api/media/file/a.jpg', 'media', true],
 ]
 
 describe('classifyPath', () => {

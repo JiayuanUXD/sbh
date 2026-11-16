@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { resolveMiniTrustedClientIp } from '@/app/api/mini/v1/rate-limit-state'
 import { resolveTrustedClientIp } from '@/lib/api/trusted-client-ip'
 
 describe('resolveTrustedClientIp', () => {
@@ -45,5 +46,29 @@ describe('resolveTrustedClientIp', () => {
 
   it('IPv6 合法', () => {
     expect(resolveTrustedClientIp('2001:db8::1', 1)).toEqual({ ok: true, ip: '2001:db8::1' })
+  })
+
+  it('默认严格：拒绝 ::ffff: 映射地址', () => {
+    expect(resolveTrustedClientIp('::ffff:1.2.3.4', 1)).toMatchObject({
+      ok: false,
+      reason: 'bad_chain',
+    })
+  })
+
+  it('allowIpv4Mapped:true 时接受映射地址', () => {
+    expect(resolveTrustedClientIp('::ffff:1.2.3.4', 1, { allowIpv4Mapped: true })).toEqual({
+      ok: true,
+      ip: '::ffff:1.2.3.4',
+    })
+    expect(resolveTrustedClientIp('abc', 1, { allowIpv4Mapped: true }).ok).toBe(false)
+  })
+})
+
+describe('resolveMiniTrustedClientIp', () => {
+  it('仍接受 ::ffff: 映射地址（保持 mini 既有行为）', () => {
+    const request = new Request('http://x.test/', {
+      headers: { 'x-forwarded-for': '::ffff:1.2.3.4' },
+    })
+    expect(resolveMiniTrustedClientIp(request, 1)).toEqual({ ok: true, clientIp: '::ffff:1.2.3.4' })
   })
 })
