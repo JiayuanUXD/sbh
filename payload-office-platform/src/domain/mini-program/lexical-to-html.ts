@@ -70,7 +70,22 @@ function renderInline(node: LexicalNode): string {
   return ''
 }
 
-function renderBlock(node: LexicalNode): string {
+export type SerializeLexicalOptions = {
+  /** 站点源站（例如 https://shangban.cc），用于将 Lexical upload 相对路径补全为小程序可访问的绝对地址 */
+  mediaOrigin?: string
+}
+
+function resolveUploadUrl(url: string, mediaOrigin?: string): string {
+  if (!url || !mediaOrigin) return url
+  if (!url.startsWith('/') || url.startsWith('//')) return url
+  try {
+    return new URL(url, mediaOrigin).toString()
+  } catch {
+    return url
+  }
+}
+
+function renderBlock(node: LexicalNode, options?: SerializeLexicalOptions): string {
   if (!node || typeof node !== 'object') return ''
 
   switch (node.type) {
@@ -92,7 +107,7 @@ function renderBlock(node: LexicalNode): string {
       const isOrdered = node.listType === 'number'
       const tag = isOrdered ? 'ol' : 'ul'
       const className = isOrdered ? 'mini-rich-ol' : 'mini-rich-ul'
-      const children = (node.children ?? []).map(renderBlock).join('')
+      const children = (node.children ?? []).map((child) => renderBlock(child, options)).join('')
       return `<${tag} class="${className}">${children}</${tag}>`
     }
 
@@ -112,8 +127,9 @@ function renderBlock(node: LexicalNode): string {
 
     case 'upload': {
       const val = node.value
-      const url = val?.url || val?.sizes?.card?.url || ''
-      if (!url) return ''
+      const rawUrl = val?.url || val?.sizes?.card?.url || ''
+      if (!rawUrl) return ''
+      const url = resolveUploadUrl(rawUrl, options?.mediaOrigin)
       const alt = escapeHtml(val?.alt || val?.filename || '图片')
       return `<img class="mini-rich-img" src="${escapeHtml(url)}" alt="${alt}" style="max-width:100%;height:auto;border-radius:12rpx;display:block;margin:24rpx 0;" />`
     }
@@ -121,7 +137,7 @@ function renderBlock(node: LexicalNode): string {
     default: {
       // 对未知节点，若包含合法 children 则透传渲染子项，否则彻底忽略
       if (Array.isArray(node.children)) {
-        return node.children.map(renderBlock).join('')
+        return node.children.map((child) => renderBlock(child, options)).join('')
       }
       return ''
     }
@@ -131,7 +147,10 @@ function renderBlock(node: LexicalNode): string {
 /**
  * 将 Payload 的 Lexical richText AST 安全序列化为小程序 <rich-text> 友好的标准 HTML
  */
-export function serializeLexicalToHtml(data: unknown): string {
+export function serializeLexicalToHtml(
+  data: unknown,
+  options?: SerializeLexicalOptions,
+): string {
   if (!data || typeof data !== 'object') return ''
 
   const record = data as { root?: LexicalNode; type?: string; children?: LexicalNode[] }
@@ -142,7 +161,7 @@ export function serializeLexicalToHtml(data: unknown): string {
   }
 
   return rootNode.children
-    .map(renderBlock)
+    .map((child) => renderBlock(child, options))
     .filter(Boolean)
     .join('')
 }

@@ -149,7 +149,9 @@ export async function getMiniArticleDetail(
     return { status: 'article_not_found' }
   }
 
-  const contentHtml = serializeLexicalToHtml(doc.content)
+  const contentHtml = serializeLexicalToHtml(doc.content, {
+    mediaOrigin: siteConfig.siteOrigin,
+  })
 
   const relatedBuildings: MiniRelatedBuilding[] = []
   if (Array.isArray(doc.relatedBuildings)) {

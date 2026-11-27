@@ -151,7 +151,7 @@ Page<HomePageData, HomePageMethods>({
     content: null,
     refreshError: false,
     keyword: '',
-    heroPosterUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop',
+    heroPosterUrl: '/assets/images/hero-poster.jpg',
     imageFailed: false,
     inquiryOpen: false,
     inquirySheet: closedInquirySheet(),

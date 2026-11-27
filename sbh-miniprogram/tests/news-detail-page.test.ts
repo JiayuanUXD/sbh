@@ -128,6 +128,8 @@ describe('资讯详情页合同与行为测试 (News Detail Page)', () => {
       expect(template).toContain('news-detail__date')
       expect(template).toContain('sbh-skeleton')
       expect(template).toContain('sbh-state')
+      expect(template).toContain('bindretry="handleRetry"')
+      expect(template).not.toContain('bindaction="handleRetry"')
     })
   })
 
