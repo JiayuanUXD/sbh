@@ -11,6 +11,7 @@ import { runDistributedRateLimit, type RateLimitConfig } from '@/lib/rate-limit-
 import { extractPgPool } from '@/lib/api/request-guards'
 import { isValidCnMobile, normalizePhone } from '@/domain/shared/phone'
 import { isUniqueViolation } from '@/domain/shared/unique-violation'
+import { storeAvatarMedia, type ValidatedAvatarFile } from '@/domain/media/avatar-upload'
 import { MemberHttpError } from './http'
 import { MEMBER_TOKEN_EXPIRATION_SECONDS } from './member-access'
 import { MEMBER_RATE_LIMITS, memberRatePruneRef, rateLimitKey } from './rate-limits'
@@ -407,6 +408,41 @@ export async function updateNickname(
     collection: 'members',
     id: member.id,
     data: { nickname: trimmed },
+    depth: 1,
+    overrideAccess: true,
+    context: { memberFlow: 'profile' },
+  })) as Member
+}
+
+export async function updateMemberAvatar(
+  deps: MemberServiceDeps,
+  member: Member,
+  file: ValidatedAvatarFile,
+): Promise<Member> {
+  const label = member.nickname?.trim() || member.username.slice(-4)
+  const stored = await storeAvatarMedia(deps.payload, file, {
+    prefix: `member-avatar-${member.id}`,
+    alt: `会员${label}头像`,
+  })
+  return (await deps.payload.update({
+    collection: 'members',
+    id: member.id,
+    data: { avatar: stored.id },
+    depth: 1,
+    overrideAccess: true,
+    context: { memberFlow: 'profile' },
+  })) as Member
+}
+
+export async function clearMemberAvatar(
+  deps: MemberServiceDeps,
+  member: Member,
+): Promise<Member> {
+  return (await deps.payload.update({
+    collection: 'members',
+    id: member.id,
+    data: { avatar: null },
+    depth: 1,
     overrideAccess: true,
     context: { memberFlow: 'profile' },
   })) as Member

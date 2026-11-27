@@ -4,7 +4,9 @@ import { pickServicePhone } from '@/lib/frontend/header-features'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { generatePhoneQrSvg, toSvgDataUri } from '@/lib/frontend/phone-qr'
 import type { ServicePhone } from '@/lib/frontend/service-phone'
+import type { MediaViewModel } from '@/domain/public-catalog/contracts'
 import { PhoneIcon } from '@/components/frontend/ui/icons'
+import AdvisorAvatar from '@/components/frontend/AdvisorAvatar'
 
 /**
  * 平台级顾问卡片
@@ -22,15 +24,27 @@ type AdvisorCardProps = Readonly<{
   cta?: ReactNode
   /** 显式指定客服电话；若未传则按 citySlug 或全站站点配置自动解析 */
   phone?: ServicePhone | null
+  /** 显式指定顾问头像；若未传则从站点设置读取（OPT-129） */
+  avatar?: MediaViewModel | null
   /** 城市 slug，用于按城市获取对应的覆盖客服电话 */
   citySlug?: string
 }>
 
-async function fetchServicePhone(citySlug?: string): Promise<ServicePhone | null> {
+async function fetchSiteSettingsSafe() {
   try {
-    const siteSettings = await getCachedSiteSettings()
-    const features = siteSettings.headerFeatures
-    if (!features.servicePhoneVisible) return null
+    return await getCachedSiteSettings()
+  } catch {
+    return null
+  }
+}
+
+async function resolvePhoneFromSettings(
+  siteSettings: Awaited<ReturnType<typeof fetchSiteSettingsSafe>>,
+  citySlug?: string,
+): Promise<ServicePhone | null> {
+  try {
+    const features = siteSettings?.headerFeatures
+    if (!features || !features.servicePhoneVisible) return null
 
     let cityOverride: string | null | undefined
     if (citySlug) {
@@ -43,16 +57,28 @@ async function fetchServicePhone(citySlug?: string): Promise<ServicePhone | null
   }
 }
 
-export default async function AdvisorCard({ cta, phone: phoneProp, citySlug }: AdvisorCardProps) {
-  const phone = phoneProp !== undefined ? phoneProp : await fetchServicePhone(citySlug)
+export default async function AdvisorCard({
+  cta,
+  phone: phoneProp,
+  avatar: avatarProp,
+  citySlug,
+}: AdvisorCardProps) {
+  const needsSiteSettings = phoneProp === undefined || avatarProp === undefined
+  const siteSettings = needsSiteSettings ? await fetchSiteSettingsSafe() : null
+  const phone =
+    phoneProp !== undefined
+      ? phoneProp
+      : await resolvePhoneFromSettings(siteSettings, citySlug)
+  const avatar = avatarProp !== undefined ? avatarProp : (siteSettings?.advisorAvatar ?? null)
+  const avatarSrc = avatar?.variants?.[0]?.src || avatar?.src || null
   const qrSvg = phone ? await generatePhoneQrSvg(phone.href) : null
   const qrDataUri = qrSvg ? toSvgDataUri(qrSvg) : null
 
   return (
     <section className="advisor-card" aria-label="平台顾问">
       <div className="advisor-card__avatar" aria-hidden="true">
-        {/* 平台虚拟身份，不展示个人顾问照片 */}
-        <span className="advisor-card__avatar-text">顾问</span>
+        {/* 平台虚拟身份，支持站点设置统一配置头像，留空回退「顾问」文字 */}
+        <AdvisorAvatar src={avatarSrc} />
       </div>
       <div className="advisor-card__body">
         <div className="advisor-card__name-row">

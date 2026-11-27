@@ -193,6 +193,12 @@ describe('Media 删除的公开缓存失效', () => {
     expect(invalidatedTags()).toContain(SITE_SETTINGS_TAG)
   })
 
+  it('站点设置的商办顾问头像引用这张图 → 失效全站的站点设置 tag', async () => {
+    await runDelete({ siteSettings: { advisorAvatar: MEDIA_ID } })
+
+    expect(invalidatedTags()).toContain(SITE_SETTINGS_TAG)
+  })
+
   it('站点设置的类型卡封面引用这张图 → 同样失效（数组里的引用不能漏）', async () => {
     await runDelete({
       siteSettings: { logo: null, typeCards: [{ slot: 'coworking', coverImage: MEDIA_ID }] },

@@ -23,6 +23,15 @@ export async function memberPost<T>(path: string, body: unknown, method: 'POST' 
   }
 }
 
+export async function memberUpload<T>(path: string, formData: FormData): Promise<ApiResult<T>> {
+  try {
+    const res = await fetch(path, { method: 'POST', credentials: 'same-origin', body: formData })
+    return await parse<T>(res)
+  } catch {
+    return { ok: false, code: 'NETWORK', message: '网络异常，请稍后重试' }
+  }
+}
+
 export async function memberGet<T>(path: string): Promise<ApiResult<T>> {
   try {
     const res = await fetch(path, { credentials: 'same-origin', cache: 'no-store' })

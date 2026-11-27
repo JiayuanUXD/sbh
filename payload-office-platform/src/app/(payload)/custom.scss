@@ -106,6 +106,60 @@ body.admin-nav-collapsed .admin-brand-title {
   }
 }
 
+.arco-user-avatar-field {
+  &__body {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 6px;
+  }
+
+  &__preview {
+    align-items: center;
+    background: var(--theme-elevation-100, #f2f3f5);
+    border: 1px solid var(--arco-admin-border);
+    border-radius: 50%;
+    color: var(--arco-admin-ink);
+    display: inline-flex;
+    flex: 0 0 64px;
+    font-size: 22px;
+    font-weight: 600;
+    height: 64px;
+    justify-content: center;
+    overflow: hidden;
+    width: 64px;
+  }
+
+  &__img {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  &__actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__input {
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    width: 1px;
+  }
+
+  &__error {
+    color: var(--theme-error-500, #f53f3f);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+}
+
 // ─── 右上角账号下拉菜单（替代 Payload 默认的左下角退出 + 右上角头像链接） ───
 // 用 absolute 定位脱离 actions 流，固定到 header 最右边
 // .app-header__actions-wrapper 默认 position:relative 会截断定位上下文，
@@ -153,6 +207,39 @@ body.admin-nav-collapsed .admin-brand-title {
 
   &__avatar {
     line-height: 1;
+  }
+
+  &__img {
+    border-radius: 50%;
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  &__header-row {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+  }
+
+  &__header-avatar {
+    align-items: center;
+    background: var(--theme-elevation-150, #f2f3f5);
+    border-radius: 50%;
+    color: var(--arco-admin-ink);
+    display: inline-flex;
+    flex: 0 0 36px;
+    font-size: 14px;
+    font-weight: 600;
+    height: 36px;
+    justify-content: center;
+    overflow: hidden;
+    width: 36px;
+  }
+
+  &__header-meta {
+    min-width: 0;
   }
 
   &__menu {

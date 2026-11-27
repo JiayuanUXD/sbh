@@ -110,4 +110,31 @@ describe('AdvisorCard 平台顾问卡片（OPT-127：电话高亮与右侧扫码
     expect(html).not.toContain('advisor-card__phone')
     expect(html).not.toContain('advisor-card__qr')
   })
+
+  it('站点设置配置了商办顾问头像时渲染头像图片，未配置时回退「顾问」文字图标', async () => {
+    mockGetSettings.mockResolvedValueOnce({
+      advisorAvatar: {
+        src: '/api/media/file/advisor.png',
+        alt: '商办顾问头像',
+        variants: [{ src: '/api/media/file/advisor-320.webp', width: 320 }],
+      },
+      headerFeatures: {
+        memberEntryVisible: false,
+        servicePhoneVisible: true,
+        servicePhone: { display: '400-820-1234', href: 'tel:4008201234' },
+      },
+    } as any)
+
+    const withAvatar = await AdvisorCard({})
+    const withHtml = renderToStaticMarkup(withAvatar!)
+    expect(withHtml).toContain('advisor-card__avatar-img')
+    expect(withHtml).toContain('src="/api/media/file/advisor-320.webp"')
+    expect(withHtml).not.toContain('advisor-card__avatar-text')
+
+    const withoutAvatar = await AdvisorCard({ avatar: null, phone: null })
+    const withoutHtml = renderToStaticMarkup(withoutAvatar!)
+    expect(withoutHtml).toContain('advisor-card__avatar-text')
+    expect(withoutHtml).toContain('顾问')
+    expect(withoutHtml).not.toContain('advisor-card__avatar-img')
+  })
 })

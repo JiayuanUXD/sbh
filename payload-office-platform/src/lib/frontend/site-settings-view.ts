@@ -35,6 +35,8 @@ export type SiteSettingsView = Readonly<{
     width?: number | null
     height?: number | null
   }> | null
+  /** 商办顾问平台虚拟头像（OPT-129）。留空回落为「顾问」文字图标。 */
+  advisorAvatar: MediaViewModel | null
   heroHeading: string
   slogan: string
   priceDisclaimer: string
@@ -86,6 +88,7 @@ export type SiteSettingsView = Readonly<{
 export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
   siteName: '商办租赁',
   logo: null,
+  advisorAvatar: null,
   heroHeading: '汇聚高端商务空间，赋能企业卓越成长',
   slogan: '覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策',
   priceDisclaimer: '页面价格为公开挂牌价，实际价格以顾问报价为准',

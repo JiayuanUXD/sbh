@@ -72,6 +72,16 @@ export const Members: CollectionConfig = {
     { name: 'email', type: 'email', admin: { hidden: true } },
     { name: 'nickname', label: '昵称', type: 'text', maxLength: 30 },
     {
+      name: 'avatar',
+      label: '头像',
+      type: 'upload',
+      relationTo: 'media',
+      filterOptions: () => ({ mimeType: { contains: 'image' } }),
+      admin: {
+        description: '会员头像。支持 JPG / PNG / WebP / GIF（≤ 2MB）；留空时展示昵称首字或手机尾号。',
+      },
+    },
+    {
       type: 'row',
       fields: [
         {

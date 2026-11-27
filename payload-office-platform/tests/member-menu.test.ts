@@ -6,7 +6,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => undefined
 
 import MemberMenu, { loginHref, memberDisplayName } from '@/components/frontend/member/MemberMenu'
 
-const member = { id: 1, phoneMasked: '138****1234', nickname: null, hasPassword: false, wechatBound: false, createdAt: '' }
+const member = { id: 1, phoneMasked: '138****1234', nickname: null, avatarUrl: null, hasPassword: false, wechatBound: false, createdAt: '' }
 
 describe('MemberMenu', () => {
   it('loginHref 带 returnTo', () => {
@@ -26,5 +26,13 @@ describe('MemberMenu', () => {
     for (const text of ['我的收藏', '账号设置', '退出登录']) expect(html).toContain(text)
     expect(html).toContain('/account/favorites')
     expect(html).not.toContain('/account/inquiries')
+  })
+  it('已上传头像时在桌面触发按钮与抽屉渲染头像图片', () => {
+    const withAvatar = { ...member, avatarUrl: '/api/media/file/avatar-thumb.webp' }
+    const desktopHtml = renderToStaticMarkup(React.createElement(MemberMenu, { member: withAvatar, pathname: '/', variant: 'desktop' }))
+    const drawerHtml = renderToStaticMarkup(React.createElement(MemberMenu, { member: withAvatar, pathname: '/', variant: 'drawer' }))
+    expect(desktopHtml).toContain('src="/api/media/file/avatar-thumb.webp"')
+    expect(desktopHtml).toContain('member-menu__avatar-img')
+    expect(drawerHtml).toContain('src="/api/media/file/avatar-thumb.webp"')
   })
 })
