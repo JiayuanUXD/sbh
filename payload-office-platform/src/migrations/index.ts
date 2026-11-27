@@ -100,6 +100,7 @@ import * as migration_20261102_090440_opt_126_search_miss_terms from './20261102
 import * as migration_20261102_090441_opt_126_grant_ops_search_miss_codes from './20261102_090441_opt_126_grant_ops_search_miss_codes';
 import * as migration_20261102_125315_search_aliases from './20261102_125315_search_aliases';
 import * as migration_20261102_125316_search_aliases_grant_ops_codes from './20261102_125316_search_aliases_grant_ops_codes';
+import * as migration_20261127_095748_opt_129_user_advisor_avatars from './20261127_095748_opt_129_user_advisor_avatars';
 
 export const migrations = [
   {
@@ -610,6 +611,11 @@ export const migrations = [
   {
     up: migration_20261102_125316_search_aliases_grant_ops_codes.up,
     down: migration_20261102_125316_search_aliases_grant_ops_codes.down,
-    name: '20261102_125316_search_aliases_grant_ops_codes'
+    name: '20261102_125316_search_aliases_grant_ops_codes',
+  },
+  {
+    up: migration_20261127_095748_opt_129_user_advisor_avatars.up,
+    down: migration_20261127_095748_opt_129_user_advisor_avatars.down,
+    name: '20261127_095748_opt_129_user_advisor_avatars'
   },
 ];

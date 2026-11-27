@@ -144,6 +144,7 @@ function toView(doc: SiteSetting | null): SiteSettingsView {
   return {
     siteName: text(doc.siteName, SITE_SETTINGS_FALLBACK.siteName),
     logo: mapLogo(doc.logo),
+    advisorAvatar: mapMedia(doc.advisorAvatar, '商办顾问头像') ?? null,
     heroHeading: text(doc.heroHeading, SITE_SETTINGS_FALLBACK.heroHeading),
     slogan: text(doc.slogan, SITE_SETTINGS_FALLBACK.slogan),
     priceDisclaimer: text(doc.priceDisclaimer, SITE_SETTINGS_FALLBACK.priceDisclaimer),

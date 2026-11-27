@@ -83,6 +83,19 @@ export const Users: CollectionConfig = {
         },
       },
     } as unknown as Field,
+    {
+      name: 'avatar',
+      label: '头像',
+      type: 'upload',
+      relationTo: 'media',
+      filterOptions: () => ({ mimeType: { contains: 'image' } }),
+      admin: {
+        description: '用户头像。支持 JPG / PNG / WebP / GIF（≤ 2MB）；留空时展示默认头像。',
+        components: {
+          Field: '/components/admin/UserAvatarField',
+        },
+      },
+    },
     // Email added by default by auth: true
     {
       type: 'row',

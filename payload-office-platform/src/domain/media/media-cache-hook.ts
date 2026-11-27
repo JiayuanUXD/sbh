@@ -274,6 +274,7 @@ async function addSiteSettingsTags(
   const typeCards = Array.isArray(settings.typeCards) ? settings.typeCards : []
   const referenced =
     referencesMedia(settings.logo, mediaId) ||
+    referencesMedia(settings.advisorAvatar, mediaId) ||
     typeCards.some((card) => isRecord(card) && referencesMedia(card.coverImage, mediaId))
 
   if (referenced) tags.add(SITE_SETTINGS_TAG)

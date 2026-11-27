@@ -16,6 +16,9 @@ export type MemberErrorCode =
   | 'FAVORITE_LIMIT'
   | 'RATE_LIMITED'
   | 'SMS_UNAVAILABLE'
+  | 'FILE_REQUIRED'
+  | 'FILE_TOO_LARGE'
+  | 'UNSUPPORTED_IMAGE'
 
 export const MEMBER_ERROR_STATUS: Record<MemberErrorCode, number> = {
   BAD_REQUEST: 400,
@@ -31,6 +34,9 @@ export const MEMBER_ERROR_STATUS: Record<MemberErrorCode, number> = {
   FAVORITE_LIMIT: 409,
   RATE_LIMITED: 429,
   SMS_UNAVAILABLE: 503,
+  FILE_REQUIRED: 400,
+  FILE_TOO_LARGE: 413,
+  UNSUPPORTED_IMAGE: 400,
 }
 
 export const MEMBER_ERROR_MESSAGE: Record<MemberErrorCode, string> = {
@@ -47,6 +53,9 @@ export const MEMBER_ERROR_MESSAGE: Record<MemberErrorCode, string> = {
   FAVORITE_LIMIT: '收藏已达上限 200 条，请先清理',
   RATE_LIMITED: '操作过于频繁，请稍后再试',
   SMS_UNAVAILABLE: '短信服务暂不可用，请稍后再试',
+  FILE_REQUIRED: '请选择需要上传的头像图片',
+  FILE_TOO_LARGE: '头像图片大小不能超过 2MB',
+  UNSUPPORTED_IMAGE: '仅支持有效的 JPG、PNG、WebP 或 GIF 图片',
 }
 
 export class MemberHttpError extends Error {

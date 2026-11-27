@@ -1,4 +1,5 @@
 import { default as default_827acf3e2f93407d227d925f16874b79 } from '../../../components/admin/UserPermissionPreview'
+import { default as default_08e4096744ed9cfb7752f10579d96b6b } from '../../../components/admin/UserAvatarField'
 import { default as default_bf427791821cb68b80fd6a2a599fcca7 } from '../../../components/admin/CopyRoleButton'
 import { default as default_a21b07bba5852f35566112350bac0679 } from '../../../components/admin/RoleRiskWarning'
 import { MediaGalleryListViewServer as MediaGalleryListViewServer_3e46141c3d0a2077c718b1f751552cf0 } from 'payload-media-gallery/rsc'
@@ -93,6 +94,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 /** @type import('payload').ImportMap */
 export const importMap = {
   "/components/admin/UserPermissionPreview#default": default_827acf3e2f93407d227d925f16874b79,
+  "/components/admin/UserAvatarField#default": default_08e4096744ed9cfb7752f10579d96b6b,
   "/components/admin/CopyRoleButton#default": default_bf427791821cb68b80fd6a2a599fcca7,
   "/components/admin/RoleRiskWarning#default": default_a21b07bba5852f35566112350bac0679,
   "payload-media-gallery/rsc#MediaGalleryListViewServer": MediaGalleryListViewServer_3e46141c3d0a2077c718b1f751552cf0,

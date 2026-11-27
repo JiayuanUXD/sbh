@@ -20,6 +20,24 @@ const ITEMS = [
   { href: '/account', label: '账号设置' },
 ] as const
 
+function MemberAvatarVisual({ member, sizeClass }: Readonly<{ member: MemberDto; sizeClass?: string }>) {
+  const [erroredUrl, setErroredUrl] = useState<string | null>(null)
+
+  if (member.avatarUrl && erroredUrl !== member.avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- 会员头像直接渲染媒体缩略图
+      <img
+        src={member.avatarUrl}
+        alt=""
+        className={['member-menu__avatar-img', sizeClass ?? ''].filter(Boolean).join(' ')}
+        aria-hidden="true"
+        onError={() => setErroredUrl(member.avatarUrl)}
+      />
+    )
+  }
+  return <span className={['member-menu__avatar', sizeClass ?? ''].filter(Boolean).join(' ')} aria-hidden="true">{memberDisplayName(member)}</span>
+}
+
 /**
  * 顶栏登录入口 / 会员菜单（OPT-088 §8.1）。
  * desktop：登录 pill 或头像触发器 + 下拉；drawer：抽屉顶部的平铺列表。
@@ -75,7 +93,12 @@ export default function MemberMenu({ member: initialMember, pathname, variant, o
   if (variant === 'drawer') {
     return (
       <div className="member-drawer" aria-label="账号">
-        <p className="member-drawer__phone">{member.phoneMasked}</p>
+        <div className="member-drawer__profile">
+          <span className="member-drawer__avatar">
+            <MemberAvatarVisual member={member} />
+          </span>
+          <p className="member-drawer__phone">{member.phoneMasked}</p>
+        </div>
         {items}
         {logoutButton}
       </div>
@@ -94,7 +117,7 @@ export default function MemberMenu({ member: initialMember, pathname, variant, o
         title={member.phoneMasked}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="member-menu__avatar" aria-hidden="true">{memberDisplayName(member)}</span>
+        <MemberAvatarVisual member={member} />
       </button>
       {open ? (
         <div className="member-menu__panel" role="menu">

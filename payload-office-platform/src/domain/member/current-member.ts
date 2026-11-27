@@ -22,5 +22,13 @@ export const getCurrentMember = cache(async (): Promise<Member | null> => {
 
 export const getCurrentMemberDto = cache(async (): Promise<MemberDto | null> => {
   const member = await getCurrentMember()
-  return member ? toMemberDto(member) : null
+  if (!member) return null
+  if (typeof member.avatar === 'number') {
+    const payload = await getPayload({ config })
+    const media = await payload
+      .findByID({ collection: 'media', id: member.avatar, depth: 0, overrideAccess: true })
+      .catch(() => null)
+    return toMemberDto({ ...member, avatar: media })
+  }
+  return toMemberDto(member)
 })

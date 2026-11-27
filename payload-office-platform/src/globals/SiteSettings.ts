@@ -110,6 +110,17 @@ export const SiteSettings: GlobalConfig = {
               admin: { description: '留空则回落为「站点名称」的文字标识（当前线上形态）。' },
             },
             {
+              name: 'advisorAvatar',
+              label: '商办顾问头像',
+              type: 'upload',
+              relationTo: 'media',
+              filterOptions: () => ({ mimeType: { contains: 'image' } }),
+              admin: {
+                description:
+                  '前台房源/楼盘详情页「商办顾问」卡片的圆形头像。留空则回落为默认的「顾问」文字图标。',
+              },
+            },
+            {
               name: 'heroHeading',
               label: '首屏主标题',
               type: 'text',
