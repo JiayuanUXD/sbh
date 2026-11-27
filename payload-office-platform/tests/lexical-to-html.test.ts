@@ -176,6 +176,44 @@ describe('Lexical AST 到标准 HTML 转换引擎', () => {
     expect(html).toContain('style="max-width:100%;height:auto;border-radius:12rpx;display:block;margin:24rpx 0;"')
   })
 
+  it('传参 mediaOrigin 时将 upload 相对路径补全为绝对地址并保留已有绝对地址', () => {
+    const ast = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'upload',
+            value: {
+              url: '/api/media/file/096A4390-HDR-1.jpg?prefix=media',
+              alt: '实景主图',
+            },
+          },
+          {
+            type: 'upload',
+            value: {
+              sizes: {
+                card: { url: '/api/media/file/card.jpg?prefix=media' },
+              },
+              filename: 'fallback.jpg',
+            },
+          },
+          {
+            type: 'upload',
+            value: {
+              url: 'https://cdn.example.com/already-absolute.jpg',
+              alt: '外链图片',
+            },
+          },
+        ],
+      },
+    }
+
+    const html = serializeLexicalToHtml(ast, { mediaOrigin: 'https://shangban.cc' })
+    expect(html).toContain('src="https://shangban.cc/api/media/file/096A4390-HDR-1.jpg?prefix=media"')
+    expect(html).toContain('src="https://shangban.cc/api/media/file/card.jpg?prefix=media"')
+    expect(html).toContain('src="https://cdn.example.com/already-absolute.jpg"')
+  })
+
   it('严格防御 XSS 注入与过滤未知危险标签', () => {
     const ast = {
       root: {

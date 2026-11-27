@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -170,5 +170,17 @@ describe('首页页面合同', () => {
     expect(mockServer).toMatch(/pageSize:\s*24/)
     expect(mockServer).toMatch(/grade:\s*'grade-a'/)
     expect(mockServer).not.toMatch(/grade:\s*'[ABC]'/)
+  })
+
+  it('首页头图使用小程序本地自托管资源而非外部 Unsplash 链接', () => {
+    const source = readPageFile('index.ts')
+    const match = /heroPosterUrl:\s*'([^']+)'/.exec(source)
+
+    expect(match?.[1]).toBeTruthy()
+    const posterPath = match![1]
+    expect(posterPath).not.toContain('unsplash.com')
+    expect(posterPath).not.toMatch(/^https?:\/\//)
+    expect(posterPath.startsWith('/assets/')).toBe(true)
+    expect(existsSync(resolve(projectRoot, 'miniprogram', posterPath.slice(1)))).toBe(true)
   })
 })

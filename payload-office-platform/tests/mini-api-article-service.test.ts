@@ -177,6 +177,13 @@ describe('article-service 测试', () => {
                     type: 'paragraph',
                     children: [{ type: 'text', text: '正文第一段' }],
                   },
+                  {
+                    type: 'upload',
+                    value: {
+                      url: '/api/media/file/tower-interior.jpg?prefix=media',
+                      alt: '大厦大堂',
+                    },
+                  },
                 ],
               },
             },
@@ -200,6 +207,9 @@ describe('article-service 测试', () => {
         expect(res.snapshot.data.title).toBe('上海中心大厦入驻指南')
         expect(res.snapshot.data.categoryLabel).toBe('选址指南')
         expect(res.snapshot.data.contentHtml).toContain('<p class="mini-rich-p">正文第一段</p>')
+        expect(res.snapshot.data.contentHtml).toContain(
+          'src="https://example.com/api/media/file/tower-interior.jpg?prefix=media"',
+        )
         expect(res.snapshot.data.relatedBuildings).toEqual([
           {
             id: '501',

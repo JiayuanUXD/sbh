@@ -156,6 +156,8 @@ describe('资讯列表页合同与行为测试 (News Page)', () => {
       expect(template).toContain('data-slug=')
       expect(template).toContain('sbh-skeleton')
       expect(template).toContain('sbh-state')
+      expect(template).toContain('bindretry="handleRetry"')
+      expect(template).not.toContain('bindaction="handleRetry"')
     })
   })
 
